@@ -28,7 +28,7 @@ export const welfareAcquisitionGroups = [
 
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
-export const OPERATOR_DATASET_SCHEMA_VERSION = 5 as const
+export const OPERATOR_DATASET_SCHEMA_VERSION = 6 as const
 
 export type OperatorClass = (typeof operatorClasses)[number]
 export type GameLocale = (typeof gameLocales)[number]
@@ -57,9 +57,15 @@ export interface OperatorSubclass {
 }
 
 export interface OperatorFaction {
-  /** Canonical main power/faction ID; null only when upstream has none. */
+  /** Explicit source hierarchy, normalized from mainPower when present. */
+  nationId: string | null
+  groupId: string | null
+  teamId: string | null
+  /** Nation -> group -> team primary chain, with absent levels omitted. */
+  primary: string[]
+  /** Most-specific ID in the primary chain; null only when upstream has none. */
   main: string | null
-  /** All known nation/group/team affiliations, including main when present. */
+  /** All known nation/group/team affiliations, including alternate source references. */
   affiliations: string[]
 }
 
@@ -108,7 +114,7 @@ export interface OperatorDataset {
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
   generatedAt: string | null
   sources: OperatorDatasetSources
-  /** Stable class ID -> current display label. Defaults to English in schema-v5 data. */
+  /** Stable class ID -> current display label. Defaults to English in schema-v6 data. */
   classLabels?: Record<OperatorClass, string>
   /** Stable faction/power ID -> current display label. Defaults to English in the stored dataset. */
   factionLabels: Record<string, string>

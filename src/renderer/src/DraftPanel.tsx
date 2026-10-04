@@ -99,18 +99,24 @@ export default function DraftPanel({
       {!state ? (
         <div className="draft-empty-state">
           <strong>
-            {operators.length >= 3 ? 'Ready to draft' : 'Not enough eligible operators'}
+            {!ready
+              ? 'Loading operator data…'
+              : operators.length >= 3
+                ? 'Ready to draft'
+                : 'Not enough eligible operators'}
           </strong>
           <p>
-            {operators.length >= 3
-              ? [
-                  'Drafts use the current eligible Global Pool and the configured squad size.',
-                  'Each round offers exactly three distinct operators; pick one to keep permanently.',
-                ].join(' ')
-              : [
-                  'A Draft offer requires three distinct eligible operators.',
-                  'Adjust the current pool or eligibility filters before starting.',
-                ].join(' ')}
+            {!ready
+              ? 'Draft will be available after the operator dataset finishes loading.'
+              : operators.length >= 3
+                ? [
+                    'Drafts use the current eligible Global Pool and the configured squad size.',
+                    'Each round offers exactly three distinct operators; pick one to keep permanently.',
+                  ].join(' ')
+                : [
+                    'A Draft offer requires three distinct eligible operators.',
+                    'Adjust the current pool or eligibility filters before starting.',
+                  ].join(' ')}
           </p>
         </div>
       ) : state.status === 'complete' ? (

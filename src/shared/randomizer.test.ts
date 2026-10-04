@@ -314,6 +314,7 @@ describe('constraints', () => {
     expect(first.solved).toBe(true)
     expect(first.stats.visits).toBeGreaterThan(0)
     expect(first.stats.exhausted).toBe(false)
+    expect(first.stats.prunedBranches).toBeGreaterThanOrEqual(0)
     expect(second.stats.visits).toBe(first.stats.visits)
     expect(second.stats.backtracks).toBe(first.stats.backtracks)
   })

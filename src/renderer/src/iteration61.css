@@ -1,0 +1,72 @@
+:root {
+  --app-accent: #f5ad2f;
+  --rarity-6: #f28c28;
+  --rarity-5: #f0d547;
+  --rarity-4: #a66ddd;
+  --rarity-3: #7fd7ff;
+  --rarity-2: #6dc66a;
+  --rarity-1: #979797;
+}
+
+[data-rarity='6'] { --rarity-border-color: var(--rarity-6); --rarity-color: var(--rarity-6); }
+[data-rarity='5'] { --rarity-border-color: var(--rarity-5); --rarity-color: var(--rarity-5); }
+[data-rarity='4'] { --rarity-border-color: var(--rarity-4); --rarity-color: var(--rarity-4); }
+[data-rarity='3'] { --rarity-border-color: var(--rarity-3); --rarity-color: var(--rarity-3); }
+[data-rarity='2'] { --rarity-border-color: var(--rarity-2); --rarity-color: var(--rarity-2); }
+[data-rarity='1'] { --rarity-border-color: var(--rarity-1); --rarity-color: var(--rarity-1); }
+
+.operator-card[data-rarity],
+.pool-entry[data-rarity],
+.release-representative[data-rarity] {
+  border-color: var(--rarity-border-color, rgba(255, 255, 255, 0.16));
+}
+
+.squad-filter-disclosure {
+  margin-top: 1.1rem;
+  overflow: clip;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.squad-filter-disclosure > summary {
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+.squad-filter-disclosure[open] > summary {
+  border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+}
+
+.squad-filter-content {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.squad-grid .squad-slot,
+.squad-grid .squad-slot .operator-card,
+.squad-grid .slot-config-card,
+.squad-grid .disabled-slot {
+  aspect-ratio: 1 / 2;
+  min-height: 0;
+}
+
+.squad-grid .squad-slot .operator-card,
+.squad-grid .slot-config-card,
+.squad-grid .disabled-slot {
+  width: 100%;
+  height: 100%;
+}
+
+.squad-grid .operator-card--portrait .operator-card__art img.is-portrait {
+  object-fit: cover;
+  object-position: top center;
+}
+
+/* Keep a normal panel gap between Release and the Kernel/Alter filter stack. */
+.operators-panel > .release-group + .i6-filter-layout {
+  margin-top: 1rem;
+}

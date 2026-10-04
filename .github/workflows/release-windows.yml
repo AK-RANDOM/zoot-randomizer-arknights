@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 24
-      - run: npm install
+      - run: npm ci
       - run: npm run data:update:images
       - run: npm run data:validate
       - run: npm run typecheck

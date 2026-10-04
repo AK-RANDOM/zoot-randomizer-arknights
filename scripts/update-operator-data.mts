@@ -208,6 +208,7 @@ async function main(): Promise<void> {
 
   if (unchanged && !force && !downloadImages) {
     console.log('Operator dataset is already current.')
+    await downloadClassIcons()
     return
   }
 
@@ -280,11 +281,10 @@ async function main(): Promise<void> {
     console.log(`Wrote ${dataset.operators.length} operators to ${outputFile}`)
   }
 
+  await downloadClassIcons()
+
   if (downloadImages) {
-    await Promise.all([
-      downloadAvatars(dataset.operators.map((operator: { id: string }) => operator.id)),
-      downloadClassIcons(),
-    ])
+    await downloadAvatars(dataset.operators.map((operator: { id: string }) => operator.id))
   }
 }
 

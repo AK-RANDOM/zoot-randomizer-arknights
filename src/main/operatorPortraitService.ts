@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { join } from 'node:path'
-import type { OperatorUpdateResult } from '../shared/desktop'
+import type { PortraitSyncProgress } from '../shared/desktop'
 import {
   PORTRAIT_SOURCE,
   portraitFilename,
@@ -11,7 +11,7 @@ import {
   type PortraitPhase,
   type PromotionArt,
 } from '../shared/portraits'
-import { getOperatorDataset, updateOperatorData } from './operatorDataService'
+import { getOperatorDataset } from './operatorDataService'
 
 const portraitCache = new Map<string, string | null>()
 
@@ -35,22 +35,28 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-function localPortraitCandidates(operatorId: string, phase: PortraitPhase): string[] {
+function localPortraitCandidates(
+  operatorId: string,
+  phase: PortraitPhase,
+): string[] {
   const filename = portraitFilename(operatorId, phase)
-  return [
-    join(downloadedPortraitRoot(), filename),
-    join(bundledPortraitRoot(), filename),
-  ]
+  return [join(downloadedPortraitRoot(), filename), join(bundledPortraitRoot(), filename)]
 }
 
-async function hasLocalPortrait(operatorId: string, phase: PortraitPhase): Promise<boolean> {
+async function hasLocalPortrait(
+  operatorId: string,
+  phase: PortraitPhase,
+): Promise<boolean> {
   for (const path of localPortraitCandidates(operatorId, phase)) {
     if (await exists(path)) return true
   }
   return false
 }
 
-async function readPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null> {
+async function readPortrait(
+  operatorId: string,
+  promotionArt: PromotionArt,
+): Promise<string | null> {
   for (const phase of portraitResolutionOrder(operatorId, promotionArt)) {
     for (const path of localPortraitCandidates(operatorId, phase)) {
       if (!(await exists(path))) continue
@@ -86,14 +92,18 @@ export async function getOperatorPortrait(
 async function downloadPortraitVariant(
   operatorId: string,
   phase: PortraitPhase,
+  signal?: AbortSignal,
 ): Promise<boolean> {
   if (await hasLocalPortrait(operatorId, phase)) return true
+  if (signal?.aborted) throw new DOMException('Portrait sync cancelled.', 'AbortError')
+
+  const filename = portraitFilename(operatorId, phase)
+  const timeout = AbortSignal.timeout(60_000)
 
   try {
-    const filename = portraitFilename(operatorId, phase)
     const response = await fetch(`${PORTRAIT_SOURCE.baseUrl}/${filename}`, {
       headers: { 'User-Agent': 'arknights-randomizer' },
-      signal: AbortSignal.timeout(60_000),
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     })
     if (!response.ok) return false
 
@@ -103,22 +113,41 @@ async function downloadPortraitVariant(
       Buffer.from(await response.arrayBuffer()),
     )
     return true
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error
     return false
   }
 }
 
-export async function syncOperatorPortraits(operatorIds: readonly string[]): Promise<string[]> {
+export async function syncOperatorPortraits(
+  operatorIds: readonly string[],
+  options: {
+    signal?: AbortSignal
+    onProgress?: (progress: PortraitSyncProgress) => void
+  } = {},
+): Promise<string[]> {
   const warnings: string[] = []
   const batchSize = 6
+  const total = operatorIds.length
+  let completed = 0
+
+  options.onProgress?.({
+    status: 'downloading',
+    completed,
+    total,
+    message: 'Downloading operator artwork…',
+  })
 
   for (let index = 0; index < operatorIds.length; index += batchSize) {
+    if (options.signal?.aborted) {
+      throw new DOMException('Portrait sync cancelled.', 'AbortError')
+    }
     const batch = operatorIds.slice(index, index + batchSize)
     const results = await Promise.all(
       batch.map(async (operatorId) => {
         const [e1, e2] = await Promise.all([
-          downloadPortraitVariant(operatorId, 1),
-          downloadPortraitVariant(operatorId, 2),
+          downloadPortraitVariant(operatorId, 1, options.signal),
+          downloadPortraitVariant(operatorId, 2, options.signal),
         ])
         return { operatorId, e1, e2 }
       }),
@@ -130,20 +159,17 @@ export async function syncOperatorPortraits(operatorIds: readonly string[]): Pro
       if (!e1Usable) warnings.push(`No E1 portrait found for ${result.operatorId}.`)
       if (!e2Usable) warnings.push(`No E2/E1 portrait found for ${result.operatorId}.`)
     }
+
+    completed += batch.length
+    portraitCache.clear()
+    options.onProgress?.({
+      status: 'downloading',
+      completed,
+      total,
+      message: `Downloading operator artwork… ${completed}/${total}`,
+    })
   }
 
   portraitCache.clear()
   return warnings
-}
-
-export async function updateOperatorDataWithPortraits(): Promise<OperatorUpdateResult> {
-  const result = await updateOperatorData()
-  const portraitWarnings = await syncOperatorPortraits(
-    result.dataset.operators.map((operator) => operator.id),
-  )
-
-  return {
-    ...result,
-    warnings: [...result.warnings, ...portraitWarnings],
-  }
 }

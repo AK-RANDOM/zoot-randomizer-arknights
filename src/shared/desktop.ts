@@ -22,6 +22,15 @@ export interface OperatorUpdateResult {
   warnings: string[]
 }
 
+export type PortraitSyncStatus = 'idle' | 'downloading' | 'complete' | 'cancelled' | 'failed'
+
+export interface PortraitSyncProgress {
+  status: PortraitSyncStatus
+  completed: number
+  total: number
+  message: string
+}
+
 export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
@@ -31,4 +40,8 @@ export interface DesktopApi {
   getClassIcon(operatorClass: OperatorClass): Promise<string | null>
   checkOperatorUpdates(): Promise<OperatorUpdateCheck>
   updateOperatorData(): Promise<OperatorUpdateResult>
+  getPortraitSyncProgress(): Promise<PortraitSyncProgress>
+  startPortraitSync(): Promise<PortraitSyncProgress>
+  cancelPortraitSync(): Promise<PortraitSyncProgress>
+  onPortraitSyncProgress(listener: (progress: PortraitSyncProgress) => void): () => void
 }

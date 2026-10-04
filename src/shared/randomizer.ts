@@ -389,6 +389,7 @@ function solveAssignment(
   constraints: RandomizerConstraints,
   random: RandomSource,
   slotSelection: 'static' | 'dynamic' = 'static',
+  candidateOrdering: 'random' | 'deficit' = 'random',
 ): SearchResult {
   const target = constraints.squadSize
   const bounds = prepareBounds(constraints)
@@ -484,6 +485,45 @@ function solveAssignment(
     )
   }
 
+  const deficitScore = (candidate: PreparedCandidate): number => {
+    const operator = candidate.operator
+    let score = 0
+    if (countFor(classCounts, operator.class) < bounds.class[operator.class].min) {
+      score += 1
+    }
+    if (countFor(rarityCounts, operator.rarity) < bounds.rarity[operator.rarity].min) {
+      score += 1
+    }
+    for (const group of candidate.rarityGroups) {
+      if (
+        countFor(rarityGroupCounts, group) <
+        bounds.rarityGroups[group].min
+      ) {
+        score += 1
+      }
+    }
+    return score
+  }
+
+  const orderedCandidatesForSlot = (
+    slotIndex: number,
+  ): readonly PreparedCandidate[] => {
+    const candidates = randomizedCandidates[slotIndex]
+    if (candidateOrdering === 'random') return candidates
+
+    return candidates
+      .map((candidate, randomIndex) => ({
+        candidate,
+        randomIndex,
+        score: deficitScore(candidate),
+      }))
+      .sort(
+        (left, right) =>
+          right.score - left.score || left.randomIndex - right.randomIndex,
+      )
+      .map(({ candidate }) => candidate)
+  }
+
   function selectMostConstrainedSlot(depth: number): void {
     let bestPosition = depth
     let bestViableCount = Number.POSITIVE_INFINITY
@@ -542,7 +582,7 @@ function solveAssignment(
     }
 
     const slotIndex = slotOrder[depth]
-    for (const candidate of randomizedCandidates[slotIndex]) {
+    for (const candidate of orderedCandidatesForSlot(slotIndex)) {
       if (!candidateIsViable(candidate)) continue
 
       assignment[slotIndex] = candidate.operator
@@ -657,6 +697,7 @@ export function measureConstraintSearch(
   constraints: RandomizerConstraints,
   random: RandomSource = validationRandom(),
   slotSelection: 'static' | 'dynamic' = 'static',
+  candidateOrdering: 'random' | 'deficit' = 'random',
 ): { solved: boolean; stats: SolverStats } {
   const shapeErrors = validateConstraintShape(constraints)
   if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))
@@ -675,7 +716,13 @@ export function measureConstraintSearch(
     }
   }
 
-  const result = solveAssignment(eligible, constraints, random, slotSelection)
+  const result = solveAssignment(
+    eligible,
+    constraints,
+    random,
+    slotSelection,
+    candidateOrdering,
+  )
   return { solved: result.squad !== null, stats: result.stats }
 }
 

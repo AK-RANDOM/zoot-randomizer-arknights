@@ -591,6 +591,26 @@ export function validateConstraints(
   return { valid: errors.length === 0, errors }
 }
 
+export function measureConstraintSearch(
+  operators: Operator[],
+  constraints: RandomizerConstraints,
+  random: RandomSource = validationRandom(),
+): { solved: boolean; stats: SolverStats } {
+  const shapeErrors = validateConstraintShape(constraints)
+  if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))
+
+  const eligible = filterEligibleOperators(operators, constraints)
+  if (eligible.length < constraints.squadSize) {
+    return {
+      solved: false,
+      stats: { visits: 0, backtracks: 0, exhausted: false, elapsedMs: 0 },
+    }
+  }
+
+  const result = solveAssignment(eligible, constraints, random)
+  return { solved: result.squad !== null, stats: result.stats }
+}
+
 export function generateSquadWithStats(
   operators: Operator[],
   constraints: RandomizerConstraints,

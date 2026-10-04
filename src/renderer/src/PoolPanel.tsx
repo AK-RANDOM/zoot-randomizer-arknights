@@ -17,7 +17,7 @@ type PoolStateFilter = 'all' | 'included' | 'excluded'
 type PoolGroupBy = 'none' | 'class' | 'rarity' | 'releaseYear' | 'mainFaction' | 'acquisition'
 type PoolOperatorSort = 'default' | 'alphabetical' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
-type PoolGroup = readonly [string, Operator[]]
+type PoolGroup = readonly [string, readonly Operator[]]
 
 function PoolPortrait({ operator, artwork }: { operator: Operator; artwork: PromotionArt }): React.JSX.Element {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -109,7 +109,7 @@ export function comparePoolOperators(
 
 function groupOrderValue(
   label: string,
-  operators: Operator[],
+  operators: readonly Operator[],
   groupBy: PoolGroupBy,
   constraints: RandomizerConstraints,
 ): number | string {

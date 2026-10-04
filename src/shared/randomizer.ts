@@ -42,6 +42,18 @@ interface SearchResult {
   stats: SolverStats
 }
 
+interface PreparedCandidate {
+  operator: Operator
+  exclusivityKeys: readonly string[]
+  rarityGroups: readonly RarityGroupKey[]
+}
+
+interface PreparedBounds {
+  class: Record<OperatorClass, { min: number; max: number }>
+  rarity: Record<OperatorRarity, { min: number; max: number }>
+  rarityGroups: Record<RarityGroupKey, { min: number; max: number }>
+}
+
 const SEARCH_VISIT_LIMIT = 2_000_000
 
 function shuffled<T>(input: readonly T[], random: RandomSource): T[] {
@@ -230,75 +242,97 @@ function increment<T extends string | number>(
   else counts.set(key, next)
 }
 
+function prepareBounds(constraints: RandomizerConstraints): PreparedBounds {
+  return {
+    class: Object.fromEntries(
+      operatorClasses.map((operatorClass) => [
+        operatorClass,
+        resolveNumericConstraint(constraints.class[operatorClass]),
+      ]),
+    ) as PreparedBounds['class'],
+    rarity: Object.fromEntries(
+      operatorRarities.map((rarity) => [
+        rarity,
+        resolveNumericConstraint(constraints.rarity[rarity]),
+      ]),
+    ) as PreparedBounds['rarity'],
+    rarityGroups: Object.fromEntries(
+      rarityGroupKeys.map((group) => [
+        group,
+        resolveNumericConstraint(constraints.rarityGroups[group]),
+      ]),
+    ) as PreparedBounds['rarityGroups'],
+  }
+}
+
+function prepareCandidate(
+  operator: Operator,
+  constraints: RandomizerConstraints,
+): PreparedCandidate {
+  return {
+    operator,
+    exclusivityKeys: exclusivityKeys(operator, constraints),
+    rarityGroups: rarityGroupsFor(operator.rarity),
+  }
+}
+
 function satisfiesMinimums(
   classCounts: ConstraintCountMap<OperatorClass>,
   rarityCounts: ConstraintCountMap<OperatorRarity>,
   rarityGroupCounts: ConstraintCountMap<RarityGroupKey>,
-  constraints: RandomizerConstraints,
+  bounds: PreparedBounds,
 ): boolean {
   return (
     operatorClasses.every(
       (operatorClass) =>
-        countFor(classCounts, operatorClass) >=
-        resolveNumericConstraint(constraints.class[operatorClass]).min,
+        countFor(classCounts, operatorClass) >= bounds.class[operatorClass].min,
     ) &&
     operatorRarities.every(
-      (rarity) =>
-        countFor(rarityCounts, rarity) >=
-        resolveNumericConstraint(constraints.rarity[rarity]).min,
+      (rarity) => countFor(rarityCounts, rarity) >= bounds.rarity[rarity].min,
     ) &&
     rarityGroupKeys.every(
       (group) =>
-        countFor(rarityGroupCounts, group) >=
-        resolveNumericConstraint(constraints.rarityGroups[group]).min,
+        countFor(rarityGroupCounts, group) >= bounds.rarityGroups[group].min,
     )
   )
 }
 
 function candidateCanFitMaximums(
-  operator: Operator,
+  candidate: PreparedCandidate,
   classCounts: ConstraintCountMap<OperatorClass>,
   rarityCounts: ConstraintCountMap<OperatorRarity>,
   rarityGroupCounts: ConstraintCountMap<RarityGroupKey>,
-  constraints: RandomizerConstraints,
+  bounds: PreparedBounds,
 ): boolean {
-  if (
-    countFor(classCounts, operator.class) + 1 >
-    resolveNumericConstraint(constraints.class[operator.class]).max
-  ) {
+  const operator = candidate.operator
+  if (countFor(classCounts, operator.class) + 1 > bounds.class[operator.class].max) {
     return false
   }
-  if (
-    countFor(rarityCounts, operator.rarity) + 1 >
-    resolveNumericConstraint(constraints.rarity[operator.rarity]).max
-  ) {
+  if (countFor(rarityCounts, operator.rarity) + 1 > bounds.rarity[operator.rarity].max) {
     return false
   }
-  return rarityGroupsFor(operator.rarity).every(
+  return candidate.rarityGroups.every(
     (group) =>
-      countFor(rarityGroupCounts, group) + 1 <=
-      resolveNumericConstraint(constraints.rarityGroups[group]).max,
+      countFor(rarityGroupCounts, group) + 1 <= bounds.rarityGroups[group].max,
   )
 }
 
 function minimumsStillReachable(
   remainingSlots: readonly number[],
-  candidatesBySlot: readonly Operator[][],
+  candidatesBySlot: readonly PreparedCandidate[][],
   classCounts: ConstraintCountMap<OperatorClass>,
   rarityCounts: ConstraintCountMap<OperatorRarity>,
   rarityGroupCounts: ConstraintCountMap<RarityGroupKey>,
-  constraints: RandomizerConstraints,
+  bounds: PreparedBounds,
 ): boolean {
   for (const operatorClass of operatorClasses) {
-    const minimum = resolveNumericConstraint(
-      constraints.class[operatorClass],
-    ).min
+    const minimum = bounds.class[operatorClass].min
     if (minimum <= countFor(classCounts, operatorClass)) continue
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
         (candidatesBySlot[slot].some(
-          (operator) => operator.class === operatorClass,
+          (candidate) => candidate.operator.class === operatorClass,
         )
           ? 1
           : 0),
@@ -308,12 +342,14 @@ function minimumsStillReachable(
   }
 
   for (const rarity of operatorRarities) {
-    const minimum = resolveNumericConstraint(constraints.rarity[rarity]).min
+    const minimum = bounds.rarity[rarity].min
     if (minimum <= countFor(rarityCounts, rarity)) continue
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some((operator) => operator.rarity === rarity)
+        (candidatesBySlot[slot].some(
+          (candidate) => candidate.operator.rarity === rarity,
+        )
           ? 1
           : 0),
       0,
@@ -322,16 +358,13 @@ function minimumsStillReachable(
   }
 
   for (const group of rarityGroupKeys) {
-    const minimum = resolveNumericConstraint(
-      constraints.rarityGroups[group],
-    ).min
+    const minimum = bounds.rarityGroups[group].min
     if (minimum <= countFor(rarityGroupCounts, group)) continue
-    const allowed = groupRarities(group)
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some((operator) =>
-          allowed.includes(operator.rarity),
+        (candidatesBySlot[slot].some((candidate) =>
+          candidate.rarityGroups.includes(group),
         )
           ? 1
           : 0),
@@ -350,9 +383,16 @@ function solveAssignment(
   slotSelection: 'static' | 'dynamic' = 'dynamic',
 ): SearchResult {
   const target = constraints.squadSize
+  const bounds = prepareBounds(constraints)
+  const preparedCandidates = eligible.map((operator) =>
+    prepareCandidate(operator, constraints),
+  )
   const candidatesBySlot = Array.from({ length: target }, (_, slotIndex) =>
-    eligible.filter((operator) =>
-      operatorMatchesSlotConstraint(operator, constraints.slots[slotIndex]),
+    preparedCandidates.filter((candidate) =>
+      operatorMatchesSlotConstraint(
+        candidate.operator,
+        constraints.slots[slotIndex],
+      ),
     ),
   )
 
@@ -393,36 +433,39 @@ function solveAssignment(
   let exhausted = false
   const startedAt = performance.now()
 
-  const addOperator = (operator: Operator): void => {
+  const addOperator = (candidate: PreparedCandidate): void => {
+    const operator = candidate.operator
     usedIds.add(operator.id)
-    for (const key of exclusivityKeys(operator, constraints)) usedExclusivity.add(key)
+    for (const key of candidate.exclusivityKeys) usedExclusivity.add(key)
     increment(classCounts, operator.class, 1)
     increment(rarityCounts, operator.rarity, 1)
-    for (const group of rarityGroupsFor(operator.rarity)) {
+    for (const group of candidate.rarityGroups) {
       increment(rarityGroupCounts, group, 1)
     }
   }
 
-  const removeOperator = (operator: Operator): void => {
+  const removeOperator = (candidate: PreparedCandidate): void => {
+    const operator = candidate.operator
     usedIds.delete(operator.id)
-    for (const key of exclusivityKeys(operator, constraints)) usedExclusivity.delete(key)
+    for (const key of candidate.exclusivityKeys) usedExclusivity.delete(key)
     increment(classCounts, operator.class, -1)
     increment(rarityCounts, operator.rarity, -1)
-    for (const group of rarityGroupsFor(operator.rarity)) {
+    for (const group of candidate.rarityGroups) {
       increment(rarityGroupCounts, group, -1)
     }
   }
 
-  const candidateIsViable = (operator: Operator): boolean => {
-    if (usedIds.has(operator.id)) return false
-    const exclusivity = exclusivityKeys(operator, constraints)
-    if (exclusivity.some((key) => usedExclusivity.has(key))) return false
+  const candidateIsViable = (candidate: PreparedCandidate): boolean => {
+    if (usedIds.has(candidate.operator.id)) return false
+    if (candidate.exclusivityKeys.some((key) => usedExclusivity.has(key))) {
+      return false
+    }
     return candidateCanFitMaximums(
-      operator,
+      candidate,
       classCounts,
       rarityCounts,
       rarityGroupCounts,
-      constraints,
+      bounds,
     )
   }
 
@@ -463,7 +506,7 @@ function solveAssignment(
         classCounts,
         rarityCounts,
         rarityGroupCounts,
-        constraints,
+        bounds,
       )
     }
 
@@ -476,22 +519,22 @@ function solveAssignment(
         classCounts,
         rarityCounts,
         rarityGroupCounts,
-        constraints,
+        bounds,
       )
     ) {
       return false
     }
 
     const slotIndex = slotOrder[depth]
-    for (const operator of randomizedCandidates[slotIndex]) {
-      if (!candidateIsViable(operator)) continue
+    for (const candidate of randomizedCandidates[slotIndex]) {
+      if (!candidateIsViable(candidate)) continue
 
-      assignment[slotIndex] = operator
-      addOperator(operator)
+      assignment[slotIndex] = candidate.operator
+      addOperator(candidate)
 
       if (search(depth + 1)) return true
 
-      removeOperator(operator)
+      removeOperator(candidate)
       assignment[slotIndex] = undefined
       backtracks += 1
       if (exhausted) return false

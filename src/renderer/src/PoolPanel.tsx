@@ -17,6 +17,7 @@ type PoolStateFilter = 'all' | 'included' | 'excluded'
 type PoolGroupBy = 'none' | 'class' | 'rarity' | 'releaseYear' | 'mainFaction' | 'acquisition'
 type PoolOperatorSort = 'default' | 'alphabetical' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
+type PoolGroup = readonly [string, Operator[]]
 
 function PoolPortrait({ operator, artwork }: { operator: Operator; artwork: PromotionArt }): React.JSX.Element {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -89,7 +90,7 @@ function compareDefaultOperators(left: Operator, right: Operator): number {
   return left.name.localeCompare(right.name)
 }
 
-function compareOperators(
+export function comparePoolOperators(
   left: Operator,
   right: Operator,
   sort: PoolOperatorSort,
@@ -118,6 +119,31 @@ function groupOrderValue(
     return operators[0]?.release[constraints.release.server].yearGroup ?? Number.MAX_SAFE_INTEGER
   }
   return label.toLocaleLowerCase()
+}
+
+export function comparePoolGroups(
+  leftEntry: PoolGroup,
+  rightEntry: PoolGroup,
+  groupBy: PoolGroupBy,
+  constraints: RandomizerConstraints,
+  direction: SortDirection,
+): number {
+  const [leftLabel, leftOperators] = leftEntry
+  const [rightLabel, rightOperators] = rightEntry
+  const left = groupOrderValue(leftLabel, leftOperators, groupBy, constraints)
+  const right = groupOrderValue(rightLabel, rightOperators, groupBy, constraints)
+  const comparison = typeof left === 'number' && typeof right === 'number'
+    ? left - right
+    : String(left).localeCompare(String(right), undefined, { numeric: true })
+  return direction === 'asc' ? comparison : -comparison
+}
+
+export function collapseAllPoolGroups(groups: readonly PoolGroup[]): Set<string> {
+  return new Set(groups.map(([label]) => label))
+}
+
+export function expandAllPoolGroups(): Set<string> {
+  return new Set()
 }
 
 function OperatorEntry({
@@ -212,14 +238,9 @@ export default function PoolPanel({
       values.push(operator)
       map.set(label, values)
     }
-    const entries = [...map.entries()].map(([label, operators]) => [label, [...operators].sort((left, right) => compareOperators(left, right, operatorSort, constraints))] as const)
+    const entries = [...map.entries()].map(([label, operators]) => [label, [...operators].sort((left, right) => comparePoolOperators(left, right, operatorSort, constraints))] as const)
     if (groupBy === 'none') return entries
-    return entries.sort(([leftLabel, leftOperators], [rightLabel, rightOperators]) => {
-      const left = groupOrderValue(leftLabel, leftOperators, groupBy, constraints)
-      const right = groupOrderValue(rightLabel, rightOperators, groupBy, constraints)
-      const comparison = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right), undefined, { numeric: true })
-      return groupDirection === 'asc' ? comparison : -comparison
-    })
+    return entries.sort((left, right) => comparePoolGroups(left, right, groupBy, constraints, groupDirection))
   }, [constraints, dataset, displayed, groupBy, groupDirection, operatorSort])
 
   const setDisplayedExcluded = (excluded: boolean): void => {
@@ -228,8 +249,8 @@ export default function PoolPanel({
   const toggleOperator = (operator: Operator): void => {
     onPreferencesChange({ ...preferences, excludedOperatorIds: setOperatorExcluded(preferences.excludedOperatorIds, operator.id, !excludedIds.has(operator.id)) })
   }
-  const collapseAll = (): void => setCollapsedGroups(new Set(groups.map(([label]) => label)))
-  const expandAll = (): void => setCollapsedGroups(new Set())
+  const collapseAll = (): void => setCollapsedGroups(collapseAllPoolGroups(groups))
+  const expandAll = (): void => setCollapsedGroups(expandAllPoolGroups())
   const toggleGroupDirection = (): void => setGroupDirection((current) => current === 'asc' ? 'desc' : 'asc')
   const toggleOneGroupDirection = (label: string): void => {
     setReversedGroups((current) => {

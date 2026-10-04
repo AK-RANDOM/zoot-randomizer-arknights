@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { RandomizerConstraints } from '../../shared/constraints'
 import { operatorClasses, type Operator, type OperatorDataset } from '../../shared/operator'
+import type { PromotionArt } from '../../shared/portraits'
 import {
   applyManualOperatorExclusions,
   setDisplayedOperatorsExcluded,
@@ -9,6 +10,7 @@ import {
 } from '../../shared/operatorPool'
 import { filterHigherLevelEligibleOperators } from '../../shared/randomizer'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
+import { useOperatorArtworkPreference } from './presentationPreferences'
 import './PoolPanel.css'
 
 type PoolStateFilter = 'all' | 'included' | 'excluded'
@@ -16,19 +18,25 @@ type PoolGroupBy = 'none' | 'class' | 'rarity' | 'releaseYear' | 'mainFaction' |
 type PoolOperatorSort = 'default' | 'alphabetical' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
 
-function PoolPortrait({ operator }: { operator: Operator }): React.JSX.Element {
+function PoolPortrait({ operator, artwork }: { operator: Operator; artwork: PromotionArt }): React.JSX.Element {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     setImageUrl(null)
-    void window.desktop.getOperatorImage(operator.id).then((url) => {
-      if (active) setImageUrl(url)
+    void window.desktop.getOperatorPortrait(operator.id, artwork).then(async (portraitUrl) => {
+      if (!active) return
+      if (portraitUrl) {
+        setImageUrl(portraitUrl)
+        return
+      }
+      const avatarUrl = await window.desktop.getOperatorImage(operator.id)
+      if (active) setImageUrl(avatarUrl)
     })
     return () => {
       active = false
     }
-  }, [operator.id])
+  }, [artwork, operator.id])
 
   return imageUrl ? (
     <img className="pool-avatar" src={imageUrl} alt="" draggable={false} />
@@ -118,6 +126,7 @@ function OperatorEntry({
   classLabel,
   included,
   presentation,
+  artwork,
   onToggle,
 }: {
   operator: Operator
@@ -125,6 +134,7 @@ function OperatorEntry({
   classLabel: string
   included: boolean
   presentation: OperatorPreferences['poolPresentation']
+  artwork: PromotionArt
   onToggle: () => void
 }): React.JSX.Element {
   const stateLabel = included ? 'Included' : 'Excluded'
@@ -138,36 +148,17 @@ function OperatorEntry({
   }
 
   if (presentation === 'imageGrid') {
-    return (
-      <button {...commonProps} className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}>
-        <PoolPortrait operator={operator} />
-      </button>
-    )
+    return <button {...commonProps} className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}><PoolPortrait operator={operator} artwork={artwork} /></button>
   }
-
   if (presentation === 'compactCard') {
-    return (
-      <button {...commonProps} className={`pool-entry pool-entry--compact${included ? '' : ' is-excluded'}`}>
-        <PoolPortrait operator={operator} />
-        <span className="pool-entry-copy"><strong>{operator.name}</strong></span>
-        <span className="pool-entry-status">{stateLabel}</span>
-      </button>
-    )
+    return <button {...commonProps} className={`pool-entry pool-entry--compact${included ? '' : ' is-excluded'}`}><PoolPortrait operator={operator} artwork={artwork} /><span className="pool-entry-copy"><strong>{operator.name}</strong></span><span className="pool-entry-status">{stateLabel}</span></button>
   }
-
   if (presentation === 'simpleList') {
-    return (
-      <button {...commonProps} className={`pool-entry pool-entry--list${included ? '' : ' is-excluded'}`}>
-        <PoolPortrait operator={operator} />
-        <strong>{operator.name}</strong>
-        <span className="pool-entry-status">{stateLabel}</span>
-      </button>
-    )
+    return <button {...commonProps} className={`pool-entry pool-entry--list${included ? '' : ' is-excluded'}`}><PoolPortrait operator={operator} artwork={artwork} /><strong>{operator.name}</strong><span className="pool-entry-status">{stateLabel}</span></button>
   }
-
   return (
     <button {...commonProps} className={`pool-entry pool-entry--detailed${included ? '' : ' is-excluded'}`}>
-      <PoolPortrait operator={operator} />
+      <PoolPortrait operator={operator} artwork={artwork} />
       <span className="pool-entry-copy">
         <strong>{operator.name}</strong>
         <small>{operator.rarity}★ · {classLabel} · {operator.subclass.name}</small>
@@ -189,6 +180,7 @@ export default function PoolPanel({
   preferences: OperatorPreferences
   onPreferencesChange: (next: OperatorPreferences) => void
 }): React.JSX.Element {
+  const artwork = useOperatorArtworkPreference()
   const [stateFilter, setStateFilter] = useState<PoolStateFilter>('all')
   const [search, setSearch] = useState('')
   const [groupBy, setGroupBy] = useState<PoolGroupBy>('none')
@@ -197,15 +189,9 @@ export default function PoolPanel({
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
   const [reversedGroups, setReversedGroups] = useState<Set<string>>(() => new Set())
 
-  const higherLevelEligible = useMemo(
-    () => filterHigherLevelEligibleOperators(dataset.operators, constraints),
-    [constraints, dataset],
-  )
+  const higherLevelEligible = useMemo(() => filterHigherLevelEligibleOperators(dataset.operators, constraints), [constraints, dataset])
   const excludedIds = useMemo(() => new Set(preferences.excludedOperatorIds), [preferences.excludedOperatorIds])
-  const finalPool = useMemo(
-    () => applyManualOperatorExclusions(higherLevelEligible, preferences.excludedOperatorIds),
-    [higherLevelEligible, preferences.excludedOperatorIds],
-  )
+  const finalPool = useMemo(() => applyManualOperatorExclusions(higherLevelEligible, preferences.excludedOperatorIds), [higherLevelEligible, preferences.excludedOperatorIds])
 
   const displayed = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
@@ -226,45 +212,22 @@ export default function PoolPanel({
       values.push(operator)
       map.set(label, values)
     }
-
-    const entries = [...map.entries()].map(([label, operators]) => [
-      label,
-      [...operators].sort((left, right) => compareOperators(left, right, operatorSort, constraints)),
-    ] as const)
-
+    const entries = [...map.entries()].map(([label, operators]) => [label, [...operators].sort((left, right) => compareOperators(left, right, operatorSort, constraints))] as const)
     if (groupBy === 'none') return entries
     return entries.sort(([leftLabel, leftOperators], [rightLabel, rightOperators]) => {
       const left = groupOrderValue(leftLabel, leftOperators, groupBy, constraints)
       const right = groupOrderValue(rightLabel, rightOperators, groupBy, constraints)
-      const comparison = typeof left === 'number' && typeof right === 'number'
-        ? left - right
-        : String(left).localeCompare(String(right), undefined, { numeric: true })
+      const comparison = typeof left === 'number' && typeof right === 'number' ? left - right : String(left).localeCompare(String(right), undefined, { numeric: true })
       return groupDirection === 'asc' ? comparison : -comparison
     })
   }, [constraints, dataset, displayed, groupBy, groupDirection, operatorSort])
 
   const setDisplayedExcluded = (excluded: boolean): void => {
-    onPreferencesChange({
-      ...preferences,
-      excludedOperatorIds: setDisplayedOperatorsExcluded(
-        preferences.excludedOperatorIds,
-        displayed.map((operator) => operator.id),
-        excluded,
-      ),
-    })
+    onPreferencesChange({ ...preferences, excludedOperatorIds: setDisplayedOperatorsExcluded(preferences.excludedOperatorIds, displayed.map((operator) => operator.id), excluded) })
   }
-
   const toggleOperator = (operator: Operator): void => {
-    onPreferencesChange({
-      ...preferences,
-      excludedOperatorIds: setOperatorExcluded(
-        preferences.excludedOperatorIds,
-        operator.id,
-        !excludedIds.has(operator.id),
-      ),
-    })
+    onPreferencesChange({ ...preferences, excludedOperatorIds: setOperatorExcluded(preferences.excludedOperatorIds, operator.id, !excludedIds.has(operator.id)) })
   }
-
   const collapseAll = (): void => setCollapsedGroups(new Set(groups.map(([label]) => label)))
   const expandAll = (): void => setCollapsedGroups(new Set())
   const toggleGroupDirection = (): void => setGroupDirection((current) => current === 'asc' ? 'desc' : 'asc')
@@ -280,10 +243,7 @@ export default function PoolPanel({
   return (
     <section className="panel pool-panel" aria-labelledby="pool-heading">
       <div className="section-heading">
-        <div>
-          <p className="eyebrow">POOL</p>
-          <h2 id="pool-heading">Individual operators</h2>
-        </div>
+        <div><p className="eyebrow">POOL</p><h2 id="pool-heading">Individual operators</h2></div>
         <div className="section-actions">
           <button className="secondary-button" type="button" disabled={displayed.length === 0} onClick={() => setDisplayedExcluded(false)}>Add displayed to pool</button>
           <button className="secondary-button" type="button" disabled={displayed.length === 0} onClick={() => setDisplayedExcluded(true)}>Remove displayed from pool</button>
@@ -291,74 +251,19 @@ export default function PoolPanel({
         </div>
       </div>
 
-      <div className="pool-search-row">
-        <label className="field pool-search">
-          <span>Search</span>
-          <input type="search" value={search} placeholder="Search operators…" onChange={(event) => setSearch(event.target.value)} />
-        </label>
-      </div>
+      <div className="pool-search-row"><label className="field pool-search"><span>Search</span><input type="search" value={search} placeholder="Search operators…" onChange={(event) => setSearch(event.target.value)} /></label></div>
 
       <div className="pool-toolbar">
-        <label className="field">
-          <span>Pool state</span>
-          <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value as PoolStateFilter)}>
-            <option value="all">All</option>
-            <option value="included">Included</option>
-            <option value="excluded">Excluded</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Operator sort</span>
-          <select value={operatorSort} onChange={(event) => setOperatorSort(event.target.value as PoolOperatorSort)}>
-            <option value="default">Default</option>
-            <option value="alphabetical">Alphabetical</option>
-            <option value="releaseDate">Release Date</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Group by</span>
-          <select
-            value={groupBy}
-            onChange={(event) => {
-              setGroupBy(event.target.value as PoolGroupBy)
-              setCollapsedGroups(new Set())
-              setReversedGroups(new Set())
-            }}
-          >
-            <option value="none">None</option>
-            <option value="class">Class</option>
-            <option value="rarity">Rarity</option>
-            <option value="releaseYear">Release</option>
-            <option value="mainFaction">Main Faction</option>
-            <option value="acquisition">Acquisition</option>
-          </select>
-        </label>
+        <label className="field"><span>Pool state</span><select value={stateFilter} onChange={(event) => setStateFilter(event.target.value as PoolStateFilter)}><option value="all">All</option><option value="included">Included</option><option value="excluded">Excluded</option></select></label>
+        <label className="field"><span>Operator sort</span><select value={operatorSort} onChange={(event) => setOperatorSort(event.target.value as PoolOperatorSort)}><option value="default">Default</option><option value="alphabetical">Alphabetical</option><option value="releaseDate">Release Date</option></select></label>
+        <label className="field"><span>Group by</span><select value={groupBy} onChange={(event) => { setGroupBy(event.target.value as PoolGroupBy); setCollapsedGroups(new Set()); setReversedGroups(new Set()) }}><option value="none">None</option><option value="class">Class</option><option value="rarity">Rarity</option><option value="releaseYear">Release</option><option value="mainFaction">Main Faction</option><option value="acquisition">Acquisition</option></select></label>
       </div>
 
-      {groupBy !== 'none' && (
-        <div className="pool-group-actions">
-          <button type="button" className="secondary-button" onClick={expandAll}>Expand all</button>
-          <button type="button" className="secondary-button" onClick={collapseAll}>Collapse all</button>
-        </div>
-      )}
+      {groupBy !== 'none' && <div className="pool-group-actions"><button type="button" className="secondary-button" onClick={expandAll}>Expand all</button><button type="button" className="secondary-button" onClick={collapseAll}>Collapse all</button></div>}
 
       <div className="pool-information" role="status">
-        <div className="pool-information-copy">
-          <strong>{finalPool.length} operators eligible</strong>
-          <span>· {displayed.length} displayed</span>
-          <span>· {higherLevelEligible.length} pass higher-level filters</span>
-        </div>
-        {groupBy !== 'none' && (
-          <button
-            type="button"
-            className="pool-group-direction-toggle"
-            aria-label={`Group order: ${groupDirection === 'asc' ? 'ascending' : 'descending'}. Toggle group order.`}
-            title={`Group order: ${groupDirection === 'asc' ? 'Ascending' : 'Descending'}`}
-            onClick={toggleGroupDirection}
-          >
-            <span aria-hidden="true">{groupDirection === 'asc' ? '↑' : '↓'}</span>
-          </button>
-        )}
+        <div className="pool-information-copy"><strong>{finalPool.length} operators eligible</strong><span>· {displayed.length} displayed</span><span>· {higherLevelEligible.length} pass higher-level filters</span></div>
+        {groupBy !== 'none' && <button type="button" className="pool-group-direction-toggle" aria-label={`Group order: ${groupDirection === 'asc' ? 'ascending' : 'descending'}. Toggle group order.`} title={`Group order: ${groupDirection === 'asc' ? 'Ascending' : 'Descending'}`} onClick={toggleGroupDirection}><span aria-hidden="true">{groupDirection === 'asc' ? '↑' : '↓'}</span></button>}
       </div>
 
       <div className={`pool-groups pool-presentation--${preferences.poolPresentation}`}>
@@ -368,48 +273,11 @@ export default function PoolPanel({
           const visibleOperators = reversed ? [...operators].reverse() : operators
           return (
             <section className="pool-group" key={label}>
-              {groupBy !== 'none' && (
-                <div className="pool-group-heading">
-                  <button
-                    type="button"
-                    className="pool-group-collapse"
-                    aria-expanded={!collapsed}
-                    onClick={() => setCollapsedGroups((current) => {
-                      const next = new Set(current)
-                      if (next.has(label)) next.delete(label)
-                      else next.add(label)
-                      return next
-                    })}
-                  >
-                    <span>{collapsed ? '▸' : '▾'} {label}</span>
-                    <span>{operators.length}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="pool-group-sort-toggle"
-                    aria-label={`${label} operator order: ${reversed ? 'reversed' : 'normal'}. Toggle operator order.`}
-                    title={`${label}: ${reversed ? 'Reverse' : 'Normal'} operator order`}
-                    onClick={() => toggleOneGroupDirection(label)}
-                  >
-                    <span aria-hidden="true">{reversed ? '↓' : '↑'}</span>
-                  </button>
-                </div>
-              )}
-              {!collapsed && (
-                <div className="pool-entries">
-                  {visibleOperators.map((operator) => (
-                    <OperatorEntry
-                      key={operator.id}
-                      operator={operator}
-                      factionLabel={mainFactionLabel(operator, dataset)}
-                      classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
-                      included={!excludedIds.has(operator.id)}
-                      presentation={preferences.poolPresentation}
-                      onToggle={() => toggleOperator(operator)}
-                    />
-                  ))}
-                </div>
-              )}
+              {groupBy !== 'none' && <div className="pool-group-heading">
+                <button type="button" className="pool-group-collapse" aria-expanded={!collapsed} onClick={() => setCollapsedGroups((current) => { const next = new Set(current); if (next.has(label)) next.delete(label); else next.add(label); return next })}><span>{collapsed ? '▸' : '▾'} {label}</span><span>{operators.length}</span></button>
+                <button type="button" className="pool-group-sort-toggle" aria-label={`${label} operator order: ${reversed ? 'reversed' : 'normal'}. Toggle operator order.`} title={`${label}: ${reversed ? 'Reverse' : 'Normal'} operator order`} onClick={() => toggleOneGroupDirection(label)}><span aria-hidden="true">{reversed ? '↓' : '↑'}</span></button>
+              </div>}
+              {!collapsed && <div className="pool-entries">{visibleOperators.map((operator) => <OperatorEntry key={operator.id} operator={operator} factionLabel={mainFactionLabel(operator, dataset)} classLabel={dataset.classLabels?.[operator.class] ?? operator.class} included={!excludedIds.has(operator.id)} presentation={preferences.poolPresentation} artwork={artwork} onToggle={() => toggleOperator(operator)} />)}</div>}
             </section>
           )
         })}

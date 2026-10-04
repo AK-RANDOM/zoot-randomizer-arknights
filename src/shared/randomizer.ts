@@ -726,6 +726,29 @@ export function measureConstraintSearch(
   return { solved: result.squad !== null, stats: result.stats }
 }
 
+export function generateSquadForMeasurement(
+  operators: Operator[],
+  constraints: RandomizerConstraints,
+  random: RandomSource,
+  candidateOrdering: 'random' | 'deficit',
+): Operator[] {
+  const shapeErrors = validateConstraintShape(constraints)
+  if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))
+
+  const eligible = filterEligibleOperators(operators, constraints)
+  const result = solveAssignment(
+    eligible,
+    constraints,
+    random,
+    'static',
+    candidateOrdering,
+  )
+  if (!result.squad) {
+    throw new Error('No valid squad could be generated for measurement.')
+  }
+  return result.squad
+}
+
 export function generateSquadWithStats(
   operators: Operator[],
   constraints: RandomizerConstraints,

@@ -1,0 +1,210 @@
+.squad-mode-tabs {
+  display: flex;
+  gap: 6px;
+  margin: -2px 0 12px;
+  padding: 4px;
+  border: 1px solid #29292e;
+  border-radius: 7px;
+  background: #111113;
+}
+
+.squad-mode-tabs button {
+  min-height: 36px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #8f8f96;
+  background: transparent;
+  font-weight: 800;
+}
+
+.squad-mode-tabs button:hover {
+  color: #efefef;
+  background: #1a1a1d;
+}
+
+.squad-mode-tabs button.is-active {
+  border-color: #4b4b52;
+  color: #f5ad2f;
+  background: #202024;
+}
+
+.draft-panel {
+  margin: 0;
+}
+
+.draft-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.draft-summary > div {
+  display: grid;
+  gap: 5px;
+  min-height: 70px;
+  align-content: center;
+  padding: 10px 12px;
+  border: 1px solid #2c2c31;
+  border-radius: 5px;
+  background: #111113;
+}
+
+.draft-summary span {
+  color: #818187;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.draft-summary strong {
+  color: #f3f3f3;
+  font-size: 0.94rem;
+}
+
+.draft-empty-state,
+.draft-complete {
+  display: grid;
+  gap: 7px;
+  min-height: 170px;
+  place-content: center;
+  margin-bottom: 20px;
+  padding: 28px;
+  border: 1px dashed #3a3a40;
+  border-radius: 6px;
+  color: #a7a7ac;
+  background: #101012;
+  text-align: center;
+}
+
+.draft-empty-state strong,
+.draft-complete strong {
+  color: #f3f3f3;
+  font-size: 1rem;
+}
+
+.draft-empty-state p {
+  max-width: 650px;
+  margin: 0;
+  line-height: 1.55;
+}
+
+.draft-round-heading,
+.draft-roster-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 14px 0 9px;
+}
+
+.draft-round-heading > div,
+.draft-roster-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.draft-round-heading span,
+.draft-roster-heading span {
+  color: #818187;
+  font-size: 0.72rem;
+}
+
+.draft-round-heading strong,
+.draft-roster-heading strong {
+  color: #ececef;
+}
+
+.draft-offer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.draft-candidate {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #34343a;
+  border-radius: 6px;
+  color: inherit;
+  background: #101012;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.draft-candidate:hover,
+.draft-candidate:focus-visible {
+  border-color: #f5ad2f;
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(245, 173, 47, 0.34), 0 13px 30px rgba(0, 0, 0, 0.34);
+}
+
+.draft-candidate .operator-card {
+  border-radius: 0;
+}
+
+.draft-candidate__action {
+  position: absolute;
+  z-index: 8;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: block;
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 173, 47, 0.7);
+  border-radius: 4px;
+  color: #111113;
+  background: rgba(245, 173, 47, 0.94);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.draft-candidate:hover .draft-candidate__action,
+.draft-candidate:focus-visible .draft-candidate__action {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.draft-roster-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.draft-roster-slot {
+  aspect-ratio: 3 / 4;
+  min-width: 0;
+}
+
+.draft-roster-slot .empty-slot {
+  height: 100%;
+}
+
+@media (max-width: 820px) {
+  .draft-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .draft-offer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-candidate {
+    max-width: 330px;
+    width: 100%;
+    justify-self: center;
+  }
+
+  .draft-roster-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

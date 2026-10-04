@@ -45,6 +45,8 @@ const cnRelease: ReleaseConstraint = {
 
 describe('release bound previews', () => {
   it('uses fixed launch representative IDs even when display names are localized', () => {
+    // These localized display names intentionally differ from the English names
+    // that the old implementation used as identity keys.
     const launch = [
       operator('char_172_svrash', '银灰', 6, '2019-05-01'),
       operator('char_180_amgoat', '艾雅法拉', 6, '2019-05-01'),

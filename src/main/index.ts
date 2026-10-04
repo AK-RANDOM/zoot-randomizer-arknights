@@ -9,6 +9,7 @@ import {
   getOperatorDataInfo,
   getOperatorDataset,
   getOperatorImage,
+  syncOperatorAvatars,
   updateOperatorData,
 } from './operatorDataService'
 import { getOperatorPortrait, syncOperatorPortraits } from './operatorPortraitService'
@@ -54,27 +55,44 @@ async function startPortraitSync(): Promise<PortraitSyncProgress> {
   portraitSyncPromise = (async () => {
     try {
       const dataset = await getOperatorDataset()
-      const total = dataset.operators.length
+      const operatorIds = dataset.operators.map((operator) => operator.id)
+      const total = operatorIds.length * 2
       publishPortraitProgress({
         status: 'downloading',
         completed: 0,
         total,
-        message: 'Downloading operator artwork…',
+        message: 'Downloading operator avatars…',
       })
-      const warnings = await syncOperatorPortraits(
-        dataset.operators.map((operator) => operator.id),
-        {
-          signal: controller.signal,
-          onProgress: publishPortraitProgress,
-        },
-      )
+
+      const avatarWarnings = await syncOperatorAvatars(operatorIds, {
+        signal: controller.signal,
+        onProgress: (completed) =>
+          publishPortraitProgress({
+            status: 'downloading',
+            completed,
+            total,
+            message: `Downloading operator avatars… ${completed}/${operatorIds.length}`,
+          }),
+      })
+
+      const portraitWarnings = await syncOperatorPortraits(operatorIds, {
+        signal: controller.signal,
+        onProgress: (progress) =>
+          publishPortraitProgress({
+            ...progress,
+            completed: operatorIds.length + progress.completed,
+            total,
+            message: progress.message,
+          }),
+      })
+      const warnings = [...avatarWarnings, ...portraitWarnings]
       return publishPortraitProgress({
         status: 'complete',
         completed: total,
         total,
         message:
           warnings.length > 0
-            ? `Artwork download complete with ${warnings.length} unavailable variant(s).`
+            ? `Artwork download complete with ${warnings.length} unavailable asset(s).`
             : 'Operator artwork is ready for offline use.',
       })
     } catch {

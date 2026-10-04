@@ -2,9 +2,6 @@ name: CI
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - draft-m1-phase-c-final-ci
 
 permissions:
   contents: read

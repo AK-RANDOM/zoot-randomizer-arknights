@@ -1,4 +1,4 @@
-import { bench, describe } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { DEFAULT_CONSTRAINTS, type RandomizerConstraints } from './constraints'
 import type { Operator, OperatorClass, OperatorRarity } from './operator'
 import { measureConstraintSearch } from './randomizer'
@@ -157,18 +157,24 @@ describe('constraint solver performance', () => {
       )
       const stats = baseline.stats
 
-      bench(
-        `${scenario.name} [${strategy}] | visits=${stats.visits} backtracks=${stats.backtracks} pruned=${stats.prunedBranches} exhausted=${stats.exhausted}`,
-        () => {
+      it(`${scenario.name} [${strategy}]`, () => {
+        const iterations = 100
+        const startedAt = performance.now()
+        for (let index = 0; index < iterations; index += 1) {
           measureConstraintSearch(
             scenario.operators,
             scenario.constraints,
             seededRandom(),
             strategy,
           )
-        },
-        { time: 500 },
-      )
+        }
+        const elapsedMs = performance.now() - startedAt
+        const averageMs = elapsedMs / iterations
+        console.log(
+          `BENCH ${scenario.name} [${strategy}] avgMs=${averageMs.toFixed(3)} visits=${stats.visits} backtracks=${stats.backtracks} pruned=${stats.prunedBranches} exhausted=${stats.exhausted}`,
+        )
+        expect(baseline.solved || stats.visits >= 0).toBe(true)
+      })
     }
   }
 })

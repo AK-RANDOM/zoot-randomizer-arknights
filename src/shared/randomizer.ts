@@ -680,7 +680,16 @@ export function validateConstraints(
   }
   if (errors.length > 0) return { valid: false, errors }
 
-  const result = solveAssignment(eligible, constraints, validationRandom())
+  // Validation only needs a witness that a valid squad exists. Prefer candidates
+  // that satisfy outstanding minimums so background checks avoid unnecessary
+  // backtracking; user-facing generation intentionally keeps random ordering.
+  const result = solveAssignment(
+    eligible,
+    constraints,
+    validationRandom(),
+    'static',
+    'deficit',
+  )
   if (!result.squad) {
     errors.push(
       result.exhausted
@@ -724,29 +733,6 @@ export function measureConstraintSearch(
     candidateOrdering,
   )
   return { solved: result.squad !== null, stats: result.stats }
-}
-
-export function generateSquadForMeasurement(
-  operators: Operator[],
-  constraints: RandomizerConstraints,
-  random: RandomSource,
-  candidateOrdering: 'random' | 'deficit',
-): Operator[] {
-  const shapeErrors = validateConstraintShape(constraints)
-  if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))
-
-  const eligible = filterEligibleOperators(operators, constraints)
-  const result = solveAssignment(
-    eligible,
-    constraints,
-    random,
-    'static',
-    candidateOrdering,
-  )
-  if (!result.squad) {
-    throw new Error('No valid squad could be generated for measurement.')
-  }
-  return result.squad
 }
 
 export function generateSquadWithStats(

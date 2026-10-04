@@ -1,6 +1,6 @@
 {
   "name": "arknights-randomizer",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "private": true,
   "description": "Offline-first Arknights squad randomizer for Windows.",
   "main": "./out/main/index.js",

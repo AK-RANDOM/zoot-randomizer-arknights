@@ -203,16 +203,23 @@ async function latestCommit(repository: string, path: string): Promise<string> {
 }
 
 async function fetchLatestSources(): Promise<OperatorDatasetSources> {
-  const [gamedataCnCommit, gamedataEnCommit, gamedataJpCommit, gamedataKrCommit, gamedataTwCommit, resourcesCommit, releaseMetadataCommit] =
-    await Promise.all([
-      latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'character_table.json')),
-      latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'character_table.json')),
-      latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json')),
-      latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json')),
-      latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json')),
-      latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath),
-      latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath),
-    ])
+  const [
+    gamedataCnCommit,
+    gamedataEnCommit,
+    gamedataJpCommit,
+    gamedataKrCommit,
+    gamedataTwCommit,
+    resourcesCommit,
+    releaseMetadataCommit,
+  ] = await Promise.all([
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json')),
+    latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath),
+    latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath),
+  ])
 
   return {
     gamedataCnCommit,
@@ -290,7 +297,7 @@ async function stageMissingImages(
   for (const operator of dataset.operators) {
     if (
       !(await exists(downloadedImagePath(operator.id))) &&
-      !(await exists(bundledImagePath(operator.id))
+      !(await exists(bundledImagePath(operator.id)))
     ) {
       needsDownload.push(operator.id)
     }
@@ -369,16 +376,23 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     }),
   )
   const localeData = Object.fromEntries(localeEntries)
-  const [cnCharMeta, enCharMeta, cnGacha, cnUniEquip, releaseInfoSource, releaseCandidateSource, releaseEventSource] =
-    await Promise.all([
-      fetchJson<RawCharacterMetaTable>(UPSTREAM.cnCharMetaUrl),
-      fetchJson<RawCharacterMetaTable>(UPSTREAM.enCharMetaUrl),
-      fetchJson<RawGachaTable>(UPSTREAM.cnGachaUrl),
-      fetchJson<RawUniEquipData>(gameDataExcelUrl('cn', 'uniequip_data.json')),
-      fetchText(UPSTREAM.releaseInfoUrl),
-      fetchText(UPSTREAM.releaseCandidateUrl),
-      fetchText(UPSTREAM.releaseEventUrl),
-    ])
+  const [
+    cnCharMeta,
+    enCharMeta,
+    cnGacha,
+    cnUniEquip,
+    releaseInfoSource,
+    releaseCandidateSource,
+    releaseEventSource,
+  ] = await Promise.all([
+    fetchJson<RawCharacterMetaTable>(UPSTREAM.cnCharMetaUrl),
+    fetchJson<RawCharacterMetaTable>(UPSTREAM.enCharMetaUrl),
+    fetchJson<RawGachaTable>(UPSTREAM.cnGachaUrl),
+    fetchJson<RawUniEquipData>(gameDataExcelUrl('cn', 'uniequip_data.json')),
+    fetchText(UPSTREAM.releaseInfoUrl),
+    fetchText(UPSTREAM.releaseCandidateUrl),
+    fetchText(UPSTREAM.releaseEventUrl),
+  ])
 
   const cn = localeData.cn.characters
   const en = localeData.en.characters
@@ -393,10 +407,16 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].patch]),
   )
   const localizedFactionLabels = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [locale, factionLabelsFromHandbook(localeData[locale].handbook)]),
+    GAME_DATA_LOCALES.map((locale) => [
+      locale,
+      factionLabelsFromHandbook(localeData[locale].handbook),
+    ]),
   )
   const localizedClassLabels = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [locale, classLabelsFromMainText(localeData[locale].mainText)]),
+    GAME_DATA_LOCALES.map((locale) => [
+      locale,
+      classLabelsFromMainText(localeData[locale].mainText),
+    ]),
   )
 
   const releaseDates = createReleaseDateMap(

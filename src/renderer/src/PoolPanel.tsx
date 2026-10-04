@@ -61,7 +61,7 @@ function groupLabel(
 ): string {
   switch (groupBy) {
     case 'class':
-      return operator.class
+      return dataset.classLabels?.[operator.class] ?? operator.class
     case 'rarity':
       return `${operator.rarity}★`
     case 'releaseYear': {
@@ -80,12 +80,14 @@ function groupLabel(
 function OperatorEntry({
   operator,
   factionLabel,
+  classLabel,
   included,
   presentation,
   onToggle,
 }: {
   operator: Operator
   factionLabel: string
+  classLabel: string
   included: boolean
   presentation: OperatorPreferences['poolPresentation']
   onToggle: () => void
@@ -122,7 +124,7 @@ function OperatorEntry({
         <PoolAvatar operator={operator} />
         <span className="pool-entry-copy">
           <strong>{operator.name}</strong>
-          <small>{operator.rarity}★ · {operator.class} · {operator.subclass.name}</small>
+          <small>{operator.rarity}★ · {classLabel} · {operator.subclass.name}</small>
         </span>
         <span className="pool-entry-status">{stateLabel}</span>
       </button>
@@ -150,7 +152,7 @@ function OperatorEntry({
       <PoolAvatar operator={operator} />
       <span className="pool-entry-copy">
         <strong>{operator.name}</strong>
-        <small>{operator.rarity}★ · {operator.class} · {operator.subclass.name}</small>
+        <small>{operator.rarity}★ · {classLabel} · {operator.subclass.name}</small>
         <small>Main faction: {factionLabel}</small>
       </span>
       <span className="pool-entry-status">{stateLabel}</span>
@@ -346,6 +348,7 @@ export default function PoolPanel({
                       key={operator.id}
                       operator={operator}
                       factionLabel={mainFactionLabel(operator, dataset)}
+                      classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
                       included={!excludedIds.has(operator.id)}
                       presentation={preferences.poolPresentation}
                       onToggle={() => toggleOperator(operator)}

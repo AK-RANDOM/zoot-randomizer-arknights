@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   CLASS_ICON_FILES,
+  classLabelsFromMainText,
   factionLabelsFromHandbook,
   factionLabelsFromHandbooks,
   normalizeCharacterTables,
@@ -9,6 +10,7 @@ import {
   validateOperatorDataset,
 } from './operatorData'
 import { OPERATOR_DATASET_SCHEMA_VERSION, operatorClasses } from './operator'
+import { localizeOperatorDataset } from './gameLocalization'
 import {
   KERNEL_CUTOFF_BY_SERVER,
   SUBCLASS_LABELS,
@@ -19,6 +21,9 @@ import { releaseYearGroup } from './releaseMetadata'
 const sources = {
   gamedataCnCommit: 'cn',
   gamedataEnCommit: 'en',
+  gamedataJpCommit: 'jp',
+  gamedataKrCommit: 'kr',
+  gamedataTwCommit: 'tw',
   resourcesCommit: 'assets',
   releaseMetadataCommit: 'release',
 }
@@ -34,6 +39,19 @@ describe('operator data normalization', () => {
   it('maps an offline class icon for every operator class', () => {
     expect(Object.keys(CLASS_ICON_FILES).sort()).toEqual([...operatorClasses].sort())
     expect(Object.values(CLASS_ICON_FILES).every((filename) => filename.endsWith('.svg'))).toBe(true)
+  })
+
+  it('reads localized class labels from game text keys', () => {
+    expect(
+      classLabelsFromMainText({
+        '&&f2jpay62qnj6aw1c': '先鋒',
+        '&&xov9ihvv9n8frbnt': '前衛',
+      }),
+    ).toMatchObject({
+      Vanguard: '先鋒',
+      Guard: '前衛',
+      Medic: 'Medic',
+    })
   })
 
   it('normalizes zero-based and tier rarity formats', () => {
@@ -195,6 +213,63 @@ describe('operator data normalization', () => {
     })
   })
 
+  it('localizes game strings with JP and TW-to-EN fallback without changing identity', () => {
+    const dataset = normalizeCharacterTables(
+      {
+        char_global: {
+          name: '全局',
+          rarity: 5,
+          profession: 'WARRIOR',
+          subProfessionId: 'lord',
+          nationId: 'rhodes',
+          mainPower: { nationId: 'rhodes' },
+          isNotObtainable: false,
+        },
+      },
+      {
+        char_global: {
+          name: 'Global Name',
+          rarity: 5,
+          profession: 'WARRIOR',
+          subProfessionId: 'lord',
+          nationId: 'rhodes',
+          mainPower: { nationId: 'rhodes' },
+          isNotObtainable: false,
+        },
+      },
+      sources,
+      '2026-10-02T00:00:00.000Z',
+      {
+        localizedCharacterTables: {
+          jp: { char_global: { name: 'グローバル' } },
+          tw: {},
+        },
+        localizedClassLabels: {
+          jp: { Guard: '前衛' },
+        },
+        localizedFactionLabels: {
+          en: { rhodes: 'Rhodes Island' },
+          jp: { rhodes: 'ロドス・アイランド' },
+          tw: {},
+        },
+      },
+    )
+
+    const jp = localizeOperatorDataset(dataset, 'jp')
+    const tw = localizeOperatorDataset(dataset, 'tw')
+
+    expect(jp.operators[0]).toMatchObject({
+      id: 'char_global',
+      name: 'グローバル',
+      class: 'Guard',
+      subclass: { id: 'lord', name: 'Lord' },
+      faction: { main: 'rhodes' },
+    })
+    expect(jp.classLabels?.Guard).toBe('前衛')
+    expect(jp.factionLabels.rhodes).toBe('ロドス・アイランド')
+    expect(tw.operators[0].name).toBe('Global Name')
+  })
+
   it('adds Amiya class-change forms and makes them always exclusive', () => {
     const base = {
       name: 'Amiya',
@@ -305,7 +380,7 @@ describe('operator data normalization', () => {
     )
   })
 
-  it('validates a generated schema-v4 dataset', () => {
+  it('validates a generated localized dataset', () => {
     const dataset = normalizeCharacterTables(
       {
         char_test: {

@@ -26,9 +26,12 @@ export const welfareAcquisitionGroups = [
   'isRa',
 ] as const
 
-export const OPERATOR_DATASET_SCHEMA_VERSION = 4 as const
+export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
+
+export const OPERATOR_DATASET_SCHEMA_VERSION = 5 as const
 
 export type OperatorClass = (typeof operatorClasses)[number]
+export type GameLocale = (typeof gameLocales)[number]
 export type OperatorRarity = (typeof operatorRarities)[number]
 export type ReleaseServer = 'cn' | 'global'
 export type AcquisitionFamily = 'limited' | 'standard' | 'welfare'
@@ -85,15 +88,31 @@ export interface Operator {
 export interface OperatorDatasetSources {
   gamedataCnCommit: string | null
   gamedataEnCommit: string | null
+  gamedataJpCommit?: string | null
+  gamedataKrCommit?: string | null
+  gamedataTwCommit?: string | null
   resourcesCommit: string | null
   releaseMetadataCommit: string | null
 }
+
+export interface GameStringCatalog {
+  operatorNames: Record<string, string>
+  classLabels: Record<OperatorClass, string>
+  subclassLabels: Record<string, string>
+  factionLabels: Record<string, string>
+}
+
+export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
 
 export interface OperatorDataset {
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
   generatedAt: string | null
   sources: OperatorDatasetSources
-  /** Stable faction/power ID -> English display label. */
+  /** Stable class ID -> current display label. Defaults to English in schema-v5 data. */
+  classLabels?: Record<OperatorClass, string>
+  /** Stable faction/power ID -> current display label. Defaults to English in the stored dataset. */
   factionLabels: Record<string, string>
+  /** Game-provided display strings by locale. Absent on legacy schema-v4 data. */
+  localizations?: GameStringCatalogs
   operators: Operator[]
 }

@@ -25,22 +25,30 @@ import type {
 } from '../shared/operator'
 import {
   CLASS_ICON_FILES,
+  GAME_DATA_LOCALES,
+  classLabelsFromMainText,
   createReleaseCategoryMap,
   createReleaseDateMap,
+  factionLabelsFromHandbook,
   factionLabelsFromHandbooks,
+  gameDataExcelPath,
+  gameDataExcelUrl,
+  subclassLabelsFromUniEquip,
   normalizeCharacterTables,
   type RawCharacterMetaTable,
   type RawCharacterPatchTable,
   type RawCharacterTable,
   type RawGachaTable,
   type RawHandbookTeamTable,
+  type RawMainTextTable,
+  type RawUniEquipData,
   UPSTREAM,
   validateOperatorDataset,
+  upgradeLegacyOperatorDataset,
 } from '../shared/operatorData'
 
 const imageCache = new Map<string, string | null>()
 const classIconCache = new Map<OperatorClass, string | null>()
-const cnHandbookTeamUrl = UPSTREAM.enHandbookTeamUrl.replace('/en/', '/cn/')
 
 function bundledRoot(): string {
   return app.isPackaged
@@ -80,8 +88,13 @@ async function exists(path: string): Promise<boolean> {
 async function readDataset(path: string): Promise<OperatorDataset | null> {
   try {
     const parsed = JSON.parse(await readFile(path, 'utf8')) as unknown
-    const validation = validateOperatorDataset(parsed, { requireSourceCommits: true })
-    return validation.valid ? (parsed as OperatorDataset) : null
+    const legacy =
+      parsed !== null &&
+      typeof parsed === 'object' &&
+      (parsed as { schemaVersion?: unknown }).schemaVersion === 4
+    const upgraded = upgradeLegacyOperatorDataset(parsed)
+    const validation = validateOperatorDataset(upgraded, { requireSourceCommits: !legacy })
+    return validation.valid ? (upgraded as OperatorDataset) : null
   } catch {
     return null
   }
@@ -193,11 +206,17 @@ async function fetchLatestSources(): Promise<OperatorDatasetSources> {
   const [
     gamedataCnCommit,
     gamedataEnCommit,
+    gamedataJpCommit,
+    gamedataKrCommit,
+    gamedataTwCommit,
     resourcesCommit,
     releaseMetadataCommit,
   ] = await Promise.all([
-    latestCommit(UPSTREAM.gamedataRepo, UPSTREAM.cnExcelPath),
-    latestCommit(UPSTREAM.gamedataRepo, UPSTREAM.enExcelPath),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json')),
     latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath),
     latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath),
   ])
@@ -205,6 +224,9 @@ async function fetchLatestSources(): Promise<OperatorDatasetSources> {
   return {
     gamedataCnCommit,
     gamedataEnCommit,
+    gamedataJpCommit,
+    gamedataKrCommit,
+    gamedataTwCommit,
     resourcesCommit,
     releaseMetadataCommit,
   }
@@ -217,6 +239,9 @@ function sameSources(
   return (
     left.gamedataCnCommit === right.gamedataCnCommit &&
     left.gamedataEnCommit === right.gamedataEnCommit &&
+    left.gamedataJpCommit === right.gamedataJpCommit &&
+    left.gamedataKrCommit === right.gamedataKrCommit &&
+    left.gamedataTwCommit === right.gamedataTwCommit &&
     left.resourcesCommit === right.resourcesCommit &&
     left.releaseMetadataCommit === right.releaseMetadataCommit
   )
@@ -339,33 +364,60 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     return { updated: false, dataset: current, warnings: [] }
   }
 
+  const localeEntries = await Promise.all(
+    GAME_DATA_LOCALES.map(async (locale) => {
+      const [characters, patch, handbook, mainText] = await Promise.all([
+        fetchJson<RawCharacterTable>(gameDataExcelUrl(locale, 'character_table.json')),
+        fetchJson<RawCharacterPatchTable>(gameDataExcelUrl(locale, 'char_patch_table.json')),
+        fetchJson<RawHandbookTeamTable>(gameDataExcelUrl(locale, 'handbook_team_table.json')),
+        fetchJson<RawMainTextTable>(gameDataExcelUrl(locale, 'main_text.json')),
+      ])
+      return [locale, { characters, patch, handbook, mainText }] as const
+    }),
+  )
+  const localeData = Object.fromEntries(localeEntries)
   const [
-    cn,
-    en,
-    cnPatch,
-    enPatch,
     cnCharMeta,
     enCharMeta,
     cnGacha,
-    cnHandbookTeams,
-    enHandbookTeams,
+    cnUniEquip,
     releaseInfoSource,
     releaseCandidateSource,
     releaseEventSource,
   ] = await Promise.all([
-    fetchJson<RawCharacterTable>(UPSTREAM.cnCharacterUrl),
-    fetchJson<RawCharacterTable>(UPSTREAM.enCharacterUrl),
-    fetchJson<RawCharacterPatchTable>(UPSTREAM.cnPatchUrl),
-    fetchJson<RawCharacterPatchTable>(UPSTREAM.enPatchUrl),
     fetchJson<RawCharacterMetaTable>(UPSTREAM.cnCharMetaUrl),
     fetchJson<RawCharacterMetaTable>(UPSTREAM.enCharMetaUrl),
     fetchJson<RawGachaTable>(UPSTREAM.cnGachaUrl),
-    fetchJson<RawHandbookTeamTable>(cnHandbookTeamUrl),
-    fetchJson<RawHandbookTeamTable>(UPSTREAM.enHandbookTeamUrl),
+    fetchJson<RawUniEquipData>(gameDataExcelUrl('cn', 'uniequip_data.json')),
     fetchText(UPSTREAM.releaseInfoUrl),
     fetchText(UPSTREAM.releaseCandidateUrl),
     fetchText(UPSTREAM.releaseEventUrl),
   ])
+
+  const cn = localeData.cn.characters
+  const en = localeData.en.characters
+  const cnPatch = localeData.cn.patch
+  const enPatch = localeData.en.patch
+  const cnHandbookTeams = localeData.cn.handbook
+  const enHandbookTeams = localeData.en.handbook
+  const localizedCharacterTables = Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].characters]),
+  )
+  const localizedPatchTables = Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].patch]),
+  )
+  const localizedFactionLabels = Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => [
+      locale,
+      factionLabelsFromHandbook(localeData[locale].handbook),
+    ]),
+  )
+  const localizedClassLabels = Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => [
+      locale,
+      classLabelsFromMainText(localeData[locale].mainText),
+    ]),
+  )
 
   const releaseDates = createReleaseDateMap(
     releaseInfoSource,
@@ -385,6 +437,11 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
       enCharMeta,
       cnGacha,
       factionLabels: factionLabelsFromHandbooks(cnHandbookTeams, enHandbookTeams),
+      localizedCharacterTables,
+      localizedPatchTables,
+      localizedFactionLabels,
+      localizedClassLabels,
+      localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
       releaseDates,
       releaseCategories,
     },

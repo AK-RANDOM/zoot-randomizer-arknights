@@ -47,8 +47,9 @@ const roster = [
 describe('Iteration 6 Pool persistence model', () => {
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
     expect(createDefaultOperatorPreferences()).toEqual({
-      version: 1,
+      version: 2,
       metadataRegion: 'global',
+      gameLocale: 'en',
       poolPresentation: 'imageGrid',
       excludedOperatorIds: [],
     })
@@ -63,10 +64,28 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: ['char_a', 'char_a', '', 7, ' char_b '],
       }),
     ).toEqual({
-      version: 1,
+      version: 2,
       metadataRegion: 'cn',
+      gameLocale: 'en',
       poolPresentation: 'detailedList',
       excludedOperatorIds: ['char_a', 'char_b'],
+    })
+  })
+
+  it('persists a supported game localization independently from metadata region', () => {
+    expect(
+      normalizeOperatorPreferences({
+        version: 2,
+        metadataRegion: 'global',
+        gameLocale: 'jp',
+        poolPresentation: 'compactCard',
+        excludedOperatorIds: [],
+      }),
+    ).toMatchObject({
+      version: 2,
+      metadataRegion: 'global',
+      gameLocale: 'jp',
+      poolPresentation: 'compactCard',
     })
   })
 

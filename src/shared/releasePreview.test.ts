@@ -44,24 +44,29 @@ const cnRelease: ReleaseConstraint = {
 }
 
 describe('release bound previews', () => {
-  it('uses the fixed launch representatives in the requested order', () => {
+  it('uses fixed launch representative IDs even when display names are localized', () => {
+    // These localized display names intentionally differ from the English names
+    // that the old implementation used as identity keys.
     const launch = [
-      operator('silverash', 'SilverAsh', 6, '2019-05-01'),
-      operator('eyja', 'Eyjafjalla', 6, '2019-05-01'),
-      operator('specter', 'Specter', 5, '2019-05-01'),
-      operator('ptilopsis', 'Ptilopsis', 5, '2019-05-01'),
-      operator('lappland', 'Lappland', 5, '2019-05-01'),
+      operator('char_172_svrash', '银灰', 6, '2019-05-01'),
+      operator('char_180_amgoat', '艾雅法拉', 6, '2019-05-01'),
+      operator('char_143_ghost', '幽灵鲨', 5, '2019-05-01'),
+      operator('char_128_plosis', '白面鸮', 5, '2019-05-01'),
+      operator('char_140_whitew', '拉普兰德', 5, '2019-05-01'),
       operator('other', 'Other', 6, '2019-05-01'),
       operator('later', 'Later', 6, '2019-06-01'),
     ]
 
     const preview = getReleaseBoundPreview(launch, cnRelease, 'min')
     expect(preview?.date).toBe('2019-05-01')
-    expect(preview?.sixStar.map((item) => item.name)).toEqual(['SilverAsh', 'Eyjafjalla'])
-    expect(preview?.fiveStar.map((item) => item.name)).toEqual([
-      'Specter',
-      'Ptilopsis',
-      'Lappland',
+    expect(preview?.sixStar.map((item) => item.id)).toEqual([
+      'char_172_svrash',
+      'char_180_amgoat',
+    ])
+    expect(preview?.fiveStar.map((item) => item.id)).toEqual([
+      'char_143_ghost',
+      'char_128_plosis',
+      'char_140_whitew',
     ])
   })
 
@@ -74,24 +79,24 @@ describe('release bound previews', () => {
     const preview = getReleaseBoundPreview(items, cnRelease, 'min')
     expect(preview?.date).toBe('2020-04-01')
     expect(preview?.sixStar).toEqual([])
-    expect(preview?.fiveStar.map((item) => item.name)).toEqual(['Only Five'])
+    expect(preview?.fiveStar.map((item) => item.id)).toEqual(['only'])
   })
 
-  it('orders the same-date pool Limited before Standard before Welfare within rarity', () => {
+  it('orders the same-date pool Limited before Standard before Welfare using ID tie-breakers', () => {
     const items = [
-      operator('welfare6', 'Welfare Six', 6, '2022-05-01', 'welfare'),
-      operator('standard6', 'Standard Six', 6, '2022-05-01'),
-      operator('limited6', 'Limited Six', 6, '2022-05-01', 'limited'),
-      operator('welfare5', 'Welfare Five', 5, '2022-05-01', 'welfare'),
-      operator('standard5', 'Standard Five', 5, '2022-05-01'),
-      operator('limited5', 'Limited Five', 5, '2022-05-01', 'limited'),
+      operator('welfare6', 'A Welfare Name', 6, '2022-05-01', 'welfare'),
+      operator('standard6', 'Z Standard Name', 6, '2022-05-01'),
+      operator('limited6', 'M Limited Name', 6, '2022-05-01', 'limited'),
+      operator('welfare5', 'A Welfare Five', 5, '2022-05-01', 'welfare'),
+      operator('standard5', 'Z Standard Five', 5, '2022-05-01'),
+      operator('limited5', 'M Limited Five', 5, '2022-05-01', 'limited'),
     ]
     const preview = getReleaseBoundPreview(items, cnRelease, 'max')
-    expect(preview?.sixStar.map((item) => item.name)).toEqual(['Limited Six', 'Standard Six'])
-    expect(preview?.fiveStar.map((item) => item.name)).toEqual([
-      'Limited Five',
-      'Standard Five',
-      'Welfare Five',
+    expect(preview?.sixStar.map((item) => item.id)).toEqual(['limited6', 'standard6'])
+    expect(preview?.fiveStar.map((item) => item.id)).toEqual([
+      'limited5',
+      'standard5',
+      'welfare5',
     ])
   })
 

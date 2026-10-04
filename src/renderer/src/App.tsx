@@ -48,6 +48,7 @@ import {
   operatorClasses,
   operatorRarities,
   welfareAcquisitionGroups,
+  type GameLocale,
   type LimitedAcquisitionGroup,
   type Operator,
   type OperatorClass,
@@ -56,6 +57,7 @@ import {
   type ReleaseServer,
   type WelfareAcquisitionGroup,
 } from '../../shared/operator'
+import { localizeOperatorDataset } from '../../shared/gameLocalization'
 import {
   buildFinalOperatorPool,
   reconcileOperatorPreferences,
@@ -274,9 +276,15 @@ function raritySetSummary(rarities: readonly OperatorRarity[]): string {
     .join(' / ')
 }
 
-function classSetSummary(classes: readonly OperatorClass[]): string {
+function classSetSummary(
+  classes: readonly OperatorClass[],
+  classLabels?: Readonly<Record<OperatorClass, string>>,
+): string {
   if (classes.length === 0) return 'Any class'
-  return operatorClasses.filter((operatorClass) => classes.includes(operatorClass)).join(' / ')
+  return operatorClasses
+    .filter((operatorClass) => classes.includes(operatorClass))
+    .map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass)
+    .join(' / ')
 }
 
 function storedPreference(key: string): boolean {
@@ -412,13 +420,19 @@ export default function App(): React.JSX.Element {
       window.desktop.getOperatorDataset(),
       window.desktop.getOperatorDataInfo(),
     ])
-    setDataset(nextDataset)
+    const localizedDataset = localizeOperatorDataset(nextDataset, operatorPreferences.gameLocale)
+    setDataset(localizedDataset)
     setDataInfo(nextInfo)
     setOperatorPreferences((current) =>
-      reconcileOperatorPreferences(current, nextDataset.operators),
+      reconcileOperatorPreferences(current, localizedDataset.operators),
     )
-    setMessage(`${nextDataset.operators.length} operators ready.`)
-  }, [])
+    setSquad((current) => {
+      if (current.length === 0) return current
+      const byId = new Map(localizedDataset.operators.map((operator) => [operator.id, operator]))
+      return current.map((operator) => byId.get(operator.id) ?? operator)
+    })
+    setMessage(`${localizedDataset.operators.length} operators ready.`)
+  }, [operatorPreferences.gameLocale])
 
   useEffect(() => {
     void loadData().catch((reason: unknown) => {
@@ -820,6 +834,10 @@ export default function App(): React.JSX.Element {
     setMessage(`Metadata region changed to ${server === 'global' ? 'EN / Global' : 'CN'}.`)
   }
 
+  const setGameLocale = (gameLocale: GameLocale): void => {
+    setOperatorPreferences((current) => ({ ...current, gameLocale }))
+  }
+
   const setPoolPresentation = (poolPresentation: PoolPresentationMode): void => {
     setOperatorPreferences((current) => ({ ...current, poolPresentation }))
   }
@@ -1193,10 +1211,10 @@ export default function App(): React.JSX.Element {
                     label={
                       <span className="bound-class-label">
                         <ClassIcon operatorClass={operatorClass} className="filter-class-icon" />
-                        <span>{operatorClass}</span>
+                        <span>{dataset?.classLabels?.[operatorClass] ?? operatorClass}</span>
                       </span>
                     }
-                    labelText={operatorClass}
+                    labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass}
                     value={constraints.class[operatorClass]}
                     disabled={squad.length > 0}
                     onSave={(next) => saveClassBound(operatorClass, next)}
@@ -1236,7 +1254,7 @@ export default function App(): React.JSX.Element {
                       {constrained && (
                         <div className="slot-constraint-badge" title="Generated under a slot constraint">
                           <span>{raritySetSummary(slotConstraint.rarities)}</span>
-                          <span>{classSetSummary(slotConstraint.classes)}</span>
+                          <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
                         </div>
                       )}
                     </>
@@ -1251,7 +1269,7 @@ export default function App(): React.JSX.Element {
                       {constrained ? (
                         <span className="slot-config-summary">
                           <strong>{raritySetSummary(slotConstraint.rarities)}</strong>
-                          <span>{classSetSummary(slotConstraint.classes)}</span>
+                          <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
                         </span>
                       ) : (
                         <span className="slot-config-any">
@@ -1543,6 +1561,7 @@ export default function App(): React.JSX.Element {
         <OptionsPanel
           preferences={operatorPreferences}
           onMetadataRegionChange={setMetadataRegion}
+          onGameLocaleChange={setGameLocale}
           onPoolPresentationChange={setPoolPresentation}
         />
       )}
@@ -1558,6 +1577,7 @@ export default function App(): React.JSX.Element {
           value={constraints.slots[editingSlot] ?? createEmptySlotConstraint()}
           constraints={constraints}
           operators={finalOperatorPool}
+          classLabels={dataset.classLabels}
           onApply={(value) => saveSlotConstraint(editingSlot, value)}
           onClose={() => setEditingSlot(null)}
         />

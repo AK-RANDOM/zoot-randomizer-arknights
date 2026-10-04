@@ -117,7 +117,7 @@ export default function Iteration6OperatorFilters({
             return (
               <div className="i6-subclass-group" key={operatorClass}>
                 <FilterCheckbox
-                  label={<strong>{operatorClass}</strong>}
+                  label={<strong>{dataset.classLabels?.[operatorClass] ?? operatorClass}</strong>}
                   checked={allEnabled}
                   indeterminate={!allEnabled && someEnabled}
                   onChange={(enabled) =>

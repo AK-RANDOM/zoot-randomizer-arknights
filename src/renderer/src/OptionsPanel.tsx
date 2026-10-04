@@ -4,7 +4,8 @@ import type {
   OperatorPreferences,
   PoolPresentationMode,
 } from '../../shared/operatorPool'
-import type { ReleaseServer } from '../../shared/operator'
+import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
+import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
 import type { PromotionArt } from '../../shared/portraits'
 import {
   setOperatorArtworkPreference,
@@ -113,10 +114,12 @@ function ArtworkDownloadStatus(): React.JSX.Element {
 export default function OptionsPanel({
   preferences,
   onMetadataRegionChange,
+  onGameLocaleChange,
   onPoolPresentationChange,
 }: {
   preferences: OperatorPreferences
   onMetadataRegionChange: (region: ReleaseServer) => void
+  onGameLocaleChange: (locale: GameLocale) => void
   onPoolPresentationChange: (mode: PoolPresentationMode) => void
 }): React.JSX.Element {
   const artworkPreference = useOperatorArtworkPreference()
@@ -145,6 +148,23 @@ export default function OptionsPanel({
           <small>
             Controls operator availability, release dates, release-year grouping,
             Kernel-era classification, and release previews.
+          </small>
+        </label>
+
+        <label className="field">
+          <span>Game localization</span>
+          <select
+            value={preferences.gameLocale}
+            onChange={(event) => onGameLocaleChange(event.target.value as GameLocale)}
+          >
+            {gameLocales.map((locale) => (
+              <option key={locale} value={locale}>
+                {GAME_LOCALE_LABELS[locale]}
+              </option>
+            ))}
+          </select>
+          <small>
+            Changes game-provided names and terminology only. App interface text remains English.
           </small>
         </label>
 

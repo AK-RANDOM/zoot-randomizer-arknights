@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { validateOperatorDataset } from '../src/shared/operatorData.ts'
+import { upgradeLegacyOperatorDataset, validateOperatorDataset } from '../src/shared/operatorData.ts'
 
 const path = join(
   process.cwd(),
@@ -9,8 +9,13 @@ const path = join(
   'operators',
   'operators.json',
 )
-const dataset = JSON.parse(await readFile(path, 'utf8')) as unknown
-const result = validateOperatorDataset(dataset, { requireSourceCommits: true })
+const rawDataset = JSON.parse(await readFile(path, 'utf8')) as unknown
+const legacy =
+  rawDataset !== null &&
+  typeof rawDataset === 'object' &&
+  (rawDataset as { schemaVersion?: unknown }).schemaVersion === 4
+const dataset = upgradeLegacyOperatorDataset(rawDataset)
+const result = validateOperatorDataset(dataset, { requireSourceCommits: !legacy })
 
 for (const warning of result.warnings) console.warn('Warning:', warning)
 

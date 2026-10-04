@@ -32,6 +32,7 @@ export default function SquadConstraintEditor({
   value,
   constraints,
   operators,
+  classLabels,
   onApply,
   onClose,
 }: {
@@ -39,6 +40,7 @@ export default function SquadConstraintEditor({
   value: SlotConstraint
   constraints: RandomizerConstraints
   operators: Operator[]
+  classLabels?: Readonly<Record<OperatorClass, string>>
   onApply: (value: SlotConstraint) => void
   onClose: () => void
 }): React.JSX.Element {
@@ -207,6 +209,7 @@ export default function SquadConstraintEditor({
               const selected = draft.classes.includes(operatorClass)
               const availability = classAvailability.get(operatorClass)!
               const disabled = !selected && !availability.valid
+              const displayClass = classLabels?.[operatorClass] ?? operatorClass
               return (
                 <button
                   key={operatorClass}
@@ -214,7 +217,7 @@ export default function SquadConstraintEditor({
                   className={`criteria-chip criteria-chip--class${selected ? ' is-selected' : ''}${!availability.valid ? ' is-unavailable' : ''}`}
                   aria-pressed={selected}
                   disabled={disabled}
-                  title={availability.reason || `${operatorClass} is available`}
+                  title={availability.reason || `${displayClass} is available`}
                   onClick={() =>
                     setDraft((current) => ({
                       ...current,
@@ -222,7 +225,7 @@ export default function SquadConstraintEditor({
                     }))
                   }
                 >
-                  {operatorClass}
+                  {displayClass}
                 </button>
               )
             })}

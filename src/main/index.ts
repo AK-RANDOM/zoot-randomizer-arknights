@@ -5,7 +5,6 @@ import type { PortraitSyncProgress } from '../shared/desktop'
 import type { PromotionArt } from '../shared/portraits'
 import {
   checkOperatorUpdates,
-  getClassIcon,
   getOperatorDataInfo,
   getOperatorDataset,
   getOperatorImage,
@@ -13,6 +12,11 @@ import {
   updateOperatorData,
 } from './operatorDataService'
 import { getOperatorPortrait, syncOperatorPortraits } from './operatorPortraitService'
+import {
+  getBundledClassIcon,
+  getFactionIcon,
+  getSubclassIcon,
+} from './operatorUiAssetService'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -139,7 +143,13 @@ function registerIpc(): void {
       getOperatorPortrait(operatorId, promotionArt),
   )
   ipcMain.handle('operator-data:class-icon', (_event, operatorClass) =>
-    getClassIcon(operatorClass),
+    getBundledClassIcon(operatorClass),
+  )
+  ipcMain.handle('operator-data:subclass-icon', (_event, subclassId: string) =>
+    getSubclassIcon(subclassId),
+  )
+  ipcMain.handle('operator-data:faction-icon', (_event, factionId: string) =>
+    getFactionIcon(factionId),
   )
   ipcMain.handle('operator-data:check-updates', () => checkOperatorUpdates())
   ipcMain.handle('operator-data:update', () => updateOperatorData())

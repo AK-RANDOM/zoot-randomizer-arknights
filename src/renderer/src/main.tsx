@@ -6,6 +6,7 @@ import './DraftPanel.css'
 import './iteration3.css'
 import './iteration4.css'
 import './iteration5.css'
+import './iteration61.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

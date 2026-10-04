@@ -8,14 +8,13 @@ export interface ReleaseBoundPreview {
   fiveStar: Operator[]
 }
 
-// Fixed launch representatives are keyed by canonical game-data operator IDs.
-// Display names are localized and therefore must never be used for identity here.
+// Locked launch representatives, keyed by canonical operator IDs so localization
+// never changes identity or ordering.
 const launchRepresentativeIds = [
-  'char_172_svrash',
-  'char_180_amgoat',
-  'char_143_ghost',
-  'char_128_plosis',
-  'char_140_whitew',
+  'char_172_svrash', // SilverAsh
+  'char_180_amgoat', // Eyjafjalla
+  'char_102_texas', // Texas
+  'char_128_plosis', // Ptilopsis
 ]
 
 function acquisitionPriority(operator: Operator): number {
@@ -27,7 +26,6 @@ function acquisitionPriority(operator: Operator): number {
 function sortRepresentatives(left: Operator, right: Operator): number {
   const sourceDifference = acquisitionPriority(left) - acquisitionPriority(right)
   if (sourceDifference !== 0) return sourceDifference
-  // Keep presentation deterministic across locales.
   return left.id.localeCompare(right.id)
 }
 
@@ -66,13 +64,13 @@ export function getReleaseBoundPreview(
     return {
       date,
       sixStar: fixed.filter((operator) => operator.rarity === 6).slice(0, 2),
-      fiveStar: fixed.filter((operator) => operator.rarity === 5).slice(0, 3),
+      fiveStar: fixed.filter((operator) => operator.rarity === 5).slice(0, 2),
     }
   }
 
   return {
     date,
     sixStar: sameDate.filter((operator) => operator.rarity === 6).sort(sortRepresentatives).slice(0, 2),
-    fiveStar: sameDate.filter((operator) => operator.rarity === 5).sort(sortRepresentatives).slice(0, 3),
+    fiveStar: sameDate.filter((operator) => operator.rarity === 5).sort(sortRepresentatives).slice(0, 2),
   }
 }

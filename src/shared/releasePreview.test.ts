@@ -44,15 +44,13 @@ const cnRelease: ReleaseConstraint = {
 }
 
 describe('release bound previews', () => {
-  it('uses fixed launch representative IDs even when display names are localized', () => {
-    // These localized display names intentionally differ from the English names
-    // that the old implementation used as identity keys.
+  it('uses the locked four launch representative IDs even when display names are localized', () => {
     const launch = [
       operator('char_172_svrash', '银灰', 6, '2019-05-01'),
       operator('char_180_amgoat', '艾雅法拉', 6, '2019-05-01'),
-      operator('char_143_ghost', '幽灵鲨', 5, '2019-05-01'),
+      operator('char_102_texas', '德克萨斯', 5, '2019-05-01'),
       operator('char_128_plosis', '白面鸮', 5, '2019-05-01'),
-      operator('char_140_whitew', '拉普兰德', 5, '2019-05-01'),
+      operator('char_143_ghost', '幽灵鲨', 5, '2019-05-01'),
       operator('other', 'Other', 6, '2019-05-01'),
       operator('later', 'Later', 6, '2019-06-01'),
     ]
@@ -64,10 +62,10 @@ describe('release bound previews', () => {
       'char_180_amgoat',
     ])
     expect(preview?.fiveStar.map((item) => item.id)).toEqual([
-      'char_143_ghost',
+      'char_102_texas',
       'char_128_plosis',
-      'char_140_whitew',
     ])
+    expect(preview?.fiveStar.some((item) => item.id === 'char_143_ghost')).toBe(false)
   })
 
   it('never borrows representatives from another release date', () => {
@@ -82,7 +80,7 @@ describe('release bound previews', () => {
     expect(preview?.fiveStar.map((item) => item.id)).toEqual(['only'])
   })
 
-  it('orders the same-date pool Limited before Standard before Welfare using ID tie-breakers', () => {
+  it('orders the same-date pool Limited before Standard before Welfare and caps each rarity at two', () => {
     const items = [
       operator('welfare6', 'A Welfare Name', 6, '2022-05-01', 'welfare'),
       operator('standard6', 'Z Standard Name', 6, '2022-05-01'),
@@ -93,11 +91,8 @@ describe('release bound previews', () => {
     ]
     const preview = getReleaseBoundPreview(items, cnRelease, 'max')
     expect(preview?.sixStar.map((item) => item.id)).toEqual(['limited6', 'standard6'])
-    expect(preview?.fiveStar.map((item) => item.id)).toEqual([
-      'limited5',
-      'standard5',
-      'welfare5',
-    ])
+    expect(preview?.fiveStar.map((item) => item.id)).toEqual(['limited5', 'standard5'])
+    expect((preview?.sixStar.length ?? 0) + (preview?.fiveStar.length ?? 0)).toBeLessThanOrEqual(4)
   })
 
   it('uses the earliest/latest actual operator event inside arbitrary date bounds', () => {

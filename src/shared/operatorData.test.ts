@@ -38,7 +38,7 @@ const handbookTeams = {
 describe('operator data normalization', () => {
   it('maps an offline class icon for every operator class', () => {
     expect(Object.keys(CLASS_ICON_FILES).sort()).toEqual([...operatorClasses].sort())
-    expect(Object.values(CLASS_ICON_FILES).every((filename) => filename.endsWith('.svg'))).toBe(true)
+    expect(Object.values(CLASS_ICON_FILES).every((filename) => filename.endsWith('.png'))).toBe(true)
   })
 
   it('reads localized class labels from game text keys', () => {
@@ -91,17 +91,22 @@ describe('operator data normalization', () => {
     expect(operatorEraForRelease(null, 'cn')).toBeNull()
   })
 
-  it('normalizes canonical main faction separately from all affiliations', () => {
+  it('preserves the explicit primary faction hierarchy separately from all affiliations', () => {
     expect(
       normalizeFaction({
         nationId: 'laterano',
         groupId: 'penguin',
         teamId: null,
         mainPower: { nationId: 'laterano', groupId: 'penguin', teamId: null },
+        subPower: [{ nationId: 'rhodes' }],
       }),
     ).toEqual({
+      nationId: 'laterano',
+      groupId: 'penguin',
+      teamId: null,
+      primary: ['laterano', 'penguin'],
       main: 'penguin',
-      affiliations: ['laterano', 'penguin'],
+      affiliations: ['laterano', 'penguin', 'rhodes'],
     })
 
     expect(factionLabelsFromHandbook(handbookTeams)).toMatchObject({
@@ -192,7 +197,13 @@ describe('operator data normalization', () => {
       rarity: 6,
       class: 'Guard',
       subclass: { id: 'lord', name: 'Lord' },
-      faction: { main: 'penguin', affiliations: ['laterano', 'penguin'] },
+      faction: {
+        nationId: 'laterano',
+        groupId: 'penguin',
+        primary: ['laterano', 'penguin'],
+        main: 'penguin',
+        affiliations: ['laterano', 'penguin'],
+      },
       availableOn: { cn: true, global: true },
       release: {
         cn: { date: '2020-05-01', yearGroup: 2 },
@@ -204,7 +215,12 @@ describe('operator data normalization', () => {
       rarity: 5,
       class: 'Caster',
       subclass: { id: 'corecaster', name: 'Core Caster' },
-      faction: { main: 'columbia', affiliations: ['columbia'] },
+      faction: {
+        nationId: 'columbia',
+        primary: ['columbia'],
+        main: 'columbia',
+        affiliations: ['columbia'],
+      },
       availableOn: { cn: true, global: false },
       release: {
         cn: { date: '2024-05-01', yearGroup: 6 },
@@ -257,7 +273,6 @@ describe('operator data normalization', () => {
 
     const jp = localizeOperatorDataset(dataset, 'jp')
     const tw = localizeOperatorDataset(dataset, 'tw')
-
     expect(jp.operators[0]).toMatchObject({
       id: 'char_global',
       name: 'グローバル',

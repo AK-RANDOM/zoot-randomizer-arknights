@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from './constraints'
+import { operatorClasses } from './operator'
 import {
   BUILT_IN_SQUAD_PRESETS,
   applySquadConfiguration,
@@ -10,7 +11,7 @@ import {
 } from './presets'
 
 describe('squad presets', () => {
-  it('defines the required built-in presets', () => {
+  it('defines the required built-in presets with visible slot mappings', () => {
     expect(BUILT_IN_SQUAD_PRESETS.map((preset) => preset.name)).toEqual([
       'No constraint',
       'Operation 6-7 Comp',
@@ -23,12 +24,27 @@ describe('squad presets', () => {
     expect(operation.rarity[5]).toEqual({ min: 3, max: 3 })
     expect(operation.rarity[4]).toEqual({ min: 5, max: 5 })
     expect(operation.rarity[3]).toEqual({ min: 3, max: 3 })
+    expect(operation.slots.map((slot) => slot.rarities)).toEqual([
+      [6],
+      [5], [5], [5],
+      [4], [4], [4], [4], [4],
+      [3], [3], [3],
+    ])
 
     const recommended = BUILT_IN_SQUAD_PRESETS[2].configuration
     expect(recommended.rarity[6]).toEqual({ min: 1, max: 1 })
     expect(recommended.rarity[5]).toEqual({ min: 5, max: 5 })
     expect(recommended.rarity[4]).toEqual({ min: 4, max: 4 })
     expect(recommended.rarityGroups.lte3).toEqual({ min: 2, max: 2 })
+    for (const operatorClass of operatorClasses) {
+      expect(recommended.class[operatorClass]).toEqual({ min: 1, max: 12 })
+    }
+    expect(recommended.slots.map((slot) => slot.rarities)).toEqual([
+      [6],
+      [5], [5], [5], [5], [5],
+      [4], [4], [4], [4],
+      [1, 2, 3], [1, 2, 3],
+    ])
   })
 
   it('applies only squad-side configuration and preserves operator filters', () => {
@@ -44,6 +60,19 @@ describe('squad presets', () => {
     expect(applied.class.Guard).toEqual({ min: 1, max: 2 })
     expect(applied.release.server).toBe('cn')
     expect(applied.alterExclusivity).toBe(true)
+  })
+
+  it('applies built-in preset slot constraints directly to the active grid', () => {
+    const current = createDefaultConstraints()
+    const applied = applySquadConfiguration(
+      current,
+      BUILT_IN_SQUAD_PRESETS[1].configuration,
+    )
+
+    expect(applied.slots[0]).toEqual({ rarities: [6], classes: [] })
+    expect(applied.slots[1]).toEqual({ rarities: [5], classes: [] })
+    expect(applied.slots[4]).toEqual({ rarities: [4], classes: [] })
+    expect(applied.slots[9]).toEqual({ rarities: [3], classes: [] })
   })
 
   it('round-trips multi-select slot constraints without sharing arrays', () => {

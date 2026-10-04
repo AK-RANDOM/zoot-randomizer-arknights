@@ -38,6 +38,8 @@ export interface DesktopApi {
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>
   getClassIcon(operatorClass: OperatorClass): Promise<string | null>
+  getSubclassIcon(subclassId: string): Promise<string | null>
+  getFactionIcon(factionId: string): Promise<string | null>
   checkOperatorUpdates(): Promise<OperatorUpdateCheck>
   updateOperatorData(): Promise<OperatorUpdateResult>
   getPortraitSyncProgress(): Promise<PortraitSyncProgress>

@@ -2,9 +2,10 @@ import {
   createEmptySlotConstraints,
   type NumericConstraint,
   type RandomizerConstraints,
+  type SlotConstraint,
   type SquadConfiguration,
 } from './constraints'
-import type { OperatorClass, OperatorRarity } from './operator'
+import { operatorClasses, type OperatorClass, type OperatorRarity } from './operator'
 
 export interface SquadPreset {
   id: string
@@ -25,9 +26,7 @@ function cloneNumericMap<T extends string | number>(
   ) as Partial<Record<T, NumericConstraint>>
 }
 
-export function cloneSquadConfiguration(
-  configuration: SquadConfiguration,
-): SquadConfiguration {
+export function cloneSquadConfiguration(configuration: SquadConfiguration): SquadConfiguration {
   return {
     squadSize: configuration.squadSize,
     rarity: cloneNumericMap<OperatorRarity>(configuration.rarity),
@@ -40,9 +39,7 @@ export function cloneSquadConfiguration(
   }
 }
 
-export function squadConfigurationFromConstraints(
-  constraints: RandomizerConstraints,
-): SquadConfiguration {
+export function squadConfigurationFromConstraints(constraints: RandomizerConstraints): SquadConfiguration {
   return cloneSquadConfiguration(constraints)
 }
 
@@ -61,10 +58,7 @@ export function applySquadConfiguration(
   }
 }
 
-export function squadConfigurationEquals(
-  left: SquadConfiguration,
-  right: SquadConfiguration,
-): boolean {
+export function squadConfigurationEquals(left: SquadConfiguration, right: SquadConfiguration): boolean {
   return JSON.stringify(cloneSquadConfiguration(left)) === JSON.stringify(cloneSquadConfiguration(right))
 }
 
@@ -79,6 +73,17 @@ export function createNoConstraintConfiguration(squadSize = 12): SquadConfigurat
 }
 
 const exact = (value: number): NumericConstraint => ({ min: value, max: value })
+const classMinimums = (minimum: number): Partial<Record<OperatorClass, NumericConstraint>> =>
+  Object.fromEntries(
+    operatorClasses.map((operatorClass) => [operatorClass, { min: minimum, max: 12 }]),
+  ) as Partial<Record<OperatorClass, NumericConstraint>>
+const slot = (rarities: OperatorRarity[]): SlotConstraint => ({ rarities, classes: [] })
+
+function mappedSlots(rarities: OperatorRarity[][]): SlotConstraint[] {
+  return Array.from({ length: 12 }, (_, index) =>
+    index < rarities.length ? slot([...rarities[index]]) : slot([]),
+  )
+}
 
 export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
   {
@@ -99,6 +104,12 @@ export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
         4: exact(5),
         3: exact(3),
       },
+      slots: mappedSlots([
+        [6],
+        [5], [5], [5],
+        [4], [4], [4], [4], [4],
+        [3], [3], [3],
+      ]),
     },
   },
   {
@@ -115,6 +126,13 @@ export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
       rarityGroups: {
         lte3: exact(2),
       },
+      class: classMinimums(1),
+      slots: mappedSlots([
+        [6],
+        [5], [5], [5], [5], [5],
+        [4], [4], [4], [4],
+        [1, 2, 3], [1, 2, 3],
+      ]),
     },
   },
 ]

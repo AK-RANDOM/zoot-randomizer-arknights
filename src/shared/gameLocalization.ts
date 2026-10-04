@@ -27,8 +27,15 @@ export function isGameLocale(value: unknown): value is GameLocale {
   return typeof value === 'string' && (gameLocales as readonly string[]).includes(value)
 }
 
+const EMPTY_CATALOG: GameStringCatalog = {
+  operatorNames: {},
+  classLabels: {} as Record<OperatorClass, string>,
+  subclassLabels: {},
+  factionLabels: {},
+}
+
 function catalogFor(dataset: OperatorDataset, locale: GameLocale): GameStringCatalog {
-  return dataset.localizations[locale]
+  return dataset.localizations?.[locale] ?? EMPTY_CATALOG
 }
 
 function resolveFromCatalogs(
@@ -69,7 +76,7 @@ export function localizeOperatorDataset(
   for (const operator of dataset.operators) {
     for (const factionId of operator.faction.affiliations) factionIds.add(factionId)
   }
-  for (const catalog of Object.values(dataset.localizations)) {
+  for (const catalog of Object.values(dataset.localizations ?? {})) {
     for (const factionId of Object.keys(catalog.factionLabels)) factionIds.add(factionId)
   }
 

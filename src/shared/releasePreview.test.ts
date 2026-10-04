@@ -75,6 +75,7 @@ describe('release bound previews', () => {
       operator('next5', 'Next Five', 5, '2020-04-02'),
     ]
     const preview = getReleaseBoundPreview(items, cnRelease, 'min')
+    expect(preview?.date).toBe('2020-04-01')
     expect(preview?.sixStar).toEqual([])
     expect(preview?.fiveStar.map((item) => item.id)).toEqual(['only'])
   })

@@ -19,6 +19,8 @@ export type DraftCompletionReason = 'squad-size-reached' | 'pool-exhausted'
 
 export interface DraftState {
   targetSize: number
+  /** Stable identity of the eligible pool + target size for this draft session. */
+  poolKey: string
   draftedOperatorIds: string[]
   currentOfferIds: string[]
   status: DraftStatus
@@ -55,6 +57,21 @@ function validateTargetSize(targetSize: number): void {
   if (!Number.isInteger(targetSize) || targetSize < 1) {
     throw new Error('Draft target size must be a positive integer.')
   }
+}
+
+/**
+ * Stable identity for a Draft session. Pool order does not matter, duplicate IDs
+ * are ignored, and changing either the eligible IDs or target size changes the key.
+ */
+export function createDraftPoolKey(
+  pool: readonly Operator[],
+  targetSize: number,
+): string {
+  validateTargetSize(targetSize)
+  const ids = uniqueOperatorsById(pool)
+    .map((operator) => operator.id)
+    .sort()
+  return JSON.stringify([targetSize, ...ids])
 }
 
 function validateGeneratedOffer(
@@ -119,12 +136,14 @@ export function generateEqualOpportunityCandidates(
 function advanceDraft(
   pool: readonly Operator[],
   targetSize: number,
+  poolKey: string,
   draftedOperatorIds: string[],
   options: DraftEngineOptions,
 ): DraftState {
   if (draftedOperatorIds.length >= targetSize) {
     return {
       targetSize,
+      poolKey,
       draftedOperatorIds,
       currentOfferIds: [],
       status: 'complete',
@@ -136,6 +155,7 @@ function advanceDraft(
   if (candidates.length < DRAFT_OFFER_SIZE) {
     return {
       targetSize,
+      poolKey,
       draftedOperatorIds,
       currentOfferIds: [],
       status: 'complete',
@@ -150,6 +170,7 @@ function advanceDraft(
 
   return {
     targetSize,
+    poolKey,
     draftedOperatorIds,
     currentOfferIds: offer.map((operator) => operator.id),
     status: 'active',
@@ -162,8 +183,8 @@ export function startDraft(
   targetSize: number,
   options: DraftEngineOptions = {},
 ): DraftState {
-  validateTargetSize(targetSize)
-  return advanceDraft(pool, targetSize, [], options)
+  const poolKey = createDraftPoolKey(pool, targetSize)
+  return advanceDraft(pool, targetSize, poolKey, [], options)
 }
 
 export function pickDraftOperator(
@@ -174,6 +195,10 @@ export function pickDraftOperator(
 ): DraftState {
   if (state.status !== 'active') {
     throw new Error('Cannot pick an operator from a completed draft.')
+  }
+
+  if (createDraftPoolKey(pool, state.targetSize) !== state.poolKey) {
+    throw new Error('Draft pool or target size changed after this draft started.')
   }
 
   if (!state.currentOfferIds.includes(operatorId)) {
@@ -187,6 +212,7 @@ export function pickDraftOperator(
   return advanceDraft(
     pool,
     state.targetSize,
+    state.poolKey,
     [...state.draftedOperatorIds, operatorId],
     options,
   )

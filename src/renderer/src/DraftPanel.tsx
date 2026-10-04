@@ -55,7 +55,12 @@ export default function DraftPanel({
           <h2 id="draft-heading">Pick 1 of 3</h2>
         </div>
         <div className="section-actions">
-          <button className="randomize-button" type="button" disabled={!ready} onClick={onStart}>
+          <button
+            className="randomize-button"
+            type="button"
+            disabled={!ready || operators.length < 3}
+            onClick={onStart}
+          >
             {state ? 'New Draft' : 'Start Draft'}
           </button>
         </div>
@@ -84,12 +89,34 @@ export default function DraftPanel({
         </div>
       </div>
 
+      {state && (
+        <p className="draft-session-note">
+          This Draft is tied to its starting pool and target size. Changing either resets the
+          session.
+        </p>
+      )}
+
       {!state ? (
         <div className="draft-empty-state">
-          <strong>Ready to draft</strong>
+          <strong>
+            {!ready
+              ? 'Loading operator data…'
+              : operators.length >= 3
+                ? 'Ready to draft'
+                : 'Not enough eligible operators'}
+          </strong>
           <p>
-            Drafts use the current eligible Global Pool and the configured squad size. Each
-            round offers exactly three distinct operators; pick one to keep permanently.
+            {!ready
+              ? 'Draft will be available after the operator dataset finishes loading.'
+              : operators.length >= 3
+                ? [
+                    'Drafts use the current eligible Global Pool and the configured squad size.',
+                    'Each round offers exactly three distinct operators; pick one to keep permanently.',
+                  ].join(' ')
+                : [
+                    'A Draft offer requires three distinct eligible operators.',
+                    'Adjust the current pool or eligibility filters before starting.',
+                  ].join(' ')}
           </p>
         </div>
       ) : state.status === 'complete' ? (

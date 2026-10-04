@@ -227,7 +227,7 @@ const rarityGroupsByRarity = Object.fromEntries(
       ),
     ),
   ]),
-) as Record<OperatorRarity, readonly RarityGroupKey[]>
+) as unknown as Record<OperatorRarity, readonly RarityGroupKey[]>
 
 function rarityGroupsFor(rarity: OperatorRarity): readonly RarityGroupKey[] {
   return rarityGroupsByRarity[rarity]

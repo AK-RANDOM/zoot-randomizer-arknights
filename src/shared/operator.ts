@@ -28,7 +28,7 @@ export const welfareAcquisitionGroups = [
 
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
-export const OPERATOR_DATASET_SCHEMA_VERSION = 4 as const
+export const OPERATOR_DATASET_SCHEMA_VERSION = 5 as const
 
 export type OperatorClass = (typeof operatorClasses)[number]
 export type GameLocale = (typeof gameLocales)[number]
@@ -108,11 +108,11 @@ export interface OperatorDataset {
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
   generatedAt: string | null
   sources: OperatorDatasetSources
-  /** Stable class ID -> current display label. Defaults to English when present. */
+  /** Stable class ID -> current display label. Defaults to English in schema-v5 data. */
   classLabels?: Record<OperatorClass, string>
   /** Stable faction/power ID -> current display label. Defaults to English in the stored dataset. */
   factionLabels: Record<string, string>
-  /** Game-provided display strings by locale. Added by the M1 localized data updater. */
+  /** Game-provided display strings by locale. Absent on legacy schema-v4 data. */
   localizations?: GameStringCatalogs
   operators: Operator[]
 }

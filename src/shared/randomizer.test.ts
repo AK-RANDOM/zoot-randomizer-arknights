@@ -5,7 +5,12 @@ import {
   type RandomizerConstraints,
 } from './constraints'
 import type { Operator } from './operator'
-import { filterEligibleOperators, generateSquad, validateConstraints } from './randomizer'
+import {
+  filterEligibleOperators,
+  generateSquad,
+  measureConstraintSearch,
+  validateConstraints,
+} from './randomizer'
 
 function operator(
   id: string,
@@ -290,6 +295,56 @@ describe('constraints', () => {
     expect(squad[0] && [4, 6].includes(squad[0].rarity)).toBe(true)
     expect(squad[0] && ['Caster', 'Sniper'].includes(squad[0].class)).toBe(true)
     expect(squad[1]?.class).toBe('Medic')
+  })
+
+  it('reports deterministic solver work without changing generation behavior', () => {
+    const constraints: RandomizerConstraints = {
+      ...DEFAULT_CONSTRAINTS,
+      squadSize: 4,
+      slots: [
+        { rarities: [6], classes: ['Guard', 'Caster'] },
+        { rarities: [5], classes: ['Guard', 'Medic'] },
+        ...DEFAULT_CONSTRAINTS.slots.slice(2),
+      ],
+    }
+
+    const first = measureConstraintSearch(pool, constraints, seededRandom())
+    const second = measureConstraintSearch(pool, constraints, seededRandom())
+
+    expect(first.solved).toBe(true)
+    expect(first.stats.visits).toBeGreaterThan(0)
+    expect(first.stats.exhausted).toBe(false)
+    expect(first.stats.prunedBranches).toBeGreaterThanOrEqual(0)
+    expect(second.stats.visits).toBe(first.stats.visits)
+    expect(second.stats.backtracks).toBe(first.stats.backtracks)
+  })
+
+  it('uses current viability to detect an exclusivity-blocked remaining slot', () => {
+    const items = [
+      operator('char_guard_a', 6, 'Guard', true, {
+        mandatoryExclusivityGroup: 'guard-lock',
+      }),
+      operator('char_guard_b', 5, 'Guard', true, {
+        mandatoryExclusivityGroup: 'guard-lock',
+      }),
+      operator('char_caster', 6, 'Caster'),
+      operator('char_medic', 5, 'Medic'),
+    ]
+    const constraints: RandomizerConstraints = {
+      ...DEFAULT_CONSTRAINTS,
+      squadSize: 3,
+      slots: [
+        { rarities: [], classes: ['Guard'] },
+        { rarities: [], classes: ['Guard'] },
+        { rarities: [], classes: ['Caster', 'Medic'] },
+        ...DEFAULT_CONSTRAINTS.slots.slice(3),
+      ],
+    }
+
+    const measured = measureConstraintSearch(items, constraints, seededRandom())
+    expect(measured.solved).toBe(false)
+    expect(measured.stats.exhausted).toBe(false)
+    expect(measured.stats.visits).toBeLessThan(20)
   })
 
   it('fails cleanly instead of returning a partial squad', () => {

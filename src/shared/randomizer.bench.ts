@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_CONSTRAINTS, type RandomizerConstraints } from './constraints'
 import type { Operator, OperatorClass, OperatorRarity } from './operator'
-import { measureConstraintSearch } from './randomizer'
+import { generateSquadForMeasurement, measureConstraintSearch } from './randomizer'
 
 function operator(
   id: string,
@@ -148,16 +148,17 @@ const cases: PerformanceCase[] = [
 
 describe('constraint solver performance', () => {
   for (const scenario of cases) {
-    for (const strategy of ['static', 'dynamic'] as const) {
+    for (const ordering of ['random', 'deficit'] as const) {
       const baseline = measureConstraintSearch(
         scenario.operators,
         scenario.constraints,
         seededRandom(),
-        strategy,
+        'static',
+        ordering,
       )
       const stats = baseline.stats
 
-      it(`${scenario.name} [${strategy}]`, () => {
+      it(`${scenario.name} [${ordering}]`, () => {
         const iterations = 100
         const startedAt = performance.now()
         for (let index = 0; index < iterations; index += 1) {
@@ -165,16 +166,68 @@ describe('constraint solver performance', () => {
             scenario.operators,
             scenario.constraints,
             seededRandom(),
-            strategy,
+            'static',
+            ordering,
           )
         }
         const elapsedMs = performance.now() - startedAt
         const averageMs = elapsedMs / iterations
         console.log(
-          `BENCH ${scenario.name} [${strategy}] avgMs=${averageMs.toFixed(3)} visits=${stats.visits} backtracks=${stats.backtracks} pruned=${stats.prunedBranches} exhausted=${stats.exhausted}`,
+          `BENCH ${scenario.name} [${ordering}] avgMs=${averageMs.toFixed(3)} visits=${stats.visits} backtracks=${stats.backtracks} pruned=${stats.prunedBranches} exhausted=${stats.exhausted}`,
         )
         expect(baseline.solved || stats.visits >= 0).toBe(true)
       })
     }
   }
+
+  it('measures moderate-case selection distribution', () => {
+    const scenario = cases.find((item) => item.name === 'moderately constrained')!
+    const samples = 2000
+
+    for (const ordering of ['random', 'deficit'] as const) {
+      const appearances = new Map<string, number>()
+      const classTotals = new Map<OperatorClass, number>()
+      const rarityTotals = new Map<OperatorRarity, number>()
+
+      for (let sample = 0; sample < samples; sample += 1) {
+        const result = measureConstraintSearch(
+          scenario.operators,
+          scenario.constraints,
+          seededRandom(0x12345678 + sample),
+          'static',
+          ordering,
+        )
+        expect(result.solved).toBe(true)
+
+        const squad = generateSquadForMeasurement(
+          scenario.operators,
+          scenario.constraints,
+          seededRandom(0x12345678 + sample),
+          ordering,
+        )
+        for (const item of squad) {
+          appearances.set(item.id, (appearances.get(item.id) ?? 0) + 1)
+          classTotals.set(item.class, (classTotals.get(item.class) ?? 0) + 1)
+          rarityTotals.set(item.rarity, (rarityTotals.get(item.rarity) ?? 0) + 1)
+        }
+      }
+
+      const expected = (samples * scenario.constraints.squadSize) / scenario.operators.length
+      const operatorCounts = scenario.operators.map(
+        (item) => appearances.get(item.id) ?? 0,
+      )
+      const maxRelativeDeviation = Math.max(
+        ...operatorCounts.map((count) => Math.abs(count - expected) / expected),
+      )
+      const meanAbsoluteRelativeDeviation =
+        operatorCounts.reduce(
+          (sum, count) => sum + Math.abs(count - expected) / expected,
+          0,
+        ) / operatorCounts.length
+
+      console.log(
+        `FAIRNESS moderate [${ordering}] samples=${samples} operatorMeanAbsRelDev=${meanAbsoluteRelativeDeviation.toFixed(4)} operatorMaxRelDev=${maxRelativeDeviation.toFixed(4)} classes=${JSON.stringify(Object.fromEntries(classTotals))} rarities=${JSON.stringify(Object.fromEntries(rarityTotals))}`,
+      )
+    }
+  })
 })

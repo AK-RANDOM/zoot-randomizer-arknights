@@ -13,6 +13,11 @@ import {
   type OperatorRarity,
 } from './operator.ts'
 import {
+  CLASS_ICON_FILES,
+  OPERATOR_UI_ASSET_REPOSITORY,
+  OPERATOR_UI_ASSET_REVISION,
+} from './operatorAssets.ts'
+import {
   classifyAcquisition,
   isModeOnlyOperator,
   limitedOperatorIds,
@@ -68,10 +73,14 @@ export const UPSTREAM = {
   releaseEventUrl: RELEASE_METADATA_UPSTREAM.eventUrl,
   avatarBaseUrl:
     'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/avatar',
-  classIconRepo: 'tohmatosauce/ak-branch-icons',
-  classIconRevision: 'e5639fd87cb86f596c3551bda54eff1b2a4dd810',
+  uiAssetRepo: OPERATOR_UI_ASSET_REPOSITORY,
+  uiAssetRevision: OPERATOR_UI_ASSET_REVISION,
   classIconBaseUrl:
-    'https://raw.githubusercontent.com/tohmatosauce/ak-branch-icons/e5639fd87cb86f596c3551bda54eff1b2a4dd810/svgs/400',
+    `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/classes`,
+  subclassIconBaseUrl:
+    `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/ui/subclass`,
+  factionIconBaseUrl:
+    `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/factions`,
 } as const
 
 export const GAME_DATA_LOCALES = ['en', 'jp', 'kr', 'tw', 'cn'] as const satisfies readonly GameLocale[]
@@ -84,16 +93,7 @@ export function gameDataExcelUrl(locale: GameLocale, filename: string): string {
   return `https://raw.githubusercontent.com/${UPSTREAM.gamedataRepo}/master/${gameDataExcelPath(locale, filename)}`
 }
 
-export const CLASS_ICON_FILES: Record<OperatorClass, string> = {
-  Vanguard: 'Vanguard.svg',
-  Guard: 'Guard.svg',
-  Defender: 'Defender.svg',
-  Sniper: 'Sniper.svg',
-  Caster: 'Caster.svg',
-  Medic: 'Medic.svg',
-  Supporter: 'Supporter.svg',
-  Specialist: 'Specialist.svg',
-}
+export { CLASS_ICON_FILES }
 
 export interface RawPowerReference {
   nationId?: unknown
@@ -113,6 +113,7 @@ export interface RawCharacterRecord {
   groupId?: unknown
   teamId?: unknown
   mainPower?: unknown
+  subPower?: unknown
 }
 
 export type RawCharacterTable = Record<string, RawCharacterRecord>
@@ -271,29 +272,52 @@ export function factionLabelsFromHandbooks(
 }
 
 export function normalizeFaction(record: RawCharacterRecord | undefined): OperatorFaction {
-  if (!record) return { main: null, affiliations: [] }
+  if (!record) {
+    return {
+      nationId: null,
+      groupId: null,
+      teamId: null,
+      primary: [],
+      main: null,
+      affiliations: [],
+    }
+  }
 
   const mainPower = rawPowerReference(record.mainPower)
-  const nationId = cleanString(record.nationId)
-  const groupId = cleanString(record.groupId)
-  const teamId = cleanString(record.teamId)
+  const rawNationId = cleanString(record.nationId)
+  const rawGroupId = cleanString(record.groupId)
+  const rawTeamId = cleanString(record.teamId)
   const mainNationId = cleanString(mainPower?.nationId)
   const mainGroupId = cleanString(mainPower?.groupId)
   const mainTeamId = cleanString(mainPower?.teamId)
+  const subPowers = Array.isArray(record.subPower)
+    ? record.subPower
+        .map(rawPowerReference)
+        .filter((value): value is RawPowerReference => value !== null)
+    : []
+  const subPowerIds = subPowers.flatMap((power) => [
+    cleanString(power.nationId),
+    cleanString(power.groupId),
+    cleanString(power.teamId),
+  ])
 
-  const main =
-    mainTeamId ?? mainGroupId ?? mainNationId ?? teamId ?? groupId ?? nationId ?? null
+  const nationId = mainNationId ?? rawNationId
+  const groupId = mainGroupId ?? rawGroupId
+  const teamId = mainTeamId ?? rawTeamId
+  const primary = uniqueStrings([nationId, groupId, teamId])
+  const main = primary.at(-1) ?? null
   const affiliations = uniqueStrings([
-    nationId,
-    groupId,
-    teamId,
+    rawNationId,
+    rawGroupId,
+    rawTeamId,
     mainNationId,
     mainGroupId,
     mainTeamId,
-    main,
+    ...subPowerIds,
+    ...primary,
   ])
 
-  return { main, affiliations }
+  return { nationId, groupId, teamId, primary, main, affiliations }
 }
 
 function isPlayableOperator(id: string, record: RawCharacterRecord | undefined): boolean {
@@ -509,6 +533,8 @@ export function normalizeCharacterTables(
 
   operators.sort((left, right) => {
     if (left.rarity !== right.rarity) return right.rarity - left.rarity
+    const classDifference = operatorClasses.indexOf(left.class) - operatorClasses.indexOf(right.class)
+    if (classDifference !== 0) return classDifference
     return left.name.localeCompare(right.name)
   })
 
@@ -523,16 +549,80 @@ export function normalizeCharacterTables(
   }
 }
 
+function upgradeLegacyFaction(value: unknown): OperatorFaction {
+  if (!value || typeof value !== 'object') {
+    return {
+      nationId: null,
+      groupId: null,
+      teamId: null,
+      primary: [],
+      main: null,
+      affiliations: [],
+    }
+  }
+
+  const faction = value as Partial<OperatorFaction> & {
+    main?: unknown
+    affiliations?: unknown
+  }
+  const affiliations = Array.isArray(faction.affiliations)
+    ? uniqueStrings(faction.affiliations.map(cleanString))
+    : []
+  const main = cleanString(faction.main)
+  const existingPrimary = Array.isArray(faction.primary)
+    ? uniqueStrings(faction.primary.map(cleanString))
+    : []
+  const primary = existingPrimary.length > 0
+    ? existingPrimary
+    : main
+      ? affiliations.includes(main)
+        ? affiliations.slice(0, affiliations.indexOf(main) + 1)
+        : [main]
+      : []
+
+  const nationId = cleanString(faction.nationId) ?? primary[0] ?? null
+  const teamId = cleanString(faction.teamId) ?? (primary.length >= 3 ? primary.at(-1) ?? null : null)
+  const groupId = cleanString(faction.groupId) ?? (primary.length >= 2 ? primary[primary.length - 2] : null)
+  const normalizedPrimary = uniqueStrings([nationId, groupId, teamId])
+  const normalizedMain = normalizedPrimary.at(-1) ?? main ?? null
+
+  return {
+    nationId,
+    groupId,
+    teamId,
+    primary: normalizedPrimary.length > 0 ? normalizedPrimary : (normalizedMain ? [normalizedMain] : []),
+    main: normalizedMain,
+    affiliations: uniqueStrings([...affiliations, normalizedMain]),
+  }
+}
+
 export function upgradeLegacyOperatorDataset(dataset: unknown): unknown {
   if (!dataset || typeof dataset !== 'object') return dataset
   const candidate = dataset as Record<string, unknown>
-  if (candidate.schemaVersion !== 4) return dataset
+  if (candidate.schemaVersion !== 4 && candidate.schemaVersion !== 5) return dataset
 
-  const operators = Array.isArray(candidate.operators) ? candidate.operators : []
+  const rawOperators = Array.isArray(candidate.operators) ? candidate.operators : []
+  const operators = rawOperators.map((raw) => {
+    if (!raw || typeof raw !== 'object') return raw
+    const operator = raw as Record<string, unknown>
+    return {
+      ...operator,
+      faction: upgradeLegacyFaction(operator.faction),
+    }
+  })
   const sourceFactionLabels =
     candidate.factionLabels && typeof candidate.factionLabels === 'object'
       ? (candidate.factionLabels as Record<string, string>)
       : {}
+
+  if (candidate.schemaVersion === 5) {
+    return {
+      ...candidate,
+      schemaVersion: OPERATOR_DATASET_SCHEMA_VERSION,
+      operators,
+    }
+  }
+
   const operatorNames: Record<string, string> = {}
   const subclassLabels: Record<string, string> = { ...SUBCLASS_LABELS }
 
@@ -568,6 +658,7 @@ export function upgradeLegacyOperatorDataset(dataset: unknown): unknown {
   return {
     ...candidate,
     schemaVersion: OPERATOR_DATASET_SCHEMA_VERSION,
+    operators,
     sources: {
       ...sources,
       gamedataJpCommit: null,
@@ -715,17 +806,24 @@ export function validateOperatorDataset(
     }
 
     const faction = operator.faction
-    if (!faction || !Array.isArray(faction.affiliations)) {
+    if (!faction || !Array.isArray(faction.affiliations) || !Array.isArray(faction.primary)) {
       errors.push(`Operator ${operator.id} has invalid faction metadata.`)
     } else {
+      const hierarchy = [faction.nationId, faction.groupId, faction.teamId].filter(
+        (value): value is string => typeof value === 'string' && value.length > 0,
+      )
+      if (JSON.stringify([...new Set(hierarchy)]) !== JSON.stringify(faction.primary)) {
+        errors.push(`Operator ${operator.id} has an inconsistent primary faction hierarchy.`)
+      }
+      const expectedMain = faction.primary.at(-1) ?? null
+      if (faction.main !== expectedMain) {
+        errors.push(`Operator ${operator.id} has an inconsistent main faction.`)
+      }
       const uniqueAffiliations = new Set(faction.affiliations)
       if (uniqueAffiliations.size !== faction.affiliations.length) {
         errors.push(`Operator ${operator.id} has duplicate faction affiliations.`)
       }
-      if (faction.main && !uniqueAffiliations.has(faction.main)) {
-        errors.push(`Operator ${operator.id} main faction is missing from affiliations.`)
-      }
-      for (const factionId of faction.affiliations) {
+      for (const factionId of [...faction.primary, ...faction.affiliations]) {
         if (!factionLabels[factionId]) {
           errors.push(`Operator ${operator.id} has unknown faction: ${factionId}.`)
         }

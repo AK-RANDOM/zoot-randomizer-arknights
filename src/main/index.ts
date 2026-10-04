@@ -77,7 +77,7 @@ async function startPortraitSync(): Promise<PortraitSyncProgress> {
             ? `Artwork download complete with ${warnings.length} unavailable variant(s).`
             : 'Operator artwork is ready for offline use.',
       })
-    } catch (error) {
+    } catch {
       if (controller.signal.aborted) {
         return publishPortraitProgress({
           ...portraitSyncProgress,

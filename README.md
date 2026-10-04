@@ -30,7 +30,7 @@ From a clean clone:
 
 ```sh
 npm ci
-npm run data:update:images
+npm run data:update
 npm run dev
 ```
 
@@ -51,11 +51,11 @@ npm run build:portable
 npm run build:win
 ```
 
-The build commands refresh the operator dataset and generated artwork caches before packaging, so the resulting desktop build carries the data it needs for normal offline use.
+The build commands refresh the bundled operator metadata and class icons before packaging. Operator avatars and promotion artwork are downloaded into the persistent user-data cache at runtime; missing artwork falls back to text/placeholders so the app remains usable offline.
 
 ## Data and assets
 
-The project consumes public Arknights community/game-data sources and normalizes them into its own application schema. Update scripts are kept in `scripts/`. Generated operator data and artwork caches under `resources/bundled-data` are intentionally not part of the public source snapshot; they are recreated with `npm run data:update:images` for development and packaging.
+The project consumes public Arknights community/game-data sources and normalizes them into its own application schema. Update scripts are kept in `scripts/`. Generated operator data and class icons under `resources/bundled-data` are intentionally not part of the public source snapshot; they are recreated with `npm run data:update` for development and packaging. Runtime avatar and promotion-art caches are not packaged.
 
 Current upstream sources include:
 
@@ -76,7 +76,7 @@ The MIT grant does **not** apply to Arknights game data, artwork, names, tradema
 
 ## Windows releases
 
-The portable executable is the preferred distribution format. Installed and portable builds use the neutral **Arknights Randomizer** application identity; portable update data is kept in `Arknights-Randomizer-Data` beside the executable when writable.
+Windows releases are distributed as a single portable executable. Portable update data is kept in `Arknights-Randomizer-Data` beside the executable when writable.
 
 Current builds are unsigned, so Windows may display its normal warning for unsigned applications.
 

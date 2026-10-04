@@ -1,4 +1,9 @@
-import type { OperatorPreferences, PoolPresentationMode } from '../../shared/operatorPool'
+import { useEffect, useState } from 'react'
+import type { PortraitSyncProgress } from '../../shared/desktop'
+import type {
+  OperatorPreferences,
+  PoolPresentationMode,
+} from '../../shared/operatorPool'
 import type { ReleaseServer } from '../../shared/operator'
 import type { PromotionArt } from '../../shared/portraits'
 import {
@@ -38,6 +43,70 @@ function ArtworkChoice({
         <small>{description}</small>
       </span>
     </button>
+  )
+}
+
+function ArtworkDownloadStatus(): React.JSX.Element {
+  const [progress, setProgress] = useState<PortraitSyncProgress | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void window.desktop.getPortraitSyncProgress().then((next) => {
+      if (active) setProgress(next)
+    })
+    const unsubscribe = window.desktop.onPortraitSyncProgress((next) => {
+      if (active) setProgress(next)
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [])
+
+  if (!progress) {
+    return <div className="artwork-download-status">Checking artwork cache…</div>
+  }
+
+  const downloading = progress.status === 'downloading'
+  const canRetry = progress.status === 'cancelled' || progress.status === 'failed'
+  const percent =
+    progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0
+
+  return (
+    <div className="artwork-download-status" aria-live="polite">
+      <div className="artwork-download-status__heading">
+        <div>
+          <strong>Offline artwork cache</strong>
+          <p>{progress.message}</p>
+        </div>
+        {downloading && (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void window.desktop.cancelPortraitSync().then(setProgress)}
+          >
+            Cancel
+          </button>
+        )}
+        {canRetry && (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void window.desktop.startPortraitSync().then(setProgress)}
+          >
+            Retry
+          </button>
+        )}
+      </div>
+      {downloading && (
+        <>
+          <progress value={progress.completed} max={Math.max(progress.total, 1)} />
+          <small>
+            {progress.completed} / {progress.total} operators · {percent}%
+          </small>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -111,7 +180,11 @@ export default function OptionsPanel({
             constraints, or the current squad.
           </p>
         </div>
-        <div className="artwork-choice-group" role="radiogroup" aria-label="Operator artwork">
+        <div
+          className="artwork-choice-group"
+          role="radiogroup"
+          aria-label="Operator artwork"
+        >
           <ArtworkChoice
             value="e1"
             selected={artworkPreference === 'e1'}
@@ -132,6 +205,8 @@ export default function OptionsPanel({
         both choices when the resource set does not provide a separate E1
         portrait.
       </p>
+
+      <ArtworkDownloadStatus />
     </section>
   )
 }

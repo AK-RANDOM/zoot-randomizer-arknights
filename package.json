@@ -22,10 +22,10 @@
     "build:unpack": "npm run data:update:images && npm run build && electron-builder --dir --publish never",
     "build:win": "npm run data:update:images && npm run build && electron-builder --win --publish never",
     "data:update": "node scripts/update-operator-data.mts",
-    "data:update:images": "node scripts/update-operator-data.mts --download-images && npm run data:portraits",
-    "data:validate": "node scripts/validate-bundled-data.mts && node scripts/validate-portrait-coverage.mts",
+    "data:update:images": "node scripts/update-operator-data.mts --download-images",
+    "data:validate": "node scripts/validate-bundled-data.mts",
     "build:portable": "npm run data:update:images && npm run build && electron-builder --win portable --publish never",
-    "data:images": "node scripts/update-operator-data.mts --download-images-only && npm run data:portraits",
+    "data:images": "node scripts/update-operator-data.mts --download-images-only",
     "data:portraits": "node scripts/update-operator-portraits.mts",
     "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
   },
@@ -65,7 +65,11 @@
     "extraResources": [
       {
         "from": "resources/bundled-data",
-        "to": "bundled-data"
+        "to": "bundled-data",
+        "filter": [
+          "**/*",
+          "!operators/portraits/**/*"
+        ]
       }
     ],
     "win": {

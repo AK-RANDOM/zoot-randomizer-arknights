@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync } from 'node:fs'
+import type { PortraitSyncProgress } from '../shared/desktop'
 import type { PromotionArt } from '../shared/portraits'
 import {
   checkOperatorUpdates,
@@ -8,11 +9,18 @@ import {
   getOperatorDataInfo,
   getOperatorDataset,
   getOperatorImage,
+  updateOperatorData,
 } from './operatorDataService'
-import {
-  getOperatorPortrait,
-  updateOperatorDataWithPortraits,
-} from './operatorPortraitService'
+import { getOperatorPortrait, syncOperatorPortraits } from './operatorPortraitService'
+
+let portraitSyncProgress: PortraitSyncProgress = {
+  status: 'idle',
+  completed: 0,
+  total: 0,
+  message: 'Operator artwork has not been checked yet.',
+}
+let portraitSyncController: AbortController | null = null
+let portraitSyncPromise: Promise<PortraitSyncProgress> | null = null
 
 function configurePortableUserData(): void {
   const portableDir = process.env['PORTABLE_EXECUTABLE_DIR']
@@ -30,6 +38,77 @@ function configurePortableUserData(): void {
 
 configurePortableUserData()
 
+function publishPortraitProgress(progress: PortraitSyncProgress): PortraitSyncProgress {
+  portraitSyncProgress = progress
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('operator-portraits:progress-changed', progress)
+  }
+  return progress
+}
+
+async function startPortraitSync(): Promise<PortraitSyncProgress> {
+  if (portraitSyncPromise) return portraitSyncPromise
+
+  const controller = new AbortController()
+  portraitSyncController = controller
+  portraitSyncPromise = (async () => {
+    try {
+      const dataset = await getOperatorDataset()
+      const total = dataset.operators.length
+      publishPortraitProgress({
+        status: 'downloading',
+        completed: 0,
+        total,
+        message: 'Downloading operator artwork…',
+      })
+      const warnings = await syncOperatorPortraits(
+        dataset.operators.map((operator) => operator.id),
+        {
+          signal: controller.signal,
+          onProgress: publishPortraitProgress,
+        },
+      )
+      return publishPortraitProgress({
+        status: 'complete',
+        completed: total,
+        total,
+        message:
+          warnings.length > 0
+            ? `Artwork download complete with ${warnings.length} unavailable variant(s).`
+            : 'Operator artwork is ready for offline use.',
+      })
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return publishPortraitProgress({
+          ...portraitSyncProgress,
+          status: 'cancelled',
+          message: 'Artwork download paused. It will resume on the next launch or when retried.',
+        })
+      }
+      return publishPortraitProgress({
+        ...portraitSyncProgress,
+        status: 'failed',
+        message: 'Artwork download could not continue. The app remains usable offline.',
+      })
+    } finally {
+      portraitSyncController = null
+      portraitSyncPromise = null
+    }
+  })()
+
+  return portraitSyncPromise
+}
+
+function cancelPortraitSync(): PortraitSyncProgress {
+  portraitSyncController?.abort()
+  if (portraitSyncProgress.status !== 'downloading') return portraitSyncProgress
+  return publishPortraitProgress({
+    ...portraitSyncProgress,
+    status: 'cancelled',
+    message: 'Artwork download paused. Completed files have been kept.',
+  })
+}
+
 function registerIpc(): void {
   ipcMain.handle('operator-data:get', () => getOperatorDataset())
   ipcMain.handle('operator-data:info', () => getOperatorDataInfo())
@@ -45,7 +124,10 @@ function registerIpc(): void {
     getClassIcon(operatorClass),
   )
   ipcMain.handle('operator-data:check-updates', () => checkOperatorUpdates())
-  ipcMain.handle('operator-data:update', () => updateOperatorDataWithPortraits())
+  ipcMain.handle('operator-data:update', () => updateOperatorData())
+  ipcMain.handle('operator-portraits:progress', () => portraitSyncProgress)
+  ipcMain.handle('operator-portraits:start', () => startPortraitSync())
+  ipcMain.handle('operator-portraits:cancel', () => cancelPortraitSync())
 }
 
 function createWindow(): void {
@@ -71,6 +153,9 @@ function createWindow(): void {
     })
   } else {
     mainWindow.once('ready-to-show', () => mainWindow.show())
+    mainWindow.webContents.once('did-finish-load', () => {
+      void startPortraitSync()
+    })
   }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

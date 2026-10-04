@@ -19,12 +19,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "npm run typecheck && electron-vite build",
-    "build:unpack": "npm run data:update:images && npm run build && electron-builder --dir --publish never",
-    "build:win": "npm run data:update:images && npm run build && electron-builder --win --publish never",
+    "build:unpack": "npm run data:update && npm run build && electron-builder --dir --publish never",
+    "build:win": "npm run data:update && npm run build && electron-builder --win portable --publish never",
     "data:update": "node scripts/update-operator-data.mts",
     "data:update:images": "node scripts/update-operator-data.mts --download-images",
     "data:validate": "node scripts/validate-bundled-data.mts",
-    "build:portable": "npm run data:update:images && npm run build && electron-builder --win portable --publish never",
+    "build:portable": "npm run build:win",
     "data:images": "node scripts/update-operator-data.mts --download-images-only",
     "data:portraits": "node scripts/update-operator-portraits.mts",
     "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
@@ -68,22 +68,21 @@
         "to": "bundled-data",
         "filter": [
           "**/*",
+          "!operators/images/**/*",
           "!operators/portraits/**/*"
         ]
       }
     ],
     "win": {
       "target": [
-        "nsis",
         "portable"
       ]
     },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    },
     "portable": {
       "artifactName": "Arknights-Randomizer-${version}-${arch}-Portable.${ext}"
-    }
+    },
+    "electronLanguages": [
+      "en-US"
+    ]
   }
 }

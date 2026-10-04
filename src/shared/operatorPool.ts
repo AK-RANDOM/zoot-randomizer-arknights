@@ -1,8 +1,9 @@
 import type { RandomizerConstraints } from './constraints'
-import type { Operator, ReleaseServer } from './operator'
+import type { GameLocale, Operator, ReleaseServer } from './operator'
+import { isGameLocale } from './gameLocalization'
 import { filterHigherLevelEligibleOperators } from './randomizer'
 
-export const OPERATOR_PREFERENCES_VERSION = 1 as const
+export const OPERATOR_PREFERENCES_VERSION = 2 as const
 
 export const poolPresentationModes = [
   'imageGrid',
@@ -16,6 +17,7 @@ export type PoolPresentationMode = (typeof poolPresentationModes)[number]
 export interface OperatorPreferences {
   version: typeof OPERATOR_PREFERENCES_VERSION
   metadataRegion: ReleaseServer
+  gameLocale: GameLocale
   poolPresentation: PoolPresentationMode
   /** Explicit exclusions only. Any ID not listed is enabled by default. */
   excludedOperatorIds: string[]
@@ -25,6 +27,7 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
   return {
     version: OPERATOR_PREFERENCES_VERSION,
     metadataRegion: 'global',
+    gameLocale: 'en',
     poolPresentation: 'imageGrid',
     excludedOperatorIds: [],
   }
@@ -60,8 +63,12 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
   const defaults = createDefaultOperatorPreferences()
   if (!value || typeof value !== 'object') return defaults
 
-  const candidate = value as Partial<Record<keyof OperatorPreferences, unknown>>
-  if (candidate.version !== OPERATOR_PREFERENCES_VERSION) return defaults
+  const candidate = value as Partial<Record<keyof OperatorPreferences, unknown>> & {
+    version?: unknown
+  }
+  if (candidate.version !== 1 && candidate.version !== OPERATOR_PREFERENCES_VERSION) {
+    return defaults
+  }
 
   return {
     version: OPERATOR_PREFERENCES_VERSION,
@@ -69,6 +76,7 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
       candidate.metadataRegion === 'cn' || candidate.metadataRegion === 'global'
         ? candidate.metadataRegion
         : defaults.metadataRegion,
+    gameLocale: isGameLocale(candidate.gameLocale) ? candidate.gameLocale : defaults.gameLocale,
     poolPresentation: isPoolPresentationMode(candidate.poolPresentation)
       ? candidate.poolPresentation
       : defaults.poolPresentation,

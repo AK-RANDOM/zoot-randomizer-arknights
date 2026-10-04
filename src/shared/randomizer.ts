@@ -347,6 +347,7 @@ function solveAssignment(
   eligible: Operator[],
   constraints: RandomizerConstraints,
   random: RandomSource,
+  slotSelection: 'static' | 'dynamic' = 'dynamic',
 ): SearchResult {
   const target = constraints.squadSize
   const candidatesBySlot = Array.from({ length: target }, (_, slotIndex) =>
@@ -466,7 +467,7 @@ function solveAssignment(
       )
     }
 
-    selectMostConstrainedSlot(depth)
+    if (slotSelection === 'dynamic') selectMostConstrainedSlot(depth)
     const remainingSlots = slotOrder.slice(depth)
     if (
       !minimumsStillReachable(
@@ -595,6 +596,7 @@ export function measureConstraintSearch(
   operators: Operator[],
   constraints: RandomizerConstraints,
   random: RandomSource = validationRandom(),
+  slotSelection: 'static' | 'dynamic' = 'dynamic',
 ): { solved: boolean; stats: SolverStats } {
   const shapeErrors = validateConstraintShape(constraints)
   if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))
@@ -607,7 +609,7 @@ export function measureConstraintSearch(
     }
   }
 
-  const result = solveAssignment(eligible, constraints, random)
+  const result = solveAssignment(eligible, constraints, random, slotSelection)
   return { solved: result.squad !== null, stats: result.stats }
 }
 

@@ -32,6 +32,7 @@ type ConstraintCountMap<T extends string | number> = Map<T, number>
 export interface SolverStats {
   visits: number
   backtracks: number
+  prunedBranches: number
   exhausted: boolean
   elapsedMs: number
 }
@@ -400,7 +401,13 @@ function solveAssignment(
     return {
       squad: null,
       exhausted: false,
-      stats: { visits: 0, backtracks: 0, exhausted: false, elapsedMs: 0 },
+      stats: {
+        visits: 0,
+        backtracks: 0,
+        prunedBranches: 0,
+        exhausted: false,
+        elapsedMs: 0,
+      },
     }
   }
 
@@ -430,6 +437,7 @@ function solveAssignment(
   const rarityGroupCounts = new Map<RarityGroupKey, number>()
   let visits = 0
   let backtracks = 0
+  let prunedBranches = 0
   let exhausted = false
   const startedAt = performance.now()
 
@@ -522,6 +530,7 @@ function solveAssignment(
         bounds,
       )
     ) {
+      prunedBranches += 1
       return false
     }
 
@@ -547,6 +556,7 @@ function solveAssignment(
   const stats: SolverStats = {
     visits,
     backtracks,
+    prunedBranches,
     exhausted,
     elapsedMs: performance.now() - startedAt,
   }
@@ -648,7 +658,13 @@ export function measureConstraintSearch(
   if (eligible.length < constraints.squadSize) {
     return {
       solved: false,
-      stats: { visits: 0, backtracks: 0, exhausted: false, elapsedMs: 0 },
+      stats: {
+        visits: 0,
+        backtracks: 0,
+        prunedBranches: 0,
+        exhausted: false,
+        elapsedMs: 0,
+      },
     }
   }
 

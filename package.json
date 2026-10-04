@@ -27,7 +27,7 @@
     "build:portable": "npm run data:update:images && npm run build && electron-builder --win portable --publish never",
     "data:images": "node scripts/update-operator-data.mts --download-images-only && npm run data:portraits",
     "data:portraits": "node scripts/update-operator-portraits.mts",
-    "benchmark": "vitest run src/shared/randomizer.bench.ts --reporter=verbose"
+    "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
   },
   "dependencies": {
     "react": "^19.2.1",

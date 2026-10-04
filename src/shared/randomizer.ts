@@ -96,7 +96,8 @@ function factionEnabled(
   if (excluded.size === 0) return true
 
   if (constraints.faction.matchMode === 'main') {
-    return operator.faction.main === null || !excluded.has(operator.faction.main)
+    const primary = operator.faction.primary.at(-1) ?? operator.faction.main
+    return primary === null || !excluded.has(primary)
   }
 
   return (
@@ -154,7 +155,9 @@ export function filterHigherLevelEligibleOperators(
     if (excludedSubclasses.has(operator.subclass.id)) return false
     if (!factionEnabled(operator, constraints)) return false
 
-    if (constraints.era !== 'all') {
+    // Kernel classification is a historical 5★/6★ split. Lower rarities stay
+    // eligible in both modes when every other filter passes.
+    if (constraints.era !== 'all' && operator.rarity >= 5) {
       const era = operatorEraForRelease(release.date, server)
       if (era !== constraints.era) return false
     }

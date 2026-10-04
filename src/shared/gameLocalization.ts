@@ -7,6 +7,15 @@ import {
   type OperatorDataset,
 } from './operator'
 
+/**
+ * This module is the boundary for Arknights-owned display strings.
+ *
+ * Catalog values come from official game data (operator, class, subclass and
+ * faction names). Randomizer-owned UI copy does not belong here and will use
+ * the app-localization layer separately. Game entities keep their stable IDs;
+ * localization only replaces display values and must not change filtering,
+ * persistence, solver input, or randomizer ordering.
+ */
 export const GAME_LOCALE_LABELS: Readonly<Record<GameLocale, string>> = {
   en: 'English',
   jp: '日本語',

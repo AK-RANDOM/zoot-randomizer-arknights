@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npm run data:update:images
+      - run: npm run data:update
       - run: npm run data:validate
       - run: npm run typecheck
       - run: npm run lint
@@ -44,38 +44,8 @@ jobs:
             throw 'Portable application did not create its sidecar data directory.'
           }
           Remove-Item $portableData -Recurse -Force
-      - name: Verify silent install, launch, and uninstall
-        shell: pwsh
-        run: |
-          $env:ELECTRON_SMOKE_TEST = '1'
-          $installer = Get-ChildItem dist/*.exe | Where-Object { $_.Name -notmatch '-Portable\.exe$' } | Select-Object -First 1
-          if (-not $installer) { throw 'Windows installer was not produced.' }
-
-          $install = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -PassThru -Wait
-          if ($install.ExitCode -ne 0) { throw "Installer exited with code $($install.ExitCode)." }
-
-          $installedExe = Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -Recurse -Filter 'Arknights Randomizer.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $installedExe) { throw 'Installed application executable was not found.' }
-
-          $appProcess = Start-Process -FilePath $installedExe.FullName -PassThru
-          if (-not $appProcess.WaitForExit(20000)) {
-            $appProcess.Kill()
-            throw 'Installed application did not complete the smoke launch.'
-          }
-          if ($appProcess.ExitCode -ne 0) {
-            throw "Installed application exited with code $($appProcess.ExitCode)."
-          }
-
-          $uninstaller = Get-ChildItem $installedExe.DirectoryName -Filter 'Uninstall*.exe' | Select-Object -First 1
-          if (-not $uninstaller) { throw 'Uninstaller was not found.' }
-
-          $uninstall = Start-Process -FilePath $uninstaller.FullName -ArgumentList '/S' -PassThru -Wait
-          if ($uninstall.ExitCode -ne 0) { throw "Uninstaller exited with code $($uninstall.ExitCode)." }
-
-          Start-Sleep -Seconds 2
-          if (Test-Path $installedExe.FullName) { throw 'Application executable remains after uninstall.' }
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-builds
-          path: dist/*.exe
+          name: windows-portable
+          path: dist/*-Portable.exe
           if-no-files-found: error

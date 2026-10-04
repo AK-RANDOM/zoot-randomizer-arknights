@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Operator } from './operator'
 import {
   DRAFT_OFFER_SIZE,
+  createDraftPoolKey,
   generateEqualOpportunityCandidates,
   pickDraftOperator,
   startDraft,
@@ -94,6 +95,7 @@ describe('Draft milestone 1 engine', () => {
 
     expect(state).toEqual({
       targetSize: 1,
+      poolKey: createDraftPoolKey(roster(2), 1),
       draftedOperatorIds: [],
       currentOfferIds: [],
       status: 'complete',
@@ -143,5 +145,42 @@ describe('Draft milestone 1 engine', () => {
     expect(() => generateEqualOpportunityCandidates(pool, 3, () => 1)).toThrow(
       'range [0, 1)',
     )
+  })
+
+  it('keeps every active offer valid across a full multi-round draft', () => {
+    const pool = roster(9)
+    const poolIds = new Set(pool.map(({ id }) => id))
+    let state = startDraft(pool, 6, { random: () => 0.37 })
+
+    while (state.status === 'active') {
+      expect(state.currentOfferIds).toHaveLength(DRAFT_OFFER_SIZE)
+      expect(new Set(state.currentOfferIds).size).toBe(DRAFT_OFFER_SIZE)
+      expect(state.currentOfferIds.every((id) => poolIds.has(id))).toBe(true)
+      expect(
+        state.currentOfferIds.some((id) => state.draftedOperatorIds.includes(id)),
+      ).toBe(false)
+
+      state = pickDraftOperator(state, pool, state.currentOfferIds[1], {
+        random: () => 0.37,
+      })
+    }
+
+    expect(state.completionReason).toBe('squad-size-reached')
+    expect(state.draftedOperatorIds).toHaveLength(6)
+    expect(new Set(state.draftedOperatorIds).size).toBe(6)
+  })
+
+  it('uses a stable pool key and rejects continuation after the pool changes', () => {
+    const pool = roster(6)
+    const reversed = [...pool].reverse()
+    const state = startDraft(pool, 4, { random: () => 0 })
+
+    expect(createDraftPoolKey(pool, 4)).toBe(createDraftPoolKey(reversed, 4))
+    expect(state.poolKey).toBe(createDraftPoolKey(pool, 4))
+
+    const changedPool = pool.slice(0, 5)
+    expect(() =>
+      pickDraftOperator(state, changedPool, state.currentOfferIds[0], { random: () => 0 }),
+    ).toThrow('Draft pool or target size changed')
   })
 })

@@ -72,6 +72,49 @@ describe('Iteration 6 higher-level operator eligibility', () => {
     ])
   })
 
+  it('keeps 1★–4★ operators eligible in both Kernel modes', () => {
+    const earlyFourStar = operator('early-four', {
+      rarity: 4,
+      release: {
+        cn: { date: '2020-01-01', yearGroup: 1 },
+        global: { date: '2020-01-01', yearGroup: 0 },
+      },
+    })
+    const lateThreeStar = operator('late-three', {
+      rarity: 3,
+      release: {
+        cn: { date: '2024-01-01', yearGroup: 5 },
+        global: { date: '2024-01-01', yearGroup: 5 },
+      },
+    })
+    const earlySixStar = operator('early-six')
+    const lateFiveStar = operator('late-five', {
+      rarity: 5,
+      release: {
+        cn: { date: '2024-01-01', yearGroup: 5 },
+        global: { date: '2024-01-01', yearGroup: 5 },
+      },
+    })
+
+    const kernel = createDefaultConstraints()
+    kernel.era = 'kernel'
+    expect(
+      filterHigherLevelEligibleOperators(
+        [earlyFourStar, lateThreeStar, earlySixStar, lateFiveStar],
+        kernel,
+      ).map(({ id }) => id),
+    ).toEqual(['early-four', 'late-three', 'early-six'])
+
+    const postKernel = createDefaultConstraints()
+    postKernel.era = 'postKernel'
+    expect(
+      filterHigherLevelEligibleOperators(
+        [earlyFourStar, lateThreeStar, earlySixStar, lateFiveStar],
+        postKernel,
+      ).map(({ id }) => id),
+    ).toEqual(['early-four', 'late-three', 'late-five'])
+  })
+
   it('filters subclasses by stable IDs while leaving new/unmentioned IDs enabled', () => {
     const constraints = createDefaultConstraints()
     constraints.subclass.excludedIds = ['lord']
@@ -91,8 +134,11 @@ describe('Iteration 6 higher-level operator eligibility', () => {
   it('supports canonical main-faction matching and any-affiliation matching', () => {
     const multiFaction = operator('multi', {
       faction: {
+        nationId: 'columbia',
+        groupId: 'rhodes',
+        primary: ['columbia', 'rhodes'],
         main: 'rhodes',
-        affiliations: ['rhodes', 'kazimierz'],
+        affiliations: ['columbia', 'rhodes', 'kazimierz'],
       },
     })
 
@@ -108,11 +154,11 @@ describe('Iteration 6 higher-level operator eligibility', () => {
       'multi',
     ])
 
-    anyAffiliation.faction.excludedIds = ['rhodes', 'kazimierz']
+    anyAffiliation.faction.excludedIds = ['columbia', 'rhodes', 'kazimierz']
     expect(filterHigherLevelEligibleOperators([multiFaction], anyAffiliation)).toEqual([])
   })
 
-  it('treats Kernel era as a release-date classification for every acquisition family', () => {
+  it('treats Kernel era as a release-date classification for every 5★/6★ acquisition family', () => {
     const constraints = createDefaultConstraints()
     constraints.release.server = 'global'
     constraints.era = 'kernel'

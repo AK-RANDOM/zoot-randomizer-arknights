@@ -96,7 +96,7 @@ function factionEnabled(
   if (excluded.size === 0) return true
 
   if (constraints.faction.matchMode === 'main') {
-    const primary = operator.faction.primary.at(-1) ?? operator.faction.main
+    const primary = operator.faction.primary?.at(-1) ?? operator.faction.main
     return primary === null || !excluded.has(primary)
   }
 

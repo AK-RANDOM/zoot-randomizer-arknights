@@ -148,22 +148,27 @@ const cases: PerformanceCase[] = [
 
 describe('constraint solver performance', () => {
   for (const scenario of cases) {
-    const baseline = measureConstraintSearch(
-      scenario.operators,
-      scenario.constraints,
-      seededRandom(),
-    )
+    for (const strategy of ['static', 'dynamic'] as const) {
+      const baseline = measureConstraintSearch(
+        scenario.operators,
+        scenario.constraints,
+        seededRandom(),
+        strategy,
+      )
+      const stats = baseline.stats
 
-    bench(
-      `${scenario.name} | visits=${baseline.stats.visits} backtracks=${baseline.stats.backtracks} exhausted=${baseline.stats.exhausted}`,
-      () => {
-        measureConstraintSearch(
-          scenario.operators,
-          scenario.constraints,
-          seededRandom(),
-        )
-      },
-      { time: 500 },
-    )
+      bench(
+        `${scenario.name} [${strategy}] | visits=${stats.visits} backtracks=${stats.backtracks} exhausted=${stats.exhausted}`,
+        () => {
+          measureConstraintSearch(
+            scenario.operators,
+            scenario.constraints,
+            seededRandom(),
+            strategy,
+          )
+        },
+        { time: 500 },
+      )
+    }
   }
 })

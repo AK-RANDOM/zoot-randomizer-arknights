@@ -58,11 +58,11 @@ export interface OperatorSubclass {
 
 export interface OperatorFaction {
   /** Explicit source hierarchy, normalized from mainPower when present. */
-  nationId: string | null
-  groupId: string | null
-  teamId: string | null
-  /** Nation -> group -> team primary chain, with absent levels omitted. */
-  primary: string[]
+  nationId?: string | null
+  groupId?: string | null
+  teamId?: string | null
+  /** Nation -> group -> team primary chain. Required in validated schema-v6 data. */
+  primary?: string[]
   /** Most-specific ID in the primary chain; null only when upstream has none. */
   main: string | null
   /** All known nation/group/team affiliations, including alternate source references. */

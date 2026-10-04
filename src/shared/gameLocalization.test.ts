@@ -95,6 +95,17 @@ describe('game localization', () => {
     expect(GAME_LOCALE_FALLBACKS.cn).toEqual(['cn', 'en'])
   })
 
+  it('preserves the existing default English presentation and canonical data', () => {
+    const source = dataset()
+    const localized = localizeOperatorDataset(source, 'en')
+
+    expect(localized.operators).toEqual(source.operators)
+    expect(localized.classLabels).toEqual(source.classLabels)
+    expect(localized.factionLabels).toEqual(source.factionLabels)
+    expect(localized.sources).toEqual(source.sources)
+    expect(localized.generatedAt).toBe(source.generatedAt)
+  })
+
   it('falls back missing TW strings to English before CN', () => {
     const localized = localizeOperatorDataset(dataset(), 'tw')
     expect(localized.operators.map(({ name }) => name)).toEqual(['Alpha', '貝塔'])

@@ -1,0 +1,16 @@
+node_modules/
+out/
+dist/
+release/
+*.log
+.env
+.env.*
+!.env.example
+resources/cache/
+resources/bundled-data/
+resources/operator-portraits/
+resources/class-icons/
+resources/subclass-icons/
+resources/faction-icons/
+.DS_Store
+Thumbs.db

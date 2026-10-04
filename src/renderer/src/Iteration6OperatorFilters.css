@@ -1,0 +1,52 @@
+.i6-filter-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.i6-subclass-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.i6-subclass-group {
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.i6-subclass-children {
+  display: grid;
+  gap: 0.35rem;
+  padding-left: 1.35rem;
+}
+
+.i6-filter-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.i6-filter-check span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.i6-faction-mode {
+  max-width: 320px;
+  margin-bottom: 0.8rem;
+}
+
+.i6-faction-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.45rem 1rem;
+}
+
+@media (max-width: 680px) {
+  .i6-subclass-groups,
+  .i6-faction-grid {
+    grid-template-columns: 1fr;
+  }
+}

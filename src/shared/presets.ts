@@ -1,0 +1,141 @@
+import {
+  createEmptySlotConstraints,
+  type NumericConstraint,
+  type RandomizerConstraints,
+  type SquadConfiguration,
+} from './constraints'
+import type { OperatorClass, OperatorRarity } from './operator'
+
+export interface SquadPreset {
+  id: string
+  name: string
+  builtIn: boolean
+  configuration: SquadConfiguration
+}
+
+export interface StoredSquadPreset extends SquadPreset {
+  builtIn: false
+}
+
+function cloneNumericMap<T extends string | number>(
+  source: Partial<Record<T, NumericConstraint>>,
+): Partial<Record<T, NumericConstraint>> {
+  return Object.fromEntries(
+    Object.entries(source).map(([key, value]) => [key, { ...(value as NumericConstraint) }]),
+  ) as Partial<Record<T, NumericConstraint>>
+}
+
+export function cloneSquadConfiguration(
+  configuration: SquadConfiguration,
+): SquadConfiguration {
+  return {
+    squadSize: configuration.squadSize,
+    rarity: cloneNumericMap<OperatorRarity>(configuration.rarity),
+    rarityGroups: cloneNumericMap(configuration.rarityGroups),
+    class: cloneNumericMap<OperatorClass>(configuration.class),
+    slots: Array.from({ length: 12 }, (_, index) => ({
+      rarities: [...(configuration.slots[index]?.rarities ?? [])],
+      classes: [...(configuration.slots[index]?.classes ?? [])],
+    })),
+  }
+}
+
+export function squadConfigurationFromConstraints(
+  constraints: RandomizerConstraints,
+): SquadConfiguration {
+  return cloneSquadConfiguration(constraints)
+}
+
+export function applySquadConfiguration(
+  constraints: RandomizerConstraints,
+  configuration: SquadConfiguration,
+): RandomizerConstraints {
+  const next = cloneSquadConfiguration(configuration)
+  return {
+    ...constraints,
+    squadSize: next.squadSize,
+    rarity: next.rarity,
+    rarityGroups: next.rarityGroups,
+    class: next.class,
+    slots: next.slots,
+  }
+}
+
+export function squadConfigurationEquals(
+  left: SquadConfiguration,
+  right: SquadConfiguration,
+): boolean {
+  return JSON.stringify(cloneSquadConfiguration(left)) === JSON.stringify(cloneSquadConfiguration(right))
+}
+
+export function createNoConstraintConfiguration(squadSize = 12): SquadConfiguration {
+  return {
+    squadSize,
+    rarity: {},
+    rarityGroups: {},
+    class: {},
+    slots: createEmptySlotConstraints(),
+  }
+}
+
+const exact = (value: number): NumericConstraint => ({ min: value, max: value })
+
+export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
+  {
+    id: 'builtin:none',
+    name: 'No constraint',
+    builtIn: true,
+    configuration: createNoConstraintConfiguration(12),
+  },
+  {
+    id: 'builtin:operation-6-7',
+    name: 'Operation 6-7 Comp',
+    builtIn: true,
+    configuration: {
+      ...createNoConstraintConfiguration(12),
+      rarity: {
+        6: exact(1),
+        5: exact(3),
+        4: exact(5),
+        3: exact(3),
+      },
+    },
+  },
+  {
+    id: 'builtin:dev-recommended',
+    name: 'Dev recommended',
+    builtIn: true,
+    configuration: {
+      ...createNoConstraintConfiguration(12),
+      rarity: {
+        6: exact(1),
+        5: exact(5),
+        4: exact(4),
+      },
+      rarityGroups: {
+        lte3: exact(2),
+      },
+    },
+  },
+]
+
+export function findBuiltInPreset(id: string): SquadPreset | undefined {
+  return BUILT_IN_SQUAD_PRESETS.find((preset) => preset.id === id)
+}
+
+export function isNoConstraintConfiguration(configuration: SquadConfiguration): boolean {
+  return squadConfigurationEquals(configuration, createNoConstraintConfiguration(configuration.squadSize))
+}
+
+export function createUserPreset(
+  name: string,
+  configuration: SquadConfiguration,
+  id = `user:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+): StoredSquadPreset {
+  return {
+    id,
+    name: name.trim() || 'Untitled preset',
+    builtIn: false,
+    configuration: cloneSquadConfiguration(configuration),
+  }
+}

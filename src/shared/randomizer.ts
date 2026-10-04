@@ -218,12 +218,19 @@ function exclusivityKeys(
   return keys
 }
 
-function groupRarities(group: RarityGroupKey): readonly OperatorRarity[] {
-  return rarityGroupDefinitions[group].rarities as readonly OperatorRarity[]
-}
+const rarityGroupsByRarity = Object.fromEntries(
+  operatorRarities.map((rarity) => [
+    rarity,
+    rarityGroupKeys.filter((group) =>
+      (rarityGroupDefinitions[group].rarities as readonly OperatorRarity[]).includes(
+        rarity,
+      ),
+    ),
+  ]),
+) as Record<OperatorRarity, readonly RarityGroupKey[]>
 
-function rarityGroupsFor(rarity: OperatorRarity): RarityGroupKey[] {
-  return rarityGroupKeys.filter((group) => groupRarities(group).includes(rarity))
+function rarityGroupsFor(rarity: OperatorRarity): readonly RarityGroupKey[] {
+  return rarityGroupsByRarity[rarity]
 }
 
 function countFor<T extends string | number>(

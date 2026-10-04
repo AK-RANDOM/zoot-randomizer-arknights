@@ -3,6 +3,8 @@ import {
   limitedAcquisitionGroups,
   operatorClasses,
   welfareAcquisitionGroups,
+  type GameLocale,
+  type GameStringCatalogs,
   type Operator,
   type OperatorClass,
   type OperatorDataset,
@@ -72,6 +74,16 @@ export const UPSTREAM = {
     'https://raw.githubusercontent.com/tohmatosauce/ak-branch-icons/e5639fd87cb86f596c3551bda54eff1b2a4dd810/svgs/400',
 } as const
 
+export const GAME_DATA_LOCALES = ['en', 'jp', 'kr', 'tw', 'cn'] as const satisfies readonly GameLocale[]
+
+export function gameDataExcelPath(locale: GameLocale, filename: string): string {
+  return `${locale}/gamedata/excel/${filename}`
+}
+
+export function gameDataExcelUrl(locale: GameLocale, filename: string): string {
+  return `https://raw.githubusercontent.com/${UPSTREAM.gamedataRepo}/master/${gameDataExcelPath(locale, filename)}`
+}
+
 export const CLASS_ICON_FILES: Record<OperatorClass, string> = {
   Vanguard: 'Vanguard.svg',
   Guard: 'Guard.svg',
@@ -120,6 +132,16 @@ export interface RawHandbookPowerRecord {
 }
 
 export type RawHandbookTeamTable = Record<string, RawHandbookPowerRecord>
+export type RawMainTextTable = Record<string, unknown>
+
+export interface RawSubProfessionRecord {
+  subProfessionId?: unknown
+  subProfessionName?: unknown
+}
+
+export interface RawUniEquipData {
+  subProfDict?: Record<string, RawSubProfessionRecord>
+}
 
 export interface OperatorNormalizationMetadata {
   cnPatch?: RawCharacterPatchTable
@@ -133,6 +155,11 @@ export interface OperatorNormalizationMetadata {
   enHandbookTeams?: RawHandbookTeamTable
   /** Preferred pre-resolved faction label map when both CN and EN catalogs are available. */
   factionLabels?: Record<string, string>
+  localizedCharacterTables?: Partial<Record<GameLocale, RawCharacterTable>>
+  localizedPatchTables?: Partial<Record<GameLocale, RawCharacterPatchTable>>
+  localizedFactionLabels?: Partial<Record<GameLocale, Record<string, string>>>
+  localizedClassLabels?: Partial<Record<GameLocale, Partial<Record<OperatorClass, string>>>>
+  localizedSubclassLabels?: Partial<Record<GameLocale, Record<string, string>>>
   releaseDates?: Record<string, OperatorReleaseDates>
   releaseCategories?: Record<string, OperatorReleaseCategory | null>
 }
@@ -146,6 +173,40 @@ const professionMap: Record<string, OperatorClass> = {
   MEDIC: 'Medic',
   SUPPORT: 'Supporter',
   SPECIAL: 'Specialist',
+}
+
+const CLASS_TEXT_KEYS: Readonly<Record<OperatorClass, string>> = {
+  Vanguard: '&&f2jpay62qnj6aw1c',
+  Guard: '&&xov9ihvv9n8frbnt',
+  Defender: '&&inmif6yx00qvqbpo',
+  Sniper: '&&er6agj79r5o66meb',
+  Caster: '&&qxsuq9rv6a8g29v5',
+  Medic: '&&sflzf6wb8yoll845',
+  Supporter: '&&idlme4d6y1pui6xg',
+  Specialist: '&&9103pjuhz1qf6yhv',
+}
+
+export function classLabelsFromMainText(
+  mainText: RawMainTextTable | undefined,
+): Record<OperatorClass, string> {
+  return Object.fromEntries(
+    operatorClasses.map((operatorClass) => {
+      const raw = mainText?.[CLASS_TEXT_KEYS[operatorClass]]
+      return [operatorClass, cleanString(raw) ?? operatorClass]
+    }),
+  ) as Record<OperatorClass, string>
+}
+
+export function subclassLabelsFromUniEquip(
+  data: RawUniEquipData | undefined,
+): Record<string, string> {
+  const labels: Record<string, string> = {}
+  for (const [key, record] of Object.entries(data?.subProfDict ?? {})) {
+    const id = cleanString(record?.subProfessionId) ?? cleanString(key)
+    const name = cleanString(record?.subProfessionName)
+    if (id && name) labels[id] = name
+  }
+  return labels
 }
 
 function cleanString(value: unknown): string | null {
@@ -204,10 +265,7 @@ export function factionLabelsFromHandbooks(
   en: RawHandbookTeamTable | undefined,
 ): Record<string, string> {
   return {
-    // CN can contain factions that are not yet present in Global. Prefer its
-    // stable powerCode as the English fallback for those ahead-of-EN entries.
     ...factionLabelsFromHandbook(cn, true),
-    // EN powerName is the preferred localized label whenever available.
     ...factionLabelsFromHandbook(en),
   }
 }
@@ -223,7 +281,6 @@ export function normalizeFaction(record: RawCharacterRecord | undefined): Operat
   const mainGroupId = cleanString(mainPower?.groupId)
   const mainTeamId = cleanString(mainPower?.teamId)
 
-  // mainPower is authoritative. Prefer the most specific populated level.
   const main =
     mainTeamId ?? mainGroupId ?? mainNationId ?? teamId ?? groupId ?? nationId ?? null
   const affiliations = uniqueStrings([
@@ -264,6 +321,77 @@ function displayName(
     cleanString(cnRecord?.appellation) ??
     cleanString(cnRecord?.name)
   )
+}
+
+function localeDisplayName(
+  id: string,
+  record: RawCharacterRecord | undefined,
+  classLabels: Record<OperatorClass, string>,
+): string | null {
+  const baseName = cleanString(record?.name) ?? cleanString(record?.appellation)
+  if (!baseName) return null
+
+  const formClasses: Partial<Record<string, OperatorClass>> = {
+    char_002_amiya: 'Caster',
+    char_1001_amiya2: 'Guard',
+    char_1037_amiya3: 'Medic',
+  }
+  const formClass = formClasses[id]
+  return formClass ? `${baseName} (${classLabels[formClass] ?? formClass})` : baseName
+}
+
+function buildLocalizationCatalogs(
+  ids: ReadonlySet<string>,
+  cn: RawCharacterTable,
+  en: RawCharacterTable,
+  metadata: OperatorNormalizationMetadata,
+  canonicalFactionLabels: Record<string, string>,
+): GameStringCatalogs {
+  const defaultClassLabels = Object.fromEntries(
+    operatorClasses.map((operatorClass) => [operatorClass, operatorClass]),
+  ) as Record<OperatorClass, string>
+  const tables: Partial<Record<GameLocale, RawCharacterTable>> = {
+    ...metadata.localizedCharacterTables,
+    cn,
+    en,
+  }
+  const patches: Partial<Record<GameLocale, RawCharacterPatchTable>> = {
+    ...metadata.localizedPatchTables,
+    cn: metadata.cnPatch,
+    en: metadata.enPatch,
+  }
+
+  return Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => {
+      const classLabels = {
+        ...defaultClassLabels,
+        ...(metadata.localizedClassLabels?.[locale] ?? {}),
+      }
+      const operatorNames: Record<string, string> = {}
+      const table = tables[locale] ?? {}
+      const patch = patches[locale]?.patchChars ?? {}
+      for (const id of ids) {
+        const name = localeDisplayName(id, table[id] ?? patch[id], classLabels)
+        if (name) operatorNames[id] = name
+      }
+
+      return [
+        locale,
+        {
+          operatorNames,
+          classLabels,
+          subclassLabels: {
+            ...SUBCLASS_LABELS,
+            ...(metadata.localizedSubclassLabels?.[locale] ?? {}),
+          },
+          factionLabels: {
+            ...canonicalFactionLabels,
+            ...(metadata.localizedFactionLabels?.[locale] ?? {}),
+          },
+        },
+      ]
+    }),
+  ) as GameStringCatalogs
 }
 
 function alterGroups(...metas: Array<RawCharacterMetaTable | undefined>): Map<string, string> {
@@ -310,6 +438,7 @@ export function normalizeCharacterTables(
   const familyById = alterGroups(metadata.enCharMeta, metadata.charMeta, metadata.cnCharMeta)
   const limitedIds = limitedOperatorIds(metadata.cnGacha)
   const factionLabels = metadata.factionLabels ?? factionLabelsFromHandbook(metadata.enHandbookTeams)
+  const localizations = buildLocalizationCatalogs(ids, cn, en, metadata, factionLabels)
   const operators: Operator[] = []
 
   for (const id of ids) {
@@ -322,8 +451,6 @@ export function normalizeCharacterTables(
 
     if (!cnPlayable && !globalPlayable) continue
 
-    // CN is the freshest game-data source for taxonomy/faction metadata; EN is
-    // still preferred by displayName for localized operator names.
     const reference = (cnPlayable ? cnRecord : enRecord) as RawCharacterRecord
     const rarity = normalizeRarity(reference.rarity)
     const operatorClass = normalizeProfession(reference.profession)
@@ -389,8 +516,78 @@ export function normalizeCharacterTables(
     schemaVersion: OPERATOR_DATASET_SCHEMA_VERSION,
     generatedAt,
     sources,
+    classLabels: localizations.en.classLabels,
     factionLabels,
+    localizations,
     operators,
+  }
+}
+
+export function upgradeLegacyOperatorDataset(dataset: unknown): unknown {
+  if (!dataset || typeof dataset !== 'object') return dataset
+  const candidate = dataset as Record<string, unknown>
+  if (candidate.schemaVersion !== 4) return dataset
+
+  const operators = Array.isArray(candidate.operators) ? candidate.operators : []
+  const sourceFactionLabels =
+    candidate.factionLabels && typeof candidate.factionLabels === 'object'
+      ? (candidate.factionLabels as Record<string, string>)
+      : {}
+  const operatorNames: Record<string, string> = {}
+  const subclassLabels: Record<string, string> = { ...SUBCLASS_LABELS }
+
+  for (const raw of operators) {
+    if (!raw || typeof raw !== 'object') continue
+    const operator = raw as {
+      id?: unknown
+      name?: unknown
+      subclass?: { id?: unknown; name?: unknown }
+    }
+    const id = cleanString(operator.id)
+    const name = cleanString(operator.name)
+    if (id && name) operatorNames[id] = name
+    const subclassId = cleanString(operator.subclass?.id)
+    const subclassName = cleanString(operator.subclass?.name)
+    if (subclassId && subclassName) subclassLabels[subclassId] = subclassName
+  }
+
+  const classLabels = Object.fromEntries(
+    operatorClasses.map((operatorClass) => [operatorClass, operatorClass]),
+  ) as Record<OperatorClass, string>
+  const emptyCatalog = (): GameStringCatalogs[GameLocale] => ({
+    operatorNames: {},
+    classLabels: { ...classLabels },
+    subclassLabels: {},
+    factionLabels: {},
+  })
+  const sources =
+    candidate.sources && typeof candidate.sources === 'object'
+      ? (candidate.sources as Record<string, unknown>)
+      : {}
+
+  return {
+    ...candidate,
+    schemaVersion: OPERATOR_DATASET_SCHEMA_VERSION,
+    sources: {
+      ...sources,
+      gamedataJpCommit: null,
+      gamedataKrCommit: null,
+      gamedataTwCommit: null,
+    },
+    classLabels,
+    factionLabels: sourceFactionLabels,
+    localizations: {
+      en: {
+        operatorNames,
+        classLabels: { ...classLabels },
+        subclassLabels,
+        factionLabels: { ...sourceFactionLabels },
+      },
+      jp: emptyCatalog(),
+      kr: emptyCatalog(),
+      tw: emptyCatalog(),
+      cn: emptyCatalog(),
+    },
   }
 }
 
@@ -428,8 +625,28 @@ export function validateOperatorDataset(
   if (candidate.schemaVersion !== OPERATOR_DATASET_SCHEMA_VERSION) {
     errors.push('Unsupported operator dataset schema version.')
   }
+  if (!candidate.classLabels || typeof candidate.classLabels !== 'object') {
+    errors.push('Dataset has no class label map.')
+  }
   if (!candidate.factionLabels || typeof candidate.factionLabels !== 'object') {
     errors.push('Dataset has no faction label map.')
+  }
+  if (!candidate.localizations || typeof candidate.localizations !== 'object') {
+    errors.push('Dataset has no game localization catalogs.')
+  } else {
+    for (const locale of GAME_DATA_LOCALES) {
+      const catalog = candidate.localizations[locale]
+      if (!catalog || typeof catalog !== 'object') {
+        errors.push(`Dataset is missing ${locale.toUpperCase()} game localization.`)
+        continue
+      }
+      for (const operatorClass of operatorClasses) {
+        const label = catalog.classLabels?.[operatorClass]
+        if (typeof label !== 'string' || !label.trim()) {
+          errors.push(`Dataset has no ${locale.toUpperCase()} label for ${operatorClass}.`)
+        }
+      }
+    }
   }
   if (!Array.isArray(candidate.operators)) {
     errors.push('Dataset operators must be an array.')
@@ -581,6 +798,9 @@ export function validateOperatorDataset(
     if (
       !sources?.gamedataCnCommit ||
       !sources.gamedataEnCommit ||
+      !sources.gamedataJpCommit ||
+      !sources.gamedataKrCommit ||
+      !sources.gamedataTwCommit ||
       !sources.resourcesCommit ||
       !sources.releaseMetadataCommit
     ) {

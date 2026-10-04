@@ -47,7 +47,8 @@ import {
   upgradeLegacyOperatorDataset,
 } from '../shared/operatorData'
 
-const imageCache = new Map<string, string | null>()
+const imageCache = new Map<string, string>()
+const avatarDownloadPromises = new Map<string, Promise<boolean>>()
 const classIconCache = new Map<OperatorClass, string | null>()
 
 function bundledRoot(): string {
@@ -131,10 +132,7 @@ export async function getOperatorDataInfo(): Promise<OperatorDataInfo> {
   }
 }
 
-export async function getOperatorImage(operatorId: string): Promise<string | null> {
-  if (!/^char_[a-z0-9_]+$/i.test(operatorId)) return null
-  if (imageCache.has(operatorId)) return imageCache.get(operatorId) ?? null
-
+async function readOperatorImage(operatorId: string): Promise<string | null> {
   const candidates = [downloadedImagePath(operatorId), bundledImagePath(operatorId)]
   for (const path of candidates) {
     if (!(await exists(path))) continue
@@ -147,9 +145,98 @@ export async function getOperatorImage(operatorId: string): Promise<string | nul
       // Try the next source before falling back to the card placeholder.
     }
   }
-
-  imageCache.set(operatorId, null)
   return null
+}
+
+async function downloadAvatarToCache(
+  operatorId: string,
+  signal?: AbortSignal,
+): Promise<boolean> {
+  if (await exists(downloadedImagePath(operatorId))) return true
+
+  const current = avatarDownloadPromises.get(operatorId)
+  if (current) return current
+
+  const promise = (async () => {
+    const timeout = AbortSignal.timeout(60_000)
+    try {
+      const response = await fetch(`${UPSTREAM.avatarBaseUrl}/${operatorId}.png`, {
+        headers: { 'User-Agent': 'arknights-randomizer' },
+        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      })
+      if (!response.ok) return false
+
+      await mkdir(join(downloadedRoot(), 'images'), { recursive: true })
+      await writeFile(
+        downloadedImagePath(operatorId),
+        Buffer.from(await response.arrayBuffer()),
+      )
+      imageCache.delete(operatorId)
+      return true
+    } catch (error) {
+      if (signal?.aborted) throw error
+      return false
+    } finally {
+      avatarDownloadPromises.delete(operatorId)
+    }
+  })()
+
+  avatarDownloadPromises.set(operatorId, promise)
+  return promise
+}
+
+export async function getOperatorImage(operatorId: string): Promise<string | null> {
+  if (!/^char_[a-z0-9_]+$/i.test(operatorId)) return null
+  const cached = imageCache.get(operatorId)
+  if (cached) return cached
+
+  const local = await readOperatorImage(operatorId)
+  if (local) return local
+
+  const dataset = await getOperatorDataset()
+  if (!dataset.operators.some((operator) => operator.id === operatorId)) return null
+
+  if (await downloadAvatarToCache(operatorId)) {
+    return readOperatorImage(operatorId)
+  }
+  return null
+}
+
+export async function syncOperatorAvatars(
+  operatorIds: readonly string[],
+  options: {
+    signal?: AbortSignal
+    onProgress?: (completed: number, total: number) => void
+  } = {},
+): Promise<string[]> {
+  const warnings: string[] = []
+  const batchSize = 8
+  let completed = 0
+
+  options.onProgress?.(completed, operatorIds.length)
+  for (let index = 0; index < operatorIds.length; index += batchSize) {
+    if (options.signal?.aborted) {
+      throw new DOMException('Avatar sync cancelled.', 'AbortError')
+    }
+
+    const batch = operatorIds.slice(index, index + batchSize)
+    const results = await Promise.all(
+      batch.map(async (operatorId) => ({
+        operatorId,
+        ok: await downloadAvatarToCache(operatorId, options.signal),
+      })),
+    )
+    warnings.push(
+      ...results
+        .filter((result) => !result.ok)
+        .map((result) => `No avatar found for ${result.operatorId}.`),
+    )
+    completed += batch.length
+    options.onProgress?.(completed, operatorIds.length)
+  }
+
+  imageCache.clear()
+  return warnings
 }
 
 export async function getClassIcon(operatorClass: OperatorClass): Promise<string | null> {

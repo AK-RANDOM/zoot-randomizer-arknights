@@ -13,7 +13,7 @@ import {
 } from '../shared/portraits'
 import { getOperatorDataset } from './operatorDataService'
 
-const portraitCache = new Map<string, string | null>()
+const portraitCache = new Map<string, string>()
 
 function bundledPortraitRoot(): string {
   const operatorRoot = app.isPackaged
@@ -82,11 +82,26 @@ export async function getOperatorPortrait(
   if (!dataset.operators.some((operator) => operator.id === operatorId)) return null
 
   const cacheKey = `${operatorId}:${promotionArt}`
-  if (portraitCache.has(cacheKey)) return portraitCache.get(cacheKey) ?? null
+  const cached = portraitCache.get(cacheKey)
+  if (cached) return cached
 
-  const url = await readPortrait(operatorId, promotionArt)
-  portraitCache.set(cacheKey, url)
-  return url
+  const local = await readPortrait(operatorId, promotionArt)
+  if (local) {
+    portraitCache.set(cacheKey, local)
+    return local
+  }
+
+  for (const phase of portraitResolutionOrder(operatorId, promotionArt)) {
+    if (await downloadPortraitVariant(operatorId, phase)) {
+      const downloaded = await readPortrait(operatorId, promotionArt)
+      if (downloaded) {
+        portraitCache.set(cacheKey, downloaded)
+        return downloaded
+      }
+    }
+  }
+
+  return null
 }
 
 async function downloadPortraitVariant(

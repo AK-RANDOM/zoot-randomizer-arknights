@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npm run data:update:images
+      - run: npm run data:update
       - run: npm run data:validate
       - run: npm run typecheck
       - run: npm run lint

@@ -53,6 +53,7 @@ jobs:
             throw 'Retired private branding remains in the tracked tree.'
           }
           if ($LASTEXITCODE -ne 1) { throw "git grep failed with exit code $LASTEXITCODE" }
+          exit 0
       - name: Commit neutral lockfile
         shell: pwsh
         run: |

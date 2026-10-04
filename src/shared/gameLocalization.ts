@@ -20,7 +20,7 @@ export const GAME_LOCALE_FALLBACKS: Readonly<Record<GameLocale, readonly GameLoc
   jp: ['jp', 'en', 'cn'],
   kr: ['kr', 'en', 'cn'],
   tw: ['tw', 'en', 'cn'],
-  cn: ['cn'],
+  cn: ['cn', 'en'],
 }
 
 export function isGameLocale(value: unknown): value is GameLocale {
@@ -88,6 +88,8 @@ export function localizeOperatorDataset(
       factionId
   }
 
+  // Preserve canonical operator order. Locale switching must only change display
+  // strings, never the solver/randomizer input ordering.
   const operators = dataset.operators.map((operator) => ({
     ...operator,
     name:
@@ -103,11 +105,6 @@ export function localizeOperatorDataset(
         ) ?? operator.subclass.name,
     },
   }))
-
-  operators.sort((left, right) => {
-    if (left.rarity !== right.rarity) return right.rarity - left.rarity
-    return left.name.localeCompare(right.name)
-  })
 
   return {
     ...dataset,

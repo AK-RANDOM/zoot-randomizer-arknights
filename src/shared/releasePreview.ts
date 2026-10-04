@@ -8,6 +8,8 @@ export interface ReleaseBoundPreview {
   fiveStar: Operator[]
 }
 
+// Fixed launch representatives are keyed by canonical game-data operator IDs.
+// Display names are localized and therefore must never be used for identity here.
 const launchRepresentativeIds = [
   'char_172_svrash',
   'char_180_amgoat',
@@ -25,6 +27,7 @@ function acquisitionPriority(operator: Operator): number {
 function sortRepresentatives(left: Operator, right: Operator): number {
   const sourceDifference = acquisitionPriority(left) - acquisitionPriority(right)
   if (sourceDifference !== 0) return sourceDifference
+  // Keep presentation deterministic across locales.
   return left.id.localeCompare(right.id)
 }
 

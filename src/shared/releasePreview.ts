@@ -8,12 +8,12 @@ export interface ReleaseBoundPreview {
   fiveStar: Operator[]
 }
 
-const launchRepresentativeNames = [
-  'SilverAsh',
-  'Eyjafjalla',
-  'Specter',
-  'Ptilopsis',
-  'Lappland',
+const launchRepresentativeIds = [
+  'char_172_svrash',
+  'char_180_amgoat',
+  'char_143_ghost',
+  'char_128_plosis',
+  'char_140_whitew',
 ]
 
 function acquisitionPriority(operator: Operator): number {
@@ -25,7 +25,7 @@ function acquisitionPriority(operator: Operator): number {
 function sortRepresentatives(left: Operator, right: Operator): number {
   const sourceDifference = acquisitionPriority(left) - acquisitionPriority(right)
   if (sourceDifference !== 0) return sourceDifference
-  return left.name.localeCompare(right.name)
+  return left.id.localeCompare(right.id)
 }
 
 function releaseConstraintMatches(operator: Operator, release: ReleaseConstraint): boolean {
@@ -50,12 +50,15 @@ export function getReleaseBoundPreview(
 
   if (dates.length === 0) return null
 
-  const date = bound === 'min' ? dates.reduce((a, b) => (a < b ? a : b)) : dates.reduce((a, b) => (a > b ? a : b))
+  const date =
+    bound === 'min'
+      ? dates.reduce((a, b) => (a < b ? a : b))
+      : dates.reduce((a, b) => (a > b ? a : b))
   const sameDate = eligible.filter((operator) => operator.release[release.server].date === date)
 
   if (date === SERVER_LAUNCH_DATES[release.server]) {
-    const fixed = launchRepresentativeNames
-      .map((name) => sameDate.find((operator) => operator.name === name))
+    const fixed = launchRepresentativeIds
+      .map((id) => sameDate.find((operator) => operator.id === id))
       .filter((operator): operator is Operator => Boolean(operator))
     return {
       date,

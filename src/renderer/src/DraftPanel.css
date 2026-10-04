@@ -64,6 +64,13 @@
   font-size: 0.94rem;
 }
 
+.draft-session-note {
+  margin: -8px 0 16px;
+  color: #818187;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .draft-empty-state,
 .draft-complete {
   display: grid;

@@ -388,7 +388,7 @@ function solveAssignment(
   eligible: Operator[],
   constraints: RandomizerConstraints,
   random: RandomSource,
-  slotSelection: 'static' | 'dynamic' = 'dynamic',
+  slotSelection: 'static' | 'dynamic' = 'static',
 ): SearchResult {
   const target = constraints.squadSize
   const bounds = prepareBounds(constraints)
@@ -656,7 +656,7 @@ export function measureConstraintSearch(
   operators: Operator[],
   constraints: RandomizerConstraints,
   random: RandomSource = validationRandom(),
-  slotSelection: 'static' | 'dynamic' = 'dynamic',
+  slotSelection: 'static' | 'dynamic' = 'static',
 ): { solved: boolean; stats: SolverStats } {
   const shapeErrors = validateConstraintShape(constraints)
   if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))

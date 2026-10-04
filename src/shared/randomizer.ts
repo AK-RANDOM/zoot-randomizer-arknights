@@ -29,9 +29,17 @@ type RandomSource = () => number
 
 type ConstraintCountMap<T extends string | number> = Map<T, number>
 
+export interface SolverStats {
+  visits: number
+  backtracks: number
+  exhausted: boolean
+  elapsedMs: number
+}
+
 interface SearchResult {
   squad: Operator[] | null
   exhausted: boolean
+  stats: SolverStats
 }
 
 const SEARCH_VISIT_LIMIT = 2_000_000
@@ -348,7 +356,11 @@ function solveAssignment(
   )
 
   if (candidatesBySlot.some((candidates) => candidates.length === 0)) {
-    return { squad: null, exhausted: false }
+    return {
+      squad: null,
+      exhausted: false,
+      stats: { visits: 0, backtracks: 0, exhausted: false, elapsedMs: 0 },
+    }
   }
 
   const slotOrder = Array.from({ length: target }, (_, index) => index).sort(
@@ -376,7 +388,9 @@ function solveAssignment(
   const rarityCounts = new Map<OperatorRarity, number>()
   const rarityGroupCounts = new Map<RarityGroupKey, number>()
   let visits = 0
+  let backtracks = 0
   let exhausted = false
+  const startedAt = performance.now()
 
   const addOperator = (operator: Operator): void => {
     usedIds.add(operator.id)
@@ -398,6 +412,44 @@ function solveAssignment(
     }
   }
 
+  const candidateIsViable = (operator: Operator): boolean => {
+    if (usedIds.has(operator.id)) return false
+    const exclusivity = exclusivityKeys(operator, constraints)
+    if (exclusivity.some((key) => usedExclusivity.has(key))) return false
+    return candidateCanFitMaximums(
+      operator,
+      classCounts,
+      rarityCounts,
+      rarityGroupCounts,
+      constraints,
+    )
+  }
+
+  function selectMostConstrainedSlot(depth: number): void {
+    let bestPosition = depth
+    let bestViableCount = Number.POSITIVE_INFINITY
+
+    for (let position = depth; position < slotOrder.length; position += 1) {
+      const slotIndex = slotOrder[position]
+      let viableCount = 0
+      for (const operator of randomizedCandidates[slotIndex]) {
+        if (candidateIsViable(operator)) viableCount += 1
+        if (viableCount >= bestViableCount) break
+      }
+
+      if (viableCount < bestViableCount) {
+        bestPosition = position
+        bestViableCount = viableCount
+        if (viableCount === 0) break
+      }
+    }
+
+    ;[slotOrder[depth], slotOrder[bestPosition]] = [
+      slotOrder[bestPosition],
+      slotOrder[depth],
+    ]
+  }
+
   function search(depth: number): boolean {
     visits += 1
     if (visits > SEARCH_VISIT_LIMIT) {
@@ -414,6 +466,7 @@ function solveAssignment(
       )
     }
 
+    selectMostConstrainedSlot(depth)
     const remainingSlots = slotOrder.slice(depth)
     if (
       !minimumsStillReachable(
@@ -430,20 +483,7 @@ function solveAssignment(
 
     const slotIndex = slotOrder[depth]
     for (const operator of randomizedCandidates[slotIndex]) {
-      if (usedIds.has(operator.id)) continue
-      const exclusivity = exclusivityKeys(operator, constraints)
-      if (exclusivity.some((key) => usedExclusivity.has(key))) continue
-      if (
-        !candidateCanFitMaximums(
-          operator,
-          classCounts,
-          rarityCounts,
-          rarityGroupCounts,
-          constraints,
-        )
-      ) {
-        continue
-      }
+      if (!candidateIsViable(operator)) continue
 
       assignment[slotIndex] = operator
       addOperator(operator)
@@ -452,14 +492,21 @@ function solveAssignment(
 
       removeOperator(operator)
       assignment[slotIndex] = undefined
+      backtracks += 1
       if (exhausted) return false
     }
 
     return false
   }
 
-  if (!search(0)) return { squad: null, exhausted }
-  return { squad: assignment as Operator[], exhausted: false }
+  const squad = search(0) ? (assignment as Operator[]) : null
+  const stats: SolverStats = {
+    visits,
+    backtracks,
+    exhausted,
+    elapsedMs: performance.now() - startedAt,
+  }
+  return { squad, exhausted, stats }
 }
 
 function validationRandom(): RandomSource {
@@ -544,11 +591,11 @@ export function validateConstraints(
   return { valid: errors.length === 0, errors }
 }
 
-export function generateSquad(
+export function generateSquadWithStats(
   operators: Operator[],
   constraints: RandomizerConstraints,
   random: RandomSource = Math.random,
-): Operator[] {
+): { squad: Operator[]; stats: SolverStats } {
   const shapeErrors = validateConstraintShape(constraints)
   if (shapeErrors.length > 0) throw new Error(shapeErrors.join(' '))
 
@@ -568,5 +615,13 @@ export function generateSquad(
     )
   }
 
-  return result.squad
+  return { squad: result.squad, stats: result.stats }
+}
+
+export function generateSquad(
+  operators: Operator[],
+  constraints: RandomizerConstraints,
+  random: RandomSource = Math.random,
+): Operator[] {
+  return generateSquadWithStats(operators, constraints, random).squad
 }

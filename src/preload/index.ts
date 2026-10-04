@@ -11,6 +11,10 @@ const desktopApi: DesktopApi = {
     ipcRenderer.invoke('operator-data:portrait', operatorId, promotionArt),
   getClassIcon: (operatorClass) =>
     ipcRenderer.invoke('operator-data:class-icon', operatorClass),
+  getSubclassIcon: (subclassId) =>
+    ipcRenderer.invoke('operator-data:subclass-icon', subclassId),
+  getFactionIcon: (factionId) =>
+    ipcRenderer.invoke('operator-data:faction-icon', factionId),
   checkOperatorUpdates: () => ipcRenderer.invoke('operator-data:check-updates'),
   updateOperatorData: () => ipcRenderer.invoke('operator-data:update'),
   getPortraitSyncProgress: () => ipcRenderer.invoke('operator-portraits:progress'),

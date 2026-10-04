@@ -8,7 +8,6 @@ import {
 } from 'react'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
-import DraftPanel from './DraftPanel'
 import Iteration6OperatorFilters from './Iteration6OperatorFilters'
 import OperatorCard from './OperatorCard'
 import OptionsPanel from './OptionsPanel'
@@ -48,6 +47,7 @@ import {
   operatorClasses,
   operatorRarities,
   welfareAcquisitionGroups,
+  type GameLocale,
   type LimitedAcquisitionGroup,
   type Operator,
   type OperatorClass,
@@ -56,6 +56,7 @@ import {
   type ReleaseServer,
   type WelfareAcquisitionGroup,
 } from '../../shared/operator'
+import { localizeOperatorDataset } from '../../shared/gameLocalization'
 import {
   buildFinalOperatorPool,
   reconcileOperatorPreferences,
@@ -63,11 +64,6 @@ import {
   type PoolPresentationMode,
 } from '../../shared/operatorPool'
 import type { OperatorDataInfo, OperatorUpdateCheck } from '../../shared/desktop'
-import {
-  pickDraftOperator,
-  startDraft,
-  type DraftState,
-} from '../../shared/draft'
 import { generateSquad, validateConstraints } from '../../shared/randomizer'
 import {
   getReleaseBoundPreview,
@@ -90,7 +86,6 @@ const INVALID_RELEASE_RANGE_MESSAGE =
   'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 
 type AppTab = 'squads' | 'operators' | 'pool' | 'options'
-type SquadMode = 'standard' | 'draft'
 
 const limitedLabels: Record<LimitedAcquisitionGroup, string> = {
   anniversary: 'Anniversary',
@@ -274,9 +269,15 @@ function raritySetSummary(rarities: readonly OperatorRarity[]): string {
     .join(' / ')
 }
 
-function classSetSummary(classes: readonly OperatorClass[]): string {
+function classSetSummary(
+  classes: readonly OperatorClass[],
+  classLabels?: Readonly<Record<OperatorClass, string>>,
+): string {
   if (classes.length === 0) return 'Any class'
-  return operatorClasses.filter((operatorClass) => classes.includes(operatorClass)).join(' / ')
+  return operatorClasses
+    .filter((operatorClass) => classes.includes(operatorClass))
+    .map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass)
+    .join(' / ')
 }
 
 function storedPreference(key: string): boolean {
@@ -398,9 +399,6 @@ export default function App(): React.JSX.Element {
   const [updateCheck, setUpdateCheck] = useState<OperatorUpdateCheck | null>(null)
   const [busy, setBusy] = useState(false)
   const [activeTab, setActiveTab] = useState<AppTab>('squads')
-  const [squadMode, setSquadMode] = useState<SquadMode>('standard')
-  const [draftState, setDraftState] = useState<DraftState | null>(null)
-  const [draftPoolKey, setDraftPoolKey] = useState<string | null>(null)
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
   const [userPresets, setUserPresets] = useState<StoredSquadPreset[]>(() => loadUserPresets())
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:none')
@@ -412,13 +410,19 @@ export default function App(): React.JSX.Element {
       window.desktop.getOperatorDataset(),
       window.desktop.getOperatorDataInfo(),
     ])
-    setDataset(nextDataset)
+    const localizedDataset = localizeOperatorDataset(nextDataset, operatorPreferences.gameLocale)
+    setDataset(localizedDataset)
     setDataInfo(nextInfo)
     setOperatorPreferences((current) =>
-      reconcileOperatorPreferences(current, nextDataset.operators),
+      reconcileOperatorPreferences(current, localizedDataset.operators),
     )
-    setMessage(`${nextDataset.operators.length} operators ready.`)
-  }, [])
+    setSquad((current) => {
+      if (current.length === 0) return current
+      const byId = new Map(localizedDataset.operators.map((operator) => [operator.id, operator]))
+      return current.map((operator) => byId.get(operator.id) ?? operator)
+    })
+    setMessage(`${localizedDataset.operators.length} operators ready.`)
+  }, [operatorPreferences.gameLocale])
 
   useEffect(() => {
     void loadData().catch((reason: unknown) => {
@@ -453,22 +457,6 @@ export default function App(): React.JSX.Element {
         : [],
     [constraints, dataset, operatorPreferences.excludedOperatorIds],
   )
-
-  const currentDraftPoolKey = useMemo(
-    () =>
-      `${constraints.squadSize}:${finalOperatorPool
-        .map((operator) => operator.id)
-        .sort((left, right) => left.localeCompare(right))
-        .join('|')}`,
-    [constraints.squadSize, finalOperatorPool],
-  )
-
-  useEffect(() => {
-    if (!draftState || !draftPoolKey || draftPoolKey === currentDraftPoolKey) return
-    setDraftState(null)
-    setDraftPoolKey(null)
-    setMessage('Draft reset because the squad size or eligible operator pool changed.')
-  }, [currentDraftPoolKey, draftPoolKey, draftState])
 
   const validation = useMemo(
     () =>
@@ -820,6 +808,10 @@ export default function App(): React.JSX.Element {
     setMessage(`Metadata region changed to ${server === 'global' ? 'EN / Global' : 'CN'}.`)
   }
 
+  const setGameLocale = (gameLocale: GameLocale): void => {
+    setOperatorPreferences((current) => ({ ...current, gameLocale }))
+  }
+
   const setPoolPresentation = (poolPresentation: PoolPresentationMode): void => {
     setOperatorPreferences((current) => ({ ...current, poolPresentation }))
   }
@@ -905,57 +897,6 @@ export default function App(): React.JSX.Element {
     }
   }
 
-  const startNewDraft = (): void => {
-    if (!dataset) return
-    setError(null)
-    try {
-      const next = startDraft(finalOperatorPool, constraints.squadSize)
-      setDraftState(next)
-      setDraftPoolKey(currentDraftPoolKey)
-      if (next.status === 'complete') {
-        setMessage('Draft ended immediately because fewer than 3 eligible operators are available.')
-      } else {
-        setMessage(`Draft started. Pick 1 of 3 for a target roster of ${next.targetSize}.`)
-      }
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason))
-    }
-  }
-
-  const pickDraftCandidate = (operatorId: string): void => {
-    if (!draftState) return
-    if (draftPoolKey !== currentDraftPoolKey) {
-      setDraftState(null)
-      setDraftPoolKey(null)
-      setMessage('Draft reset because the squad size or eligible operator pool changed.')
-      return
-    }
-    setError(null)
-    try {
-      const pickedOperator = finalOperatorPool.find((operator) => operator.id === operatorId)
-      const next = pickDraftOperator(draftState, finalOperatorPool, operatorId)
-      setDraftState(next)
-
-      if (next.status === 'complete') {
-        const completionMessage =
-          next.completionReason === 'squad-size-reached'
-            ? `Draft complete with ${next.draftedOperatorIds.length} operators.`
-            : [
-                `Draft ended with ${next.draftedOperatorIds.length} operators`,
-                'because fewer than 3 eligible undrafted operators remain.',
-              ].join(' ')
-        setMessage(completionMessage)
-      } else {
-        const draftedName = pickedOperator?.name ?? 'Operator'
-        setMessage(
-          `${draftedName} drafted. ${next.draftedOperatorIds.length} / ${next.targetSize} selected.`,
-        )
-      }
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason))
-    }
-  }
-
   const checkUpdates = async (): Promise<void> => {
     setBusy(true)
     setError(null)
@@ -1007,7 +948,7 @@ export default function App(): React.JSX.Element {
       <nav className="main-tabs" aria-label="Randomizer configuration">
         {(
           [
-            ['squads', 'Get Squad'],
+            ['squads', 'Squads'],
             ['operators', 'Operators'],
             ['pool', 'Pool'],
             ['options', 'Options'],
@@ -1026,35 +967,11 @@ export default function App(): React.JSX.Element {
       </nav>
 
       {activeTab === 'squads' && (
-        <nav className="squad-mode-tabs" aria-label="Squad construction mode">
-          {(
-            [
-              ['standard', 'Standard'],
-              ['draft', 'Drafts'],
-            ] as const
-          ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              className={squadMode === mode ? 'is-active' : ''}
-              aria-selected={squadMode === mode}
-              onClick={() => {
-                setSquadMode(mode)
-                if (mode === 'draft') setEditingSlot(null)
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-      )}
-
-      {activeTab === 'squads' && squadMode === 'standard' && (
         <section className="panel squad-panel" aria-labelledby="squad-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">GET SQUAD • STANDARD</p>
-              <h2 id="squad-heading">Standard squad</h2>
+              <p className="eyebrow">SQUADS</p>
+              <h2 id="squad-heading">Squad configuration</h2>
             </div>
             <div className="section-actions">
               <button
@@ -1193,10 +1110,10 @@ export default function App(): React.JSX.Element {
                     label={
                       <span className="bound-class-label">
                         <ClassIcon operatorClass={operatorClass} className="filter-class-icon" />
-                        <span>{operatorClass}</span>
+                        <span>{dataset?.classLabels?.[operatorClass] ?? operatorClass}</span>
                       </span>
                     }
-                    labelText={operatorClass}
+                    labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass}
                     value={constraints.class[operatorClass]}
                     disabled={squad.length > 0}
                     onSave={(next) => saveClassBound(operatorClass, next)}
@@ -1236,7 +1153,7 @@ export default function App(): React.JSX.Element {
                       {constrained && (
                         <div className="slot-constraint-badge" title="Generated under a slot constraint">
                           <span>{raritySetSummary(slotConstraint.rarities)}</span>
-                          <span>{classSetSummary(slotConstraint.classes)}</span>
+                          <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
                         </div>
                       )}
                     </>
@@ -1251,7 +1168,7 @@ export default function App(): React.JSX.Element {
                       {constrained ? (
                         <span className="slot-config-summary">
                           <strong>{raritySetSummary(slotConstraint.rarities)}</strong>
-                          <span>{classSetSummary(slotConstraint.classes)}</span>
+                          <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
                         </span>
                       ) : (
                         <span className="slot-config-any">
@@ -1270,17 +1187,6 @@ export default function App(): React.JSX.Element {
             <ValidationBox errors={validation.errors} />
           )}
         </section>
-      )}
-
-      {activeTab === 'squads' && squadMode === 'draft' && (
-        <DraftPanel
-          state={draftState}
-          operators={finalOperatorPool}
-          targetSize={constraints.squadSize}
-          ready={dataset !== null}
-          onStart={startNewDraft}
-          onPick={pickDraftCandidate}
-        />
       )}
 
       {activeTab === 'operators' && (
@@ -1543,6 +1449,7 @@ export default function App(): React.JSX.Element {
         <OptionsPanel
           preferences={operatorPreferences}
           onMetadataRegionChange={setMetadataRegion}
+          onGameLocaleChange={setGameLocale}
           onPoolPresentationChange={setPoolPresentation}
         />
       )}
@@ -1558,6 +1465,7 @@ export default function App(): React.JSX.Element {
           value={constraints.slots[editingSlot] ?? createEmptySlotConstraint()}
           constraints={constraints}
           operators={finalOperatorPool}
+          classLabels={dataset.classLabels}
           onApply={(value) => saveSlotConstraint(editingSlot, value)}
           onClose={() => setEditingSlot(null)}
         />

@@ -99,18 +99,24 @@ async function downloadPortraitVariant(
 
   const filename = portraitFilename(operatorId, phase)
   const timeout = AbortSignal.timeout(60_000)
-  const response = await fetch(`${PORTRAIT_SOURCE.baseUrl}/${filename}`, {
-    headers: { 'User-Agent': 'arknights-randomizer' },
-    signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-  })
-  if (!response.ok) return false
 
-  await mkdir(downloadedPortraitRoot(), { recursive: true })
-  await writeFile(
-    join(downloadedPortraitRoot(), filename),
-    Buffer.from(await response.arrayBuffer()),
-  )
-  return true
+  try {
+    const response = await fetch(`${PORTRAIT_SOURCE.baseUrl}/${filename}`, {
+      headers: { 'User-Agent': 'arknights-randomizer' },
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    })
+    if (!response.ok) return false
+
+    await mkdir(downloadedPortraitRoot(), { recursive: true })
+    await writeFile(
+      join(downloadedPortraitRoot(), filename),
+      Buffer.from(await response.arrayBuffer()),
+    )
+    return true
+  } catch (error) {
+    if (signal?.aborted) throw error
+    return false
+  }
 }
 
 export async function syncOperatorPortraits(

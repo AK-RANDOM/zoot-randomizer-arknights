@@ -2,6 +2,9 @@ name: CI
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - issue-10-solver-performance
 
 permissions:
   contents: read
@@ -21,6 +24,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - run: npm run benchmark
       - run: npm run build
       - name: Smoke-launch Electron
         shell: pwsh

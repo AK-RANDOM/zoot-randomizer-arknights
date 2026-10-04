@@ -158,7 +158,7 @@ describe('constraint solver performance', () => {
       const stats = baseline.stats
 
       bench(
-        `${scenario.name} [${strategy}] | visits=${stats.visits} backtracks=${stats.backtracks} exhausted=${stats.exhausted}`,
+        `${scenario.name} [${strategy}] | visits=${stats.visits} backtracks=${stats.backtracks} pruned=${stats.prunedBranches} exhausted=${stats.exhausted}`,
         () => {
           measureConstraintSearch(
             scenario.operators,

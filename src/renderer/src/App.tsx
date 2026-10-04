@@ -8,6 +8,7 @@ import {
 } from 'react'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
+import DraftPanel from './DraftPanel'
 import Iteration6OperatorFilters from './Iteration6OperatorFilters'
 import OperatorCard from './OperatorCard'
 import OptionsPanel from './OptionsPanel'
@@ -62,6 +63,11 @@ import {
   type PoolPresentationMode,
 } from '../../shared/operatorPool'
 import type { OperatorDataInfo, OperatorUpdateCheck } from '../../shared/desktop'
+import {
+  pickDraftOperator,
+  startDraft,
+  type DraftState,
+} from '../../shared/draft'
 import { generateSquad, validateConstraints } from '../../shared/randomizer'
 import {
   getReleaseBoundPreview,
@@ -84,6 +90,7 @@ const INVALID_RELEASE_RANGE_MESSAGE =
   'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 
 type AppTab = 'squads' | 'operators' | 'pool' | 'options'
+type SquadMode = 'standard' | 'draft'
 
 const limitedLabels: Record<LimitedAcquisitionGroup, string> = {
   anniversary: 'Anniversary',
@@ -391,6 +398,9 @@ export default function App(): React.JSX.Element {
   const [updateCheck, setUpdateCheck] = useState<OperatorUpdateCheck | null>(null)
   const [busy, setBusy] = useState(false)
   const [activeTab, setActiveTab] = useState<AppTab>('squads')
+  const [squadMode, setSquadMode] = useState<SquadMode>('standard')
+  const [draftState, setDraftState] = useState<DraftState | null>(null)
+  const [draftPoolKey, setDraftPoolKey] = useState<string | null>(null)
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
   const [userPresets, setUserPresets] = useState<StoredSquadPreset[]>(() => loadUserPresets())
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:none')
@@ -443,6 +453,22 @@ export default function App(): React.JSX.Element {
         : [],
     [constraints, dataset, operatorPreferences.excludedOperatorIds],
   )
+
+  const currentDraftPoolKey = useMemo(
+    () =>
+      `${constraints.squadSize}:${finalOperatorPool
+        .map((operator) => operator.id)
+        .sort((left, right) => left.localeCompare(right))
+        .join('|')}`,
+    [constraints.squadSize, finalOperatorPool],
+  )
+
+  useEffect(() => {
+    if (!draftState || !draftPoolKey || draftPoolKey === currentDraftPoolKey) return
+    setDraftState(null)
+    setDraftPoolKey(null)
+    setMessage('Draft reset because the squad size or eligible operator pool changed.')
+  }, [currentDraftPoolKey, draftPoolKey, draftState])
 
   const validation = useMemo(
     () =>
@@ -879,6 +905,57 @@ export default function App(): React.JSX.Element {
     }
   }
 
+  const startNewDraft = (): void => {
+    if (!dataset) return
+    setError(null)
+    try {
+      const next = startDraft(finalOperatorPool, constraints.squadSize)
+      setDraftState(next)
+      setDraftPoolKey(currentDraftPoolKey)
+      if (next.status === 'complete') {
+        setMessage('Draft ended immediately because fewer than 3 eligible operators are available.')
+      } else {
+        setMessage(`Draft started. Pick 1 of 3 for a target roster of ${next.targetSize}.`)
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
+    }
+  }
+
+  const pickDraftCandidate = (operatorId: string): void => {
+    if (!draftState) return
+    if (draftPoolKey !== currentDraftPoolKey) {
+      setDraftState(null)
+      setDraftPoolKey(null)
+      setMessage('Draft reset because the squad size or eligible operator pool changed.')
+      return
+    }
+    setError(null)
+    try {
+      const pickedOperator = finalOperatorPool.find((operator) => operator.id === operatorId)
+      const next = pickDraftOperator(draftState, finalOperatorPool, operatorId)
+      setDraftState(next)
+
+      if (next.status === 'complete') {
+        const completionMessage =
+          next.completionReason === 'squad-size-reached'
+            ? `Draft complete with ${next.draftedOperatorIds.length} operators.`
+            : [
+                `Draft ended with ${next.draftedOperatorIds.length} operators`,
+                'because fewer than 3 eligible undrafted operators remain.',
+              ].join(' ')
+        setMessage(completionMessage)
+      } else {
+        const draftedName = pickedOperator?.name ?? 'Operator'
+        setMessage(
+          `${draftedName} drafted. ${next.draftedOperatorIds.length} / ${next.targetSize} selected.`,
+        )
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason))
+    }
+  }
+
   const checkUpdates = async (): Promise<void> => {
     setBusy(true)
     setError(null)
@@ -930,7 +1007,7 @@ export default function App(): React.JSX.Element {
       <nav className="main-tabs" aria-label="Randomizer configuration">
         {(
           [
-            ['squads', 'Squads'],
+            ['squads', 'Get Squad'],
             ['operators', 'Operators'],
             ['pool', 'Pool'],
             ['options', 'Options'],
@@ -949,11 +1026,35 @@ export default function App(): React.JSX.Element {
       </nav>
 
       {activeTab === 'squads' && (
+        <nav className="squad-mode-tabs" aria-label="Squad construction mode">
+          {(
+            [
+              ['standard', 'Standard'],
+              ['draft', 'Drafts'],
+            ] as const
+          ).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              className={squadMode === mode ? 'is-active' : ''}
+              aria-selected={squadMode === mode}
+              onClick={() => {
+                setSquadMode(mode)
+                if (mode === 'draft') setEditingSlot(null)
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+
+      {activeTab === 'squads' && squadMode === 'standard' && (
         <section className="panel squad-panel" aria-labelledby="squad-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">SQUADS</p>
-              <h2 id="squad-heading">Squad configuration</h2>
+              <p className="eyebrow">GET SQUAD • STANDARD</p>
+              <h2 id="squad-heading">Standard squad</h2>
             </div>
             <div className="section-actions">
               <button
@@ -1169,6 +1270,17 @@ export default function App(): React.JSX.Element {
             <ValidationBox errors={validation.errors} />
           )}
         </section>
+      )}
+
+      {activeTab === 'squads' && squadMode === 'draft' && (
+        <DraftPanel
+          state={draftState}
+          operators={finalOperatorPool}
+          targetSize={constraints.squadSize}
+          ready={dataset !== null}
+          onStart={startNewDraft}
+          onPick={pickDraftCandidate}
+        />
       )}
 
       {activeTab === 'operators' && (

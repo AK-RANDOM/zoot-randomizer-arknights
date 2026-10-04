@@ -29,7 +29,7 @@ Prerequisite: Node.js 24 and npm.
 From a clean clone:
 
 ```sh
-npm install
+npm ci
 npm run data:update:images
 npm run dev
 ```

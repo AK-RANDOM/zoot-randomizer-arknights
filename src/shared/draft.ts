@@ -306,7 +306,7 @@ export function applyDraftAction(state: DraftState, pool: readonly Operator[], a
   assertActionAvailable(state, action, options)
   assertEconomyAffordable(state, pool, action, options)
   const actionUsage = recordAction(state, action.type)
-  const points = state.points + getDraftActionPointDelta(state, pool, action, options)
+  const points = state.points + getDraftActionPointDelta(pool, action, options)
   switch (action.type) {
     case 'pick': {
       if (state.draftedOperatorIds.includes(action.operatorId))

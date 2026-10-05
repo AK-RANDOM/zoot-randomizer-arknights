@@ -11,7 +11,7 @@ import {
 } from '../../shared/operatorFilterCatalog'
 import ClassIcon from './ClassIcon'
 import { FactionIcon, SubclassIcon } from './FilterAssetIcon'
-import './Iteration6OperatorFilters.css'
+import './OperatorFilters.css'
 
 function withExclusion(current: readonly string[], id: string, enabled: boolean): string[] {
   if (enabled) return current.filter((value) => value !== id)

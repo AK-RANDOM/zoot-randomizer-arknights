@@ -1,0 +1,88 @@
+import { describe, expect, it } from 'vitest'
+import { STANDARD_DRAFT_RULEBOOK } from '../../shared/draftRulebook'
+import {
+  RENDERER_PERSISTENCE_KEY,
+  loadRendererPersistence,
+  migrateLegacyRendererPersistence,
+  normalizeRendererPersistence,
+  type RendererPersistenceState,
+  type StorageLike,
+} from './rendererPersistence'
+
+class MemoryStorage implements StorageLike {
+  readonly values = new Map<string, string>()
+  getItem(key: string): string | null { return this.values.get(key) ?? null }
+  setItem(key: string, value: string): void { this.values.set(key, value) }
+}
+
+function cloneStandard() {
+  return JSON.parse(JSON.stringify(STANDARD_DRAFT_RULEBOOK)) as typeof STANDARD_DRAFT_RULEBOOK
+}
+
+describe('renderer persistence', () => {
+  it('migrates fragmented legacy state into one versioned root', () => {
+    const storage = new MemoryStorage()
+    const imported = cloneStandard()
+    imported.identifier.id = 'community:test'
+    imported.identifier.name = 'Imported Test'
+    storage.setItem('arknights-randomizer:selected-draft-rulebook:v1', imported.identifier.id)
+    storage.setItem('arknights-randomizer:dismiss-bound-reset-warning', '1')
+    storage.setItem('arknights-randomizer:operator-artwork:v1', 'e1')
+    storage.setItem('arknights-randomizer:race-filter:v1', JSON.stringify({ version: 1, excludedIds: ['race_a'] }))
+    storage.setItem('arknights-randomizer:draft-rulebooks:v1', JSON.stringify({ version: 1, rulebooks: [imported] }))
+    storage.setItem('arknights-randomizer:draft-rulebooks:imported:v1', JSON.stringify([imported.identifier.id]))
+
+    const migrated = migrateLegacyRendererPersistence(storage)
+    expect(migrated.version).toBe(1)
+    expect(migrated.selectedDraftRulebookId).toBe(imported.identifier.id)
+    expect(migrated.dismissedWarnings).toContain('arknights-randomizer:dismiss-bound-reset-warning')
+    expect(migrated.operatorArtwork).toBe('e1')
+    expect(migrated.raceExcludedIds).toEqual(['race_a'])
+    expect(migrated.rulebookLibrary).toHaveLength(1)
+    expect(migrated.rulebookLibrary[0]?.origin).toBe('imported')
+  })
+
+  it('persists the migrated root on first load', () => {
+    const storage = new MemoryStorage()
+    const loaded = loadRendererPersistence(storage)
+    expect(JSON.parse(storage.getItem(RENDERER_PERSISTENCE_KEY) ?? '{}')).toEqual(loaded)
+  })
+
+  it('keeps temporarily invalid Rulebook editor documents', () => {
+    const invalid = cloneStandard()
+    invalid.identifier.id = 'local:editing'
+    invalid.identifier.name = ''
+    const candidate: RendererPersistenceState = {
+      ...loadRendererPersistence(new MemoryStorage()),
+      rulebookLibrary: [{
+        document: invalid,
+        origin: 'local',
+        editor: { lastEditedAt: '2026-10-05T00:00:00.000Z' },
+      }],
+    }
+
+    const normalized = normalizeRendererPersistence(candidate)
+    expect(normalized.rulebookLibrary).toHaveLength(1)
+    expect(normalized.rulebookLibrary[0]?.document.identifier.id).toBe('local:editing')
+    expect(normalized.rulebookLibrary[0]?.document.identifier.name).toBe('')
+  })
+
+  it('keeps Rulebook origin attached to the document record', () => {
+    const local = cloneStandard()
+    local.identifier.id = 'local:test'
+    const imported = cloneStandard()
+    imported.identifier.id = 'community:test'
+    const normalized = normalizeRendererPersistence({
+      ...loadRendererPersistence(new MemoryStorage()),
+      rulebookLibrary: [
+        { document: local, origin: 'local', editor: { lastEditedAt: null } },
+        { document: imported, origin: 'imported', editor: { lastEditedAt: null } },
+      ],
+    })
+
+    expect(normalized.rulebookLibrary.map(({ document, origin }) => [document.identifier.id, origin])).toEqual([
+      ['local:test', 'local'],
+      ['community:test', 'imported'],
+    ])
+  })
+})

@@ -2,7 +2,10 @@ import type { Operator } from '../operator'
 import { evaluateDraftActionWithConfiguration } from './actions'
 import { maxAttainableDraftCapacity } from './capacity'
 import { resolveDraftEngineConfiguration, validateDraftConfiguration } from './config'
-import { getDraftActionPointDeltaWithConfiguration } from './economy'
+import {
+  getDraftActionPointDeltaWithConfiguration,
+  isDraftHoldUpkeepDue,
+} from './economy'
 import { generateDraftOffer } from './offers'
 import { assertDraftPoolIdentity, createDraftPoolKey } from './pool'
 import type {
@@ -128,6 +131,7 @@ export function startDraft(
     currentOfferIds: [],
     discardedOperatorIds: [],
     heldOperatorId: null,
+    holdUpkeepCharges: 0,
     roundNumber: 1,
     completedRounds: 0,
     capacityExpansionCount: 0,
@@ -170,6 +174,7 @@ export function applyDraftAction(
   }
 
   const actionUsage = recordAction(state, action.type)
+  const upkeepDue = isDraftHoldUpkeepDue(state, action, configuration)
   const points =
     state.points + getDraftActionPointDeltaWithConfiguration(pool, action, configuration, state)
   const { actionRules, capacityRules } = configuration
@@ -185,6 +190,9 @@ export function applyDraftAction(
           ...state,
           draftedOperatorIds: [...state.draftedOperatorIds, action.operatorId],
           heldOperatorId: fromHold ? null : state.heldOperatorId,
+          holdUpkeepCharges: fromHold
+            ? 0
+            : state.holdUpkeepCharges + (upkeepDue ? 1 : 0),
           points,
           actionUsage,
         },
@@ -204,6 +212,7 @@ export function applyDraftAction(
         {
           ...state,
           heldOperatorId: action.operatorId,
+          holdUpkeepCharges: 0,
           discardedOperatorIds: discarded,
           points,
           actionUsage,
@@ -214,7 +223,7 @@ export function applyDraftAction(
       )
     }
     case 'release-hold':
-      return { ...state, heldOperatorId: null, points, actionUsage }
+      return { ...state, heldOperatorId: null, holdUpkeepCharges: 0, points, actionUsage }
     case 'forfeit': {
       const discarded = actionRules.forfeit.discardOffer
         ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds)
@@ -223,6 +232,7 @@ export function applyDraftAction(
         {
           ...state,
           discardedOperatorIds: discarded,
+          holdUpkeepCharges: state.holdUpkeepCharges + (upkeepDue ? 1 : 0),
           forfeitedCapacityCount: capacityRules.enabled
             ? state.forfeitedCapacityCount + 1
             : state.forfeitedCapacityCount,

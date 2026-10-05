@@ -9,7 +9,6 @@ import {
   type DraftState,
   type ResolvedDraftConfiguration,
 } from '../../shared/draft'
-import { localizeOperatorDataset } from '../../shared/gameLocalization'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import {
   STANDARD_DRAFT_RULEBOOK,
@@ -25,19 +24,15 @@ import {
 } from './draftInteractionPresentation'
 import { draftCompletionMessage } from './draftSessionMessages'
 import { loadDraftRulebookLibrary } from './draftRulebookStorage'
-import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import useDraftSession, { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
 
 const SELECTED_RULEBOOK_KEY = 'arknights-randomizer:selected-draft-rulebook:v1'
 
 interface DraftPanelProps {
-  state: DraftState | null
+  dataset: OperatorDataset | null
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
-  distributionLabel: string
-  onStart: () => void
-  onPick: (operatorId: string) => void
 }
 
 interface DraftSessionViewProps {
@@ -316,32 +311,19 @@ function DraftSessionView({
 
 function ConfiguredRulebookDraft({
   rulebook,
+  dataset,
   globalPool,
   targetSize,
   ready,
 }: {
   rulebook: DraftRulebook
+  dataset: OperatorDataset | null
   globalPool: readonly Operator[]
   targetSize: number
   ready: boolean
 }): React.JSX.Element {
-  const [dataset, setDataset] = useState<OperatorDataset | null>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setDataset(null)
-    setLoadError(null)
-    const preferences = loadOperatorPreferences()
-    void window.desktop.getOperatorDataset().then((loadedDataset) => {
-      if (active) setDataset(localizeOperatorDataset(loadedDataset, preferences.gameLocale))
-    }).catch((reason: unknown) => {
-      if (active) setLoadError(reason instanceof Error ? reason.message : String(reason))
-    })
-    return () => { active = false }
-  }, [rulebook.identifier.id, rulebook.identifier.revision])
 
   const execution = useMemo(
     () => dataset
@@ -365,13 +347,13 @@ function ConfiguredRulebookDraft({
       state={session.state}
       operators={execution?.pool ?? []}
       targetSize={targetSize}
-      ready={ready && dataset !== null && !loadError}
+      ready={ready && dataset !== null}
       distributionLabel={session.distributionLabel}
       rulebook={rulebook}
       poolSourceLabel={execution?.poolSourceLabel ?? 'Resolving…'}
       dataset={dataset ?? undefined}
       configuration={execution?.configuration ?? undefined}
-      validationErrors={execution?.validation.errors ?? (loadError ? [loadError] : [])}
+      validationErrors={execution?.validation.errors ?? []}
       statusMessage={message}
       statusError={error}
       onStart={session.start}
@@ -382,13 +364,10 @@ function ConfiguredRulebookDraft({
 }
 
 export default function DraftPanel({
-  state,
+  dataset,
   operators,
   targetSize,
   ready,
-  distributionLabel,
-  onStart,
-  onPick,
 }: DraftPanelProps): React.JSX.Element {
   const customRulebooks = useMemo(() => loadDraftRulebookLibrary(), [])
   const rulebooks = useMemo(
@@ -436,34 +415,16 @@ export default function DraftPanel({
     </div>
   )
 
-  if (selected.identifier.id !== STANDARD_DRAFT_RULEBOOK_ID) {
-    return (
-      <>
-        {selector}
-        <ConfiguredRulebookDraft
-          key={selected.identifier.id}
-          rulebook={selected}
-          globalPool={operators}
-          targetSize={targetSize}
-          ready={ready}
-        />
-      </>
-    )
-  }
-
   return (
     <>
       {selector}
-      <DraftSessionView
-        state={state}
-        operators={operators}
+      <ConfiguredRulebookDraft
+        key={selected.identifier.id}
+        rulebook={selected}
+        dataset={dataset}
+        globalPool={operators}
         targetSize={targetSize}
         ready={ready}
-        distributionLabel={distributionLabel}
-        rulebook={STANDARD_DRAFT_RULEBOOK}
-        poolSourceLabel="Inherit Global Pool"
-        onStart={onStart}
-        onPick={onPick}
       />
     </>
   )

@@ -1,4 +1,10 @@
-import { operatorClasses, operatorRarities, type OperatorDataset } from '../../shared/operator'
+import {
+  operatorClasses,
+  operatorRarities,
+  type OperatorClass,
+  type OperatorDataset,
+  type OperatorRarity,
+} from '../../shared/operator'
 import type {
   DraftRulebookEligibility,
   DraftRulebookSelector,
@@ -114,8 +120,8 @@ export function DraftRulebookSelectorEditor({
             value={selector.rarities.map(String)}
             onChange={(event) => onChange({
               type: 'rarities',
-              rarities: selectedValues(event).map(Number) as DraftRulebookSelector & never,
-            } as DraftRulebookSelector)}
+              rarities: selectedValues(event).map(Number) as OperatorRarity[],
+            })}
           >
             {operatorRarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}★</option>)}
           </select>
@@ -132,7 +138,7 @@ export function DraftRulebookSelectorEditor({
             value={selector.classes}
             onChange={(event) => onChange({
               type: 'classes',
-              classes: selectedValues(event) as typeof selector.classes,
+              classes: selectedValues(event) as OperatorClass[],
             })}
           >
             {operatorClasses.map((operatorClass) => (

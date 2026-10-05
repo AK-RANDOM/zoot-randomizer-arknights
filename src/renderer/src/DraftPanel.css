@@ -98,6 +98,46 @@
   line-height: 1.55;
 }
 
+.draft-action-bar,
+.draft-hold-actions,
+.draft-candidate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.draft-action-bar {
+  margin: 4px 0 14px;
+  padding: 10px;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  background: #111113;
+}
+
+.draft-hold-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  padding: 11px 12px;
+  border: 1px solid #3f3728;
+  border-radius: 6px;
+  background: rgba(245, 173, 47, 0.06);
+}
+
+.draft-hold-panel > div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.draft-hold-panel span {
+  color: #8f8f96;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .draft-round-heading,
 .draft-roster-heading {
   display: flex;
@@ -131,54 +171,49 @@
   margin-bottom: 24px;
 }
 
-.draft-candidate {
-  position: relative;
-  aspect-ratio: 3 / 4;
+.draft-candidate-card {
   min-width: 0;
-  padding: 0;
   overflow: hidden;
   border: 1px solid #34343a;
   border-radius: 6px;
-  color: inherit;
   background: #101012;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
 
-.draft-candidate:hover,
-.draft-candidate:focus-visible {
-  border-color: #f5ad2f;
-  outline: none;
-  box-shadow: 0 0 0 1px rgba(245, 173, 47, 0.34), 0 13px 30px rgba(0, 0, 0, 0.34);
-}
-
-.draft-candidate .operator-card {
+.draft-candidate-card .operator-card {
+  aspect-ratio: 3 / 4;
+  border: 0;
+  border-bottom: 1px solid #303036;
   border-radius: 0;
 }
 
+.draft-candidate-actions {
+  padding: 9px;
+}
+
 .draft-candidate__action {
-  position: absolute;
-  z-index: 8;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
-  display: block;
-  padding: 8px 10px;
+  flex: 1 1 150px;
+  min-height: 38px;
+  padding: 7px 10px;
   border: 1px solid rgba(245, 173, 47, 0.7);
   border-radius: 4px;
   color: #111113;
   background: rgba(245, 173, 47, 0.94);
   font-size: 0.72rem;
   font-weight: 900;
-  text-align: center;
-  opacity: 0;
-  transform: translateY(4px);
-  transition: opacity 120ms ease, transform 120ms ease;
 }
 
-.draft-candidate:hover .draft-candidate__action,
-.draft-candidate:focus-visible .draft-candidate__action {
-  opacity: 1;
-  transform: translateY(0);
+.draft-candidate__action:hover:not(:disabled),
+.draft-candidate__action:focus-visible {
+  border-color: #ffd06f;
+  outline: none;
+  background: #f8bd50;
+}
+
+.draft-candidate__action:disabled {
+  color: #77777d;
+  border-color: #34343a;
+  background: #1d1d21;
 }
 
 .draft-roster-grid {
@@ -205,10 +240,15 @@
     grid-template-columns: 1fr;
   }
 
-  .draft-candidate {
+  .draft-candidate-card {
     max-width: 330px;
     width: 100%;
     justify-self: center;
+  }
+
+  .draft-hold-panel {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .draft-roster-grid {

@@ -27,15 +27,21 @@
   background: #171719;
 }
 
-.rulebook-editor-grid {
+.rulebook-editor-grid,
+.rulebook-action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
 
-.rulebook-editor-section {
+.rulebook-editor-section,
+.rulebook-wide-section {
   min-width: 0;
   margin: 0;
+}
+
+.rulebook-wide-section {
+  grid-column: 1 / -1;
 }
 
 .rulebook-editor-section textarea {
@@ -75,6 +81,81 @@
   font-size: 0.82rem;
 }
 
+.rulebook-action-card,
+.rulebook-selector-editor,
+.rulebook-bucket-editor,
+.rulebook-eligibility-section,
+.rulebook-rateup-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.rulebook-action-card,
+.rulebook-bucket-editor,
+.rulebook-eligibility-section {
+  padding: 12px;
+  border: 1px solid #34343a;
+  border-radius: 6px;
+  background: #141416;
+}
+
+.rulebook-editor-subheading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rulebook-editor-subheading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.rulebook-editor-subheading small {
+  color: #85858c;
+}
+
+.rulebook-selector-editor {
+  padding: 10px;
+  border: 1px solid #2d2d32;
+  border-radius: 5px;
+  background: #101012;
+}
+
+.rulebook-selector-values select,
+.rulebook-rateup-featured select {
+  min-height: 92px;
+}
+
+.rulebook-eligibility-editor,
+.rulebook-distribution-details {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.rulebook-rarity-membership {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.rulebook-readout {
+  display: grid;
+  gap: 5px;
+  align-content: end;
+  min-height: 60px;
+  padding: 8px 10px;
+  border: 1px solid #313137;
+  border-radius: 4px;
+  background: #101012;
+}
+
+.rulebook-readout span {
+  color: #85858c;
+  font-size: 0.7rem;
+}
+
 .rulebook-placeholder-box {
   display: grid;
   gap: 5px;
@@ -88,17 +169,6 @@
 
 .rulebook-placeholder-box strong {
   color: #f3f3f3;
-}
-
-.rulebook-bucket-grid {
-  display: grid;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.rulebook-bucket {
-  grid-template-columns: minmax(0, 1fr) 110px;
-  align-items: center;
 }
 
 .rulebook-overrides-section {
@@ -160,11 +230,17 @@
 @media (max-width: 820px) {
   .rulebook-library-toolbar,
   .rulebook-editor-grid,
+  .rulebook-action-grid,
   .rulebook-inline-fields,
   .rulebook-inline-fields--three,
   .rulebook-rarity-cost-grid,
   .rulebook-override-adder {
     grid-template-columns: 1fr;
+  }
+
+  .rulebook-editor-subheading {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .rulebook-override-card {

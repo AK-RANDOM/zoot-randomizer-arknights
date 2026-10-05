@@ -59,6 +59,13 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.rulebook-rarity-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
 .rulebook-toggle {
   display: flex;
   align-items: center;
@@ -155,6 +162,7 @@
   .rulebook-editor-grid,
   .rulebook-inline-fields,
   .rulebook-inline-fields--three,
+  .rulebook-rarity-cost-grid,
   .rulebook-override-adder {
     grid-template-columns: 1fr;
   }

@@ -28,7 +28,8 @@ function sequence(values: number[]): () => number {
 
 describe('Draft pull distributions', () => {
   it('uses the locked Arknights rarity-to-bucket mapping', () => {
-    expect([1, 2, 3, 4, 5, 6].map(arknightsBucketForRarity)).toEqual(['5', '4', '3', '4', '5', '6'])
+    const rarities: Operator['rarity'][] = [1, 2, 3, 4, 5, 6]
+    expect(rarities.map(arknightsBucketForRarity)).toEqual(['5', '4', '3', '4', '5', '6'])
   })
 
   it('advances pity per generated candidate and resets on a generated 6-star', () => {

@@ -23,10 +23,12 @@ import {
   buildRulebookOperatorInteractionDetails,
 } from './draftInteractionPresentation'
 import { draftCompletionMessage } from './draftSessionMessages'
-import { loadDraftRulebookLibrary } from './draftRulebookStorage'
+import { loadDraftRulebookEntries } from './draftRulebookStorage'
+import {
+  loadSelectedDraftRulebookId,
+  saveSelectedDraftRulebookId,
+} from './rendererPersistence'
 import useDraftSession, { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
-
-const SELECTED_RULEBOOK_KEY = 'arknights-randomizer:selected-draft-rulebook:v1'
 
 interface DraftPanelProps {
   dataset: OperatorDataset | null
@@ -68,22 +70,6 @@ const actionReasonLabels: Record<DraftActionBlockReason, string> = {
   'insufficient-points': 'Not enough points.',
 }
 
-function loadSelectedRulebookId(): string {
-  try {
-    return window.localStorage.getItem(SELECTED_RULEBOOK_KEY) ?? STANDARD_DRAFT_RULEBOOK_ID
-  } catch {
-    return STANDARD_DRAFT_RULEBOOK_ID
-  }
-}
-
-function persistSelectedRulebookId(rulebookId: string): void {
-  try {
-    window.localStorage.setItem(SELECTED_RULEBOOK_KEY, rulebookId)
-  } catch {
-    // Selection persistence is optional; the current session still works.
-  }
-}
-
 function pointDeltaLabel(delta: number): string {
   if (delta === 0) return 'Free'
   return delta > 0 ? `+${delta} pts` : `${Math.abs(delta)} pts`
@@ -116,14 +102,10 @@ function DraftSessionView({
   )
 
   const offeredOperators = state
-    ? state.currentOfferIds
-        .map((id) => operatorById.get(id))
-        .filter((operator): operator is Operator => operator !== undefined)
+    ? state.currentOfferIds.map((id) => operatorById.get(id)).filter((operator): operator is Operator => operator !== undefined)
     : []
   const draftedOperators = state
-    ? state.draftedOperatorIds
-        .map((id) => operatorById.get(id))
-        .filter((operator): operator is Operator => operator !== undefined)
+    ? state.draftedOperatorIds.map((id) => operatorById.get(id)).filter((operator): operator is Operator => operator !== undefined)
     : []
   const heldOperator = state?.heldOperatorId ? operatorById.get(state.heldOperatorId) ?? null : null
   const rosterSlots = Array.from({ length: targetSize }, (_, index) => draftedOperators[index] ?? null)
@@ -133,29 +115,19 @@ function DraftSessionView({
   const availability = (action: DraftAction): { available: boolean; title?: string } => {
     if (!state || !configuration) return { available: false }
     const result = evaluateDraftAction(state, operators, action, { configuration })
-    return {
-      available: result.available,
-      title: result.reason ? actionReasonLabels[result.reason] : undefined,
-    }
+    return { available: result.available, title: result.reason ? actionReasonLabels[result.reason] : undefined }
   }
 
   const actionDelta = (action: DraftAction): number => {
     if (!configuration) return 0
-    return getDraftActionPointDelta(
-      operators,
-      action,
-      { configuration },
-      state ?? undefined,
-    )
+    return getDraftActionPointDelta(operators, action, { configuration }, state ?? undefined)
   }
 
   const reroll = advanced ? availability({ type: 'reroll' }) : { available: false }
   const forfeit = advanced ? availability({ type: 'forfeit' }) : { available: false }
   const slotExpansion = advanced ? availability({ type: 'slot-expansion' }) : { available: false }
   const releaseHold = advanced ? availability({ type: 'release-hold' }) : { available: false }
-  const heldPick = advanced && heldOperator
-    ? availability({ type: 'pick', operatorId: heldOperator.id })
-    : { available: false }
+  const heldPick = advanced && heldOperator ? availability({ type: 'pick', operatorId: heldOperator.id }) : { available: false }
 
   return (
     <section className="panel draft-panel" aria-labelledby="draft-heading">
@@ -241,23 +213,10 @@ function DraftSessionView({
               const holdAction: DraftAction = { type: 'hold', operatorId: operator.id }
               const holdAvailability = advanced ? availability(holdAction) : { available: false }
               const interactionDetails = dataset && configuration
-                ? buildLiveRulebookOperatorInteractionDetails(
-                    rulebook,
-                    operator,
-                    dataset,
-                    operators,
-                    state,
-                    configuration,
-                  )
+                ? buildLiveRulebookOperatorInteractionDetails(rulebook, operator, dataset, operators, state, configuration)
                 : undefined
               const interactionBreakdown = dataset && configuration
-                ? buildLiveDraftInteractionBreakdown(
-                    rulebook,
-                    operator,
-                    dataset,
-                    state,
-                    configuration,
-                  )
+                ? buildLiveDraftInteractionBreakdown(rulebook, operator, dataset, state, configuration)
                 : undefined
 
               return (
@@ -293,12 +252,7 @@ function DraftSessionView({
         {rosterSlots.map((operator, index) => (
           <div className="draft-roster-slot" key={index}>
             {operator ? (
-              <OperatorCard
-                operator={operator}
-                interactionDetails={dataset
-                  ? buildRulebookOperatorInteractionDetails(rulebook, operator, dataset, operators)
-                  : undefined}
-              />
+              <OperatorCard operator={operator} interactionDetails={dataset ? buildRulebookOperatorInteractionDetails(rulebook, operator, dataset, operators) : undefined} />
             ) : (
               <div className="empty-slot"><span>SLOT {index + 1}</span></div>
             )}
@@ -326,9 +280,7 @@ function ConfiguredRulebookDraft({
   const [error, setError] = useState<string | null>(null)
 
   const execution = useMemo(
-    () => dataset
-      ? resolveDraftRulebookExecution(rulebook, dataset.operators, globalPool)
-      : null,
+    () => dataset ? resolveDraftRulebookExecution(rulebook, dataset.operators, globalPool) : null,
     [dataset, globalPool, rulebook],
   )
   const configuration = execution?.configuration ?? undefined
@@ -363,61 +315,55 @@ function ConfiguredRulebookDraft({
   )
 }
 
-export default function DraftPanel({
-  dataset,
-  operators,
-  targetSize,
-  ready,
-}: DraftPanelProps): React.JSX.Element {
-  const customRulebooks = useMemo(() => loadDraftRulebookLibrary(), [])
-  const rulebooks = useMemo(
-    () => [STANDARD_DRAFT_RULEBOOK, ...customRulebooks],
-    [customRulebooks],
-  )
-  const [selectedId, setSelectedId] = useState(() => loadSelectedRulebookId())
+export default function DraftPanel({ dataset, operators, targetSize, ready }: DraftPanelProps): React.JSX.Element {
+  const customEntries = useMemo(() => loadDraftRulebookEntries(), [])
+  const customRulebooks = useMemo(() => customEntries.map((entry) => entry.document), [customEntries])
+  const importedEntries = useMemo(() => customEntries.filter((entry) => entry.origin === 'imported'), [customEntries])
+  const localEntries = useMemo(() => customEntries.filter((entry) => entry.origin === 'local'), [customEntries])
+  const rulebooks = useMemo(() => [STANDARD_DRAFT_RULEBOOK, ...customRulebooks], [customRulebooks])
+  const [selectedId, setSelectedId] = useState(() => loadSelectedDraftRulebookId())
   const selected = rulebooks.find((rulebook) => rulebook.identifier.id === selectedId) ?? STANDARD_DRAFT_RULEBOOK
 
   useEffect(() => {
     if (selected.identifier.id !== selectedId) {
       setSelectedId(selected.identifier.id)
-      persistSelectedRulebookId(selected.identifier.id)
+      saveSelectedDraftRulebookId(selected.identifier.id)
     }
   }, [selected.identifier.id, selectedId])
 
   const selectRulebook = (rulebookId: string): void => {
     if (rulebookId === selected.identifier.id) return
     setSelectedId(rulebookId)
-    persistSelectedRulebookId(rulebookId)
+    saveSelectedDraftRulebookId(rulebookId)
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
   }
 
-  const selector = (
-    <div className="preset-toolbar">
-      <label className="preset-select">
-        <span>Draft Rulebook</span>
-        <select value={selected.identifier.id} onChange={(event) => selectRulebook(event.target.value)}>
-          <optgroup label="Built-in">
-            <option value={STANDARD_DRAFT_RULEBOOK_ID}>{STANDARD_DRAFT_RULEBOOK.identifier.name}</option>
-          </optgroup>
-          {customRulebooks.length > 0 && (
-            <optgroup label="Local">
-              {customRulebooks.map((rulebook) => (
-                <option key={rulebook.identifier.id} value={rulebook.identifier.id}>{rulebook.identifier.name}</option>
-              ))}
-            </optgroup>
-          )}
-        </select>
-      </label>
-      <div className="rulebook-library-summary">
-        <strong>{selected.identifier.name}</strong>
-        <span>Revision {selected.identifier.revision}</span>
-      </div>
-    </div>
-  )
-
   return (
     <>
-      {selector}
+      <div className="preset-toolbar">
+        <label className="preset-select">
+          <span>Draft Rulebook</span>
+          <select value={selected.identifier.id} onChange={(event) => selectRulebook(event.target.value)}>
+            <optgroup label="Built-in">
+              <option value={STANDARD_DRAFT_RULEBOOK_ID}>{STANDARD_DRAFT_RULEBOOK.identifier.name}</option>
+            </optgroup>
+            {importedEntries.length > 0 && (
+              <optgroup label="Imported">
+                {importedEntries.map((entry) => <option key={entry.document.identifier.id} value={entry.document.identifier.id}>{entry.document.identifier.name}</option>)}
+              </optgroup>
+            )}
+            {localEntries.length > 0 && (
+              <optgroup label="Local">
+                {localEntries.map((entry) => <option key={entry.document.identifier.id} value={entry.document.identifier.id}>{entry.document.identifier.name}</option>)}
+              </optgroup>
+            )}
+          </select>
+        </label>
+        <div className="rulebook-library-summary">
+          <strong>{selected.identifier.name}</strong>
+          <span>Revision {selected.identifier.revision}</span>
+        </div>
+      </div>
       <ConfiguredRulebookDraft
         key={selected.identifier.id}
         rulebook={selected}

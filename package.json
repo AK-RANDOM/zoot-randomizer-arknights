@@ -20,7 +20,7 @@
     "test:watch": "vitest",
     "build": "npm run typecheck && electron-vite build",
     "build:unpack": "npm run data:update && npm run build && electron-builder --dir --publish never",
-    "build:win": "npm run data:update && npm run build && electron-builder --win portable --publish never",
+    "build:win": "npm run build && electron-builder --win portable --publish never",
     "data:update": "node scripts/update-operator-data.mts",
     "data:update:images": "node scripts/update-operator-data.mts --download-images",
     "data:validate": "node scripts/validate-bundled-data.mts",

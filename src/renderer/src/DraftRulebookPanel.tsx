@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { DEFAULT_DRAFT_ECONOMY_RULES } from '../../shared/draft'
 import { operatorRarities, type OperatorDataset } from '../../shared/operator'
 import type { DraftPullDistribution } from '../../shared/draftDistribution'
 import {
   STANDARD_DRAFT_RULEBOOK,
   STANDARD_DRAFT_RULEBOOK_ID,
   createEmptyDraftRulebookEligibility,
-  deserializeDraftRulebook,
   resolveDraftRulebook,
-  serializeDraftRulebook,
   validateDraftRulebook,
   type DraftRulebook,
 } from '../../shared/draftRulebook'
@@ -24,8 +23,8 @@ interface DraftRulebookPanelProps {
   dataset: OperatorDataset
 }
 
-function cloneRulebook(rulebook: DraftRulebook): DraftRulebook {
-  return deserializeDraftRulebook(serializeDraftRulebook(rulebook))
+function cloneRulebookForEditing(rulebook: DraftRulebook): DraftRulebook {
+  return JSON.parse(JSON.stringify(rulebook)) as DraftRulebook
 }
 
 function defaultCustomDistribution(): DraftPullDistribution {
@@ -100,7 +99,7 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     if (builtIn) return
     setCustomRulebooks((current) => current.map((rulebook) => {
       if (rulebook.identifier.id !== selected.identifier.id) return rulebook
-      const next = cloneRulebook(rulebook)
+      const next = cloneRulebookForEditing(rulebook)
       mutate(next)
       return next
     }))
@@ -113,6 +112,7 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
   }
 
   const duplicateSelected = (): void => {
+    if (!validation.valid) return
     const next = createLocalDraftRulebook(selected)
     setCustomRulebooks((current) => [...current, next])
     setSelectedId(next.identifier.id)
@@ -161,6 +161,25 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
   const capacity = resolved?.configuration.capacityRules
   const selectedOverrideOperator = operatorById.get(overrideOperatorId)
 
+  const rarityCost = (rarity: (typeof operatorRarities)[number]): number =>
+    selected.generalRules.economyRules?.rarityCosts?.[rarity]
+      ?? economy?.rarityCosts[rarity]
+      ?? DEFAULT_DRAFT_ECONOMY_RULES.rarityCosts[rarity]
+      ?? 0
+
+  const setRarityCost = (rarity: (typeof operatorRarities)[number], cost: number): void => {
+    if (!Number.isFinite(cost)) return
+    updateSelected((draft) => {
+      draft.generalRules.economyRules = {
+        ...draft.generalRules.economyRules,
+        rarityCosts: {
+          ...draft.generalRules.economyRules?.rarityCosts,
+          [rarity]: cost,
+        },
+      }
+    })
+  }
+
   const chooseOverrideOperator = (operatorId: string): void => {
     setOverrideOperatorId(operatorId)
     if (!operatorId) {
@@ -198,7 +217,7 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
         </div>
         <div className="section-actions">
           <button type="button" className="secondary-button" onClick={createNew}>New</button>
-          <button type="button" className="secondary-button" onClick={duplicateSelected}>Duplicate</button>
+          <button type="button" className="secondary-button" disabled={!validation.valid} onClick={duplicateSelected}>Duplicate</button>
           <button type="button" className="secondary-button" disabled={builtIn} onClick={deleteSelected}>Delete</button>
         </div>
       </div>
@@ -230,7 +249,7 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
       {!validation.valid && (
         <div className="validation-box" role="alert">
           <strong>Rulebook needs attention</strong>
-          <ul>{validation.errors.map((error) => <li key={error}>{error}</li>)}</ul>
+          <ul>{validation.errors.map((validationError) => <li key={validationError}>{validationError}</li>)}</ul>
         </div>
       )}
 
@@ -288,6 +307,19 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
             />
             <span>Enable point economy</span>
           </label>
+          <div className="rulebook-rarity-cost-grid">
+            {operatorRarities.map((rarity) => (
+              <label className="field" key={rarity}>
+                <span>{rarity}★ cost</span>
+                <input
+                  type="number"
+                  disabled={builtIn}
+                  value={rarityCost(rarity)}
+                  onChange={(event) => setRarityCost(rarity, Number(event.target.value))}
+                />
+              </label>
+            ))}
+          </div>
           <label className="rulebook-toggle">
             <input
               type="checkbox"

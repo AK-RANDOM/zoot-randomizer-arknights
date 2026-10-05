@@ -61,12 +61,13 @@ export default function useDraftRulebookLibrary(dataset: OperatorDataset): Draft
 
   useEffect(() => saveDraftRulebookEntries(customEntries), [customEntries])
 
-  const entries = useMemo(() => [builtInEntry(), ...customEntries], [customEntries])
+  const builtIn = useMemo(() => builtInEntry(), [])
+  const entries = useMemo(() => [builtIn, ...customEntries], [builtIn, customEntries])
   const localEntries = useMemo(() => customEntries.filter((entry) => entry.origin === 'local'), [customEntries])
   const importedEntries = useMemo(() => customEntries.filter((entry) => entry.origin === 'imported'), [customEntries])
-  const selectedEntry = entries.find((entry) => entry.document.identifier.id === selectedId) ?? entries[0]
+  const selectedEntry = entries.find((entry) => entry.document.identifier.id === selectedId) ?? builtIn
   const selected = selectedEntry.document
-  const builtIn = selectedEntry.origin === 'built-in'
+  const selectedIsBuiltIn = selectedEntry.origin === 'built-in'
   const imported = selectedEntry.origin === 'imported'
   const validation = useMemo(() => validateDraftRulebook(selected), [selected])
 
@@ -75,7 +76,7 @@ export default function useDraftRulebookLibrary(dataset: OperatorDataset): Draft
   }, [selected.identifier.id, selectedId])
 
   const updateSelected = (mutate: (draft: DraftRulebook) => void): void => {
-    if (builtIn) return
+    if (selectedIsBuiltIn) return
     setCustomEntries((current) => current.map((entry) => {
       if (entry.document.identifier.id !== selected.identifier.id) return entry
       const document = cloneRulebook(entry.document)
@@ -112,7 +113,7 @@ export default function useDraftRulebookLibrary(dataset: OperatorDataset): Draft
   }
 
   const deleteSelected = (): void => {
-    if (builtIn) return
+    if (selectedIsBuiltIn) return
     setCustomEntries((current) => current.filter((entry) => entry.document.identifier.id !== selected.identifier.id))
     setSelectedId(STANDARD_DRAFT_RULEBOOK_ID)
     setPortabilityStatus(null)
@@ -162,7 +163,7 @@ export default function useDraftRulebookLibrary(dataset: OperatorDataset): Draft
     selectedEntry,
     selected,
     selectedId: selected.identifier.id,
-    builtIn,
+    builtIn: selectedIsBuiltIn,
     imported,
     validation,
     portabilityStatus,

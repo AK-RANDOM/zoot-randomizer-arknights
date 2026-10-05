@@ -14,6 +14,7 @@ export { currentDraftOwnershipCapacity } from './draft/capacity'
 export {
   getDraftActionPointDelta,
   getDraftOperatorCost,
+  getDraftOperatorCostWithConfiguration,
 } from './draft/economy'
 export { generateEqualOpportunityCandidates } from './draft/offers'
 export { evaluateDraftAction, getDraftActionAvailability } from './draft/actions'

@@ -5,6 +5,7 @@ import type {
   DraftConfigurationInput,
   DraftEconomyRules,
   DraftEngineOptions,
+  DraftHoldUpkeepRules,
   DraftLimitedActionRules,
   PartialDraftActionRules,
   ResolvedDraftConfiguration,
@@ -56,6 +57,7 @@ export const DEFAULT_DRAFT_ECONOMY_RULES: DraftEconomyRules = {
   forfeitRebate: 4,
   rerollCost: 0,
   holdCost: 0,
+  holdUpkeep: { mode: 'none' },
   slotExpansionCost: 2,
 }
 
@@ -114,6 +116,10 @@ function cloneInteractions(interactions: readonly ResolvedDraftInteraction[]): R
   })
 }
 
+function cloneHoldUpkeep(rules: DraftHoldUpkeepRules): DraftHoldUpkeepRules {
+  return { ...rules }
+}
+
 function mergeActionInputs(
   base: PartialDraftActionRules | undefined,
   override: PartialDraftActionRules | undefined,
@@ -170,6 +176,9 @@ export function resolveDraftConfiguration(
         ...DEFAULT_DRAFT_ECONOMY_RULES.operatorCostOverrides,
         ...economyRules.operatorCostOverrides,
       },
+      holdUpkeep: cloneHoldUpkeep(
+        economyRules.holdUpkeep ?? DEFAULT_DRAFT_ECONOMY_RULES.holdUpkeep,
+      ),
     },
     pullDistribution: clonePullDistribution(
       input.pullDistribution ?? DEFAULT_DRAFT_PULL_DISTRIBUTION,
@@ -205,6 +214,22 @@ function validateLimitedRule(label: string, rule: DraftLimitedActionRules): void
   }
   if (!Number.isInteger(rule.cooldownRounds) || rule.cooldownRounds < 0) {
     throw new Error(`Draft ${label} cooldown must be a non-negative integer.`)
+  }
+}
+
+function validateHoldUpkeep(rules: DraftHoldUpkeepRules): void {
+  if (rules.mode === 'none') return
+  if (rules.mode === 'static') {
+    if (!Number.isFinite(rules.cost) || rules.cost < 0) {
+      throw new Error('Draft static Hold upkeep cost must be a non-negative finite number.')
+    }
+    return
+  }
+  if (!Number.isFinite(rules.baseCost) || rules.baseCost < 0) {
+    throw new Error('Draft escalating Hold upkeep base cost must be a non-negative finite number.')
+  }
+  if (!Number.isFinite(rules.escalation) || rules.escalation < 0) {
+    throw new Error('Draft Hold upkeep escalation must be a non-negative finite number.')
   }
 }
 
@@ -276,6 +301,7 @@ export function validateDraftConfiguration(configuration: ResolvedDraftConfigura
   validateLimitedRule('Forfeit', configuration.actionRules.forfeit)
   validateLimitedRule('Reroll', configuration.actionRules.reroll)
   validateLimitedRule('slot expansion', configuration.actionRules.slotExpansion)
+  validateHoldUpkeep(configuration.economyRules.holdUpkeep)
 
   const capacity = configuration.capacityRules
   for (const [label, value] of [

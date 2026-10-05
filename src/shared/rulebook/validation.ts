@@ -216,6 +216,35 @@ function validateDistribution(value: unknown, errors: string[]): void {
   if (!hasPositiveBucket) errors.push(`${path} requires at least one non-empty positive-weight bucket.`)
 }
 
+function validateHoldUpkeep(value: unknown, path: string, errors: string[]): void {
+  if (!isRecord(value)) {
+    errors.push(`${path} must be an object.`)
+    return
+  }
+  if (value.mode === 'none') {
+    checkKeys(value, ['mode'], path, errors)
+    return
+  }
+  if (value.mode === 'static') {
+    checkKeys(value, ['mode', 'cost'], path, errors)
+    if (!finiteNumber(value.cost) || value.cost < 0) {
+      errors.push(`${path}.cost must be a non-negative finite number.`)
+    }
+    return
+  }
+  if (value.mode === 'escalating') {
+    checkKeys(value, ['mode', 'baseCost', 'escalation'], path, errors)
+    if (!finiteNumber(value.baseCost) || value.baseCost < 0) {
+      errors.push(`${path}.baseCost must be a non-negative finite number.`)
+    }
+    if (!finiteNumber(value.escalation) || value.escalation < 0) {
+      errors.push(`${path}.escalation must be a non-negative finite number.`)
+    }
+    return
+  }
+  errors.push(`${path}.mode must be none, static, or escalating.`)
+}
+
 function validateEconomyRules(value: unknown, errors: string[]): void {
   const path = 'rulebook.generalRules.economyRules'
   if (!isRecord(value)) {
@@ -224,7 +253,7 @@ function validateEconomyRules(value: unknown, errors: string[]): void {
   }
   checkKeys(
     value,
-    ['enabled', 'startingPoints', 'rarityCosts', 'forfeitRebate', 'rerollCost', 'holdCost', 'slotExpansionCost'],
+    ['enabled', 'startingPoints', 'rarityCosts', 'forfeitRebate', 'rerollCost', 'holdCost', 'holdUpkeep', 'slotExpansionCost'],
     path,
     errors,
   )
@@ -234,6 +263,9 @@ function validateEconomyRules(value: unknown, errors: string[]): void {
     if (amount !== undefined && (!finiteNumber(amount) || amount < 0)) {
       errors.push(`${path}.${key} must be a non-negative finite number.`)
     }
+  }
+  if (value.holdUpkeep !== undefined) {
+    validateHoldUpkeep(value.holdUpkeep, `${path}.holdUpkeep`, errors)
   }
   if (value.rarityCosts !== undefined) {
     if (!isRecord(value.rarityCosts)) errors.push(`${path}.rarityCosts must be an object.`)

@@ -19,12 +19,18 @@ export interface DraftRulebookMigrationResult {
 type JsonRecord = Record<string, unknown>
 export type DraftRulebookMigration = (document: JsonRecord) => JsonRecord
 
+function migrateV1ToV2(document: JsonRecord): JsonRecord {
+  return { ...document, schemaVersion: 2 }
+}
+
 /**
- * Keys are source schema versions. Each migration must return the next schema
- * version. Schema v1 is the first portable format, so the registry is empty
- * until a later schema is introduced.
+ * Keys are source schema versions. Each migration returns the next schema
+ * version. Schema v2 adds optional Hold-upkeep economy data; existing v1
+ * Rulebooks therefore migrate without changing their behavior.
  */
-export const DRAFT_RULEBOOK_MIGRATIONS: Readonly<Record<number, DraftRulebookMigration>> = {}
+export const DRAFT_RULEBOOK_MIGRATIONS: Readonly<Record<number, DraftRulebookMigration>> = {
+  1: migrateV1ToV2,
+}
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

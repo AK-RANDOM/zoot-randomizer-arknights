@@ -48,6 +48,26 @@ describe('renderer persistence', () => {
     expect(JSON.parse(storage.getItem(RENDERER_PERSISTENCE_KEY) ?? '{}')).toEqual(loaded)
   })
 
+  it('migrates persisted schema v1 Rulebooks to the current schema', () => {
+    const v1 = JSON.parse(JSON.stringify(STANDARD_DRAFT_RULEBOOK)) as Record<string, unknown>
+    v1.schemaVersion = 1
+    const identifier = v1.identifier as Record<string, unknown>
+    identifier.id = 'local:v1'
+
+    const normalized = normalizeRendererPersistence({
+      ...loadRendererPersistence(new MemoryStorage()),
+      rulebookLibrary: [{
+        document: v1,
+        origin: 'local',
+        editor: { lastEditedAt: null },
+      }],
+    })
+
+    expect(normalized.rulebookLibrary).toHaveLength(1)
+    expect(normalized.rulebookLibrary[0]?.document.schemaVersion).toBe(2)
+    expect(normalized.rulebookLibrary[0]?.document.identifier.id).toBe('local:v1')
+  })
+
   it('keeps temporarily invalid Rulebook editor documents', () => {
     const invalid = cloneStandard()
     invalid.identifier.id = 'local:editing'

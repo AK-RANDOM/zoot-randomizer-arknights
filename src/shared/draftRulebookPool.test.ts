@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Operator } from './operator'
+import type { DraftRulebookEligibility } from './draftRulebook'
 import {
   matchesDraftRulebookEligibility,
   matchesDraftRulebookSelector,
@@ -115,13 +116,13 @@ describe('Draft Rulebook selector resolution', () => {
   })
 
   it('composes allOf, anyOf and noneOf predictably', () => {
-    const eligibility = {
-      allOf: [{ type: 'rarities' as const, rarities: [6] as const }],
+    const eligibility: DraftRulebookEligibility = {
+      allOf: [{ type: 'rarities', rarities: [6] }],
       anyOf: [
-        { type: 'classes' as const, classes: ['Sniper'] as const },
-        { type: 'factions' as const, factionIds: ['team_abyssal'] },
+        { type: 'classes', classes: ['Sniper'] },
+        { type: 'factions', factionIds: ['team_abyssal'] },
       ],
-      noneOf: [{ type: 'operators' as const, operatorIds: ['char_gladiia'] }],
+      noneOf: [{ type: 'operators', operatorIds: ['char_gladiia'] }],
     }
 
     expect(matchesDraftRulebookEligibility(exusiai, eligibility)).toBe(true)
@@ -130,7 +131,7 @@ describe('Draft Rulebook selector resolution', () => {
   })
 
   it('treats an empty eligibility document as unrestricted', () => {
-    const eligibility = { allOf: [], anyOf: [], noneOf: [] }
+    const eligibility: DraftRulebookEligibility = { allOf: [], anyOf: [], noneOf: [] }
     expect(allOperators.filter((item) => matchesDraftRulebookEligibility(item, eligibility))).toEqual(
       allOperators,
     )

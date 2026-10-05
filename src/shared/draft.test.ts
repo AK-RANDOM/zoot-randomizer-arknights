@@ -140,7 +140,7 @@ describe('Draft milestone 1 engine', () => {
     const state = startDraft(pool, 4, { random: () => 0 })
 
     expect(() => pickDraftOperator(state, pool, 'char_6', { random: () => 0 })).toThrow(
-      'not in the current draft offer',
+      'invalid-offer-selection',
     )
     expect(() => generateEqualOpportunityCandidates(pool, 3, () => 1)).toThrow(
       'range [0, 1)',

@@ -257,7 +257,7 @@ function operatorById(pool: readonly Operator[], id: string): Operator {
     throw new Error(`Draft operator ${id} is not in the eligible pool.`)
   return operator
 }
-export function getDraftActionPointDelta(state: DraftState, pool: readonly Operator[], action: DraftAction, options: Pick<DraftEngineOptions, 'economyRules'> = {}): number {
+export function getDraftActionPointDelta(pool: readonly Operator[], action: DraftAction, options: Pick<DraftEngineOptions, 'economyRules'> = {}): number {
   const economy = resolvedEconomyRules(options)
   if (!economy.enabled)
     return 0
@@ -271,7 +271,7 @@ export function getDraftActionPointDelta(state: DraftState, pool: readonly Opera
   }
 }
 function assertEconomyAffordable(state: DraftState, pool: readonly Operator[], action: DraftAction, options: DraftEngineOptions): void {
-  const delta = getDraftActionPointDelta(state, pool, action, options)
+  const delta = getDraftActionPointDelta(pool, action, options)
   if (state.economyRulesEnabled && delta < 0 && state.points + delta < 0)
     throw new Error(`Draft action ${action.type} is unavailable: insufficient-points.`)
 }

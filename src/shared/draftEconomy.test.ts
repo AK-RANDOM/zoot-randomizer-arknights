@@ -5,6 +5,7 @@ import {
   currentDraftOwnershipCapacity,
   getDraftActionAvailability,
   getDraftActionPointDelta,
+  getDraftHoldUpkeepCost,
   getDraftOperatorCost,
   startDraft,
   type DraftEngineOptions,
@@ -40,6 +41,8 @@ const options: DraftEngineOptions = {
   },
   economyRules: { enabled: true, startingPoints: 20 },
 }
+
+const zeroRarityCosts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
 
 describe('Draft point economy', () => {
   it('uses locked rarity baselines and operator overrides', () => {
@@ -90,6 +93,113 @@ describe('Draft point economy', () => {
     expect(state.points).toBe(5)
     state = applyDraftAction(state, pool, { type: 'forfeit' }, priced)
     expect(state.points).toBe(9)
+  })
+
+  it('charges static Hold upkeep only after the initial Hold round', () => {
+    const priced: DraftEngineOptions = {
+      random: () => 0,
+      actionRules: { hold: { enabled: true } },
+      economyRules: {
+        enabled: true,
+        startingPoints: 10,
+        rarityCosts: zeroRarityCosts,
+        holdCost: 2,
+        holdUpkeep: { mode: 'static', cost: 3 },
+      },
+    }
+    let state = startDraft(pool, 6, priced)
+    const heldId = state.currentOfferIds[0]
+
+    state = applyDraftAction(state, pool, { type: 'hold', operatorId: heldId }, priced)
+    expect(state.points).toBe(8)
+    expect(state.holdUpkeepCharges).toBe(0)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(3)
+
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      priced,
+    )
+    expect(state.points).toBe(5)
+    expect(state.holdUpkeepCharges).toBe(1)
+
+    state = applyDraftAction(state, pool, { type: 'pick', operatorId: heldId }, priced)
+    expect(state.points).toBe(5)
+    expect(state.heldOperatorId).toBeNull()
+    expect(state.holdUpkeepCharges).toBe(0)
+  })
+
+  it('escalates Hold upkeep after each paid carry round', () => {
+    const priced: DraftEngineOptions = {
+      random: () => 0,
+      actionRules: { hold: { enabled: true } },
+      economyRules: {
+        enabled: true,
+        startingPoints: 10,
+        rarityCosts: zeroRarityCosts,
+        holdUpkeep: { mode: 'escalating', baseCost: 2, escalation: 2 },
+      },
+    }
+    let state = startDraft(pool, 6, priced)
+    const heldId = state.currentOfferIds[0]
+
+    state = applyDraftAction(state, pool, { type: 'hold', operatorId: heldId }, priced)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(2)
+
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      priced,
+    )
+    expect(state.points).toBe(8)
+    expect(state.holdUpkeepCharges).toBe(1)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(4)
+
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      priced,
+    )
+    expect(state.points).toBe(4)
+    expect(state.holdUpkeepCharges).toBe(2)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(6)
+  })
+
+  it('blocks a round-ending action that cannot fund due Hold upkeep but allows release', () => {
+    const priced: DraftEngineOptions = {
+      random: () => 0,
+      actionRules: {
+        hold: { enabled: true },
+        forfeit: { enabled: true },
+      },
+      economyRules: {
+        enabled: true,
+        startingPoints: 1,
+        rarityCosts: zeroRarityCosts,
+        forfeitRebate: 0,
+        holdUpkeep: { mode: 'static', cost: 2 },
+      },
+    }
+    let state = startDraft(pool, 6, priced)
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'hold', operatorId: state.currentOfferIds[0] },
+      priced,
+    )
+
+    const pick = { type: 'pick', operatorId: state.currentOfferIds[0] } as const
+    expect(getDraftActionAvailability(state, pick, priced, pool).reason).toBe('insufficient-points')
+    expect(getDraftActionAvailability(state, { type: 'forfeit' }, priced, pool).reason).toBe('insufficient-points')
+    expect(getDraftActionAvailability(state, { type: 'release-hold' }, priced, pool).available).toBe(true)
+
+    state = applyDraftAction(state, pool, { type: 'release-hold' }, priced)
+    expect(state.points).toBe(1)
+    expect(state.heldOperatorId).toBeNull()
+    expect(state.holdUpkeepCharges).toBe(0)
   })
 
   it('does not opt into 6+1 capacity merely because slot expansion is enabled', () => {

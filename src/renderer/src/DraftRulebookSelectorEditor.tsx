@@ -1,13 +1,14 @@
-import {
-  operatorClasses,
-  operatorRarities,
-  type OperatorClass,
-  type OperatorDataset,
-  type OperatorRarity,
-} from '../../shared/operator'
 import type {
-  DraftRulebookEligibility,
-  DraftRulebookSelector,
+  OperatorClass,
+  OperatorDataset,
+  OperatorRarity,
+} from '../../shared/operator'
+import {
+  DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS,
+  createDefaultDraftRulebookSelector,
+  createDraftRulebookSelectorCatalog,
+  type DraftRulebookEligibility,
+  type DraftRulebookSelector,
 } from '../../shared/draftRulebook'
 
 export type DraftRulebookEligibilitySection = 'allOf' | 'anyOf' | 'noneOf'
@@ -24,42 +25,6 @@ function selectedValues(event: React.ChangeEvent<HTMLSelectElement>): string[] {
   return Array.from(event.target.selectedOptions, (option) => option.value)
 }
 
-function sortedEntries(labels: Readonly<Record<string, string>>): Array<[string, string]> {
-  return Object.entries(labels).sort((left, right) => left[1].localeCompare(right[1]))
-}
-
-function subclassOptions(dataset: OperatorDataset): Array<[string, string]> {
-  return [...new Map(dataset.operators.map((operator) => [operator.subclass.id, operator.subclass.name])).entries()]
-    .sort((left, right) => left[1].localeCompare(right[1]))
-}
-
-function raceOptions(dataset: OperatorDataset): Array<[string, string]> {
-  const ids = new Set(dataset.operators.flatMap((operator) => operator.raceIds ?? []))
-  return [...ids]
-    .map((id) => [id, dataset.raceLabels?.[id] ?? id] as [string, string])
-    .sort((left, right) => left[1].localeCompare(right[1]))
-}
-
-export function createDefaultDraftRulebookSelector(
-  type: DraftRulebookSelector['type'],
-  dataset: OperatorDataset,
-): DraftRulebookSelector {
-  switch (type) {
-    case 'operators':
-      return { type, operatorIds: dataset.operators[0] ? [dataset.operators[0].id] : ['missing:operator'] }
-    case 'rarities':
-      return { type, rarities: [6] }
-    case 'classes':
-      return { type, classes: ['Guard'] }
-    case 'subclasses':
-      return { type, subclassIds: [subclassOptions(dataset)[0]?.[0] ?? 'missing:subclass'] }
-    case 'factions':
-      return { type, factionIds: [sortedEntries(dataset.factionLabels)[0]?.[0] ?? 'missing:faction'] }
-    case 'races':
-      return { type, raceIds: [raceOptions(dataset)[0]?.[0] ?? 'missing:race'] }
-  }
-}
-
 export function DraftRulebookSelectorEditor({
   dataset,
   selector,
@@ -67,10 +32,7 @@ export function DraftRulebookSelectorEditor({
   onChange,
   onRemove,
 }: DraftRulebookSelectorEditorProps): React.JSX.Element {
-  const operators = [...dataset.operators].sort((left, right) => left.name.localeCompare(right.name))
-  const subclasses = subclassOptions(dataset)
-  const factions = sortedEntries(dataset.factionLabels)
-  const races = raceOptions(dataset)
+  const catalog = createDraftRulebookSelectorCatalog(dataset)
 
   return (
     <div className="rulebook-selector-editor">
@@ -84,12 +46,9 @@ export function DraftRulebookSelectorEditor({
             dataset,
           ))}
         >
-          <option value="operators">Operators</option>
-          <option value="rarities">Rarities</option>
-          <option value="classes">Classes</option>
-          <option value="subclasses">Subclasses</option>
-          <option value="factions">Factions</option>
-          <option value="races">Races</option>
+          {DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS.map((option) => (
+            <option key={option.type} value={option.type}>{option.label}</option>
+          ))}
         </select>
       </label>
 
@@ -98,13 +57,13 @@ export function DraftRulebookSelectorEditor({
           <span>Matching operators</span>
           <select
             multiple
-            size={Math.min(8, Math.max(3, operators.length))}
+            size={Math.min(8, Math.max(3, catalog.operators.length))}
             disabled={disabled}
             value={selector.operatorIds}
             onChange={(event) => onChange({ type: 'operators', operatorIds: selectedValues(event) })}
           >
-            {operators.map((operator) => (
-              <option key={operator.id} value={operator.id}>{operator.name} ({operator.rarity}★)</option>
+            {catalog.operators.map((operator) => (
+              <option key={operator.id} value={operator.id}>{operator.label} ({operator.rarity}★)</option>
             ))}
           </select>
         </label>
@@ -123,7 +82,7 @@ export function DraftRulebookSelectorEditor({
               rarities: selectedValues(event).map(Number) as OperatorRarity[],
             })}
           >
-            {operatorRarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}★</option>)}
+            {catalog.rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}★</option>)}
           </select>
         </label>
       )}
@@ -141,8 +100,8 @@ export function DraftRulebookSelectorEditor({
               classes: selectedValues(event) as OperatorClass[],
             })}
           >
-            {operatorClasses.map((operatorClass) => (
-              <option key={operatorClass} value={operatorClass}>{dataset.classLabels?.[operatorClass] ?? operatorClass}</option>
+            {catalog.classes.map((operatorClass) => (
+              <option key={operatorClass.id} value={operatorClass.id}>{operatorClass.label}</option>
             ))}
           </select>
         </label>
@@ -158,7 +117,7 @@ export function DraftRulebookSelectorEditor({
             value={selector.subclassIds}
             onChange={(event) => onChange({ type: 'subclasses', subclassIds: selectedValues(event) })}
           >
-            {subclasses.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            {catalog.subclasses.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
           </select>
         </label>
       )}
@@ -173,7 +132,7 @@ export function DraftRulebookSelectorEditor({
             value={selector.factionIds}
             onChange={(event) => onChange({ type: 'factions', factionIds: selectedValues(event) })}
           >
-            {factions.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            {catalog.factions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
           </select>
         </label>
       )}
@@ -188,7 +147,7 @@ export function DraftRulebookSelectorEditor({
             value={selector.raceIds}
             onChange={(event) => onChange({ type: 'races', raceIds: selectedValues(event) })}
           >
-            {races.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+            {catalog.races.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
           </select>
         </label>
       )}

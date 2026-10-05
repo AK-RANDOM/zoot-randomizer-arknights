@@ -1,8 +1,6 @@
+import { resolveDraftConfiguration } from './draft'
 import type { Operator } from './operator'
-import {
-  resolveDraftRulebook,
-  type DraftRulebook,
-} from './draftRulebook'
+import type { DraftRulebook } from './draftRulebook'
 
 export interface DraftRulebookOperatorCostBreakdown {
   operatorId: string
@@ -25,6 +23,12 @@ export interface DraftRulebookOperatorCostResolution {
  * editor can present the locked design as e.g. "Default 30 / Override +6 / Baseline 36"
  * without duplicating both absolute and relative values in the portable file.
  *
+ * This helper deliberately resolves only the static economy layer and does not
+ * require the whole Rulebook to be valid. Editor forms can therefore display
+ * cost feedback while another section is temporarily invalid (for example an
+ * all-zero custom distribution). Final execution still goes through strict
+ * Rulebook validation/resolution.
+ *
  * Interaction modifiers are intentionally not evaluated yet. Until that layer
  * lands, the legal cost range is exactly the static baseline.
  */
@@ -32,8 +36,12 @@ export function getDraftRulebookOperatorCostBreakdown(
   rulebook: DraftRulebook,
   operator: Operator,
 ): DraftRulebookOperatorCostBreakdown {
-  const resolved = resolveDraftRulebook(rulebook)
-  const economy = resolved.configuration.economyRules
+  const economy = resolveDraftConfiguration({
+    economyRules: {
+      ...rulebook.generalRules.economyRules,
+      operatorCostOverrides: rulebook.overrides.operatorCosts,
+    },
+  }).economyRules
   const rarityCost = economy.rarityCosts[operator.rarity] ?? 0
   const overrideCost = Object.prototype.hasOwnProperty.call(
     rulebook.overrides.operatorCosts,

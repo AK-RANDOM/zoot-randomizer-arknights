@@ -103,6 +103,27 @@ describe('Draft Rulebook static cost model', () => {
     expect(getDraftRulebookOperatorBaselineCost(rulebook, op)).toBe(-6)
   })
 
+  it('keeps static cost previews available while an unrelated section is temporarily invalid', () => {
+    const rulebook = cloneStandard()
+    rulebook.generalRules.economyRules = {
+      enabled: true,
+      rarityCosts: { 6: 30 },
+    }
+    rulebook.overrides.operatorCosts = { char_test: 36 }
+    rulebook.generalRules.pullDistribution = {
+      type: 'custom',
+      buckets: [
+        { id: 'all', weight: 0, rarities: [1, 2, 3, 4, 5, 6] },
+      ],
+    }
+
+    expect(getDraftRulebookOperatorCostBreakdown(rulebook, operator('char_test', 6))).toMatchObject({
+      rarityCost: 30,
+      overrideDelta: 6,
+      baselineCost: 36,
+    })
+  })
+
   it('resolves a pool-wide cost map and reports overrides not present in the dataset', () => {
     const rulebook = cloneStandard()
     rulebook.generalRules.economyRules = {

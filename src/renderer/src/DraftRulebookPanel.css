@@ -1,0 +1,173 @@
+.rulebook-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.rulebook-library-toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr);
+  gap: 16px;
+  align-items: end;
+}
+
+.rulebook-library-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: #a7a7ad;
+  font-size: 0.78rem;
+}
+
+.rulebook-library-summary strong,
+.rulebook-library-summary span {
+  padding: 7px 9px;
+  border: 1px solid #34343a;
+  border-radius: 4px;
+  background: #171719;
+}
+
+.rulebook-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rulebook-editor-section {
+  min-width: 0;
+  margin: 0;
+}
+
+.rulebook-editor-section textarea {
+  width: 100%;
+  resize: vertical;
+  font: inherit;
+  color: #f3f3f3;
+  background: #111113;
+  border: 1px solid #38383e;
+  border-radius: 4px;
+  padding: 9px 10px;
+}
+
+.rulebook-inline-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.rulebook-inline-fields--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.rulebook-rarity-cost-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.rulebook-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 34px;
+  color: #d4d4d8;
+  font-size: 0.82rem;
+}
+
+.rulebook-placeholder-box {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px dashed #44444a;
+  border-radius: 5px;
+  color: #aaaab1;
+  background: #131315;
+}
+
+.rulebook-placeholder-box strong {
+  color: #f3f3f3;
+}
+
+.rulebook-bucket-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rulebook-bucket {
+  grid-template-columns: minmax(0, 1fr) 110px;
+  align-items: center;
+}
+
+.rulebook-overrides-section {
+  margin: 0;
+}
+
+.rulebook-override-adder {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 150px auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.rulebook-override-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.rulebook-override-card {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  align-items: stretch;
+  padding: 10px;
+  border: 1px solid #34343a;
+  border-radius: 6px;
+  background: #151517;
+}
+
+.rulebook-override-card .operator-card {
+  min-height: 148px;
+}
+
+.rulebook-override-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
+  color: #adadb4;
+  font-size: 0.78rem;
+}
+
+.rulebook-override-meta strong {
+  color: #f3f3f3;
+}
+
+.rulebook-unresolved-override {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+  border: 1px dashed #6a4f34;
+  border-radius: 5px;
+  color: #c8b397;
+  background: rgba(99, 65, 27, 0.12);
+}
+
+@media (max-width: 820px) {
+  .rulebook-library-toolbar,
+  .rulebook-editor-grid,
+  .rulebook-inline-fields,
+  .rulebook-inline-fields--three,
+  .rulebook-rarity-cost-grid,
+  .rulebook-override-adder {
+    grid-template-columns: 1fr;
+  }
+
+  .rulebook-override-card {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+}

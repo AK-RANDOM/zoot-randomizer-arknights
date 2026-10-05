@@ -3,7 +3,7 @@ import {
   type GameLocale,
   type GameStringCatalog,
   type OperatorDataset,
-} from './operator'
+} from './operator.ts'
 
 export const RACE_UNAVAILABLE_ID = 'race:unavailable' as const
 

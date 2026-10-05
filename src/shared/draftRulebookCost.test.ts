@@ -227,4 +227,31 @@ describe('Draft Rulebook static cost model', () => {
     expect(cost.minimumCost).toBe(30)
     expect(cost.maximumCost).toBe(40)
   })
+
+  it('does not count one prior operator twice when a capped DP state merges', () => {
+    const rulebook = cloneStandard()
+    rulebook.generalRules.economyRules = { enabled: true, rarityCosts: { 6: 30 } }
+    rulebook.interactions = [
+      {
+        id: 'candidate-progressive',
+        type: 'progressive',
+        group: { type: 'operators', operatorIds: ['char_candidate', 'char_a', 'char_b'] },
+        steps: [{ memberCount: 2, modifier: 0 }],
+      },
+      {
+        id: 'candidate-b-anchor',
+        type: 'anchor',
+        source: { type: 'operators', operatorIds: ['char_candidate'] },
+        target: { type: 'operators', operatorIds: ['char_b'] },
+        modifier: 5,
+      },
+    ]
+    const candidate = operator('char_candidate', 6)
+    const a = operator('char_a', 6)
+    const b = operator('char_b', 6)
+
+    const cost = getDraftRulebookOperatorCostBreakdown(rulebook, candidate, [candidate, a, b])
+    expect(cost.minimumCost).toBe(30)
+    expect(cost.maximumCost).toBe(35)
+  })
 })

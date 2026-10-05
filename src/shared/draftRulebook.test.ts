@@ -113,6 +113,24 @@ describe('Draft Rulebook foundation', () => {
     expect(validateDraftRulebook(withScript).errors).toContain('rulebook.script is not supported.')
   })
 
+  it('rejects malformed nested engine rules instead of silently defaulting them', () => {
+    const malformedAction = cloneStandard() as unknown as DraftRulebook & {
+      generalRules: DraftRulebook['generalRules'] & { actionRules: unknown }
+    }
+    malformedAction.generalRules.actionRules = { reroll: 'yes' }
+    expect(validateDraftRulebook(malformedAction).errors.join(' ')).toContain(
+      'rulebook.generalRules.actionRules.reroll must be an object',
+    )
+
+    const malformedCapacity = cloneStandard() as unknown as DraftRulebook & {
+      generalRules: DraftRulebook['generalRules'] & { capacityRules: unknown }
+    }
+    malformedCapacity.generalRules.capacityRules = { enabled: 'yes' }
+    expect(validateDraftRulebook(malformedCapacity).errors.join(' ')).toContain(
+      'rulebook.generalRules.capacityRules.enabled must be boolean',
+    )
+  })
+
   it('rejects ambiguous custom probability buckets during import validation', () => {
     const rulebook = cloneStandard()
     rulebook.generalRules.pullDistribution = {

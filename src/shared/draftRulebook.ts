@@ -5,7 +5,7 @@ export * from './rulebook/defaults'
 export {
   assertValidDraftRulebook,
   validateDraftRulebook,
-} from './rulebook/validation'
+} from './rulebook/validationWithHold'
 export {
   deserializeDraftRulebook,
   serializeDraftRulebook,

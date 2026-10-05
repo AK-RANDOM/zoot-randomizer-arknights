@@ -92,6 +92,70 @@ describe('Draft point economy', () => {
     expect(state.points).toBe(9)
   })
 
+  it('charges static Hold upkeep only after the following round is completed', () => {
+    const upkeep: DraftEngineOptions = {
+      ...options,
+      actionRules: {
+        ...options.actionRules,
+        hold: { enabled: true, upkeepMode: 'static', upkeepBaseCost: 2 },
+        forfeit: { enabled: true },
+      },
+      economyRules: { enabled: true, startingPoints: 5, holdCost: 1, forfeitRebate: 0 },
+    }
+    let state = startDraft(pool, 8, upkeep)
+    state = applyDraftAction(state, pool, { type: 'hold', operatorId: state.currentOfferIds[0] }, upkeep)
+    expect(state.points).toBe(4)
+    expect(state.holdUpkeepCharges).toBe(0)
+
+    state = applyDraftAction(state, pool, { type: 'forfeit' }, upkeep)
+    expect(state.points).toBe(2)
+    expect(state.holdUpkeepCharges).toBe(1)
+
+    state = applyDraftAction(state, pool, { type: 'release-hold' }, upkeep)
+    expect(state.points).toBe(2)
+    expect(state.holdUpkeepCharges).toBe(0)
+  })
+
+  it('escalates Hold upkeep and blocks a round-ending action that cannot pay it', () => {
+    const upkeep: DraftEngineOptions = {
+      ...options,
+      actionRules: {
+        ...options.actionRules,
+        hold: { enabled: true, upkeepMode: 'escalating', upkeepBaseCost: 2, upkeepEscalation: 3 },
+        forfeit: { enabled: true },
+      },
+      economyRules: { enabled: true, startingPoints: 10, holdCost: 0, forfeitRebate: 0 },
+    }
+    let state = startDraft(pool, 8, upkeep)
+    state = applyDraftAction(state, pool, { type: 'hold', operatorId: state.currentOfferIds[0] }, upkeep)
+    state = applyDraftAction(state, pool, { type: 'forfeit' }, upkeep)
+    expect(state.points).toBe(8)
+    expect(state.holdUpkeepCharges).toBe(1)
+
+    state = applyDraftAction(state, pool, { type: 'forfeit' }, upkeep)
+    expect(state.points).toBe(3)
+    expect(state.holdUpkeepCharges).toBe(2)
+    expect(getDraftActionAvailability(state, { type: 'forfeit' }, upkeep, pool).reason).toBe('insufficient-points')
+  })
+
+  it('lets the player draft the held operator before the first upkeep charge', () => {
+    const upkeep: DraftEngineOptions = {
+      ...options,
+      actionRules: {
+        ...options.actionRules,
+        hold: { enabled: true, upkeepMode: 'static', upkeepBaseCost: 9 },
+      },
+      economyRules: { enabled: true, startingPoints: 1, holdCost: 0 },
+    }
+    let state = startDraft(pool, 8, upkeep)
+    const held = state.currentOfferIds[0]
+    state = applyDraftAction(state, pool, { type: 'hold', operatorId: held }, upkeep)
+    expect(getDraftActionAvailability(state, { type: 'pick', operatorId: held }, upkeep, pool).available).toBe(true)
+    state = applyDraftAction(state, pool, { type: 'pick', operatorId: held }, upkeep)
+    expect(state.heldOperatorId).toBeNull()
+    expect(state.holdUpkeepCharges).toBe(0)
+  })
+
   it('does not opt into 6+1 capacity merely because slot expansion is enabled', () => {
     const legacyCompatible: DraftEngineOptions = {
       random: () => 0,

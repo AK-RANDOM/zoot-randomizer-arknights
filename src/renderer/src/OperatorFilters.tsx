@@ -20,7 +20,7 @@ function withExclusion(current: readonly string[], id: string, enabled: boolean)
 
 function FactionStateMark({ mixed, enabled }: { mixed: boolean; enabled: boolean }): React.JSX.Element {
   return (
-    <span className="i6-faction-state" aria-hidden="true">
+    <span className="operator-filter-faction-state" aria-hidden="true">
       {mixed ? '−' : enabled ? '✓' : ''}
     </span>
   )
@@ -41,11 +41,11 @@ function FactionChip({
   return (
     <button
       type="button"
-      className={`i6-faction-chip${standalone ? ' is-standalone' : ''}${allEnabled ? ' is-enabled' : ''}${mixed ? ' is-mixed' : ''}`}
+      className={`operator-filter-faction-chip${standalone ? ' is-standalone' : ''}${allEnabled ? ' is-enabled' : ''}${mixed ? ' is-mixed' : ''}`}
       aria-pressed={allEnabled}
       onClick={() => onToggle(node, !allEnabled)}
     >
-      <FactionIcon id={node.id} className="i6-faction-chip-icon" />
+      <FactionIcon id={node.id} className="operator-filter-faction-chip-icon" />
       <span>{node.name}</span>
       <FactionStateMark mixed={mixed} enabled={allEnabled} />
     </button>
@@ -63,18 +63,18 @@ function FactionGroup({
 }): React.JSX.Element {
   const { allEnabled, mixed } = factionNodeState(node, excluded)
   return (
-    <div className="i6-faction-group">
+    <div className="operator-filter-faction-group">
       <button
         type="button"
-        className={`i6-faction-parent${allEnabled ? ' is-enabled' : ''}${mixed ? ' is-mixed' : ''}`}
+        className={`operator-filter-faction-parent${allEnabled ? ' is-enabled' : ''}${mixed ? ' is-mixed' : ''}`}
         aria-pressed={allEnabled}
         onClick={() => onToggle(node, !allEnabled)}
       >
-        <FactionIcon id={node.id} className="i6-faction-icon" />
-        <span className="i6-faction-label">{node.name}</span>
+        <FactionIcon id={node.id} className="operator-filter-faction-icon" />
+        <span className="operator-filter-faction-label">{node.name}</span>
         <FactionStateMark mixed={mixed} enabled={allEnabled} />
       </button>
-      <div className="i6-faction-child-chips">
+      <div className="operator-filter-faction-child-chips">
         {node.children.map((child) => (
           <FactionChip key={child.id} node={child} excluded={excluded} onToggle={onToggle} />
         ))}
@@ -145,8 +145,8 @@ export default function OperatorFilters({
   const selectedClassLabel = dataset.classLabels?.[selectedClass] ?? selectedClass
 
   return (
-    <div className="i6-filter-layout">
-      <fieldset className="constraint-group detail-group i6-era-filter">
+    <div className="operator-filter-layout">
+      <fieldset className="constraint-group detail-group operator-filter-era-filter">
         <legend>Kernel era</legend>
         <label className="field">
           <span>Release era</span>
@@ -165,45 +165,45 @@ export default function OperatorFilters({
         </label>
       </fieldset>
 
-      <fieldset className="constraint-group detail-group i6-subclass-filter">
+      <fieldset className="constraint-group detail-group operator-filter-subclass-filter">
         <legend>Subclass</legend>
-        <div className="i6-filter-global-actions"><span>All classes</span><div className="i6-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllSubclassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllSubclassState(false)}>None</button></div></div>
-        <div className="i6-class-selector" role="tablist" aria-label="Subclass parent class">
+        <div className="operator-filter-global-actions"><span>All classes</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllSubclassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllSubclassState(false)}>None</button></div></div>
+        <div className="operator-filter-class-selector" role="tablist" aria-label="Subclass parent class">
           {subclassesByClass.map(({ operatorClass, subclasses }) => {
             const enabledCount = subclasses.filter(({ id }) => !excludedSubclasses.has(id)).length
             const classLabel = dataset.classLabels?.[operatorClass] ?? operatorClass
-            return <button key={operatorClass} type="button" className={`i6-class-tab${selectedClass === operatorClass ? ' is-active' : ''}`} aria-selected={selectedClass === operatorClass} onClick={() => setSelectedClass(operatorClass)}><ClassIcon operatorClass={operatorClass} className="i6-class-icon" /><span>{classLabel}</span><small>{enabledCount}/{subclasses.length}</small></button>
+            return <button key={operatorClass} type="button" className={`operator-filter-class-tab${selectedClass === operatorClass ? ' is-active' : ''}`} aria-selected={selectedClass === operatorClass} onClick={() => setSelectedClass(operatorClass)}><ClassIcon operatorClass={operatorClass} className="operator-filter-class-icon" /><span>{classLabel}</span><small>{enabledCount}/{subclasses.length}</small></button>
           })}
         </div>
-        <div className="i6-subclass-panel">
-          <div className="i6-subclass-panel-heading"><strong>{selectedClassLabel} subclasses</strong><div className="i6-subclass-actions"><button type="button" className="secondary-button" onClick={() => setSelectedClassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setSelectedClassState(false)}>None</button></div></div>
-          <div className="i6-subclass-tiles">
+        <div className="operator-filter-subclass-panel">
+          <div className="operator-filter-subclass-panel-heading"><strong>{selectedClassLabel} subclasses</strong><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setSelectedClassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setSelectedClassState(false)}>None</button></div></div>
+          <div className="operator-filter-subclass-tiles">
             {selectedSubclasses.map((subclass) => {
               const enabled = !excludedSubclasses.has(subclass.id)
-              return <button key={subclass.id} type="button" className={`i6-subclass-tile${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => onChange((current) => ({ ...current, subclass: { excludedIds: withExclusion(current.subclass.excludedIds, subclass.id, !enabled) } }))}><SubclassIcon id={subclass.id} className="i6-subclass-icon" /><span>{subclass.name}</span></button>
+              return <button key={subclass.id} type="button" className={`operator-filter-subclass-tile${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => onChange((current) => ({ ...current, subclass: { excludedIds: withExclusion(current.subclass.excludedIds, subclass.id, !enabled) } }))}><SubclassIcon id={subclass.id} className="operator-filter-subclass-icon" /><span>{subclass.name}</span></button>
             })}
           </div>
         </div>
       </fieldset>
 
-      <fieldset className="constraint-group detail-group i6-faction-filter">
+      <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Race</legend>
-        <div className="i6-filter-global-actions"><span>All races</span><div className="i6-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button></div></div>
-        <div className="i6-faction-standalone-chips">
+        <div className="operator-filter-global-actions"><span>All races</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button></div></div>
+        <div className="operator-filter-faction-standalone-chips">
           {races.map((race) => {
             const enabled = !excludedRaces.has(race.id)
-            return <button key={race.id} type="button" className={`i6-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => toggleRace(race.id, !enabled)}><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
+            return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => toggleRace(race.id, !enabled)}><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
           })}
         </div>
         <p className="filter-note">Race identity is source-driven and stable across display languages. Operators with no Race source data appear under Unavailable.</p>
       </fieldset>
 
-      <fieldset className="constraint-group detail-group i6-faction-filter">
+      <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Factions</legend>
-        <div className="i6-filter-global-actions"><span>All factions</span><div className="i6-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllFactionState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllFactionState(false)}>None</button></div></div>
-        <label className="field i6-faction-mode"><span>Match using</span><select value={constraints.faction.matchMode} onChange={(event) => onChange((current) => ({ ...current, faction: { ...current.faction, matchMode: event.target.value as RandomizerConstraints['faction']['matchMode'] } }))}><option value="main">Main faction</option><option value="any">Any affiliation</option></select></label>
-        <div className="i6-faction-matrix">{factionGroups.map((node) => <FactionGroup key={node.id} node={node} excluded={excludedFactions} onToggle={toggleFaction} />)}</div>
-        {standaloneFactions.length > 0 && <div className="i6-faction-standalone"><span className="i6-faction-standalone-label">Standalone</span><div className="i6-faction-standalone-chips">{standaloneFactions.map((node) => <FactionChip key={node.id} node={node} excluded={excludedFactions} onToggle={toggleFaction} standalone />)}</div></div>}
+        <div className="operator-filter-global-actions"><span>All factions</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllFactionState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllFactionState(false)}>None</button></div></div>
+        <label className="field operator-filter-faction-mode"><span>Match using</span><select value={constraints.faction.matchMode} onChange={(event) => onChange((current) => ({ ...current, faction: { ...current.faction, matchMode: event.target.value as RandomizerConstraints['faction']['matchMode'] } }))}><option value="main">Main faction</option><option value="any">Any affiliation</option></select></label>
+        <div className="operator-filter-faction-matrix">{factionGroups.map((node) => <FactionGroup key={node.id} node={node} excluded={excludedFactions} onToggle={toggleFaction} />)}</div>
+        {standaloneFactions.length > 0 && <div className="operator-filter-faction-standalone"><span className="operator-filter-faction-standalone-label">Standalone</span><div className="operator-filter-faction-standalone-chips">{standaloneFactions.map((node) => <FactionChip key={node.id} node={node} excluded={excludedFactions} onToggle={toggleFaction} standalone />)}</div></div>}
         <p className="filter-note">Parent controls apply only to explicitly encoded descendants. Re-enabling a child leaves its parent in a mixed state while keeping that child selectable.</p>
       </fieldset>
     </div>

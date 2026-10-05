@@ -54,6 +54,10 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) return []
   const seen = new Set<string>()
@@ -94,16 +98,28 @@ function normalizeSquadPresets(value: unknown): StoredSquadPreset[] {
   return result
 }
 
+/**
+ * Persistence accepts documents that are temporarily invalid in the editor, but
+ * still requires the stable object/array shape that editor components need in
+ * order to render safely. Execution/export validity remains the job of
+ * validateDraftRulebook().
+ */
 function isEditableRulebookDocument(value: unknown): value is DraftRulebook {
-  if (!value || typeof value !== 'object') return false
-  const candidate = value as Partial<DraftRulebook>
-  if (!candidate.identifier || typeof candidate.identifier !== 'object') return false
-  const identifier = candidate.identifier as DraftRulebook['identifier']
-  return typeof identifier.id === 'string' && identifier.id.length > 0 &&
-    candidate.generalRules !== undefined &&
-    candidate.pool !== undefined &&
-    candidate.overrides !== undefined &&
-    Array.isArray(candidate.interactions)
+  if (!isRecord(value) || !isRecord(value.identifier) || !isRecord(value.generalRules)) return false
+  if (!isRecord(value.pool) || !isRecord(value.overrides) || !Array.isArray(value.interactions)) return false
+
+  const identifier = value.identifier
+  if (typeof identifier.id !== 'string' || identifier.id.length === 0) return false
+  if (typeof identifier.name !== 'string' || typeof identifier.description !== 'string') return false
+  if (typeof identifier.createdAt !== 'string' || typeof identifier.revision !== 'string') return false
+
+  if (!isRecord(value.overrides.operatorCosts)) return false
+  if (value.pool.source === 'inherit-global') return true
+  if (value.pool.source !== 'global-restrictions' && value.pool.source !== 'rulebook-pool') return false
+  if (!isRecord(value.pool.eligibility)) return false
+  return Array.isArray(value.pool.eligibility.allOf) &&
+    Array.isArray(value.pool.eligibility.anyOf) &&
+    Array.isArray(value.pool.eligibility.noneOf)
 }
 
 function normalizeRulebookEntries(value: unknown): RulebookLibraryEntry[] {

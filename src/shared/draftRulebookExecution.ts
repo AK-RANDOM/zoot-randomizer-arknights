@@ -7,32 +7,27 @@ import {
   type DraftRulebookValidationResult,
 } from './draftRulebook'
 import { resolveDraftRulebookPool } from './draftRulebookPool'
-import type { ResolvedDraftConfiguration } from './draft'
+import { createDraftRulebookOperatorCostResolver } from './draftRulebookInteractions'
+import type { DraftOperatorCostResolver, ResolvedDraftConfiguration } from './draft'
 
 export interface DraftRulebookExecutionResolution {
   valid: boolean
   validation: DraftRulebookValidationResult
   pool: Operator[]
   configuration: ResolvedDraftConfiguration | null
+  operatorCostResolver: DraftOperatorCostResolver | null
   identityKey: string
   poolSourceLabel: string
 }
 
 export function draftRulebookPoolSourceLabel(rulebook: DraftRulebook): string {
   switch (rulebook.pool.source) {
-    case 'inherit-global':
-      return 'Inherit Global Pool'
-    case 'global-restrictions':
-      return 'Global Pool + Rulebook Restrictions'
-    case 'rulebook-pool':
-      return 'Rulebook Pool'
+    case 'inherit-global': return 'Inherit Global Pool'
+    case 'global-restrictions': return 'Global Pool + Rulebook Restrictions'
+    case 'rulebook-pool': return 'Rulebook Pool'
   }
 }
 
-/**
- * Converts a portable Rulebook into the exact runtime inputs used by Draft execution.
- * Invalid in-progress documents never leak a fallback/default configuration into play.
- */
 export function resolveDraftRulebookExecution(
   rulebook: DraftRulebook,
   datasetOperators: readonly Operator[],
@@ -49,6 +44,7 @@ export function resolveDraftRulebookExecution(
       validation,
       pool: [],
       configuration: null,
+      operatorCostResolver: null,
       identityKey,
       poolSourceLabel: draftRulebookPoolSourceLabel(rulebook),
     }
@@ -60,6 +56,7 @@ export function resolveDraftRulebookExecution(
     validation,
     pool: resolveDraftRulebookPool(rulebook.pool, datasetOperators, globalPool),
     configuration: resolved.configuration,
+    operatorCostResolver: createDraftRulebookOperatorCostResolver(rulebook),
     identityKey,
     poolSourceLabel: draftRulebookPoolSourceLabel(rulebook),
   }

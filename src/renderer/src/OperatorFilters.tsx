@@ -167,7 +167,7 @@ export default function OperatorFilters({
 
       <fieldset className="constraint-group detail-group operator-filter-subclass-filter">
         <legend>Subclass</legend>
-        <div className="operator-filter-filter-global-actions"><span>All classes</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllSubclassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllSubclassState(false)}>None</button></div></div>
+        <div className="operator-filter-global-actions"><span>All classes</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllSubclassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllSubclassState(false)}>None</button></div></div>
         <div className="operator-filter-class-selector" role="tablist" aria-label="Subclass parent class">
           {subclassesByClass.map(({ operatorClass, subclasses }) => {
             const enabledCount = subclasses.filter(({ id }) => !excludedSubclasses.has(id)).length
@@ -188,7 +188,7 @@ export default function OperatorFilters({
 
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Race</legend>
-        <div className="operator-filter-filter-global-actions"><span>All races</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button></div></div>
+        <div className="operator-filter-global-actions"><span>All races</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button></div></div>
         <div className="operator-filter-faction-standalone-chips">
           {races.map((race) => {
             const enabled = !excludedRaces.has(race.id)
@@ -200,7 +200,7 @@ export default function OperatorFilters({
 
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Factions</legend>
-        <div className="operator-filter-filter-global-actions"><span>All factions</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllFactionState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllFactionState(false)}>None</button></div></div>
+        <div className="operator-filter-global-actions"><span>All factions</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllFactionState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllFactionState(false)}>None</button></div></div>
         <label className="field operator-filter-faction-mode"><span>Match using</span><select value={constraints.faction.matchMode} onChange={(event) => onChange((current) => ({ ...current, faction: { ...current.faction, matchMode: event.target.value as RandomizerConstraints['faction']['matchMode'] } }))}><option value="main">Main faction</option><option value="any">Any affiliation</option></select></label>
         <div className="operator-filter-faction-matrix">{factionGroups.map((node) => <FactionGroup key={node.id} node={node} excluded={excludedFactions} onToggle={toggleFaction} />)}</div>
         {standaloneFactions.length > 0 && <div className="operator-filter-faction-standalone"><span className="operator-filter-faction-standalone-label">Standalone</span><div className="operator-filter-faction-standalone-chips">{standaloneFactions.map((node) => <FactionChip key={node.id} node={node} excluded={excludedFactions} onToggle={toggleFaction} standalone />)}</div></div>}

@@ -1,4 +1,5 @@
 import type { Operator } from './operator'
+import { generateDraftDistributionCandidates, type DraftPullDistribution } from './draftDistribution'
 export const DRAFT_OFFER_SIZE = 3 as const
 export type DraftRandomSource = () => number
 export type DraftCandidateGenerator = (candidates: readonly Operator[], count: number, random: DraftRandomSource) => readonly Operator[]
@@ -83,6 +84,7 @@ export interface DraftState {
   capacityRulesEnabled: boolean
   points: number
   economyRulesEnabled: boolean
+  pullsSinceSixStar: number
   actionUsage: DraftActionUsageMap
   status: DraftStatus
   completionReason: DraftCompletionReason | null
@@ -99,6 +101,7 @@ export interface DraftEngineOptions {
   actionRules?: PartialDraftActionRules
   capacityRules?: Partial<DraftCapacityRules>
   economyRules?: Partial<DraftEconomyRules>
+  pullDistribution?: DraftPullDistribution
 }
 export type DraftAction = {
   type: 'pick'
@@ -174,8 +177,27 @@ export function generateEqualOpportunityCandidates(candidates: readonly Operator
   const j = i + randomOffset(random, shuffled.length - i)
   ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
 } return shuffled.slice(0, count); }
-function generatedOffer(pool: readonly Operator[], state: DraftState, options: DraftEngineOptions): string[] | null { const candidates = availableOperators(pool, state); if (candidates.length < DRAFT_OFFER_SIZE)
-  return null; const generator = options.candidateGenerator ?? generateEqualOpportunityCandidates; const offer = generator(candidates, DRAFT_OFFER_SIZE, options.random ?? Math.random); validateGeneratedOffer(offer, candidates); return offer.map(o => o.id); }
+function generatedOffer(pool: readonly Operator[], state: DraftState, options: DraftEngineOptions): { ids: string[]; pullsSinceSixStar: number } | null {
+  const candidates = availableOperators(pool, state)
+  if (candidates.length < DRAFT_OFFER_SIZE)
+    return null
+  const random = options.random ?? Math.random
+  if (options.pullDistribution && !options.candidateGenerator) {
+    const generated = generateDraftDistributionCandidates(
+      candidates,
+      DRAFT_OFFER_SIZE,
+      options.pullDistribution,
+      { pullsSinceSixStar: state.pullsSinceSixStar },
+      random,
+    )
+    validateGeneratedOffer(generated.operators, candidates)
+    return { ids: generated.operators.map(operator => operator.id), pullsSinceSixStar: generated.state.pullsSinceSixStar }
+  }
+  const generator = options.candidateGenerator ?? generateEqualOpportunityCandidates
+  const offer = generator(candidates, DRAFT_OFFER_SIZE, random)
+  validateGeneratedOffer(offer, candidates)
+  return { ids: offer.map(operator => operator.id), pullsSinceSixStar: state.pullsSinceSixStar }
+}
 function resetRoundUsage(usage: DraftActionUsageMap): DraftActionUsageMap { return Object.fromEntries(Object.entries(usage).map(([a, v]) => [a, { ...v, round: 0 }])) as DraftActionUsageMap; }
 function recordAction(state: DraftState, action: DraftActionType): DraftActionUsageMap { const usage = state.actionUsage[action]; return { ...state.actionUsage, [action]: { total: usage.total + 1, round: usage.round + 1, lastUsedRound: state.roundNumber } }; }
 function completeState(state: DraftState, reason: DraftCompletionReason): DraftState { return { ...state, currentOfferIds: [], status: 'complete', completionReason: reason }; }
@@ -191,7 +213,7 @@ function beginNextRound(state: DraftState, pool: readonly Operator[], options: D
   const offer = generatedOffer(pool, nextBase, options)
   if (!offer)
     return completeState({ ...nextBase, roundNumber: state.roundNumber }, 'pool-exhausted')
-  return { ...nextBase, currentOfferIds: offer, status: 'active', completionReason: null }
+  return { ...nextBase, currentOfferIds: offer.ids, pullsSinceSixStar: offer.pullsSinceSixStar, status: 'active', completionReason: null }
 }
 export function startDraft(pool: readonly Operator[], targetSize: number, options: DraftEngineOptions = {}): DraftState {
   const rules = resolvedRules(options)
@@ -202,9 +224,9 @@ export function startDraft(pool: readonly Operator[], targetSize: number, option
   const poolKey = createDraftPoolKey(pool, targetSize)
   const activeCapacity = capacity.enabled ? Math.min(targetSize, capacity.startingActiveSlots) : targetSize
   const overflowCapacity = capacity.enabled ? Math.max(0, Math.min(capacity.overflowSlots, targetSize - activeCapacity)) : 0
-  const base: DraftState = { targetSize, poolKey, draftedOperatorIds: [], currentOfferIds: [], discardedOperatorIds: [], heldOperatorId: null, roundNumber: 1, completedRounds: 0, capacityExpansionCount: 0, activeCapacity, overflowCapacity, forfeitedCapacityCount: 0, capacityRulesEnabled: capacity.enabled, points: economy.enabled ? economy.startingPoints : 0, economyRulesEnabled: economy.enabled, actionUsage: emptyUsage(), status: 'active', completionReason: null }
+  const base: DraftState = { targetSize, poolKey, draftedOperatorIds: [], currentOfferIds: [], discardedOperatorIds: [], heldOperatorId: null, roundNumber: 1, completedRounds: 0, capacityExpansionCount: 0, activeCapacity, overflowCapacity, forfeitedCapacityCount: 0, capacityRulesEnabled: capacity.enabled, points: economy.enabled ? economy.startingPoints : 0, economyRulesEnabled: economy.enabled, pullsSinceSixStar: 0, actionUsage: emptyUsage(), status: 'active', completionReason: null }
   const offer = generatedOffer(pool, base, options)
-  return offer ? { ...base, currentOfferIds: offer } : completeState(base, 'pool-exhausted')
+  return offer ? { ...base, currentOfferIds: offer.ids, pullsSinceSixStar: offer.pullsSinceSixStar } : completeState(base, 'pool-exhausted')
 }
 function actionRule(action: DraftActionType, rules: DraftActionRules): DraftLimitedActionRules | null { switch (action) {
   case 'pick':
@@ -284,7 +306,7 @@ export function applyDraftAction(state: DraftState, pool: readonly Operator[], a
   assertActionAvailable(state, action, options)
   assertEconomyAffordable(state, pool, action, options)
   const actionUsage = recordAction(state, action.type)
-  const points = state.points + getDraftActionPointDelta(state, pool, action, options)
+  const points = state.points + getDraftActionPointDelta(pool, action, options)
   switch (action.type) {
     case 'pick': {
       if (state.draftedOperatorIds.includes(action.operatorId))
@@ -305,7 +327,7 @@ export function applyDraftAction(state: DraftState, pool: readonly Operator[], a
       const discarded = rules.reroll.discardOffer ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds) : state.discardedOperatorIds
       const next = { ...state, discardedOperatorIds: discarded, points, actionUsage, currentOfferIds: [] }
       const offer = generatedOffer(pool, next, options)
-      return offer ? { ...next, currentOfferIds: offer } : completeState(next, 'pool-exhausted')
+      return offer ? { ...next, currentOfferIds: offer.ids, pullsSinceSixStar: offer.pullsSinceSixStar } : completeState(next, 'pool-exhausted')
     }
     case 'slot-expansion': return { ...state, activeCapacity: capacity.enabled ? state.activeCapacity + 1 : state.activeCapacity, capacityExpansionCount: state.capacityExpansionCount + 1, points, actionUsage }
   }

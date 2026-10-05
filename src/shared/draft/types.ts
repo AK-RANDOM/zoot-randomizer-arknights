@@ -51,8 +51,13 @@ export interface DraftLimitedActionRules {
   cooldownRounds: number
 }
 
+export type DraftHoldUpkeepMode = 'none' | 'static' | 'escalating'
+
 export interface DraftHoldRules extends DraftLimitedActionRules {
   discardUnheldOffer: boolean
+  upkeepMode: DraftHoldUpkeepMode
+  upkeepBaseCost: number
+  upkeepEscalation: number
 }
 
 export interface DraftForfeitRules extends DraftLimitedActionRules {
@@ -166,6 +171,7 @@ export interface DraftState {
   currentOfferIds: string[]
   discardedOperatorIds: string[]
   heldOperatorId: string | null
+  holdUpkeepCharges: number
   roundNumber: number
   completedRounds: number
   capacityExpansionCount: number

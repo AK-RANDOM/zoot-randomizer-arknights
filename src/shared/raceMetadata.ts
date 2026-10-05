@@ -39,6 +39,18 @@ function cleanSourceValue(value: unknown): string | null {
   return normalized.length > 0 ? normalized : null
 }
 
+function normalizeKnownSourceQuirk(
+  operatorId: string,
+  locale: GameLocale,
+  value: string,
+): string {
+  // EN handbook currently publishes Ch'en as "Lung." while the same source value
+  // has historically been "Lung". Keep the stable race label/identity unchanged
+  // without applying punctuation-stripping to unrelated source values.
+  if (operatorId === 'char_010_chen' && locale === 'en' && value === 'Lung.') return 'Lung'
+  return value
+}
+
 /**
  * Extracts the source-provided Race value from an operator's Basic Info text.
  * The field label is locale-specific, but the returned value is never translated
@@ -67,7 +79,7 @@ export function raceValuesFromHandbook(
   const values: Record<string, string> = {}
   for (const [operatorId, record] of Object.entries(table?.handbookDict ?? {})) {
     const value = raceValueFromHandbookRecord(record, locale)
-    if (value) values[operatorId] = value
+    if (value) values[operatorId] = normalizeKnownSourceQuirk(operatorId, locale, value)
   }
   return values
 }

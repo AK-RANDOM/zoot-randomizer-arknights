@@ -35,26 +35,19 @@ const RACE_LINE_PATTERNS: Readonly<Record<GameLocale, RegExp>> = {
 
 function cleanSourceValue(value: unknown): string | null {
   if (typeof value !== 'string') return null
-  const normalized = value.normalize('NFKC').trim().replace(/\s+/g, ' ')
+  const normalized = value
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[.!?。！？]+$/u, '')
+    .trim()
   return normalized.length > 0 ? normalized : null
-}
-
-function normalizeKnownSourceQuirk(
-  operatorId: string,
-  locale: GameLocale,
-  value: string,
-): string {
-  // EN handbook currently publishes Ch'en as "Lung." while the same source value
-  // has historically been "Lung". Keep the stable race label/identity unchanged
-  // without applying punctuation-stripping to unrelated source values.
-  if (operatorId === 'char_010_chen' && locale === 'en' && value === 'Lung.') return 'Lung'
-  return value
 }
 
 /**
  * Extracts the source-provided Race value from an operator's Basic Info text.
- * The field label is locale-specific, but the returned value is never translated
- * or interpreted by the randomizer.
+ * The field label is locale-specific. Cosmetic trailing sentence punctuation is
+ * normalized away, while meaningful internal punctuation is preserved.
  */
 export function raceValueFromHandbookRecord(
   record: RawHandbookInfoRecord | undefined,
@@ -79,7 +72,7 @@ export function raceValuesFromHandbook(
   const values: Record<string, string> = {}
   for (const [operatorId, record] of Object.entries(table?.handbookDict ?? {})) {
     const value = raceValueFromHandbookRecord(record, locale)
-    if (value) values[operatorId] = normalizeKnownSourceQuirk(operatorId, locale, value)
+    if (value) values[operatorId] = value
   }
   return values
 }

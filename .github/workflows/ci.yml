@@ -2,6 +2,9 @@ name: CI
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - validation/draft-three-chunks-final
 
 permissions:
   contents: read

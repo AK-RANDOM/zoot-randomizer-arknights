@@ -114,16 +114,16 @@ describe('Draft Rulebook foundation', () => {
   })
 
   it('rejects malformed nested engine rules instead of silently defaulting them', () => {
-    const malformedAction = cloneStandard() as unknown as DraftRulebook & {
-      generalRules: DraftRulebook['generalRules'] & { actionRules: unknown }
+    const malformedAction = cloneStandard() as unknown as {
+      generalRules: { actionRules: unknown }
     }
     malformedAction.generalRules.actionRules = { reroll: 'yes' }
     expect(validateDraftRulebook(malformedAction).errors.join(' ')).toContain(
       'rulebook.generalRules.actionRules.reroll must be an object',
     )
 
-    const malformedCapacity = cloneStandard() as unknown as DraftRulebook & {
-      generalRules: DraftRulebook['generalRules'] & { capacityRules: unknown }
+    const malformedCapacity = cloneStandard() as unknown as {
+      generalRules: { capacityRules: unknown }
     }
     malformedCapacity.generalRules.capacityRules = { enabled: 'yes' }
     expect(validateDraftRulebook(malformedCapacity).errors.join(' ')).toContain(

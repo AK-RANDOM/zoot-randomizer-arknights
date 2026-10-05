@@ -62,7 +62,7 @@ describe('Draft point economy', () => {
     const zeroBudget = { ...options, economyRules: { enabled: true, startingPoints: 0 } }
     const state = startDraft(costlyPool, 6, zeroBudget)
     expect(state.currentOfferIds).toContain('six')
-    expect(getDraftActionPointDelta(state, costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toBe(-32)
+    expect(getDraftActionPointDelta(costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toBe(-32)
     expect(() => applyDraftAction(state, costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toThrow('insufficient-points')
   })
 

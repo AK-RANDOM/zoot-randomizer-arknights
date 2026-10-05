@@ -8,7 +8,6 @@ import {
   type OperatorDataset,
   type WelfareAcquisitionGroup,
 } from '../../shared/operator'
-import { buildRaceFilterOptions } from '../../shared/operatorFilterCatalog'
 import type { OperatorPreferences } from '../../shared/operatorPool'
 import { validateConstraints } from '../../shared/randomizer'
 import { getReleaseBoundPreview, type ReleaseBoundPreview } from '../../shared/releasePreview'
@@ -22,7 +21,7 @@ import {
 import type { OperatorUpdateCheck } from '../../shared/desktop'
 import OperatorFilters from './OperatorFilters'
 import PoolPanel from './PoolPanel'
-import { loadRaceExclusions, saveRaceExclusions } from './rendererPersistence'
+import { saveRaceExclusions } from './rendererPersistence'
 
 const INVALID_RELEASE_RANGE_MESSAGE = 'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 
@@ -117,7 +116,6 @@ export default function GlobalPoolFeature({
   onCheckUpdates: () => Promise<void>
   onInstallUpdate: () => Promise<void>
 }): React.JSX.Element {
-  const raceHydrated = useRef(false)
   const collaborationSources = useMemo(() => dataset ? [...new Set(dataset.operators.flatMap((operator) => operator.collaboration ?? []))].sort((a, b) => a.localeCompare(b)) : [], [dataset])
   const maxReleaseYear = useMemo(() => dataset ? dataset.operators.reduce((maximum, operator) => Math.max(maximum, operator.release[constraints.release.server].yearGroup ?? 0), 0) : 0, [constraints.release.server, dataset])
   const releaseYearOptions = useMemo(() => Array.from({ length: maxReleaseYear + 1 }, (_, index) => index), [maxReleaseYear])
@@ -129,18 +127,6 @@ export default function GlobalPoolFeature({
   const collaborationState = allAndSome([constraints.collaboration.includeNonCollab, ...collaborationSources.map((source) => constraints.collaboration.sources[source] ?? true)])
 
   useEffect(() => {
-    if (!dataset || raceHydrated.current) return
-    raceHydrated.current = true
-    const available = new Set(buildRaceFilterOptions(dataset).map(({ id }) => id))
-    const saved = loadRaceExclusions().filter((id) => available.has(id))
-    saveRaceExclusions(saved)
-    if ((constraints.race?.excludedIds.length ?? 0) === 0 && saved.length > 0) {
-      onConstraintsChange((current) => ({ ...current, race: { excludedIds: saved } }))
-    }
-  }, [constraints.race?.excludedIds.length, dataset, onConstraintsChange])
-
-  useEffect(() => {
-    if (!raceHydrated.current) return
     saveRaceExclusions(constraints.race?.excludedIds ?? [])
   }, [constraints.race?.excludedIds])
 

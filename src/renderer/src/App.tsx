@@ -9,6 +9,7 @@ import {
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import DraftPanel from './DraftPanel'
+import useDraftSession from './useDraftSession'
 import Iteration6OperatorFilters from './Iteration6OperatorFilters'
 import OperatorCard from './OperatorCard'
 import OptionsPanel from './OptionsPanel'
@@ -62,7 +63,6 @@ import {
   type PoolPresentationMode,
 } from '../../shared/operatorPool'
 import type { OperatorDataInfo, OperatorUpdateCheck } from '../../shared/desktop'
-import { pickDraftOperator, startDraft, type DraftState } from '../../shared/draft'
 import { generateSquad, validateConstraints } from '../../shared/randomizer'
 import { getReleaseBoundPreview, type ReleaseBoundPreview } from '../../shared/releasePreview'
 import {
@@ -330,8 +330,6 @@ export default function App(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const [activeTab, setActiveTab] = useState<AppTab>('squads')
   const [squadMode, setSquadMode] = useState<SquadMode>('standard')
-  const [draftState, setDraftState] = useState<DraftState | null>(null)
-  const [draftPoolKey, setDraftPoolKey] = useState<string | null>(null)
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
   const [userPresets, setUserPresets] = useState<StoredSquadPreset[]>(() => loadUserPresets())
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:none')
@@ -375,17 +373,13 @@ export default function App(): React.JSX.Element {
     [constraints, dataset, operatorPreferences.excludedOperatorIds],
   )
 
-  const currentDraftPoolKey = useMemo(
-    () => `${constraints.squadSize}:${finalOperatorPool.map((operator) => operator.id).sort((left, right) => left.localeCompare(right)).join('|')}`,
-    [constraints.squadSize, finalOperatorPool],
-  )
-
-  useEffect(() => {
-    if (!draftState || !draftPoolKey || draftPoolKey === currentDraftPoolKey) return
-    setDraftState(null)
-    setDraftPoolKey(null)
-    setMessage('Draft reset because the squad size or eligible operator pool changed.')
-  }, [currentDraftPoolKey, draftPoolKey, draftState])
+  const draftSession = useDraftSession({
+    pool: finalOperatorPool,
+    targetSize: constraints.squadSize,
+    ready: dataset !== null,
+    onMessage: setMessage,
+    onError: setError,
+  })
 
   const validation = useMemo(
     () => dataset ? validateConstraints(constraints, finalOperatorPool) : { valid: false, errors: [] },
@@ -696,42 +690,6 @@ export default function App(): React.JSX.Element {
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
   }
 
-  const startNewDraft = (): void => {
-    if (!dataset) return
-    setError(null)
-    try {
-      const next = startDraft(finalOperatorPool, constraints.squadSize)
-      setDraftState(next)
-      setDraftPoolKey(currentDraftPoolKey)
-      setMessage(next.status === 'complete'
-        ? 'Draft ended immediately because fewer than 3 eligible operators are available.'
-        : `Draft started. Pick 1 of 3 for a target roster of ${next.targetSize}.`)
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
-  }
-
-  const pickDraftCandidate = (operatorId: string): void => {
-    if (!draftState) return
-    if (draftPoolKey !== currentDraftPoolKey) {
-      setDraftState(null)
-      setDraftPoolKey(null)
-      setMessage('Draft reset because the squad size or eligible operator pool changed.')
-      return
-    }
-    setError(null)
-    try {
-      const pickedOperator = finalOperatorPool.find((operator) => operator.id === operatorId)
-      const next = pickDraftOperator(draftState, finalOperatorPool, operatorId)
-      setDraftState(next)
-      if (next.status === 'complete') {
-        setMessage(next.completionReason === 'squad-size-reached'
-          ? `Draft complete with ${next.draftedOperatorIds.length} operators.`
-          : `Draft ended with ${next.draftedOperatorIds.length} operators because fewer than 3 eligible undrafted operators remain.`)
-      } else {
-        setMessage(`${pickedOperator?.name ?? 'Operator'} drafted. ${next.draftedOperatorIds.length} / ${next.targetSize} selected.`)
-      }
-    } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)) }
-  }
-
   const checkUpdates = async (): Promise<void> => {
     setBusy(true)
     setError(null)
@@ -887,7 +845,15 @@ export default function App(): React.JSX.Element {
       )}
 
       {activeTab === 'squads' && squadMode === 'draft' && (
-        <DraftPanel state={draftState} operators={finalOperatorPool} targetSize={constraints.squadSize} ready={dataset !== null} onStart={startNewDraft} onPick={pickDraftCandidate} />
+        <DraftPanel
+          state={draftSession.state}
+          operators={finalOperatorPool}
+          targetSize={constraints.squadSize}
+          ready={dataset !== null}
+          distributionLabel={draftSession.distributionLabel}
+          onStart={draftSession.start}
+          onPick={draftSession.pick}
+        />
       )}
 
       {activeTab === 'operators' && (

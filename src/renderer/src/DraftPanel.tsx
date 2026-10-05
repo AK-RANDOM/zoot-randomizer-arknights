@@ -2,24 +2,16 @@ import { useMemo } from 'react'
 import type { DraftState } from '../../shared/draft'
 import type { Operator } from '../../shared/operator'
 import OperatorCard from './OperatorCard'
+import { draftCompletionMessage } from './draftSessionMessages'
 
 interface DraftPanelProps {
   state: DraftState | null
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
+  distributionLabel: string
   onStart: () => void
   onPick: (operatorId: string) => void
-}
-
-function completionMessage(state: DraftState): string {
-  if (state.completionReason === 'squad-size-reached') {
-    return `Draft complete. ${state.draftedOperatorIds.length} operators drafted.`
-  }
-  return [
-    'Draft ended because fewer than 3 eligible undrafted operators remain.',
-    `${state.draftedOperatorIds.length} operators drafted.`,
-  ].join(' ')
 }
 
 export default function DraftPanel({
@@ -27,6 +19,7 @@ export default function DraftPanel({
   operators,
   targetSize,
   ready,
+  distributionLabel,
   onStart,
   onPick,
 }: DraftPanelProps): React.JSX.Element {
@@ -85,7 +78,7 @@ export default function DraftPanel({
         </div>
         <div>
           <span>Distribution</span>
-          <strong>Equal Opportunity</strong>
+          <strong>{distributionLabel}</strong>
         </div>
       </div>
 
@@ -121,7 +114,7 @@ export default function DraftPanel({
         </div>
       ) : state.status === 'complete' ? (
         <div className="draft-complete" role="status">
-          <strong>{completionMessage(state)}</strong>
+          <strong>{draftCompletionMessage(state)}</strong>
           <span>Start a new draft to generate a fresh first offer.</span>
         </div>
       ) : (

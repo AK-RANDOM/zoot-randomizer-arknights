@@ -104,7 +104,7 @@ export default function GlobalPoolFeature({
 }: {
   dataset: OperatorDataset | null
   constraints: RandomizerConstraints
-  finalOperatorPool: readonly Operator[]
+  finalOperatorPool: Operator[]
   preferences: OperatorPreferences
   busy: boolean
   updateCheck: OperatorUpdateCheck | null

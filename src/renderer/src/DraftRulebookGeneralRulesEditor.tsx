@@ -204,11 +204,19 @@ export default function DraftRulebookGeneralRulesEditor({
             <>
               <label className="field">
                 <span>Upkeep base</span>
-                <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.baseCost} onChange={(event) => updateEconomy({ holdUpkeep: { ...economy.holdUpkeep, baseCost: Math.max(0, Number(event.target.value) || 0) } })} />
+                <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.baseCost} onChange={(event) => updateEconomy({ holdUpkeep: {
+                  mode: 'escalating',
+                  baseCost: Math.max(0, Number(event.target.value) || 0),
+                  escalation: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.escalation : 0,
+                } })} />
               </label>
               <label className="field">
                 <span>Increase per charge</span>
-                <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.escalation} onChange={(event) => updateEconomy({ holdUpkeep: { ...economy.holdUpkeep, escalation: Math.max(0, Number(event.target.value) || 0) } })} />
+                <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.escalation} onChange={(event) => updateEconomy({ holdUpkeep: {
+                  mode: 'escalating',
+                  baseCost: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.baseCost : 0,
+                  escalation: Math.max(0, Number(event.target.value) || 0),
+                } })} />
               </label>
             </>
           )}

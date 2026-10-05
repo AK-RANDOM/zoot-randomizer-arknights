@@ -40,7 +40,6 @@ const RESET_MESSAGE = 'Draft reset because the squad size, eligible pool, or Dra
 
 function actionMessage(
   action: DraftAction,
-  before: DraftState,
   after: DraftState,
   pool: readonly Operator[],
 ): string {
@@ -136,7 +135,7 @@ export default function useDraftSession({
     try {
       const next = applyDraftAction(state, pool, action, engineOptions)
       setState(next)
-      onMessage(actionMessage(action, state, next, pool))
+      onMessage(actionMessage(action, next, pool))
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : String(reason))
     }

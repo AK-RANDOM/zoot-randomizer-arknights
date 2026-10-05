@@ -1,16 +1,14 @@
 import { useMemo } from 'react'
 import type { OperatorDataset } from '../../shared/operator'
-import type {
-  DraftRulebook,
-  DraftRulebookInteraction,
-  DraftRulebookSelector,
+import {
+  createDefaultDraftRulebookSelector,
+  type DraftRulebook,
+  type DraftRulebookInteraction,
+  type DraftRulebookSelector,
 } from '../../shared/draftRulebook'
 import { getDraftRulebookOperatorCostBreakdown } from '../../shared/draftRulebookCost'
 import OperatorCard from './OperatorCard'
-import {
-  DraftRulebookSelectorEditor,
-  createDefaultDraftRulebookSelector,
-} from './DraftRulebookSelectorEditor'
+import { DraftRulebookSelectorEditor } from './DraftRulebookSelectorEditor'
 import {
   buildRulebookOperatorInteractionDetails,
   describeDraftRulebookInteraction,

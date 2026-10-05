@@ -16,7 +16,7 @@ function cloneStandard(): DraftRulebook {
 
 describe('Draft Rulebook foundation', () => {
   it('represents Standard Draft as a portable built-in Rulebook', () => {
-    expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(1)
+    expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(2)
     expect(validateDraftRulebook(STANDARD_DRAFT_RULEBOOK)).toEqual({ valid: true, errors: [] })
 
     const resolved = resolveDraftRulebook(STANDARD_DRAFT_RULEBOOK)
@@ -28,7 +28,7 @@ describe('Draft Rulebook foundation', () => {
 
   it('round-trips through the human-readable JSON interchange format', () => {
     const serialized = serializeDraftRulebook(STANDARD_DRAFT_RULEBOOK)
-    expect(serialized).toContain('"schemaVersion": 1')
+    expect(serialized).toContain('"schemaVersion": 2')
     expect(serialized).toContain('"Standard Draft"')
     expect(deserializeDraftRulebook(serialized)).toEqual(STANDARD_DRAFT_RULEBOOK)
   })
@@ -37,7 +37,7 @@ describe('Draft Rulebook foundation', () => {
     const rulebook = cloneStandard()
     rulebook.identifier.revision = '2026.10-balance-2'
 
-    expect(rulebook.schemaVersion).toBe(1)
+    expect(rulebook.schemaVersion).toBe(2)
     expect(validateDraftRulebook(rulebook).valid).toBe(true)
     expect(resolveDraftRulebook(rulebook).revision).toBe('2026.10-balance-2')
   })
@@ -129,7 +129,7 @@ describe('Draft Rulebook foundation', () => {
 
   it('rejects unsupported schema/features and unknown executable-looking fields', () => {
     const wrongSchema = cloneStandard() as unknown as { schemaVersion: number } & Record<string, unknown>
-    wrongSchema.schemaVersion = 2
+    wrongSchema.schemaVersion = 99
     expect(validateDraftRulebook(wrongSchema).valid).toBe(false)
 
     const unsupportedOffer = cloneStandard()

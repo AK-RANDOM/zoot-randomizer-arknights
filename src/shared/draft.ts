@@ -14,8 +14,14 @@ export { currentDraftOwnershipCapacity } from './draft/capacity'
 export {
   getDraftActionPointDelta,
   getDraftOperatorCost,
+  getDraftOperatorCostForState,
+  getDraftOperatorCostForStateWithConfiguration,
   getDraftOperatorCostWithConfiguration,
 } from './draft/economy'
+export {
+  getDraftInteractionCostContributionsWithConfiguration,
+  getDraftInteractionCostModifierWithConfiguration,
+} from './draft/interactions'
 export { generateEqualOpportunityCandidates } from './draft/offers'
 export { evaluateDraftAction, getDraftActionAvailability } from './draft/actions'
 export { applyDraftAction, pickDraftOperator, startDraft } from './draft/session'

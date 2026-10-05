@@ -8,6 +8,7 @@ import type {
   DraftLimitedActionRules,
   PartialDraftActionRules,
   ResolvedDraftConfiguration,
+  ResolvedDraftInteraction,
 } from './types'
 
 export const DEFAULT_DRAFT_ACTION_RULES: DraftActionRules = {
@@ -86,6 +87,33 @@ function clonePullDistribution(distribution: DraftPullDistribution): DraftPullDi
   }
 }
 
+function cloneInteractions(interactions: readonly ResolvedDraftInteraction[]): ResolvedDraftInteraction[] {
+  return interactions.map((interaction) => {
+    switch (interaction.type) {
+      case 'anchor':
+        return {
+          ...interaction,
+          sourceOperatorIds: [...interaction.sourceOperatorIds],
+          targetOperatorIds: [...interaction.targetOperatorIds],
+        }
+      case 'progressive':
+        return {
+          ...interaction,
+          groupOperatorIds: [...interaction.groupOperatorIds],
+          steps: interaction.steps.map((step) => ({ ...step })),
+        }
+      case 'threshold':
+        return {
+          ...interaction,
+          groupOperatorIds: [...interaction.groupOperatorIds],
+          anchorOperatorIds: interaction.anchorOperatorIds
+            ? [...interaction.anchorOperatorIds]
+            : undefined,
+        }
+    }
+  })
+}
+
 function mergeActionInputs(
   base: PartialDraftActionRules | undefined,
   override: PartialDraftActionRules | undefined,
@@ -146,6 +174,7 @@ export function resolveDraftConfiguration(
     pullDistribution: clonePullDistribution(
       input.pullDistribution ?? DEFAULT_DRAFT_PULL_DISTRIBUTION,
     ),
+    interactions: cloneInteractions(input.interactions ?? []),
   }
 }
 
@@ -161,6 +190,7 @@ export function resolveDraftEngineConfiguration(
         : undefined,
     economyRules: mergeEconomyInputs(nested.economyRules, options.economyRules),
     pullDistribution: options.pullDistribution ?? nested.pullDistribution,
+    interactions: options.interactions ?? nested.interactions,
   })
 }
 
@@ -175,6 +205,69 @@ function validateLimitedRule(label: string, rule: DraftLimitedActionRules): void
   }
   if (!Number.isInteger(rule.cooldownRounds) || rule.cooldownRounds < 0) {
     throw new Error(`Draft ${label} cooldown must be a non-negative integer.`)
+  }
+}
+
+function validateOperatorIds(label: string, operatorIds: readonly string[]): void {
+  const seen = new Set<string>()
+  for (const operatorId of operatorIds) {
+    if (typeof operatorId !== 'string' || operatorId.length === 0) {
+      throw new Error(`Draft ${label} operator IDs must be non-empty strings.`)
+    }
+    if (seen.has(operatorId)) {
+      throw new Error(`Draft ${label} operator IDs must not contain duplicates.`)
+    }
+    seen.add(operatorId)
+  }
+}
+
+function validateInteractions(interactions: readonly ResolvedDraftInteraction[]): void {
+  const ids = new Set<string>()
+  for (const interaction of interactions) {
+    if (!interaction.id || ids.has(interaction.id)) {
+      throw new Error('Draft interactions must use unique, non-empty IDs.')
+    }
+    ids.add(interaction.id)
+
+    if (interaction.type === 'anchor') {
+      validateOperatorIds(`${interaction.id} source`, interaction.sourceOperatorIds)
+      validateOperatorIds(`${interaction.id} target`, interaction.targetOperatorIds)
+      if (!Number.isFinite(interaction.modifier) || interaction.modifier < 0) {
+        throw new Error(`Draft interaction ${interaction.id} modifier must be non-negative.`)
+      }
+      continue
+    }
+
+    if (interaction.type === 'progressive') {
+      validateOperatorIds(`${interaction.id} group`, interaction.groupOperatorIds)
+      if (interaction.steps.length === 0) {
+        throw new Error(`Draft interaction ${interaction.id} steps must be non-empty.`)
+      }
+      let previousCount = 0
+      for (const step of interaction.steps) {
+        if (!Number.isInteger(step.memberCount) || step.memberCount <= previousCount) {
+          throw new Error(
+            `Draft interaction ${interaction.id} member counts must be positive and strictly increasing.`,
+          )
+        }
+        if (!Number.isFinite(step.modifier) || step.modifier < 0) {
+          throw new Error(`Draft interaction ${interaction.id} modifier must be non-negative.`)
+        }
+        previousCount = step.memberCount
+      }
+      continue
+    }
+
+    validateOperatorIds(`${interaction.id} group`, interaction.groupOperatorIds)
+    if (interaction.anchorOperatorIds) {
+      validateOperatorIds(`${interaction.id} anchor`, interaction.anchorOperatorIds)
+    }
+    if (!Number.isInteger(interaction.threshold) || interaction.threshold < 1) {
+      throw new Error(`Draft interaction ${interaction.id} threshold must be a positive integer.`)
+    }
+    if (!Number.isFinite(interaction.modifier) || interaction.modifier < 0) {
+      throw new Error(`Draft interaction ${interaction.id} modifier must be non-negative.`)
+    }
   }
 }
 
@@ -200,6 +293,7 @@ export function validateDraftConfiguration(configuration: ResolvedDraftConfigura
   if (capacity.maxActiveSlots < capacity.startingActiveSlots) {
     throw new Error('Draft maximum active slots cannot be below starting active slots.')
   }
+  validateInteractions(configuration.interactions)
 }
 
 export function draftPullDistributionLabel(distribution: DraftPullDistribution): string {

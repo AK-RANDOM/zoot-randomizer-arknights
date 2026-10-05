@@ -1,4 +1,4 @@
-/* Iteration 5: portrait-first squad presentation and display options. */
+/* Portrait-first squad presentation and display preferences. */
 
 .squad-grid {
   grid-template-rows: repeat(2, auto);
@@ -47,7 +47,7 @@
 .operator-card--portrait .operator-card__art img {
   object-fit: cover;
   object-position: center top;
-  animation: iteration5-art-in 160ms ease-out both;
+  animation: operator-art-in 160ms ease-out both;
 }
 
 .operator-card--portrait .operator-card__art img.is-avatar-fallback {
@@ -276,19 +276,7 @@
   font-size: 0.7rem;
 }
 
-body.iteration5-options-open .app-shell > .panel:not(.options-panel),
-body.iteration5-options-open .app-shell > .update-banner,
-body.iteration5-options-open .app-shell > .validation-message,
-body.iteration5-options-open .app-shell > .status-bar {
-  display: none;
-}
-
-body.iteration5-options-open .main-tabs button.is-active:not(.iteration5-options-tab) {
-  color: #8f8f95;
-  background: transparent;
-}
-
-@keyframes iteration5-art-in {
+@keyframes operator-art-in {
   from {
     opacity: 0.35;
     transform: scale(1.012);

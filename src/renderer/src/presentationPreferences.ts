@@ -1,24 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { PromotionArt } from '../../shared/portraits'
+import { loadOperatorArtwork, saveOperatorArtwork } from './rendererPersistence'
 
-const ARTWORK_PREFERENCE_KEY = 'arknights-randomizer:operator-artwork:v1'
 const ARTWORK_PREFERENCE_EVENT = 'arknights-randomizer:operator-artwork-changed'
 
 export function readOperatorArtworkPreference(): PromotionArt {
-  try {
-    return window.localStorage.getItem(ARTWORK_PREFERENCE_KEY) === 'e1' ? 'e1' : 'e2'
-  } catch {
-    return 'e2'
-  }
+  return loadOperatorArtwork()
 }
 
 export function setOperatorArtworkPreference(value: PromotionArt): void {
-  try {
-    window.localStorage.setItem(ARTWORK_PREFERENCE_KEY, value)
-  } catch {
-    // The preference still applies for this renderer session through the event below.
-  }
-
+  saveOperatorArtwork(value)
   window.dispatchEvent(
     new CustomEvent<PromotionArt>(ARTWORK_PREFERENCE_EVENT, { detail: value }),
   )

@@ -31,7 +31,7 @@ export default function OperatorCard({
   const artworkPreference = useOperatorArtworkPreference()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [usingPortrait, setUsingPortrait] = useState(false)
-  const interactionIndicatorRef = useRef<HTMLSpanElement | null>(null)
+  const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null)
 
   useEffect(() => {
@@ -73,11 +73,16 @@ export default function OperatorCard({
     const indicator = interactionIndicatorRef.current
     if (!indicator) return
     const rect = indicator.getBoundingClientRect()
-    const right = Math.max(12, window.innerWidth - rect.right)
+    const tooltipWidth = Math.min(360, Math.max(0, window.innerWidth - 32))
+    const maximumRight = Math.max(16, window.innerWidth - tooltipWidth - 16)
+    const right = Math.min(
+      Math.max(16, window.innerWidth - rect.right),
+      maximumRight,
+    )
     if (rect.top > window.innerHeight / 2) {
-      setTooltipPosition({ bottom: Math.max(12, window.innerHeight - rect.top + 6), right })
+      setTooltipPosition({ bottom: Math.max(16, window.innerHeight - rect.top + 6), right })
     } else {
-      setTooltipPosition({ top: Math.max(12, rect.bottom + 6), right })
+      setTooltipPosition({ top: Math.max(16, rect.bottom + 6), right })
     }
   }
 
@@ -109,11 +114,10 @@ export default function OperatorCard({
       {hasInteractions && interactionDetails && (
         <>
           <div className="operator-card__interaction-control">
-            <span
+            <button
               ref={interactionIndicatorRef}
+              type="button"
               className="operator-card__interaction-indicator"
-              tabIndex={0}
-              role="button"
               aria-label={`Interactions affecting ${operator.name}`}
               onMouseEnter={showInteractionTooltip}
               onMouseLeave={() => setTooltipPosition(null)}
@@ -121,7 +125,7 @@ export default function OperatorCard({
               onBlur={() => setTooltipPosition(null)}
             >
               ↔
-            </span>
+            </button>
           </div>
           {tooltipPosition && createPortal(
             <div

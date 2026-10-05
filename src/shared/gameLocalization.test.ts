@@ -18,7 +18,9 @@ const englishClassLabels: Record<OperatorClass, string> = {
   Specialist: 'Specialist',
 }
 
-function operator(id: string, name: string): Operator {
+const oniRaceId = 'race:cn:%E9%AC%BC'
+
+function operator(id: string, name: string, raceIds?: string[]): Operator {
   return {
     id,
     name,
@@ -26,6 +28,7 @@ function operator(id: string, name: string): Operator {
     class: 'Guard',
     subclass: { id: 'lord', name: 'Lord' },
     faction: { main: 'rhodes', affiliations: ['rhodes'] },
+    raceIds,
     availableOn: { cn: true, global: true },
     release: {
       cn: { date: '2020-01-01', yearGroup: 1 },
@@ -45,13 +48,14 @@ function catalog(overrides: Partial<GameStringCatalog> = {}): GameStringCatalog 
     classLabels: { ...englishClassLabels },
     subclassLabels: {},
     factionLabels: {},
+    raceLabels: {},
     ...overrides,
   }
 }
 
 function dataset(): OperatorDataset {
   return {
-    schemaVersion: 5,
+    schemaVersion: 6,
     generatedAt: '2026-10-04T00:00:00.000Z',
     sources: {
       gamedataCnCommit: 'cn',
@@ -64,16 +68,19 @@ function dataset(): OperatorDataset {
     },
     classLabels: { ...englishClassLabels },
     factionLabels: { rhodes: 'Rhodes Island' },
+    raceLabels: { [oniRaceId]: 'Oni' },
     localizations: {
       en: catalog({
         operatorNames: { char_a: 'Alpha', char_b: 'Beta' },
         subclassLabels: { lord: 'Lord' },
         factionLabels: { rhodes: 'Rhodes Island' },
+        raceLabels: { [oniRaceId]: 'Oni' },
       }),
       jp: catalog({
         operatorNames: { char_a: 'ゼータ', char_b: 'アルファ' },
         classLabels: { ...englishClassLabels, Guard: '前衛' },
         factionLabels: { rhodes: 'ロドス・アイランド' },
+        raceLabels: { [oniRaceId]: '鬼' },
       }),
       kr: catalog(),
       tw: catalog({ operatorNames: { char_b: '貝塔' } }),
@@ -81,9 +88,10 @@ function dataset(): OperatorDataset {
         operatorNames: { char_a: '阿尔法', char_b: '贝塔' },
         classLabels: { ...englishClassLabels, Guard: '近卫' },
         factionLabels: { rhodes: '罗德岛' },
+        raceLabels: { [oniRaceId]: '鬼' },
       }),
     },
-    operators: [operator('char_a', 'Alpha'), operator('char_b', 'Beta')],
+    operators: [operator('char_a', 'Alpha', [oniRaceId]), operator('char_b', 'Beta')],
   }
 }
 
@@ -102,6 +110,7 @@ describe('game localization', () => {
     expect(localized.operators).toEqual(source.operators)
     expect(localized.classLabels).toEqual(source.classLabels)
     expect(localized.factionLabels).toEqual(source.factionLabels)
+    expect(localized.raceLabels).toEqual(source.raceLabels)
     expect(localized.sources).toEqual(source.sources)
     expect(localized.generatedAt).toBe(source.generatedAt)
   })
@@ -110,6 +119,7 @@ describe('game localization', () => {
     const localized = localizeOperatorDataset(dataset(), 'tw')
     expect(localized.operators.map(({ name }) => name)).toEqual(['Alpha', '貝塔'])
     expect(localized.factionLabels.rhodes).toBe('Rhodes Island')
+    expect(localized.raceLabels?.[oniRaceId]).toBe('Oni')
     expect(localized.operators[0].subclass.name).toBe('Lord')
   })
 
@@ -124,5 +134,18 @@ describe('game localization', () => {
     )
     expect(localized.classLabels?.Guard).toBe('前衛')
     expect(localized.factionLabels.rhodes).toBe('ロドス・アイランド')
+  })
+
+  it('changes Race presentation without changing Race filter identity', () => {
+    const source = dataset()
+    const english = localizeOperatorDataset(source, 'en')
+    const japanese = localizeOperatorDataset(source, 'jp')
+
+    expect(english.raceLabels?.[oniRaceId]).toBe('Oni')
+    expect(japanese.raceLabels?.[oniRaceId]).toBe('鬼')
+    expect(japanese.operators.map(({ raceIds }) => raceIds)).toEqual(
+      english.operators.map(({ raceIds }) => raceIds),
+    )
+    expect(japanese.operators[0].raceIds).toEqual([oniRaceId])
   })
 })

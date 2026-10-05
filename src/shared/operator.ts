@@ -76,6 +76,8 @@ export interface Operator {
   class: OperatorClass
   subclass: OperatorSubclass
   faction: OperatorFaction
+  /** Stable source-derived race identities. Absent only on pre-M6 schema-v6 datasets. */
+  raceIds?: string[]
   availableOn: {
     cn: boolean
     global: boolean
@@ -97,6 +99,12 @@ export interface OperatorDatasetSources {
   gamedataJpCommit?: string | null
   gamedataKrCommit?: string | null
   gamedataTwCommit?: string | null
+  /** Optional M6 source stamps; absent on pre-Race schema-v6 datasets. */
+  gamedataCnHandbookCommit?: string | null
+  gamedataEnHandbookCommit?: string | null
+  gamedataJpHandbookCommit?: string | null
+  gamedataKrHandbookCommit?: string | null
+  gamedataTwHandbookCommit?: string | null
   resourcesCommit: string | null
   releaseMetadataCommit: string | null
 }
@@ -106,6 +114,8 @@ export interface GameStringCatalog {
   classLabels: Record<OperatorClass, string>
   subclassLabels: Record<string, string>
   factionLabels: Record<string, string>
+  /** Stable race ID -> localized source-provided display label. */
+  raceLabels?: Record<string, string>
 }
 
 export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
@@ -118,6 +128,8 @@ export interface OperatorDataset {
   classLabels?: Record<OperatorClass, string>
   /** Stable faction/power ID -> current display label. Defaults to English in the stored dataset. */
   factionLabels: Record<string, string>
+  /** Stable race ID -> current display label. Added by M6 and optional on older schema-v6 data. */
+  raceLabels?: Record<string, string>
   /** Game-provided display strings by locale. Absent on legacy schema-v4 data. */
   localizations?: GameStringCatalogs
   operators: Operator[]

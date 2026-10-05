@@ -75,6 +75,11 @@ export interface FactionConstraint {
   excludedIds: string[]
 }
 
+export interface RaceConstraint {
+  /** Sparse stable race-ID exclusions keep future/new source races enabled by default. */
+  excludedIds: string[]
+}
+
 export interface SquadConfiguration {
   squadSize: number
   rarity: Partial<Record<OperatorRarity, NumericConstraint>>
@@ -89,6 +94,8 @@ export interface RandomizerConstraints extends SquadConfiguration {
   collaboration: CollaborationConstraint
   subclass: SubclassConstraint
   faction: FactionConstraint
+  /** Optional only for backward compatibility with pre-M6 persisted/config objects. */
+  race?: RaceConstraint
   era: OperatorEraFilter
   alterExclusivity: boolean
 }
@@ -138,6 +145,9 @@ export function createDefaultConstraints(): RandomizerConstraints {
     },
     faction: {
       matchMode: 'main',
+      excludedIds: [],
+    },
+    race: {
       excludedIds: [],
     },
     era: 'all',
@@ -327,6 +337,7 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
 
   validateSparseIds('Subclass', constraints.subclass.excludedIds, errors)
   validateSparseIds('Faction', constraints.faction.excludedIds, errors)
+  validateSparseIds('Race', constraints.race?.excludedIds ?? [], errors)
   if (constraints.faction.matchMode !== 'main' && constraints.faction.matchMode !== 'any') {
     errors.push('Faction match mode must be main or any affiliation.')
   }

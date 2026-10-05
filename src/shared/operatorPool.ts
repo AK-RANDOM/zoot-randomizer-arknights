@@ -2,6 +2,7 @@ import type { RandomizerConstraints } from './constraints'
 import type { GameLocale, Operator, ReleaseServer } from './operator'
 import { isGameLocale } from './gameLocalization'
 import { filterHigherLevelEligibleOperators } from './randomizer'
+import { operatorRaceIds } from './raceMetadata'
 
 export const OPERATOR_PREFERENCES_VERSION = 2 as const
 
@@ -151,9 +152,21 @@ export function applyManualOperatorExclusions(
   return operators.filter((operator) => !excluded.has(operator.id))
 }
 
+export function applyRaceExclusions(
+  operators: readonly Operator[],
+  excludedRaceIds: readonly string[],
+): Operator[] {
+  const excluded = new Set(normalizeIds(excludedRaceIds))
+  if (excluded.size === 0) return [...operators]
+  return operators.filter((operator) =>
+    operatorRaceIds(operator).some((raceId) => !excluded.has(raceId)),
+  )
+}
+
 /**
  * Canonical Iteration 6 composition:
- * dataset -> higher-level filters -> manual exclusions -> final solver pool.
+ * dataset -> higher-level filters -> Race -> manual exclusions -> final solver pool.
+ * Standard generation, Global Pool and Draft all consume this final pool.
  */
 export function buildFinalOperatorPool(
   operators: Operator[],
@@ -161,7 +174,10 @@ export function buildFinalOperatorPool(
   excludedOperatorIds: readonly string[],
 ): Operator[] {
   return applyManualOperatorExclusions(
-    filterHigherLevelEligibleOperators(operators, constraints),
+    applyRaceExclusions(
+      filterHigherLevelEligibleOperators(operators, constraints),
+      constraints.race?.excludedIds ?? [],
+    ),
     excludedOperatorIds,
   )
 }

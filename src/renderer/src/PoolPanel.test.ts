@@ -6,6 +6,7 @@ import {
   comparePoolGroups,
   comparePoolOperators,
   expandAllPoolGroups,
+  operatorRaceLabel,
 } from './PoolPanel'
 
 function operator(
@@ -94,5 +95,21 @@ describe('Pool view regressions', () => {
 
     expect([...collapseAllPoolGroups(groups)]).toEqual(['Guard', 'Caster'])
     expect(expandAllPoolGroups().size).toBe(0)
+  })
+
+  it('resolves localized race labels and unavailable fallback for detailed metadata', () => {
+    const localized = operator('localized', 'Localized', 6, 'Sniper', '2023-01-01')
+    localized.raceIds = ['race:sankta', 'race:secondary']
+    const unavailable = operator('unavailable', 'Unavailable', 1, 'Medic', '2023-01-01')
+
+    const raceLabels = {
+      'race:sankta': 'Localized Sankta',
+      'race:secondary': 'Second Race',
+      'race:unavailable': 'Localized Unavailable',
+    }
+
+    expect(operatorRaceLabel(localized, raceLabels)).toBe('Localized Sankta, Second Race')
+    expect(operatorRaceLabel(unavailable, raceLabels)).toBe('Localized Unavailable')
+    expect(operatorRaceLabel(localized, undefined)).toBe('race:sankta, race:secondary')
   })
 })

@@ -63,6 +63,14 @@ function cloneRangeState(state: InteractionRangeState): InteractionRangeState {
   }
 }
 
+function cloneRangeEnvelope(envelope: InteractionRangeEnvelope): InteractionRangeEnvelope {
+  return {
+    state: cloneRangeState(envelope.state),
+    minimumAnchorModifier: envelope.minimumAnchorModifier,
+    maximumAnchorModifier: envelope.maximumAnchorModifier,
+  }
+}
+
 function anchorModifierForPriorOperator(
   interactions: readonly ResolvedDraftAnchorInteraction[],
   candidateId: string,
@@ -178,7 +186,14 @@ function getInteractionCostRange(
   })
 
   for (const priorOperator of priorOperators) {
-    const nextStates = new Map(states)
+    // Skip branches must be independent copies. Reusing the same envelope objects
+    // here would let an include branch mutate a state that has not been processed
+    // yet for this operator, effectively counting the same operator more than once.
+    const nextStates = new Map<string, InteractionRangeEnvelope>()
+    for (const [key, envelope] of states) {
+      nextStates.set(key, cloneRangeEnvelope(envelope))
+    }
+
     const anchorIncrement = anchorModifierForPriorOperator(
       anchorInteractions,
       candidate.id,

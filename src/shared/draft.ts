@@ -12,7 +12,10 @@ export {
 export { createDraftPoolKey } from './draft/pool'
 export { currentDraftOwnershipCapacity } from './draft/capacity'
 export {
+  draftActionCarriesHoldForward,
   getDraftActionPointDelta,
+  getDraftHoldUpkeepCost,
+  getDraftHoldUpkeepCostWithConfiguration,
   getDraftOperatorCost,
   getDraftOperatorCostForState,
   getDraftOperatorCostForStateWithConfiguration,

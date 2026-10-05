@@ -90,6 +90,41 @@ export interface DraftEconomyRules {
   slotExpansionCost: number
 }
 
+export interface ResolvedDraftAnchorInteraction {
+  id: string
+  type: 'anchor'
+  sourceOperatorIds: string[]
+  targetOperatorIds: string[]
+  modifier: number
+}
+
+export interface ResolvedDraftProgressiveInteraction {
+  id: string
+  type: 'progressive'
+  groupOperatorIds: string[]
+  steps: Array<{ memberCount: number; modifier: number }>
+}
+
+export interface ResolvedDraftThresholdInteraction {
+  id: string
+  type: 'threshold'
+  groupOperatorIds: string[]
+  threshold: number
+  modifier: number
+  anchorOperatorIds?: string[]
+}
+
+export type ResolvedDraftInteraction =
+  | ResolvedDraftAnchorInteraction
+  | ResolvedDraftProgressiveInteraction
+  | ResolvedDraftThresholdInteraction
+
+export interface DraftInteractionCostContribution {
+  interactionId: string
+  type: ResolvedDraftInteraction['type']
+  modifier: number
+}
+
 export type PartialDraftActionRules = {
   hold?: Partial<DraftHoldRules>
   forfeit?: Partial<DraftForfeitRules>
@@ -102,6 +137,7 @@ export interface DraftConfigurationInput {
   capacityRules?: Partial<DraftCapacityRules>
   economyRules?: Partial<DraftEconomyRules>
   pullDistribution?: DraftPullDistribution
+  interactions?: ResolvedDraftInteraction[]
 }
 
 export interface ResolvedDraftConfiguration {
@@ -109,6 +145,7 @@ export interface ResolvedDraftConfiguration {
   capacityRules: DraftCapacityRules
   economyRules: DraftEconomyRules
   pullDistribution: DraftPullDistribution
+  interactions: ResolvedDraftInteraction[]
 }
 
 /**

@@ -79,7 +79,7 @@ export function evaluateDraftActionWithConfiguration(
   }
 
   if (state.economyRulesEnabled) {
-    const delta = getDraftActionPointDeltaWithConfiguration(pool, action, configuration)
+    const delta = getDraftActionPointDeltaWithConfiguration(pool, action, configuration, state)
     if (delta < 0 && state.points + delta < 0) {
       return { available: false, reason: 'insufficient-points' }
     }
@@ -129,7 +129,7 @@ export function getDraftActionAvailability(
   action: DraftAction,
   options: Pick<
     DraftEngineOptions,
-    'configuration' | 'actionRules' | 'capacityRules' | 'economyRules' | 'pullDistribution'
+    'configuration' | 'actionRules' | 'capacityRules' | 'economyRules' | 'pullDistribution' | 'interactions'
   > = {},
   pool?: readonly Operator[],
 ): DraftActionAvailability {

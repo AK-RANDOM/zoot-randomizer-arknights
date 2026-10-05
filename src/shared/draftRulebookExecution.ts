@@ -1,13 +1,18 @@
 import type { Operator } from './operator'
 import {
+  resolveDraftConfiguration,
+  validateDraftConfiguration,
+  type ResolvedDraftConfiguration,
+} from './draft'
+import {
   resolveDraftRulebook,
   serializeDraftRulebook,
   validateDraftRulebook,
   type DraftRulebook,
   type DraftRulebookValidationResult,
 } from './draftRulebook'
+import { resolveDraftRulebookInteractions } from './draftRulebookInteractions'
 import { resolveDraftRulebookPool } from './draftRulebookPool'
-import type { ResolvedDraftConfiguration } from './draft'
 
 export interface DraftRulebookExecutionResolution {
   valid: boolean
@@ -39,28 +44,35 @@ export function resolveDraftRulebookExecution(
   globalPool: readonly Operator[],
 ): DraftRulebookExecutionResolution {
   const validation = validateDraftRulebook(rulebook)
-  const identityKey = validation.valid
-    ? serializeDraftRulebook(rulebook)
-    : `${rulebook.identifier.id}:${rulebook.identifier.revision}:invalid`
+  const serializedRulebook = validation.valid ? serializeDraftRulebook(rulebook) : null
+  const invalidIdentityKey = `${rulebook.identifier.id}:${rulebook.identifier.revision}:invalid`
 
-  if (!validation.valid) {
+  if (!validation.valid || serializedRulebook === null) {
     return {
       valid: false,
       validation,
       pool: [],
       configuration: null,
-      identityKey,
+      identityKey: invalidIdentityKey,
       poolSourceLabel: draftRulebookPoolSourceLabel(rulebook),
     }
   }
 
   const resolved = resolveDraftRulebook(rulebook)
+  const pool = resolveDraftRulebookPool(rulebook.pool, datasetOperators, globalPool)
+  const interactions = resolveDraftRulebookInteractions(rulebook.interactions, datasetOperators)
+  const configuration = resolveDraftConfiguration({
+    ...resolved.configuration,
+    interactions,
+  })
+  validateDraftConfiguration(configuration)
+
   return {
     valid: true,
     validation,
-    pool: resolveDraftRulebookPool(rulebook.pool, datasetOperators, globalPool),
-    configuration: resolved.configuration,
-    identityKey,
+    pool,
+    configuration,
+    identityKey: `${serializedRulebook}${JSON.stringify(interactions)}`,
     poolSourceLabel: draftRulebookPoolSourceLabel(rulebook),
   }
 }

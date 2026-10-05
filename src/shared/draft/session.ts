@@ -171,7 +171,7 @@ export function applyDraftAction(
 
   const actionUsage = recordAction(state, action.type)
   const points =
-    state.points + getDraftActionPointDeltaWithConfiguration(pool, action, configuration)
+    state.points + getDraftActionPointDeltaWithConfiguration(pool, action, configuration, state)
   const { actionRules, capacityRules } = configuration
 
   switch (action.type) {

@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RandomizerConstraints } from '../../shared/constraints'
 import { operatorClasses, type OperatorClass, type OperatorDataset } from '../../shared/operator'
+import { operatorRaceIds } from '../../shared/raceMetadata'
 import ClassIcon from './ClassIcon'
 import { FactionIcon, SubclassIcon } from './FilterAssetIcon'
+import { loadRaceFilterExclusions, saveRaceFilterExclusions } from './raceFilterStorage'
 import './Iteration6OperatorFilters.css'
 
 function withExclusion(current: readonly string[], id: string, enabled: boolean): string[] {
@@ -171,12 +173,24 @@ export default function Iteration6OperatorFilters({
     })
   }, [dataset])
 
+  const races = useMemo(() => {
+    const ids = new Set<string>()
+    for (const operator of dataset.operators) {
+      for (const raceId of operatorRaceIds(operator)) ids.add(raceId)
+    }
+    return [...ids]
+      .map((id) => ({ id, name: dataset.raceLabels?.[id] ?? id }))
+      .sort((left, right) => left.name.localeCompare(right.name))
+  }, [dataset])
+
   const [selectedClass, setSelectedClass] = useState<OperatorClass>('Vanguard')
+  const racePersistenceHydrated = useRef(false)
   const factionTree = useMemo(() => buildFactionTree(dataset), [dataset])
   const factionGroups = useMemo(() => factionTree.filter((node) => node.children.length > 0), [factionTree])
   const standaloneFactions = useMemo(() => factionTree.filter((node) => node.children.length === 0), [factionTree])
   const excludedSubclasses = new Set(constraints.subclass.excludedIds)
   const excludedFactions = new Set(constraints.faction.excludedIds)
+  const excludedRaces = new Set(constraints.race?.excludedIds ?? [])
   const selectedSubclasses =
     subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? []
   const allSubclassIds = useMemo(
@@ -184,6 +198,22 @@ export default function Iteration6OperatorFilters({
     [subclassesByClass],
   )
   const allFactionIds = useMemo(() => [...new Set(factionTree.flatMap(descendantIds))], [factionTree])
+  const allRaceIds = useMemo(() => races.map(({ id }) => id), [races])
+
+  useEffect(() => {
+    if (racePersistenceHydrated.current || allRaceIds.length === 0) return
+    racePersistenceHydrated.current = true
+    const available = new Set(allRaceIds)
+    const saved = loadRaceFilterExclusions()
+    const persisted = saved.filter((id) => available.has(id))
+    if (persisted.length !== saved.length) saveRaceFilterExclusions(persisted)
+    if (persisted.length === 0) return
+    onChange((current) =>
+      (current.race?.excludedIds.length ?? 0) > 0
+        ? current
+        : { ...current, race: { excludedIds: persisted } },
+    )
+  }, [allRaceIds, onChange])
 
   const setAllSubclassState = (enabled: boolean): void => {
     onChange((current) => ({
@@ -197,6 +227,12 @@ export default function Iteration6OperatorFilters({
       ...current,
       faction: { ...current.faction, excludedIds: enabled ? [] : [...allFactionIds] },
     }))
+  }
+
+  const setAllRaceState = (enabled: boolean): void => {
+    const excludedIds = enabled ? [] : [...allRaceIds]
+    saveRaceFilterExclusions(excludedIds)
+    onChange((current) => ({ ...current, race: { excludedIds } }))
   }
 
   const setSelectedClassState = (enabled: boolean): void => {
@@ -218,6 +254,14 @@ export default function Iteration6OperatorFilters({
         else next.add(id)
       }
       return { ...current, faction: { ...current.faction, excludedIds: [...next] } }
+    })
+  }
+
+  const toggleRace = (raceId: string, enabled: boolean): void => {
+    onChange((current) => {
+      const excludedIds = withExclusion(current.race?.excludedIds ?? [], raceId, enabled)
+      saveRaceFilterExclusions(excludedIds)
+      return { ...current, race: { excludedIds } }
     })
   }
 
@@ -327,6 +371,37 @@ export default function Iteration6OperatorFilters({
             })}
           </div>
         </div>
+      </fieldset>
+
+      <fieldset className="constraint-group detail-group i6-faction-filter">
+        <legend>Race</legend>
+        <div className="i6-filter-global-actions">
+          <span>All races</span>
+          <div className="i6-subclass-actions">
+            <button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button>
+            <button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button>
+          </div>
+        </div>
+        <div className="i6-faction-standalone-chips">
+          {races.map((race) => {
+            const enabled = !excludedRaces.has(race.id)
+            return (
+              <button
+                key={race.id}
+                type="button"
+                className={`i6-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`}
+                aria-pressed={enabled}
+                onClick={() => toggleRace(race.id, !enabled)}
+              >
+                <span>{race.name}</span>
+                <FactionStateMark mixed={false} enabled={enabled} />
+              </button>
+            )
+          })}
+        </div>
+        <p className="filter-note">
+          Race identity is source-driven and stable across display languages. Operators with no Race source data appear under Unavailable.
+        </p>
       </fieldset>
 
       <fieldset className="constraint-group detail-group i6-faction-filter">

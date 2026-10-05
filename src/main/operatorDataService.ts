@@ -46,6 +46,10 @@ import {
   validateOperatorDataset,
   upgradeLegacyOperatorDataset,
 } from '../shared/operatorData'
+import {
+  applyRaceMetadata,
+  type RawHandbookInfoTable,
+} from '../shared/raceMetadata'
 
 const imageCache = new Map<string, string>()
 const avatarDownloadPromises = new Map<string, Promise<boolean>>()
@@ -296,6 +300,11 @@ async function fetchLatestSources(): Promise<OperatorDatasetSources> {
     gamedataJpCommit,
     gamedataKrCommit,
     gamedataTwCommit,
+    gamedataCnHandbookCommit,
+    gamedataEnHandbookCommit,
+    gamedataJpHandbookCommit,
+    gamedataKrHandbookCommit,
+    gamedataTwHandbookCommit,
     resourcesCommit,
     releaseMetadataCommit,
   ] = await Promise.all([
@@ -304,6 +313,11 @@ async function fetchLatestSources(): Promise<OperatorDatasetSources> {
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json')),
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json')),
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'handbook_info_table.json')),
     latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath),
     latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath),
   ])
@@ -314,6 +328,11 @@ async function fetchLatestSources(): Promise<OperatorDatasetSources> {
     gamedataJpCommit,
     gamedataKrCommit,
     gamedataTwCommit,
+    gamedataCnHandbookCommit,
+    gamedataEnHandbookCommit,
+    gamedataJpHandbookCommit,
+    gamedataKrHandbookCommit,
+    gamedataTwHandbookCommit,
     resourcesCommit,
     releaseMetadataCommit,
   }
@@ -329,6 +348,11 @@ function sameSources(
     left.gamedataJpCommit === right.gamedataJpCommit &&
     left.gamedataKrCommit === right.gamedataKrCommit &&
     left.gamedataTwCommit === right.gamedataTwCommit &&
+    left.gamedataCnHandbookCommit === right.gamedataCnHandbookCommit &&
+    left.gamedataEnHandbookCommit === right.gamedataEnHandbookCommit &&
+    left.gamedataJpHandbookCommit === right.gamedataJpHandbookCommit &&
+    left.gamedataKrHandbookCommit === right.gamedataKrHandbookCommit &&
+    left.gamedataTwHandbookCommit === right.gamedataTwHandbookCommit &&
     left.resourcesCommit === right.resourcesCommit &&
     left.releaseMetadataCommit === right.releaseMetadataCommit
   )
@@ -453,13 +477,14 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
 
   const localeEntries = await Promise.all(
     GAME_DATA_LOCALES.map(async (locale) => {
-      const [characters, patch, handbook, mainText] = await Promise.all([
+      const [characters, patch, handbook, handbookInfo, mainText] = await Promise.all([
         fetchJson<RawCharacterTable>(gameDataExcelUrl(locale, 'character_table.json')),
         fetchJson<RawCharacterPatchTable>(gameDataExcelUrl(locale, 'char_patch_table.json')),
         fetchJson<RawHandbookTeamTable>(gameDataExcelUrl(locale, 'handbook_team_table.json')),
+        fetchJson<RawHandbookInfoTable>(gameDataExcelUrl(locale, 'handbook_info_table.json')),
         fetchJson<RawMainTextTable>(gameDataExcelUrl(locale, 'main_text.json')),
       ])
-      return [locale, { characters, patch, handbook, mainText }] as const
+      return [locale, { characters, patch, handbook, handbookInfo, mainText }] as const
     }),
   )
   const localeData = Object.fromEntries(localeEntries)
@@ -505,6 +530,9 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
       classLabelsFromMainText(localeData[locale].mainText),
     ]),
   )
+  const localizedHandbooks = Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].handbookInfo]),
+  )
 
   const releaseDates = createReleaseDateMap(
     releaseInfoSource,
@@ -512,26 +540,29 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     releaseEventSource,
   )
   const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
-  const dataset = normalizeCharacterTables(
-    cn,
-    en,
-    latestSources,
-    new Date().toISOString(),
-    {
-      cnPatch,
-      enPatch,
-      cnCharMeta,
-      enCharMeta,
-      cnGacha,
-      factionLabels: factionLabelsFromHandbooks(cnHandbookTeams, enHandbookTeams),
-      localizedCharacterTables,
-      localizedPatchTables,
-      localizedFactionLabels,
-      localizedClassLabels,
-      localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
-      releaseDates,
-      releaseCategories,
-    },
+  const dataset = applyRaceMetadata(
+    normalizeCharacterTables(
+      cn,
+      en,
+      latestSources,
+      new Date().toISOString(),
+      {
+        cnPatch,
+        enPatch,
+        cnCharMeta,
+        enCharMeta,
+        cnGacha,
+        factionLabels: factionLabelsFromHandbooks(cnHandbookTeams, enHandbookTeams),
+        localizedCharacterTables,
+        localizedPatchTables,
+        localizedFactionLabels,
+        localizedClassLabels,
+        localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
+        releaseDates,
+        releaseCategories,
+      },
+    ),
+    localizedHandbooks,
   )
   const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
   if (!validation.valid) {

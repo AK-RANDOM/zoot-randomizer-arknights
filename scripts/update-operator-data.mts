@@ -24,6 +24,10 @@ import {
   type RawUniEquipData,
 } from '../src/shared/operatorData.ts'
 import {
+  applyRaceMetadata,
+  type RawHandbookInfoTable,
+} from '../src/shared/raceMetadata.ts'
+import {
   CLASS_ICON_FILES,
   factionIconFile,
   subclassIconFile,
@@ -76,16 +80,47 @@ async function latestCommit(repository: string, path: string): Promise<string> {
 }
 
 async function sourceVersions(): Promise<OperatorDatasetSources> {
-  const [gamedataCnCommit, gamedataEnCommit, gamedataJpCommit, gamedataKrCommit, gamedataTwCommit, resourcesCommit, releaseMetadataCommit] = await Promise.all([
+  const [
+    gamedataCnCommit,
+    gamedataEnCommit,
+    gamedataJpCommit,
+    gamedataKrCommit,
+    gamedataTwCommit,
+    gamedataCnHandbookCommit,
+    gamedataEnHandbookCommit,
+    gamedataJpHandbookCommit,
+    gamedataKrHandbookCommit,
+    gamedataTwHandbookCommit,
+    resourcesCommit,
+    releaseMetadataCommit,
+  ] = await Promise.all([
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'character_table.json')),
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'character_table.json')),
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json')),
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json')),
     latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'handbook_info_table.json')),
+    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'handbook_info_table.json')),
     latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath),
     latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath),
   ])
-  return { gamedataCnCommit, gamedataEnCommit, gamedataJpCommit, gamedataKrCommit, gamedataTwCommit, resourcesCommit, releaseMetadataCommit }
+  return {
+    gamedataCnCommit,
+    gamedataEnCommit,
+    gamedataJpCommit,
+    gamedataKrCommit,
+    gamedataTwCommit,
+    gamedataCnHandbookCommit,
+    gamedataEnHandbookCommit,
+    gamedataJpHandbookCommit,
+    gamedataKrHandbookCommit,
+    gamedataTwHandbookCommit,
+    resourcesCommit,
+    releaseMetadataCommit,
+  }
 }
 
 async function currentDatasetState(): Promise<{ schemaVersion: unknown; sources: OperatorDatasetSources | null } | null> {
@@ -208,6 +243,11 @@ async function main(): Promise<void> {
     previousSources?.gamedataJpCommit === versions.gamedataJpCommit &&
     previousSources?.gamedataKrCommit === versions.gamedataKrCommit &&
     previousSources?.gamedataTwCommit === versions.gamedataTwCommit &&
+    previousSources?.gamedataCnHandbookCommit === versions.gamedataCnHandbookCommit &&
+    previousSources?.gamedataEnHandbookCommit === versions.gamedataEnHandbookCommit &&
+    previousSources?.gamedataJpHandbookCommit === versions.gamedataJpHandbookCommit &&
+    previousSources?.gamedataKrHandbookCommit === versions.gamedataKrHandbookCommit &&
+    previousSources?.gamedataTwHandbookCommit === versions.gamedataTwHandbookCommit &&
     previousSources?.resourcesCommit === versions.resourcesCommit &&
     previousSources?.releaseMetadataCommit === versions.releaseMetadataCommit
 
@@ -222,16 +262,17 @@ async function main(): Promise<void> {
   if (unchanged && downloadImages && !force) {
     dataset = await readValidatedDataset()
   } else {
-    console.log('Downloading operator tables and release metadata...')
+    console.log('Downloading operator tables, handbook metadata and release metadata...')
     const localeEntries = await Promise.all(
       GAME_DATA_LOCALES.map(async (locale) => {
-        const [characters, patch, handbook, mainText] = await Promise.all([
+        const [characters, patch, handbook, handbookInfo, mainText] = await Promise.all([
           fetchJson<RawCharacterTable>(gameDataExcelUrl(locale, 'character_table.json')),
           fetchJson<RawCharacterPatchTable>(gameDataExcelUrl(locale, 'char_patch_table.json')),
           fetchJson<RawHandbookTeamTable>(gameDataExcelUrl(locale, 'handbook_team_table.json')),
+          fetchJson<RawHandbookInfoTable>(gameDataExcelUrl(locale, 'handbook_info_table.json')),
           fetchJson<RawMainTextTable>(gameDataExcelUrl(locale, 'main_text.json')),
         ])
-        return [locale, { characters, patch, handbook, mainText }] as const
+        return [locale, { characters, patch, handbook, handbookInfo, mainText }] as const
       }),
     )
     const localeData = Object.fromEntries(localeEntries)
@@ -255,24 +296,30 @@ async function main(): Promise<void> {
     const localizedPatchTables = Object.fromEntries(GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].patch]))
     const localizedFactionLabels = Object.fromEntries(GAME_DATA_LOCALES.map((locale) => [locale, factionLabelsFromHandbook(localeData[locale].handbook)]))
     const localizedClassLabels = Object.fromEntries(GAME_DATA_LOCALES.map((locale) => [locale, classLabelsFromMainText(localeData[locale].mainText)]))
+    const localizedHandbooks = Object.fromEntries(
+      GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].handbookInfo]),
+    )
 
     const releaseDates = createReleaseDateMap(releaseInfoSource, releaseCandidateSource, releaseEventSource)
     const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
-    dataset = normalizeCharacterTables(cn, en, versions, new Date().toISOString(), {
-      cnPatch,
-      enPatch,
-      cnCharMeta,
-      enCharMeta,
-      cnGacha,
-      factionLabels: factionLabelsFromHandbooks(cnHandbookTeams, enHandbookTeams),
-      localizedCharacterTables,
-      localizedPatchTables,
-      localizedFactionLabels,
-      localizedClassLabels,
-      localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
-      releaseDates,
-      releaseCategories,
-    })
+    dataset = applyRaceMetadata(
+      normalizeCharacterTables(cn, en, versions, new Date().toISOString(), {
+        cnPatch,
+        enPatch,
+        cnCharMeta,
+        enCharMeta,
+        cnGacha,
+        factionLabels: factionLabelsFromHandbooks(cnHandbookTeams, enHandbookTeams),
+        localizedCharacterTables,
+        localizedPatchTables,
+        localizedFactionLabels,
+        localizedClassLabels,
+        localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
+        releaseDates,
+        releaseCategories,
+      }),
+      localizedHandbooks,
+    )
     const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
     if (!validation.valid) throw new Error(`Generated dataset failed validation:\n${validation.errors.join('\n')}`)
     for (const warning of validation.warnings) console.warn(`Warning: ${warning}`)

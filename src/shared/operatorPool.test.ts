@@ -3,6 +3,7 @@ import { createDefaultConstraints } from './constraints'
 import type { Operator } from './operator'
 import {
   applyManualOperatorExclusions,
+  applyRaceExclusions,
   buildFinalOperatorPool,
   createDefaultOperatorPreferences,
   normalizeOperatorPreferences,
@@ -11,6 +12,7 @@ import {
   setOperatorExcluded,
 } from './operatorPool'
 import { filterHigherLevelEligibleOperators } from './randomizer'
+import { RACE_UNAVAILABLE_ID } from './raceMetadata'
 
 function operator(
   id: string,
@@ -140,6 +142,38 @@ describe('Iteration 6 Pool persistence model', () => {
     expect(buildFinalOperatorPool(roster, constraints, excluded).map(({ id }) => id)).toEqual([
       'char_old',
       'char_new',
+    ])
+  })
+
+  it('applies stable Race exclusions to the same final pool used by Standard and Draft', () => {
+    const raceRoster = [
+      operator('char_oni', '2024-01-01', { raceIds: ['race:cn:%E9%AC%BC'] }),
+      operator('char_sankta', '2024-01-01', { raceIds: ['race:cn:%E8%90%A8%E7%A7%91%E5%A1%94'] }),
+      operator('char_legacy', '2024-01-01'),
+    ]
+    const excludedRaceIds = ['race:cn:%E9%AC%BC', RACE_UNAVAILABLE_ID]
+    const constraints = createDefaultConstraints()
+    constraints.race = { excludedIds: excludedRaceIds }
+
+    expect(applyRaceExclusions(raceRoster, excludedRaceIds).map(({ id }) => id)).toEqual([
+      'char_sankta',
+    ])
+    expect(buildFinalOperatorPool(raceRoster, constraints, []).map(({ id }) => id)).toEqual([
+      'char_sankta',
+    ])
+  })
+
+  it('treats pre-M6 constraints with no Race field as no Race exclusions', () => {
+    const raceRoster = [
+      operator('char_oni', '2024-01-01', { raceIds: ['race:cn:%E9%AC%BC'] }),
+      operator('char_legacy', '2024-01-01'),
+    ]
+    const constraints = createDefaultConstraints()
+    delete constraints.race
+
+    expect(buildFinalOperatorPool(raceRoster, constraints, []).map(({ id }) => id)).toEqual([
+      'char_oni',
+      'char_legacy',
     ])
   })
 

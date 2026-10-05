@@ -6,15 +6,16 @@ import {
   type OperatorClass,
   type OperatorDataset,
 } from './operator'
+import { operatorRaceIds } from './raceMetadata'
 
 /**
  * This module is the boundary for Arknights-owned display strings.
  *
- * Catalog values come from official game data (operator, class, subclass and
- * faction names). Randomizer-owned UI copy does not belong here and will use
- * the app-localization layer separately. Game entities keep their stable IDs;
- * localization only replaces display values and must not change filtering,
- * persistence, solver input, or randomizer ordering.
+ * Catalog values come from official game data (operator, class, subclass,
+ * faction and race names). Randomizer-owned UI copy does not belong here and
+ * will use the app-localization layer separately. Game entities keep their
+ * stable IDs; localization only replaces display values and must not change
+ * filtering, persistence, solver input, or randomizer ordering.
  */
 export const GAME_LOCALE_LABELS: Readonly<Record<GameLocale, string>> = {
   en: 'English',
@@ -41,6 +42,7 @@ const EMPTY_CATALOG: GameStringCatalog = {
   classLabels: {} as Record<OperatorClass, string>,
   subclassLabels: {},
   factionLabels: {},
+  raceLabels: {},
 }
 
 function catalogFor(dataset: OperatorDataset, locale: GameLocale): GameStringCatalog {
@@ -97,8 +99,24 @@ export function localizeOperatorDataset(
       factionId
   }
 
+  const raceIds = new Set<string>()
+  for (const operator of dataset.operators) {
+    for (const raceId of operatorRaceIds(operator)) raceIds.add(raceId)
+  }
+  for (const catalog of Object.values(dataset.localizations ?? {})) {
+    for (const raceId of Object.keys(catalog.raceLabels ?? {})) raceIds.add(raceId)
+  }
+
+  const raceLabels: Record<string, string> = {}
+  for (const raceId of raceIds) {
+    raceLabels[raceId] =
+      resolveFromCatalogs(dataset, locale, (catalog) => catalog.raceLabels?.[raceId]) ??
+      dataset.raceLabels?.[raceId] ??
+      raceId
+  }
+
   // Preserve canonical operator order. Locale switching must only change display
-  // strings, never the solver/randomizer input ordering.
+  // strings, never the solver/randomizer input ordering or source-derived IDs.
   const operators = dataset.operators.map((operator) => ({
     ...operator,
     name:
@@ -119,6 +137,7 @@ export function localizeOperatorDataset(
     ...dataset,
     classLabels,
     factionLabels,
+    raceLabels,
     operators,
   }
 }

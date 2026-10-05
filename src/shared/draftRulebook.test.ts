@@ -47,17 +47,32 @@ describe('Draft Rulebook foundation', () => {
     rulebook.identifier.id = 'test:advanced'
     rulebook.generalRules = {
       offerSize: 3,
-      actionRules: { reroll: { enabled: true, perRoundLimit: 2 } },
+      actionRules: {
+        reroll: { enabled: true, perRoundLimit: 2 },
+        hold: {
+          enabled: true,
+          upkeepMode: 'escalating',
+          upkeepBaseCost: 2,
+          upkeepEscalation: 3,
+        },
+      },
       capacityRules: { enabled: true, startingActiveSlots: 6, overflowSlots: 1 },
       economyRules: { enabled: true, startingPoints: 20, rerollCost: 3 },
       pullDistribution: { type: 'arknights' },
     }
     rulebook.overrides.operatorCosts = { char_test: 17 }
 
-    const resolved = resolveDraftRulebook(rulebook)
+    const serialized = serializeDraftRulebook(rulebook)
+    const resolved = resolveDraftRulebook(deserializeDraftRulebook(serialized))
     expect(resolved.configuration.actionRules.reroll).toMatchObject({
       enabled: true,
       perRoundLimit: 2,
+    })
+    expect(resolved.configuration.actionRules.hold).toMatchObject({
+      enabled: true,
+      upkeepMode: 'escalating',
+      upkeepBaseCost: 2,
+      upkeepEscalation: 3,
     })
     expect(resolved.configuration.capacityRules).toMatchObject({
       enabled: true,
@@ -71,6 +86,19 @@ describe('Draft Rulebook foundation', () => {
     })
     expect(resolved.configuration.economyRules.operatorCostOverrides).toEqual({ char_test: 17 })
     expect(resolved.configuration.pullDistribution).toEqual({ type: 'arknights' })
+  })
+
+  it('rejects malformed Hold upkeep settings', () => {
+    const rulebook = cloneStandard() as unknown as {
+      generalRules: { actionRules: { hold: Record<string, unknown> } }
+    }
+    rulebook.generalRules.actionRules = {
+      hold: { enabled: true, upkeepMode: 'forever', upkeepBaseCost: -1 },
+    }
+    const validation = validateDraftRulebook(rulebook)
+    expect(validation.valid).toBe(false)
+    expect(validation.errors.join(' ')).toContain('upkeepMode')
+    expect(validation.errors.join(' ')).toContain('upkeepBaseCost')
   })
 
   it('models future pool selectors and interactions without expanding them into operator lists', () => {

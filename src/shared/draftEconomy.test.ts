@@ -58,9 +58,12 @@ describe('Draft point economy', () => {
   })
 
   it('blocks an unaffordable pick without changing appearance probability', () => {
-    const state = startDraft(pool, 6, { ...options, economyRules: { enabled: true, startingPoints: 0 } })
-    expect(getDraftActionPointDelta(state, pool, { type: 'pick', operatorId: 'one' }, options)).toBe(8)
-    expect(() => applyDraftAction(state, pool, { type: 'pick', operatorId: 'six' }, { ...options, economyRules: { enabled: true, startingPoints: 0 } })).toThrow('insufficient-points')
+    const costlyPool = [pool[5], pool[0], pool[1], ...pool.slice(6)]
+    const zeroBudget = { ...options, economyRules: { enabled: true, startingPoints: 0 } }
+    const state = startDraft(costlyPool, 6, zeroBudget)
+    expect(state.currentOfferIds).toContain('six')
+    expect(getDraftActionPointDelta(state, costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toBe(-32)
+    expect(() => applyDraftAction(state, costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toThrow('insufficient-points')
   })
 
   it('applies configurable action prices and Forfeit rebate', () => {

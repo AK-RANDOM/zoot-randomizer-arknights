@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import {
   DEFAULT_DRAFT_ACTION_RULES,
   DEFAULT_DRAFT_ECONOMY_RULES,
@@ -11,9 +11,15 @@ import {
   STANDARD_DRAFT_RULEBOOK,
   STANDARD_DRAFT_RULEBOOK_ID,
   createEmptyDraftRulebookEligibility,
+  serializeDraftRulebook,
   validateDraftRulebook,
   type DraftRulebook,
 } from '../../shared/draftRulebook'
+import {
+  MAX_DRAFT_RULEBOOK_FILE_BYTES,
+  analyzeDraftRulebookImport,
+  draftRulebookExportFileName,
+} from '../../shared/draftRulebookPortability'
 import { getDraftRulebookOperatorCostBreakdown } from '../../shared/draftRulebookCost'
 import OperatorCard from './OperatorCard'
 import DraftRulebookDistributionEditor from './DraftRulebookDistributionEditor'
@@ -23,7 +29,10 @@ import { buildRulebookOperatorInteractionDetails } from './draftInteractionPrese
 import {
   createLocalDraftRulebook,
   loadDraftRulebookLibrary,
+  loadImportedDraftRulebookIds,
+  prepareImportedDraftRulebook,
   saveDraftRulebookLibrary,
+  saveImportedDraftRulebookIds,
 } from './draftRulebookStorage'
 import './DraftRulebookPanel.css'
 
@@ -32,6 +41,11 @@ interface DraftRulebookPanelProps {
 }
 
 type RerollMode = 'none' | 'per-round' | 'per-draft' | 'unlimited' | 'advanced'
+type PortabilityStatus = {
+  tone: 'success' | 'warning' | 'error'
+  title: string
+  details: string[]
+}
 
 function cloneRulebookForEditing(rulebook: DraftRulebook): DraftRulebook {
   return JSON.parse(JSON.stringify(rulebook)) as DraftRulebook
@@ -131,18 +145,31 @@ function LimitedActionEditor({
 
 export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps): React.JSX.Element {
   const [customRulebooks, setCustomRulebooks] = useState<DraftRulebook[]>(() => loadDraftRulebookLibrary())
+  const [importedIds, setImportedIds] = useState<Set<string>>(() => loadImportedDraftRulebookIds())
   const [selectedId, setSelectedId] = useState<string>(STANDARD_DRAFT_RULEBOOK_ID)
   const [overrideOperatorId, setOverrideOperatorId] = useState('')
   const [overrideCost, setOverrideCost] = useState('')
+  const [portabilityStatus, setPortabilityStatus] = useState<PortabilityStatus | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => saveDraftRulebookLibrary(customRulebooks), [customRulebooks])
+  useEffect(() => saveImportedDraftRulebookIds(importedIds), [importedIds])
 
   const rulebooks = useMemo(
     () => [STANDARD_DRAFT_RULEBOOK, ...customRulebooks],
     [customRulebooks],
   )
+  const importedRulebooks = useMemo(
+    () => customRulebooks.filter((rulebook) => importedIds.has(rulebook.identifier.id)),
+    [customRulebooks, importedIds],
+  )
+  const localRulebooks = useMemo(
+    () => customRulebooks.filter((rulebook) => !importedIds.has(rulebook.identifier.id)),
+    [customRulebooks, importedIds],
+  )
   const selected = rulebooks.find((rulebook) => rulebook.identifier.id === selectedId) ?? STANDARD_DRAFT_RULEBOOK
   const builtIn = selected.identifier.id === STANDARD_DRAFT_RULEBOOK_ID
+  const imported = importedIds.has(selected.identifier.id)
   const validation = useMemo(() => validateDraftRulebook(selected), [selected])
   const previewConfiguration = useMemo(() => resolveDraftConfiguration({
     actionRules: selected.generalRules.actionRules,
@@ -181,6 +208,7 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     const next = createLocalDraftRulebook()
     setCustomRulebooks((current) => [...current, next])
     setSelectedId(next.identifier.id)
+    setPortabilityStatus(null)
   }
 
   const duplicateSelected = (): void => {
@@ -188,6 +216,7 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     const next = createLocalDraftRulebook(selected)
     setCustomRulebooks((current) => [...current, next])
     setSelectedId(next.identifier.id)
+    setPortabilityStatus(null)
   }
 
   const deleteSelected = (): void => {
@@ -195,7 +224,93 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     setCustomRulebooks((current) => current.filter(
       (rulebook) => rulebook.identifier.id !== selected.identifier.id,
     ))
+    setImportedIds((current) => {
+      const next = new Set(current)
+      next.delete(selected.identifier.id)
+      return next
+    })
     setSelectedId(STANDARD_DRAFT_RULEBOOK_ID)
+    setPortabilityStatus(null)
+  }
+
+  const importRulebook = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    if (!file) return
+
+    try {
+      if (file.size > MAX_DRAFT_RULEBOOK_FILE_BYTES) {
+        setPortabilityStatus({
+          tone: 'error',
+          title: 'Draft Rulebook import rejected',
+          details: [`The selected file is larger than ${MAX_DRAFT_RULEBOOK_FILE_BYTES / (1024 * 1024)} MiB.`],
+        })
+        return
+      }
+
+      const analysis = analyzeDraftRulebookImport(await file.text(), dataset)
+      if (!analysis.rulebook) {
+        setPortabilityStatus({
+          tone: 'error',
+          title: 'Draft Rulebook import rejected',
+          details: analysis.errors.length > 0 ? analysis.errors : ['The file is not compatible with this app.'],
+        })
+        return
+      }
+
+      const prepared = prepareImportedDraftRulebook(analysis.rulebook, rulebooks)
+      setCustomRulebooks((current) => [...current, prepared.rulebook])
+      setImportedIds((current) => new Set(current).add(prepared.rulebook.identifier.id))
+      setSelectedId(prepared.rulebook.identifier.id)
+
+      const details = [...analysis.warnings]
+      if (prepared.identityChanged) {
+        details.unshift('The imported stable ID already existed locally, so this copy received a new local ID instead of overwriting the existing Rulebook.')
+      }
+      if (prepared.nameChanged) {
+        details.unshift(`The imported Rulebook was renamed to “${prepared.rulebook.identifier.name}” to avoid a library name collision.`)
+      }
+      setPortabilityStatus({
+        tone: details.length > 0 ? 'warning' : 'success',
+        title: details.length > 0 ? 'Draft Rulebook imported with compatibility notes' : 'Draft Rulebook imported',
+        details,
+      })
+    } catch (reason) {
+      setPortabilityStatus({
+        tone: 'error',
+        title: 'Draft Rulebook import failed',
+        details: [reason instanceof Error ? reason.message : String(reason)],
+      })
+    } finally {
+      input.value = ''
+    }
+  }
+
+  const exportSelected = (): void => {
+    if (!validation.valid) return
+    try {
+      const serialized = serializeDraftRulebook(selected)
+      const blob = new Blob([serialized], { type: 'application/json' })
+      const href = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = href
+      link.download = draftRulebookExportFileName(selected)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(href), 0)
+      setPortabilityStatus({
+        tone: 'success',
+        title: 'Draft Rulebook exported',
+        details: [`Exported ${selected.identifier.name} as portable schema v${selected.schemaVersion} JSON.`],
+      })
+    } catch (reason) {
+      setPortabilityStatus({
+        tone: 'error',
+        title: 'Draft Rulebook export failed',
+        details: [reason instanceof Error ? reason.message : String(reason)],
+      })
+    }
   }
 
   const setPoolSource = (source: DraftRulebook['pool']['source']): void => updateSelected((draft) => {
@@ -333,8 +448,17 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
         </div>
         <div className="section-actions">
           <button type="button" className="secondary-button" onClick={createNew}>New</button>
+          <button type="button" className="secondary-button" onClick={() => importInputRef.current?.click()}>Import</button>
+          <button type="button" className="secondary-button" disabled={!validation.valid} onClick={exportSelected}>Export</button>
           <button type="button" className="secondary-button" disabled={!validation.valid} onClick={duplicateSelected}>Duplicate</button>
           <button type="button" className="secondary-button" disabled={builtIn} onClick={deleteSelected}>Delete</button>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json,.draft-rulebook.json,application/json"
+            hidden
+            onChange={(event) => { void importRulebook(event) }}
+          />
         </div>
       </div>
 
@@ -345,9 +469,16 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
             <optgroup label="Built-in">
               <option value={STANDARD_DRAFT_RULEBOOK_ID}>{STANDARD_DRAFT_RULEBOOK.identifier.name}</option>
             </optgroup>
-            {customRulebooks.length > 0 && (
+            {importedRulebooks.length > 0 && (
+              <optgroup label="Imported">
+                {importedRulebooks.map((rulebook) => (
+                  <option key={rulebook.identifier.id} value={rulebook.identifier.id}>{rulebook.identifier.name}</option>
+                ))}
+              </optgroup>
+            )}
+            {localRulebooks.length > 0 && (
               <optgroup label="Local">
-                {customRulebooks.map((rulebook) => (
+                {localRulebooks.map((rulebook) => (
                   <option key={rulebook.identifier.id} value={rulebook.identifier.id}>{rulebook.identifier.name}</option>
                 ))}
               </optgroup>
@@ -355,13 +486,28 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
           </select>
         </label>
         <div className="rulebook-library-summary">
-          <strong>{builtIn ? 'Built-in • read-only' : 'Local Rulebook'}</strong>
+          <strong>{builtIn ? 'Built-in • read-only' : imported ? 'Imported Rulebook' : 'Local Rulebook'}</strong>
+          <span>Schema v{selected.schemaVersion}</span>
           <span>Revision {selected.identifier.revision}</span>
           <span>{selectorCount(selected)} pool selector{selectorCount(selected) === 1 ? '' : 's'}</span>
           <span>{overrideIds.length} override{overrideIds.length === 1 ? '' : 's'}</span>
           <span>{selected.interactions.length} interaction{selected.interactions.length === 1 ? '' : 's'}</span>
         </div>
       </div>
+
+      {portabilityStatus && (
+        portabilityStatus.tone === 'error' ? (
+          <div className="validation-box" role="alert">
+            <strong>{portabilityStatus.title}</strong>
+            {portabilityStatus.details.length > 0 && <ul>{portabilityStatus.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>}
+          </div>
+        ) : (
+          <div className="rulebook-placeholder-box" role="status">
+            <strong>{portabilityStatus.title}</strong>
+            {portabilityStatus.details.length > 0 && <ul>{portabilityStatus.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>}
+          </div>
+        )
+      )}
 
       {!validation.valid && (
         <div className="validation-box" role="alert">

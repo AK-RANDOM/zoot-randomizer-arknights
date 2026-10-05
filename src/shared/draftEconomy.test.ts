@@ -81,7 +81,9 @@ describe('Draft point economy', () => {
       ...options,
       economyRules: { enabled: true, startingPoints: 10, forfeitRebate: 4, rerollCost: 3, holdCost: 2, slotExpansionCost: 2 },
     }
-    let state = startDraft(pool, 6, priced)
+    // Keep the target above the six starting active slots so slot expansion is
+    // actually available and this test exercises its configured price.
+    let state = startDraft(pool, 8, priced)
     state = applyDraftAction(state, pool, { type: 'reroll' }, priced)
     expect(state.points).toBe(7)
     state = applyDraftAction(state, pool, { type: 'slot-expansion' }, priced)

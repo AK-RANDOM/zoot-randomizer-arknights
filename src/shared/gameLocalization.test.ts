@@ -6,6 +6,7 @@ import type {
   OperatorClass,
   OperatorDataset,
 } from './operator'
+import { RACE_UNAVAILABLE_ID } from './raceMetadata'
 
 const englishClassLabels: Record<OperatorClass, string> = {
   Vanguard: 'Vanguard',
@@ -110,7 +111,13 @@ describe('game localization', () => {
     expect(localized.operators).toEqual(source.operators)
     expect(localized.classLabels).toEqual(source.classLabels)
     expect(localized.factionLabels).toEqual(source.factionLabels)
-    expect(localized.raceLabels).toEqual(source.raceLabels)
+    // Legacy schema-v6 operators can omit raceIds. Localization deliberately
+    // exposes the stable Unavailable bucket for those records without changing
+    // canonical operator identity or source metadata.
+    expect(localized.raceLabels).toEqual({
+      ...source.raceLabels,
+      [RACE_UNAVAILABLE_ID]: 'Unavailable',
+    })
     expect(localized.sources).toEqual(source.sources)
     expect(localized.generatedAt).toBe(source.generatedAt)
   })

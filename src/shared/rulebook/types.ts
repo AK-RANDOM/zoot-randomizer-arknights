@@ -7,7 +7,7 @@ import type {
 import type { DraftPullDistribution } from '../draftDistribution'
 import type { OperatorClass, OperatorRarity } from '../operator'
 
-export const DRAFT_RULEBOOK_SCHEMA_VERSION = 1 as const
+export const DRAFT_RULEBOOK_SCHEMA_VERSION = 2 as const
 
 export interface DraftRulebookIdentifier {
   id: string

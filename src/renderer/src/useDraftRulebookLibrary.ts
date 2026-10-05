@@ -56,7 +56,7 @@ export interface DraftRulebookLibraryController {
 
 export default function useDraftRulebookLibrary(dataset: OperatorDataset): DraftRulebookLibraryController {
   const [customEntries, setCustomEntries] = useState<RulebookLibraryEntry[]>(() => loadDraftRulebookEntries())
-  const [selectedId, setSelectedId] = useState(STANDARD_DRAFT_RULEBOOK_ID)
+  const [selectedId, setSelectedId] = useState<string>(STANDARD_DRAFT_RULEBOOK_ID)
   const [portabilityStatus, setPortabilityStatus] = useState<RulebookPortabilityStatus | null>(null)
 
   useEffect(() => saveDraftRulebookEntries(customEntries), [customEntries])

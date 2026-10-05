@@ -56,6 +56,13 @@ export interface OperatorSubclass {
   name: string
 }
 
+export interface OperatorRace {
+  /** Stable source-derived ID; handbook_info_table exposes no native race key. */
+  id: string
+  /** User-facing label, English in the stored canonical dataset. */
+  name: string
+}
+
 export interface OperatorFaction {
   /** Explicit source hierarchy, normalized from mainPower when present. */
   nationId?: string | null
@@ -76,6 +83,8 @@ export interface Operator {
   class: OperatorClass
   subclass: OperatorSubclass
   faction: OperatorFaction
+  /** Source-driven handbook race metadata. Empty/absent means unavailable upstream. */
+  races?: OperatorRace[]
   availableOn: {
     cn: boolean
     global: boolean
@@ -97,6 +106,12 @@ export interface OperatorDatasetSources {
   gamedataJpCommit?: string | null
   gamedataKrCommit?: string | null
   gamedataTwCommit?: string | null
+  /** Latest handbook_info_table commits, tracked separately from character_table updates. */
+  handbookCnCommit?: string | null
+  handbookEnCommit?: string | null
+  handbookJpCommit?: string | null
+  handbookKrCommit?: string | null
+  handbookTwCommit?: string | null
   resourcesCommit: string | null
   releaseMetadataCommit: string | null
 }
@@ -106,6 +121,8 @@ export interface GameStringCatalog {
   classLabels: Record<OperatorClass, string>
   subclassLabels: Record<string, string>
   factionLabels: Record<string, string>
+  /** Stable race ID -> localized game-owned display label. */
+  raceLabels?: Record<string, string>
 }
 
 export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
@@ -118,6 +135,8 @@ export interface OperatorDataset {
   classLabels?: Record<OperatorClass, string>
   /** Stable faction/power ID -> current display label. Defaults to English in the stored dataset. */
   factionLabels: Record<string, string>
+  /** Stable source-derived race ID -> canonical display label. */
+  raceLabels?: Record<string, string>
   /** Game-provided display strings by locale. Absent on legacy schema-v4 data. */
   localizations?: GameStringCatalogs
   operators: Operator[]

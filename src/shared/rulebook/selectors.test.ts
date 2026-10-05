@@ -17,7 +17,6 @@ const dataset: OperatorDataset = {
     resourcesCommit: null,
     releaseMetadataCommit: null,
   },
-  classLabels: { Guard: 'Guard' },
   factionLabels: { team_test: 'Test Team' },
   raceLabels: { 'race:test': 'Test Race' },
   operators: [{

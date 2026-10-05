@@ -50,8 +50,11 @@ describe('Draft point economy', () => {
     expect(state.points).toBe(20)
     state = applyDraftAction(state, pool, { type: 'pick', operatorId: 'one' }, options)
     expect(state.points).toBe(28)
-    state = applyDraftAction(state, pool, { type: 'pick', operatorId: 'five' }, options)
-    expect(state.points).toBe(16)
+
+    const costlyPool = [pool[4], pool[0], pool[1], ...pool.slice(5)]
+    state = startDraft(costlyPool, 6, options)
+    state = applyDraftAction(state, costlyPool, { type: 'pick', operatorId: 'five' }, options)
+    expect(state.points).toBe(8)
   })
 
   it('blocks an unaffordable pick without changing appearance probability', () => {

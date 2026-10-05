@@ -2,6 +2,9 @@ name: CI
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - validation/m2-m6-reverify
 
 permissions:
   contents: read

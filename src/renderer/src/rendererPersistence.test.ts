@@ -67,6 +67,20 @@ describe('renderer persistence', () => {
     expect(normalized.rulebookLibrary[0]?.document.identifier.name).toBe('')
   })
 
+  it('rejects structurally corrupted Rulebook storage without conflating it with editor validity', () => {
+    const corrupted = cloneStandard() as unknown as Record<string, unknown>
+    corrupted.pool = { source: 'rulebook-pool' }
+    const normalized = normalizeRendererPersistence({
+      ...loadRendererPersistence(new MemoryStorage()),
+      rulebookLibrary: [{
+        document: corrupted,
+        origin: 'local',
+        editor: { lastEditedAt: null },
+      }],
+    })
+    expect(normalized.rulebookLibrary).toEqual([])
+  })
+
   it('keeps Rulebook origin attached to the document record', () => {
     const local = cloneStandard()
     local.identifier.id = 'local:test'

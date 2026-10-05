@@ -6,6 +6,11 @@ import {
   validateDraftRulebook,
   type DraftRulebook,
 } from '../../shared/draftRulebook'
+import {
+  loadRulebookLibraryEntries,
+  saveRulebookLibraryEntries,
+  type RulebookLibraryEntry,
+} from './rendererPersistence'
 
 export const DRAFT_RULEBOOK_LIBRARY_KEY = 'arknights-randomizer:draft-rulebooks:v1'
 export const DRAFT_RULEBOOK_IMPORTED_IDS_KEY = 'arknights-randomizer:draft-rulebooks:imported:v1'
@@ -23,7 +28,7 @@ export interface PreparedImportedDraftRulebook {
 }
 
 function cloneRulebook(rulebook: DraftRulebook): DraftRulebook {
-  return deserializeDraftRulebook(serializeDraftRulebook(rulebook))
+  return JSON.parse(JSON.stringify(rulebook)) as DraftRulebook
 }
 
 function localRulebookId(): string {
@@ -49,7 +54,7 @@ export function createLocalDraftRulebook(
   source: DraftRulebook = STANDARD_DRAFT_RULEBOOK,
   name = source.identifier.id === STANDARD_DRAFT_RULEBOOK_ID ? 'New Draft Rulebook' : `${source.identifier.name} Copy`,
 ): DraftRulebook {
-  const next = cloneRulebook(source)
+  const next = deserializeDraftRulebook(serializeDraftRulebook(source))
   next.identifier = {
     ...next.identifier,
     id: localRulebookId(),
@@ -89,23 +94,20 @@ export function prepareImportedDraftRulebook(
   }
 }
 
+/** Legacy v1 helpers retained for migration/regression coverage. */
 export function parseDraftRulebookLibrary(serialized: string | null): DraftRulebook[] {
   if (!serialized) return []
   try {
     const parsed = JSON.parse(serialized) as unknown
     if (!parsed || typeof parsed !== 'object') return []
     const envelope = parsed as Partial<DraftRulebookLibraryEnvelope>
-    if (envelope.version !== DRAFT_RULEBOOK_LIBRARY_VERSION || !Array.isArray(envelope.rulebooks)) {
-      return []
-    }
+    if (envelope.version !== DRAFT_RULEBOOK_LIBRARY_VERSION || !Array.isArray(envelope.rulebooks)) return []
 
     const seen = new Set<string>()
     const result: DraftRulebook[] = []
     for (const candidate of envelope.rulebooks) {
       const validation = validateDraftRulebook(candidate)
-      if (!validation.valid) continue
-      if (candidate.identifier.id === STANDARD_DRAFT_RULEBOOK_ID) continue
-      if (seen.has(candidate.identifier.id)) continue
+      if (!validation.valid || candidate.identifier.id === STANDARD_DRAFT_RULEBOOK_ID || seen.has(candidate.identifier.id)) continue
       seen.add(candidate.identifier.id)
       result.push(cloneRulebook(candidate))
     }
@@ -117,15 +119,12 @@ export function parseDraftRulebookLibrary(serialized: string | null): DraftRuleb
 
 export function serializeDraftRulebookLibrary(rulebooks: readonly DraftRulebook[]): string {
   const validCustom = rulebooks.filter(
-    (rulebook) =>
-      rulebook.identifier.id !== STANDARD_DRAFT_RULEBOOK_ID &&
-      validateDraftRulebook(rulebook).valid,
+    (rulebook) => rulebook.identifier.id !== STANDARD_DRAFT_RULEBOOK_ID && validateDraftRulebook(rulebook).valid,
   )
-  const envelope: DraftRulebookLibraryEnvelope = {
+  return JSON.stringify({
     version: DRAFT_RULEBOOK_LIBRARY_VERSION,
     rulebooks: validCustom.map(cloneRulebook),
-  }
-  return JSON.stringify(envelope)
+  } satisfies DraftRulebookLibraryEnvelope)
 }
 
 export function parseImportedDraftRulebookIds(serialized: string | null): Set<string> {
@@ -143,40 +142,42 @@ export function serializeImportedDraftRulebookIds(ids: ReadonlySet<string>): str
   return JSON.stringify([...ids].sort((left, right) => left.localeCompare(right)))
 }
 
-export function loadDraftRulebookLibrary(): DraftRulebook[] {
-  try {
-    return parseDraftRulebookLibrary(window.localStorage.getItem(DRAFT_RULEBOOK_LIBRARY_KEY))
-  } catch {
-    return []
-  }
+export function loadDraftRulebookEntries(): RulebookLibraryEntry[] {
+  return loadRulebookLibraryEntries()
 }
 
+export function saveDraftRulebookEntries(entries: readonly RulebookLibraryEntry[]): void {
+  saveRulebookLibraryEntries(entries)
+}
+
+export function loadDraftRulebookLibrary(): DraftRulebook[] {
+  return loadDraftRulebookEntries().map((entry) => cloneRulebook(entry.document))
+}
+
+/**
+ * Compatibility wrapper for callers that only manage documents. Unlike the old
+ * storage format, temporarily invalid editor documents are intentionally kept.
+ */
 export function saveDraftRulebookLibrary(rulebooks: readonly DraftRulebook[]): void {
-  try {
-    window.localStorage.setItem(
-      DRAFT_RULEBOOK_LIBRARY_KEY,
-      serializeDraftRulebookLibrary(rulebooks),
-    )
-  } catch {
-    // Keep the current session usable when storage is unavailable.
-  }
+  const existing = new Map(loadDraftRulebookEntries().map((entry) => [entry.document.identifier.id, entry] as const))
+  saveDraftRulebookEntries(rulebooks
+    .filter((rulebook) => rulebook.identifier.id !== STANDARD_DRAFT_RULEBOOK_ID)
+    .map((rulebook) => ({
+      document: cloneRulebook(rulebook),
+      origin: existing.get(rulebook.identifier.id)?.origin === 'imported' ? 'imported' : 'local',
+      editor: { lastEditedAt: new Date().toISOString() },
+    })))
 }
 
 export function loadImportedDraftRulebookIds(): Set<string> {
-  try {
-    return parseImportedDraftRulebookIds(window.localStorage.getItem(DRAFT_RULEBOOK_IMPORTED_IDS_KEY))
-  } catch {
-    return new Set()
-  }
+  return new Set(loadDraftRulebookEntries()
+    .filter((entry) => entry.origin === 'imported')
+    .map((entry) => entry.document.identifier.id))
 }
 
 export function saveImportedDraftRulebookIds(ids: ReadonlySet<string>): void {
-  try {
-    window.localStorage.setItem(
-      DRAFT_RULEBOOK_IMPORTED_IDS_KEY,
-      serializeImportedDraftRulebookIds(ids),
-    )
-  } catch {
-    // Origin metadata is presentation-only; storage failure must not break the library.
-  }
+  saveDraftRulebookEntries(loadDraftRulebookEntries().map((entry) => ({
+    ...entry,
+    origin: ids.has(entry.document.identifier.id) ? 'imported' : 'local',
+  })))
 }

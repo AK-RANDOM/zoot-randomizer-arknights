@@ -32,7 +32,7 @@ describe('Draft pull distributions', () => {
   })
 
   it('advances pity per generated candidate and resets on a generated 6-star', () => {
-    const candidates = [operator('four', 4), operator('six', 6)]
+    const candidates = [operator('three', 3), operator('four', 4), operator('five', 5), operator('six', 6)]
     const beforePity = pullDraftCandidate(candidates, { type: 'arknights' }, { pullsSinceSixStar: 49 }, sequence([0.97, 0]))
     expect(beforePity.operator.rarity).toBe(4)
     expect(beforePity.state.pullsSinceSixStar).toBe(50)

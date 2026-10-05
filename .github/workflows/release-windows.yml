@@ -2,6 +2,11 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - build/windows-main-20261005-2141
+    paths:
+      - .github/workflows/release-windows.yml
 
 permissions:
   contents: read

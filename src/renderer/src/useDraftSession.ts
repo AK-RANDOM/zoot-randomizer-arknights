@@ -12,11 +12,14 @@ import {
 } from '../../shared/draft'
 import { draftCompletionMessage } from './draftSessionMessages'
 
+export const DRAFT_SESSION_RESET_EVENT = 'arknights-randomizer:draft-session-reset'
+
 interface UseDraftSessionOptions {
   pool: readonly Operator[]
   targetSize: number
   ready: boolean
   configuration?: DraftConfigurationInput
+  sessionKey?: string
   onMessage: (message: string) => void
   onError: (message: string | null) => void
 }
@@ -26,19 +29,22 @@ export interface DraftSessionController {
   distributionLabel: string
   start: () => void
   pick: (operatorId: string) => void
+  reset: (message?: string) => void
 }
 
-const RESET_MESSAGE = 'Draft reset because the squad size or eligible operator pool changed.'
+const RESET_MESSAGE = 'Draft reset because the squad size, eligible pool, or Draft Rulebook changed.'
 
 export default function useDraftSession({
   pool,
   targetSize,
   ready,
   configuration,
+  sessionKey,
   onMessage,
   onError,
 }: UseDraftSessionOptions): DraftSessionController {
   const [state, setState] = useState<DraftState | null>(null)
+  const [activeIdentity, setActiveIdentity] = useState<string | null>(null)
   const resolvedConfiguration = useMemo(
     () => resolveDraftConfiguration(configuration ?? STANDARD_DRAFT_CONFIGURATION),
     [configuration],
@@ -48,12 +54,28 @@ export default function useDraftSession({
     [resolvedConfiguration],
   )
   const poolKey = useMemo(() => createDraftPoolKey(pool, targetSize), [pool, targetSize])
+  const identity = useMemo(
+    () => `${poolKey}\n${sessionKey ?? JSON.stringify(resolvedConfiguration)}`,
+    [poolKey, resolvedConfiguration, sessionKey],
+  )
+
+  const reset = useCallback((message = RESET_MESSAGE): void => {
+    setState(null)
+    setActiveIdentity(null)
+    onError(null)
+    onMessage(message)
+  }, [onError, onMessage])
 
   useEffect(() => {
-    if (!state || state.poolKey === poolKey) return
-    setState(null)
-    onMessage(RESET_MESSAGE)
-  }, [onMessage, poolKey, state])
+    if (!state || activeIdentity === identity) return
+    reset()
+  }, [activeIdentity, identity, reset, state])
+
+  useEffect(() => {
+    const listener = (): void => reset()
+    window.addEventListener(DRAFT_SESSION_RESET_EVENT, listener)
+    return () => window.removeEventListener(DRAFT_SESSION_RESET_EVENT, listener)
+  }, [reset])
 
   const start = useCallback((): void => {
     if (!ready) return
@@ -61,6 +83,7 @@ export default function useDraftSession({
     try {
       const next = startDraft(pool, targetSize, engineOptions)
       setState(next)
+      setActiveIdentity(identity)
       onMessage(
         next.status === 'complete'
           ? draftCompletionMessage(next)
@@ -69,14 +92,13 @@ export default function useDraftSession({
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : String(reason))
     }
-  }, [engineOptions, onError, onMessage, pool, ready, targetSize])
+  }, [engineOptions, identity, onError, onMessage, pool, ready, targetSize])
 
   const pick = useCallback(
     (operatorId: string): void => {
       if (!state) return
-      if (state.poolKey !== poolKey) {
-        setState(null)
-        onMessage(RESET_MESSAGE)
+      if (activeIdentity !== identity || state.poolKey !== poolKey) {
+        reset()
         return
       }
 
@@ -94,7 +116,7 @@ export default function useDraftSession({
         onError(reason instanceof Error ? reason.message : String(reason))
       }
     },
-    [engineOptions, onError, onMessage, pool, poolKey, state],
+    [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state],
   )
 
   return {
@@ -102,5 +124,6 @@ export default function useDraftSession({
     distributionLabel: draftPullDistributionLabel(resolvedConfiguration.pullDistribution),
     start,
     pick,
+    reset,
   }
 }

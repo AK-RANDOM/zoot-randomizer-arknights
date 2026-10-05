@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
-import { DEFAULT_DRAFT_ECONOMY_RULES } from '../../shared/draft'
+import {
+  DEFAULT_DRAFT_ACTION_RULES,
+  DEFAULT_DRAFT_CAPACITY_RULES,
+  DEFAULT_DRAFT_ECONOMY_RULES,
+  resolveDraftConfiguration,
+  type DraftLimitedActionRules,
+  type DraftRerollRules,
+} from '../../shared/draft'
 import { operatorRarities, type OperatorDataset } from '../../shared/operator'
-import type { DraftPullDistribution } from '../../shared/draftDistribution'
 import {
   STANDARD_DRAFT_RULEBOOK,
   STANDARD_DRAFT_RULEBOOK_ID,
   createEmptyDraftRulebookEligibility,
-  resolveDraftRulebook,
   validateDraftRulebook,
   type DraftRulebook,
 } from '../../shared/draftRulebook'
 import { getDraftRulebookOperatorCostBreakdown } from '../../shared/draftRulebookCost'
 import OperatorCard from './OperatorCard'
+import DraftRulebookDistributionEditor from './DraftRulebookDistributionEditor'
+import { DraftRulebookEligibilityEditor } from './DraftRulebookSelectorEditor'
 import {
   createLocalDraftRulebook,
   loadDraftRulebookLibrary,
@@ -23,24 +30,10 @@ interface DraftRulebookPanelProps {
   dataset: OperatorDataset
 }
 
+type RerollMode = 'none' | 'per-round' | 'per-draft' | 'unlimited' | 'advanced'
+
 function cloneRulebookForEditing(rulebook: DraftRulebook): DraftRulebook {
   return JSON.parse(JSON.stringify(rulebook)) as DraftRulebook
-}
-
-function defaultCustomDistribution(): DraftPullDistribution {
-  return {
-    type: 'custom',
-    buckets: [
-      { id: 'bucket-3', weight: 40, rarities: [3] },
-      { id: 'bucket-4', weight: 50, rarities: [2, 4] },
-      { id: 'bucket-5', weight: 8, rarities: [1, 5] },
-      { id: 'bucket-6', weight: 2, rarities: [6] },
-    ],
-  }
-}
-
-function distributionType(rulebook: DraftRulebook): DraftPullDistribution['type'] {
-  return rulebook.generalRules.pullDistribution?.type ?? 'equal'
 }
 
 function selectorCount(rulebook: DraftRulebook): number {
@@ -51,6 +44,85 @@ function selectorCount(rulebook: DraftRulebook): number {
 
 function signed(value: number): string {
   return value > 0 ? `+${value}` : String(value)
+}
+
+function parseLimit(value: string): number | null {
+  if (value.trim() === '') return null
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+function rerollMode(rule: DraftRerollRules): RerollMode {
+  if (!rule.enabled) return 'none'
+  if (rule.perRoundLimit === null && rule.perDraftLimit === null) return 'unlimited'
+  if (rule.perRoundLimit !== null && rule.perDraftLimit === null) return 'per-round'
+  if (rule.perRoundLimit === null && rule.perDraftLimit !== null) return 'per-draft'
+  return 'advanced'
+}
+
+function LimitedActionEditor({
+  label,
+  description,
+  rule,
+  disabled,
+  onChange,
+  children,
+}: {
+  label: string
+  description: string
+  rule: DraftLimitedActionRules
+  disabled: boolean
+  onChange: (rule: DraftLimitedActionRules) => void
+  children?: React.ReactNode
+}): React.JSX.Element {
+  return (
+    <div className="rulebook-action-card">
+      <label className="rulebook-toggle">
+        <input
+          type="checkbox"
+          disabled={disabled}
+          checked={rule.enabled}
+          onChange={(event) => onChange({ ...rule, enabled: event.target.checked })}
+        />
+        <span><strong>{label}</strong> — {description}</span>
+      </label>
+      <div className="rulebook-inline-fields rulebook-inline-fields--three">
+        <label className="field">
+          <span>Per-round limit</span>
+          <input
+            type="number"
+            min={1}
+            placeholder="Unlimited"
+            disabled={disabled || !rule.enabled}
+            value={rule.perRoundLimit ?? ''}
+            onChange={(event) => onChange({ ...rule, perRoundLimit: parseLimit(event.target.value) })}
+          />
+        </label>
+        <label className="field">
+          <span>Per-draft limit</span>
+          <input
+            type="number"
+            min={1}
+            placeholder="Unlimited"
+            disabled={disabled || !rule.enabled}
+            value={rule.perDraftLimit ?? ''}
+            onChange={(event) => onChange({ ...rule, perDraftLimit: parseLimit(event.target.value) })}
+          />
+        </label>
+        <label className="field">
+          <span>Cooldown rounds</span>
+          <input
+            type="number"
+            min={0}
+            disabled={disabled || !rule.enabled}
+            value={rule.cooldownRounds}
+            onChange={(event) => onChange({ ...rule, cooldownRounds: Math.max(0, Number(event.target.value) || 0) })}
+          />
+        </label>
+      </div>
+      {children}
+    </div>
+  )
 }
 
 export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps): React.JSX.Element {
@@ -69,14 +141,15 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     ?? STANDARD_DRAFT_RULEBOOK
   const builtIn = selected.identifier.id === STANDARD_DRAFT_RULEBOOK_ID
   const validation = useMemo(() => validateDraftRulebook(selected), [selected])
-  const resolved = useMemo(() => {
-    if (!validation.valid) return null
-    try {
-      return resolveDraftRulebook(selected)
-    } catch {
-      return null
-    }
-  }, [selected, validation.valid])
+  const previewConfiguration = useMemo(() => resolveDraftConfiguration({
+    actionRules: selected.generalRules.actionRules,
+    capacityRules: selected.generalRules.capacityRules,
+    economyRules: {
+      ...selected.generalRules.economyRules,
+      operatorCostOverrides: selected.overrides.operatorCosts,
+    },
+    pullDistribution: selected.generalRules.pullDistribution,
+  }), [selected])
 
   const sortedOperators = useMemo(
     () => [...dataset.operators].sort((left, right) => left.name.localeCompare(right.name)),
@@ -138,32 +211,9 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     })
   }
 
-  const setDistribution = (type: DraftPullDistribution['type']): void => {
-    updateSelected((draft) => {
-      if (type === 'equal') draft.generalRules.pullDistribution = { type: 'equal' }
-      else if (type === 'arknights') draft.generalRules.pullDistribution = { type: 'arknights' }
-      else draft.generalRules.pullDistribution = defaultCustomDistribution()
-    })
-  }
-
-  const setCustomBucketWeight = (bucketId: string, weight: number): void => {
-    if (!Number.isFinite(weight) || weight < 0) return
-    updateSelected((draft) => {
-      const distribution = draft.generalRules.pullDistribution
-      if (distribution?.type !== 'custom') return
-      distribution.buckets = distribution.buckets.map((bucket) =>
-        bucket.id === bucketId ? { ...bucket, weight } : bucket,
-      )
-    })
-  }
-
-  const economy = resolved?.configuration.economyRules
-  const capacity = resolved?.configuration.capacityRules
-  const selectedOverrideOperator = operatorById.get(overrideOperatorId)
-
   const rarityCost = (rarity: (typeof operatorRarities)[number]): number =>
     selected.generalRules.economyRules?.rarityCosts?.[rarity]
-      ?? economy?.rarityCosts[rarity]
+      ?? previewConfiguration.economyRules.rarityCosts[rarity]
       ?? DEFAULT_DRAFT_ECONOMY_RULES.rarityCosts[rarity]
       ?? 0
 
@@ -180,6 +230,74 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
     })
   }
 
+  const updateEconomy = (patch: Partial<NonNullable<DraftRulebook['generalRules']['economyRules']>>): void => {
+    updateSelected((draft) => {
+      draft.generalRules.economyRules = { ...draft.generalRules.economyRules, ...patch }
+    })
+  }
+
+  const updateCapacity = (patch: Partial<NonNullable<DraftRulebook['generalRules']['capacityRules']>>): void => {
+    updateSelected((draft) => {
+      draft.generalRules.capacityRules = { ...draft.generalRules.capacityRules, ...patch }
+    })
+  }
+
+  const updateHold = (patch: Partial<typeof previewConfiguration.actionRules.hold>): void => {
+    updateSelected((draft) => {
+      draft.generalRules.actionRules = {
+        ...draft.generalRules.actionRules,
+        hold: { ...previewConfiguration.actionRules.hold, ...patch },
+      }
+    })
+  }
+
+  const updateForfeit = (patch: Partial<typeof previewConfiguration.actionRules.forfeit>): void => {
+    updateSelected((draft) => {
+      draft.generalRules.actionRules = {
+        ...draft.generalRules.actionRules,
+        forfeit: { ...previewConfiguration.actionRules.forfeit, ...patch },
+      }
+    })
+  }
+
+  const updateReroll = (patch: Partial<typeof previewConfiguration.actionRules.reroll>): void => {
+    updateSelected((draft) => {
+      draft.generalRules.actionRules = {
+        ...draft.generalRules.actionRules,
+        reroll: { ...previewConfiguration.actionRules.reroll, ...patch },
+      }
+    })
+  }
+
+  const updateSlotExpansion = (patch: Partial<typeof previewConfiguration.actionRules.slotExpansion>): void => {
+    updateSelected((draft) => {
+      draft.generalRules.actionRules = {
+        ...draft.generalRules.actionRules,
+        slotExpansion: { ...previewConfiguration.actionRules.slotExpansion, ...patch },
+      }
+    })
+  }
+
+  const setRerollMode = (mode: RerollMode): void => {
+    const current = previewConfiguration.actionRules.reroll
+    switch (mode) {
+      case 'none':
+        updateReroll({ enabled: false })
+        return
+      case 'per-round':
+        updateReroll({ enabled: true, perRoundLimit: current.perRoundLimit ?? 1, perDraftLimit: null })
+        return
+      case 'per-draft':
+        updateReroll({ enabled: true, perRoundLimit: null, perDraftLimit: current.perDraftLimit ?? 1 })
+        return
+      case 'unlimited':
+        updateReroll({ enabled: true, perRoundLimit: null, perDraftLimit: null })
+        return
+      case 'advanced':
+        updateReroll({ enabled: true, perRoundLimit: current.perRoundLimit ?? 1, perDraftLimit: current.perDraftLimit ?? 1 })
+    }
+  }
+
   const chooseOverrideOperator = (operatorId: string): void => {
     setOverrideOperatorId(operatorId)
     if (!operatorId) {
@@ -194,11 +312,12 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
   }
 
   const saveOverride = (): void => {
-    if (!selectedOverrideOperator || builtIn) return
+    const operator = operatorById.get(overrideOperatorId)
+    if (!operator || builtIn) return
     const value = Number(overrideCost)
     if (!Number.isFinite(value)) return
     updateSelected((draft) => {
-      draft.overrides.operatorCosts[selectedOverrideOperator.id] = value
+      draft.overrides.operatorCosts[operator.id] = value
     })
   }
 
@@ -207,6 +326,11 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
       delete draft.overrides.operatorCosts[operatorId]
     })
   }
+
+  const economy = previewConfiguration.economyRules
+  const capacity = previewConfiguration.capacityRules
+  const actions = previewConfiguration.actionRules
+  const pullDistribution = selected.generalRules.pullDistribution ?? { type: 'equal' as const }
 
   return (
     <section className="panel rulebook-panel" aria-labelledby="rulebook-heading">
@@ -256,89 +380,82 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
       <div className="rulebook-editor-grid">
         <fieldset className="constraint-group rulebook-editor-section">
           <legend>Identifier</legend>
-          <label className="field">
-            <span>Name</span>
-            <input disabled={builtIn} value={selected.identifier.name} onChange={(event) => updateSelected((draft) => { draft.identifier.name = event.target.value })} />
-          </label>
-          <label className="field">
-            <span>Description</span>
-            <textarea disabled={builtIn} rows={3} value={selected.identifier.description} onChange={(event) => updateSelected((draft) => { draft.identifier.description = event.target.value })} />
-          </label>
+          <label className="field"><span>Name</span><input disabled={builtIn} value={selected.identifier.name} onChange={(event) => updateSelected((draft) => { draft.identifier.name = event.target.value })} /></label>
+          <label className="field"><span>Description</span><textarea disabled={builtIn} rows={3} value={selected.identifier.description} onChange={(event) => updateSelected((draft) => { draft.identifier.description = event.target.value })} /></label>
           <div className="rulebook-inline-fields">
-            <label className="field">
-              <span>Revision</span>
-              <input disabled={builtIn} value={selected.identifier.revision} onChange={(event) => updateSelected((draft) => { draft.identifier.revision = event.target.value })} />
-            </label>
-            <label className="field">
-              <span>Created</span>
-              <input readOnly value={selected.identifier.createdAt} />
-            </label>
+            <label className="field"><span>Revision</span><input disabled={builtIn} value={selected.identifier.revision} onChange={(event) => updateSelected((draft) => { draft.identifier.revision = event.target.value })} /></label>
+            <label className="field"><span>Created</span><input readOnly value={selected.identifier.createdAt} /></label>
           </div>
-          <small className="filter-note">Schema version and author-facing revision are intentionally separate. Built-ins are read-only but can be duplicated.</small>
+          <small className="filter-note">Schema version and author-facing revision are separate. Built-ins are read-only but can be duplicated.</small>
         </fieldset>
 
         <fieldset className="constraint-group rulebook-editor-section">
-          <legend>General Rules</legend>
+          <legend>Draft Structure & Economy</legend>
           <div className="rulebook-inline-fields">
-            <label className="field">
-              <span>Choices per offer</span>
-              <input type="number" value={selected.generalRules.offerSize} readOnly />
-            </label>
-            <label className="field">
-              <span>Starting points</span>
-              <input
-                type="number"
-                disabled={builtIn}
-                value={economy?.startingPoints ?? selected.generalRules.economyRules?.startingPoints ?? 0}
-                onChange={(event) => updateSelected((draft) => {
-                  draft.generalRules.economyRules = { ...draft.generalRules.economyRules, startingPoints: Number(event.target.value) }
-                })}
-              />
-            </label>
+            <label className="field"><span>Choices per offer</span><input type="number" value={selected.generalRules.offerSize} readOnly /></label>
+            <label className="field"><span>Starting points</span><input type="number" disabled={builtIn} value={economy.startingPoints} onChange={(event) => updateEconomy({ startingPoints: Number(event.target.value) })} /></label>
           </div>
-          <label className="rulebook-toggle">
-            <input
-              type="checkbox"
-              disabled={builtIn}
-              checked={economy?.enabled ?? selected.generalRules.economyRules?.enabled ?? false}
-              onChange={(event) => updateSelected((draft) => {
-                draft.generalRules.economyRules = { ...draft.generalRules.economyRules, enabled: event.target.checked }
-              })}
-            />
-            <span>Enable point economy</span>
-          </label>
+          <label className="rulebook-toggle"><input type="checkbox" disabled={builtIn} checked={economy.enabled} onChange={(event) => updateEconomy({ enabled: event.target.checked })} /><span>Enable point economy</span></label>
           <div className="rulebook-rarity-cost-grid">
             {operatorRarities.map((rarity) => (
-              <label className="field" key={rarity}>
-                <span>{rarity}★ cost</span>
-                <input
-                  type="number"
-                  disabled={builtIn}
-                  value={rarityCost(rarity)}
-                  onChange={(event) => setRarityCost(rarity, Number(event.target.value))}
-                />
-              </label>
+              <label className="field" key={rarity}><span>{rarity}★ cost</span><input type="number" disabled={builtIn} value={rarityCost(rarity)} onChange={(event) => setRarityCost(rarity, Number(event.target.value))} /></label>
             ))}
           </div>
-          <label className="rulebook-toggle">
-            <input
-              type="checkbox"
-              disabled={builtIn}
-              checked={capacity?.enabled ?? selected.generalRules.capacityRules?.enabled ?? false}
-              onChange={(event) => updateSelected((draft) => {
-                draft.generalRules.capacityRules = { ...draft.generalRules.capacityRules, enabled: event.target.checked }
-              })}
-            />
-            <span>Enable capacity rules</span>
-          </label>
           <div className="rulebook-inline-fields rulebook-inline-fields--three">
-            <label className="field"><span>Starting active</span><input type="number" min={1} disabled={builtIn} value={capacity?.startingActiveSlots ?? 6} onChange={(event) => updateSelected((draft) => { draft.generalRules.capacityRules = { ...draft.generalRules.capacityRules, startingActiveSlots: Number(event.target.value) } })} /></label>
-            <label className="field"><span>Overflow</span><input type="number" min={0} disabled={builtIn} value={capacity?.overflowSlots ?? 1} onChange={(event) => updateSelected((draft) => { draft.generalRules.capacityRules = { ...draft.generalRules.capacityRules, overflowSlots: Number(event.target.value) } })} /></label>
-            <label className="field"><span>Max active</span><input type="number" min={1} disabled={builtIn} value={capacity?.maxActiveSlots ?? 12} onChange={(event) => updateSelected((draft) => { draft.generalRules.capacityRules = { ...draft.generalRules.capacityRules, maxActiveSlots: Number(event.target.value) } })} /></label>
+            <label className="field"><span>Forfeit rebate</span><input type="number" disabled={builtIn} value={economy.forfeitRebate} onChange={(event) => updateEconomy({ forfeitRebate: Number(event.target.value) })} /></label>
+            <label className="field"><span>Reroll cost</span><input type="number" disabled={builtIn} value={economy.rerollCost} onChange={(event) => updateEconomy({ rerollCost: Number(event.target.value) })} /></label>
+            <label className="field"><span>Hold cost</span><input type="number" disabled={builtIn} value={economy.holdCost} onChange={(event) => updateEconomy({ holdCost: Number(event.target.value) })} /></label>
           </div>
-          <small className="filter-note">Advanced Reroll / Hold / Forfeit / Slot Expansion authoring remains a later UI slice; existing imported values are preserved.</small>
+          <label className="field"><span>Slot expansion cost</span><input type="number" disabled={builtIn} value={economy.slotExpansionCost} onChange={(event) => updateEconomy({ slotExpansionCost: Number(event.target.value) })} /></label>
+          <label className="rulebook-toggle"><input type="checkbox" disabled={builtIn} checked={capacity.enabled} onChange={(event) => updateCapacity({ enabled: event.target.checked })} /><span>Enable capacity rules</span></label>
+          <div className="rulebook-inline-fields rulebook-inline-fields--three">
+            <label className="field"><span>Starting active</span><input type="number" min={1} disabled={builtIn} value={capacity.startingActiveSlots} onChange={(event) => updateCapacity({ startingActiveSlots: Number(event.target.value) })} /></label>
+            <label className="field"><span>Overflow</span><input type="number" min={0} disabled={builtIn} value={capacity.overflowSlots} onChange={(event) => updateCapacity({ overflowSlots: Number(event.target.value) })} /></label>
+            <label className="field"><span>Max active</span><input type="number" min={1} disabled={builtIn} value={capacity.maxActiveSlots} onChange={(event) => updateCapacity({ maxActiveSlots: Number(event.target.value) })} /></label>
+          </div>
         </fieldset>
+      </div>
 
+      <fieldset className="constraint-group rulebook-editor-section rulebook-wide-section">
+        <legend>Advanced Actions</legend>
+        <div className="rulebook-action-grid">
+          <LimitedActionEditor label="Hold" description="consumes the round and stores one offered operator" rule={actions.hold} disabled={builtIn} onChange={(rule) => updateHold(rule)}>
+            <label className="rulebook-toggle"><input type="checkbox" disabled={builtIn || !actions.hold.enabled} checked={actions.hold.discardUnheldOffer} onChange={(event) => updateHold({ discardUnheldOffer: event.target.checked })} /><span>Discard the other offered operators when Hold resolves</span></label>
+          </LimitedActionEditor>
+
+          <LimitedActionEditor label="Forfeit" description="consumes the round and gives up one usable capacity opportunity" rule={actions.forfeit} disabled={builtIn} onChange={(rule) => updateForfeit(rule)}>
+            <label className="rulebook-toggle"><input type="checkbox" disabled={builtIn || !actions.forfeit.enabled} checked={actions.forfeit.discardOffer} onChange={(event) => updateForfeit({ discardOffer: event.target.checked })} /><span>Discard the forfeited offer from the draft pool</span></label>
+          </LimitedActionEditor>
+
+          <div className="rulebook-action-card">
+            <div className="rulebook-editor-subheading"><div><strong>Reroll</strong><small>Non-turn-consuming. Replaces the current offer.</small></div></div>
+            <label className="field">
+              <span>Limit mode</span>
+              <select disabled={builtIn} value={rerollMode(actions.reroll)} onChange={(event) => setRerollMode(event.target.value as RerollMode)}>
+                <option value="none">None</option>
+                <option value="per-round">Per round</option>
+                <option value="per-draft">Per draft</option>
+                <option value="unlimited">Unlimited</option>
+                {rerollMode(actions.reroll) === 'advanced' && <option value="advanced">Advanced imported limits</option>}
+              </select>
+            </label>
+            {actions.reroll.enabled && rerollMode(actions.reroll) !== 'unlimited' && rerollMode(actions.reroll) !== 'none' && (
+              <div className="rulebook-inline-fields">
+                {(rerollMode(actions.reroll) === 'per-round' || rerollMode(actions.reroll) === 'advanced') && <label className="field"><span>Per-round limit</span><input type="number" min={1} disabled={builtIn} value={actions.reroll.perRoundLimit ?? ''} onChange={(event) => updateReroll({ perRoundLimit: parseLimit(event.target.value) })} /></label>}
+                {(rerollMode(actions.reroll) === 'per-draft' || rerollMode(actions.reroll) === 'advanced') && <label className="field"><span>Per-draft limit</span><input type="number" min={1} disabled={builtIn} value={actions.reroll.perDraftLimit ?? ''} onChange={(event) => updateReroll({ perDraftLimit: parseLimit(event.target.value) })} /></label>}
+              </div>
+            )}
+            <label className="field"><span>Cooldown rounds</span><input type="number" min={0} disabled={builtIn || !actions.reroll.enabled} value={actions.reroll.cooldownRounds} onChange={(event) => updateReroll({ cooldownRounds: Math.max(0, Number(event.target.value) || 0) })} /></label>
+            <label className="rulebook-toggle"><input type="checkbox" disabled={builtIn || !actions.reroll.enabled} checked={actions.reroll.discardOffer} onChange={(event) => updateReroll({ discardOffer: event.target.checked })} /><span>Discard rerolled operators from the draft pool</span></label>
+          </div>
+
+          <LimitedActionEditor label="Slot Expansion" description="non-turn-consuming capacity purchase" rule={actions.slotExpansion} disabled={builtIn} onChange={(rule) => updateSlotExpansion(rule)}>
+            <small className="filter-note">Current design expects at most once per round; the default Rulebook value is {DEFAULT_DRAFT_ACTION_RULES.slotExpansion.perRoundLimit}.</small>
+          </LimitedActionEditor>
+        </div>
+      </fieldset>
+
+      <div className="rulebook-editor-grid">
         <fieldset className="constraint-group rulebook-editor-section">
           <legend>Pool</legend>
           <label className="field">
@@ -349,94 +466,54 @@ export default function DraftRulebookPanel({ dataset }: DraftRulebookPanelProps)
               <option value="rulebook-pool">Rulebook Pool</option>
             </select>
           </label>
-          <p className="filter-note">
-            {selected.pool.source === 'inherit-global'
-              ? 'Uses the current app-wide Global Pool exactly.'
-              : selected.pool.source === 'global-restrictions'
-                ? 'Rulebook eligibility can only remove operators from the Global Pool.'
-                : 'Rulebook eligibility resolves from the installed dataset and ignores Global Pool exclusions.'}
-          </p>
+          <p className="filter-note">{selected.pool.source === 'inherit-global' ? 'Uses the current app-wide Global Pool exactly.' : selected.pool.source === 'global-restrictions' ? 'Restrictions can only remove operators from the current Global Pool.' : 'Eligibility resolves from the installed dataset and ignores Global Pool exclusions.'}</p>
           {selected.pool.source !== 'inherit-global' && (
-            <div className="rulebook-placeholder-box">
-              <strong>{selectorCount(selected)} selector{selectorCount(selected) === 1 ? '' : 's'} preserved</strong>
-              <span>Full selector authoring will reuse the Global Pool browser patterns in a later pass. This basic editor can switch Pool Source without destroying imported selectors.</span>
-            </div>
+            <DraftRulebookEligibilityEditor
+              dataset={dataset}
+              eligibility={selected.pool.eligibility}
+              disabled={builtIn}
+              onChange={(eligibility) => updateSelected((draft) => {
+                if (draft.pool.source !== 'inherit-global') draft.pool.eligibility = eligibility
+              })}
+            />
           )}
         </fieldset>
 
         <fieldset className="constraint-group rulebook-editor-section">
           <legend>Pull Distribution</legend>
-          <label className="field">
-            <span>Mode</span>
-            <select disabled={builtIn} value={distributionType(selected)} onChange={(event) => setDistribution(event.target.value as DraftPullDistribution['type'])}>
-              <option value="equal">Equal Opportunity</option>
-              <option value="arknights">Arknights Headhunting</option>
-              <option value="custom">Custom Distribution</option>
-            </select>
-          </label>
-          {distributionType(selected) === 'arknights' && <p className="filter-note">Uses the locked Arknights bucket rates and pity behavior. Rate-up authoring is deferred.</p>}
-          {selected.generalRules.pullDistribution?.type === 'custom' && (
-            <div className="rulebook-bucket-grid">
-              {selected.generalRules.pullDistribution.buckets.map((bucket) => (
-                <label className="field rulebook-bucket" key={bucket.id}>
-                  <span>{bucket.id} • {bucket.rarities.map((rarity) => `${rarity}★`).join(', ') || 'empty'}</span>
-                  <input type="number" min={0} step={1} disabled={builtIn} value={bucket.weight} onChange={(event) => setCustomBucketWeight(bucket.id, Number(event.target.value))} />
-                </label>
-              ))}
-              <small className="filter-note">This first editor supports custom bucket weights while preserving bucket membership. Full bucket/rate-up authoring follows later.</small>
-            </div>
-          )}
+          <DraftRulebookDistributionEditor
+            dataset={dataset}
+            distribution={pullDistribution}
+            disabled={builtIn}
+            onChange={(distribution) => updateSelected((draft) => { draft.generalRules.pullDistribution = distribution })}
+          />
         </fieldset>
       </div>
 
       <fieldset className="constraint-group rulebook-editor-section rulebook-overrides-section">
         <legend>Overrides</legend>
         <div className="rulebook-override-adder">
-          <label className="field">
-            <span>Operator</span>
-            <select disabled={builtIn} value={overrideOperatorId} onChange={(event) => chooseOverrideOperator(event.target.value)}>
-              <option value="">Choose operator…</option>
-              {sortedOperators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name} ({operator.rarity}★)</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Baseline cost</span>
-            <input type="number" disabled={builtIn || !overrideOperatorId} value={overrideCost} onChange={(event) => setOverrideCost(event.target.value)} />
-          </label>
+          <label className="field"><span>Operator</span><select disabled={builtIn} value={overrideOperatorId} onChange={(event) => chooseOverrideOperator(event.target.value)}><option value="">Choose operator…</option>{sortedOperators.map((operator) => <option key={operator.id} value={operator.id}>{operator.name} ({operator.rarity}★)</option>)}</select></label>
+          <label className="field"><span>Baseline cost</span><input type="number" disabled={builtIn || !overrideOperatorId} value={overrideCost} onChange={(event) => setOverrideCost(event.target.value)} /></label>
           <button type="button" className="secondary-button" disabled={builtIn || !overrideOperatorId || !Number.isFinite(Number(overrideCost))} onClick={saveOverride}>Add / Update</button>
         </div>
 
-        {overrideIds.length === 0 ? (
-          <p className="filter-note">No operator overrides. Operators inherit their rarity baseline.</p>
-        ) : (
+        {overrideIds.length === 0 ? <p className="filter-note">No operator overrides. Operators inherit their rarity baseline.</p> : (
           <div className="rulebook-override-grid">
             {overrideIds.map((operatorId) => {
               const operator = operatorById.get(operatorId)
               const storedCost = selected.overrides.operatorCosts[operatorId]
-              if (!operator) {
-                return (
-                  <article className="rulebook-unresolved-override" key={operatorId}>
-                    <strong>{operatorId}</strong>
-                    <span>Unresolved operator reference • baseline {storedCost}</span>
-                    {!builtIn && <button type="button" className="secondary-button" onClick={() => removeOverride(operatorId)}>Remove</button>}
-                  </article>
-                )
-              }
+              if (!operator) return <article className="rulebook-unresolved-override" key={operatorId}><strong>{operatorId}</strong><span>Unresolved operator reference • baseline {storedCost}</span>{!builtIn && <button type="button" className="secondary-button" onClick={() => removeOverride(operatorId)}>Remove</button>}</article>
               const cost = getDraftRulebookOperatorCostBreakdown(selected, operator)
-              return (
-                <div className="rulebook-override-card" key={operatorId}>
-                  <OperatorCard operator={operator} />
-                  <div className="rulebook-override-meta">
-                    <span>Default rarity cost <strong>{cost.rarityCost}</strong></span>
-                    <span>Override <strong>{signed(cost.overrideDelta)}</strong></span>
-                    <span>Baseline <strong>{cost.baselineCost}</strong></span>
-                    {!builtIn && <button type="button" className="secondary-button" onClick={() => removeOverride(operatorId)}>Remove</button>}
-                  </div>
-                </div>
-              )
+              return <div className="rulebook-override-card" key={operatorId}><OperatorCard operator={operator} /><div className="rulebook-override-meta"><span>Default rarity cost <strong>{cost.rarityCost}</strong></span><span>Override <strong>{signed(cost.overrideDelta)}</strong></span><span>Baseline <strong>{cost.baselineCost}</strong></span>{!builtIn && <button type="button" className="secondary-button" onClick={() => removeOverride(operatorId)}>Remove</button>}</div></div>
             })}
           </div>
         )}
+      </fieldset>
+
+      <fieldset className="constraint-group rulebook-editor-section rulebook-wide-section">
+        <legend>Interactions</legend>
+        <p className="filter-note">Interaction pricing is preserved in the portable Rulebook and will be executable/editor-visible in PR G/H. Current interactions: {selected.interactions.length}.</p>
       </fieldset>
     </section>
   )

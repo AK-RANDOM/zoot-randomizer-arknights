@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Operator } from './operator'
 import {
   applyDraftAction,
+  currentDraftOwnershipCapacity,
+  getDraftActionAvailability,
   getDraftActionPointDelta,
   getDraftOperatorCost,
   startDraft,
@@ -57,12 +59,20 @@ describe('Draft point economy', () => {
     expect(state.points).toBe(8)
   })
 
-  it('blocks an unaffordable pick without changing appearance probability', () => {
+  it('reports and enforces an unaffordable offered pick without hiding it', () => {
     const costlyPool = [pool[5], pool[0], pool[1], ...pool.slice(6)]
     const zeroBudget = { ...options, economyRules: { enabled: true, startingPoints: 0 } }
     const state = startDraft(costlyPool, 6, zeroBudget)
     expect(state.currentOfferIds).toContain('six')
     expect(getDraftActionPointDelta(costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toBe(-32)
+    expect(
+      getDraftActionAvailability(
+        state,
+        { type: 'pick', operatorId: 'six' },
+        zeroBudget,
+        costlyPool,
+      ).reason,
+    ).toBe('insufficient-points')
     expect(() => applyDraftAction(state, costlyPool, { type: 'pick', operatorId: 'six' }, zeroBudget)).toThrow('insufficient-points')
   })
 
@@ -78,6 +88,16 @@ describe('Draft point economy', () => {
     expect(state.points).toBe(5)
     state = applyDraftAction(state, pool, { type: 'forfeit' }, priced)
     expect(state.points).toBe(9)
+  })
+
+  it('does not opt into 6+1 capacity merely because slot expansion is enabled', () => {
+    const legacyCompatible: DraftEngineOptions = {
+      random: () => 0,
+      actionRules: { slotExpansion: { enabled: true } },
+    }
+    const state = startDraft(pool, 6, legacyCompatible)
+    expect(state.capacityRulesEnabled).toBe(false)
+    expect(currentDraftOwnershipCapacity(state)).toBe(6)
   })
 
   it('keeps Standard Draft point-neutral when economy is disabled', () => {

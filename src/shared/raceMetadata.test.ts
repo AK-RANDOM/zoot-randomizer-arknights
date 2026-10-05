@@ -103,7 +103,19 @@ describe('M6 race metadata', () => {
     },
   )
 
-  it("normalizes Ch'en's known EN handbook punctuation quirk only at operator mapping", () => {
+  it('strips trailing sentence punctuation generally while preserving internal punctuation', () => {
+    expect(raceValueFromHandbookRecord(handbook('[Race] Lung.'), 'en')).toBe('Lung')
+    expect(raceValueFromHandbookRecord(handbook('[Race] Sankta!?'), 'en')).toBe('Sankta')
+    expect(raceValueFromHandbookRecord(handbook('【种族】龙。'), 'cn')).toBe('龙')
+    expect(
+      raceValueFromHandbookRecord(handbook('[Race] Unknown (Suspected Liberi).'), 'en'),
+    ).toBe('Unknown (Suspected Liberi)')
+    expect(raceValueFromHandbookRecord(handbook('[Race] Tall-man (Self-declared)'), 'en')).toBe(
+      'Tall-man (Self-declared)',
+    )
+  })
+
+  it('applies the same trailing-punctuation normalization across operators', () => {
     const values = raceValuesFromHandbook(
       {
         handbookDict: {
@@ -115,7 +127,7 @@ describe('M6 race metadata', () => {
     )
 
     expect(values.char_010_chen).toBe('Lung')
-    expect(values.char_other).toBe('Lung.')
+    expect(values.char_other).toBe('Lung')
   })
 
   it('keeps disclosed source values distinct from genuinely missing metadata', () => {

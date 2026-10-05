@@ -9,7 +9,10 @@ import {
 import {
   createLocalDraftRulebook,
   parseDraftRulebookLibrary,
+  parseImportedDraftRulebookIds,
+  prepareImportedDraftRulebook,
   serializeDraftRulebookLibrary,
+  serializeImportedDraftRulebookIds,
 } from './draftRulebookStorage'
 
 function cloneStandard(): DraftRulebook {
@@ -66,5 +69,56 @@ describe('Draft Rulebook library storage', () => {
 
     copy.generalRules.offerSize = 99
     expect(STANDARD_DRAFT_RULEBOOK.generalRules.offerSize).toBe(3)
+  })
+
+  it('preserves imported stable identity and name when neither collides', () => {
+    const imported = cloneStandard()
+    imported.identifier.id = 'community:rules'
+    imported.identifier.name = 'Community Rules'
+
+    const prepared = prepareImportedDraftRulebook(imported, [])
+
+    expect(prepared.identityChanged).toBe(false)
+    expect(prepared.nameChanged).toBe(false)
+    expect(prepared.rulebook.identifier.id).toBe('community:rules')
+    expect(prepared.rulebook.identifier.name).toBe('Community Rules')
+  })
+
+  it('never overwrites a colliding imported stable ID', () => {
+    const existing = cloneStandard()
+    existing.identifier.id = 'community:rules'
+    existing.identifier.name = 'Community Rules'
+    const imported = cloneStandard()
+    imported.identifier.id = 'community:rules'
+    imported.identifier.name = 'Community Rules'
+
+    const prepared = prepareImportedDraftRulebook(imported, [existing])
+
+    expect(prepared.identityChanged).toBe(true)
+    expect(prepared.nameChanged).toBe(true)
+    expect(prepared.rulebook.identifier.id).toMatch(/^local:/)
+    expect(prepared.rulebook.identifier.name).toBe('Community Rules (Imported)')
+  })
+
+  it('preserves a non-colliding imported ID while uniquing a name-only collision', () => {
+    const existing = cloneStandard()
+    existing.identifier.id = 'community:first'
+    existing.identifier.name = 'Shared Name'
+    const imported = cloneStandard()
+    imported.identifier.id = 'community:second'
+    imported.identifier.name = 'Shared Name'
+
+    const prepared = prepareImportedDraftRulebook(imported, [existing])
+
+    expect(prepared.identityChanged).toBe(false)
+    expect(prepared.rulebook.identifier.id).toBe('community:second')
+    expect(prepared.rulebook.identifier.name).toBe('Shared Name (Imported)')
+  })
+
+  it('round-trips imported-origin IDs defensively', () => {
+    const serialized = serializeImportedDraftRulebookIds(new Set(['b', 'a']))
+    expect(serialized).toBe('["a","b"]')
+    expect([...parseImportedDraftRulebookIds(serialized)]).toEqual(['a', 'b'])
+    expect([...parseImportedDraftRulebookIds('not-json')]).toEqual([])
   })
 })

@@ -2,11 +2,7 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
-# One-time authorized build trigger.
 permissions:
   contents: read
 

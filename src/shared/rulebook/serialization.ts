@@ -1,5 +1,5 @@
 import type { DraftRulebook } from './types'
-import { assertValidDraftRulebook } from './validation'
+import { assertValidDraftRulebook } from './validationWithHold'
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T

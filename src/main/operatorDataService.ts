@@ -18,39 +18,21 @@ import type {
   OperatorUpdateCheck,
   OperatorUpdateResult,
 } from '../shared/desktop'
-import type {
-  OperatorDataset,
-  OperatorDatasetSources,
-} from '../shared/operator'
+import type { OperatorDataset } from '../shared/operator'
 import {
-  GAME_DATA_LOCALES,
-  classLabelsFromMainText,
-  createReleaseCategoryMap,
-  createReleaseDateMap,
-  factionLabelsFromHandbook,
-  factionLabelsFromHandbooks,
-  gameDataExcelPath,
-  gameDataExcelUrl,
-  subclassLabelsFromUniEquip,
-  normalizeCharacterTables,
-  type RawCharacterMetaTable,
-  type RawCharacterPatchTable,
-  type RawCharacterTable,
-  type RawGachaTable,
-  type RawHandbookTeamTable,
-  type RawMainTextTable,
-  type RawUniEquipData,
   UPSTREAM,
   validateOperatorDataset,
   upgradeLegacyOperatorDataset,
 } from '../shared/operatorData'
 import {
-  applyRaceMetadata,
-  type RawHandbookInfoTable,
-} from '../shared/raceMetadata'
+  fetchAndBuildOperatorDataset,
+  fetchLatestOperatorDatasetSources,
+  operatorDatasetSourcesEqual,
+} from '../shared/operatorDataPipeline'
 
 const imageCache = new Map<string, string>()
 const avatarDownloadPromises = new Map<string, Promise<boolean>>()
+const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer' } as const
 
 function bundledRoot(): string {
   return app.isPackaged
@@ -236,112 +218,12 @@ export async function syncOperatorAvatars(
   return warnings
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json, application/json',
-      'User-Agent': 'arknights-randomizer',
-    },
-    signal: AbortSignal.timeout(120_000),
-  })
-
-  if (!response.ok) throw new Error(`HTTP ${response.status} while fetching ${url}`)
-  return (await response.json()) as T
-}
-
-async function fetchText(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'text/plain',
-      'User-Agent': 'arknights-randomizer',
-    },
-    signal: AbortSignal.timeout(120_000),
-  })
-
-  if (!response.ok) throw new Error(`HTTP ${response.status} while fetching ${url}`)
-  return response.text()
-}
-
-async function latestCommit(repository: string, path: string): Promise<string> {
-  const url = new URL(`https://api.github.com/repos/${repository}/commits`)
-  url.searchParams.set('path', path)
-  url.searchParams.set('per_page', '1')
-  const commits = await fetchJson<Array<{ sha: string }>>(url.toString())
-  if (!commits[0]?.sha) throw new Error(`No upstream commit found for ${repository}/${path}`)
-  return commits[0].sha
-}
-
-async function fetchLatestSources(): Promise<OperatorDatasetSources> {
-  const [
-    gamedataCnCommit,
-    gamedataEnCommit,
-    gamedataJpCommit,
-    gamedataKrCommit,
-    gamedataTwCommit,
-    gamedataCnHandbookCommit,
-    gamedataEnHandbookCommit,
-    gamedataJpHandbookCommit,
-    gamedataKrHandbookCommit,
-    gamedataTwHandbookCommit,
-    resourcesCommit,
-    releaseMetadataCommit,
-  ] = await Promise.all([
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'character_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'character_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'handbook_info_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'handbook_info_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'handbook_info_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'handbook_info_table.json')),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'handbook_info_table.json')),
-    latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath),
-    latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath),
-  ])
-
-  return {
-    gamedataCnCommit,
-    gamedataEnCommit,
-    gamedataJpCommit,
-    gamedataKrCommit,
-    gamedataTwCommit,
-    gamedataCnHandbookCommit,
-    gamedataEnHandbookCommit,
-    gamedataJpHandbookCommit,
-    gamedataKrHandbookCommit,
-    gamedataTwHandbookCommit,
-    resourcesCommit,
-    releaseMetadataCommit,
-  }
-}
-
-function sameSources(
-  left: OperatorDatasetSources,
-  right: OperatorDatasetSources,
-): boolean {
-  return (
-    left.gamedataCnCommit === right.gamedataCnCommit &&
-    left.gamedataEnCommit === right.gamedataEnCommit &&
-    left.gamedataJpCommit === right.gamedataJpCommit &&
-    left.gamedataKrCommit === right.gamedataKrCommit &&
-    left.gamedataTwCommit === right.gamedataTwCommit &&
-    left.gamedataCnHandbookCommit === right.gamedataCnHandbookCommit &&
-    left.gamedataEnHandbookCommit === right.gamedataEnHandbookCommit &&
-    left.gamedataJpHandbookCommit === right.gamedataJpHandbookCommit &&
-    left.gamedataKrHandbookCommit === right.gamedataKrHandbookCommit &&
-    left.gamedataTwHandbookCommit === right.gamedataTwHandbookCommit &&
-    left.resourcesCommit === right.resourcesCommit &&
-    left.releaseMetadataCommit === right.releaseMetadataCommit
-  )
-}
-
 export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
   const current = (await getOperatorDataset()).sources
 
   try {
-    const latest = await fetchLatestSources()
-    const updateAvailable = !sameSources(current, latest)
+    const latest = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
+    const updateAvailable = !operatorDatasetSourcesEqual(current, latest)
     return {
       online: true,
       updateAvailable,
@@ -447,102 +329,17 @@ async function activateStagedData(
 
 export async function updateOperatorData(): Promise<OperatorUpdateResult> {
   const current = await getOperatorDataset()
-  const latestSources = await fetchLatestSources()
+  const latestSources = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
 
-  if (sameSources(current.sources, latestSources)) {
+  if (operatorDatasetSourcesEqual(current.sources, latestSources)) {
     return { updated: false, dataset: current, warnings: [] }
   }
 
-  const localeEntries = await Promise.all(
-    GAME_DATA_LOCALES.map(async (locale) => {
-      const [characters, patch, handbook, handbookInfo, mainText] = await Promise.all([
-        fetchJson<RawCharacterTable>(gameDataExcelUrl(locale, 'character_table.json')),
-        fetchJson<RawCharacterPatchTable>(gameDataExcelUrl(locale, 'char_patch_table.json')),
-        fetchJson<RawHandbookTeamTable>(gameDataExcelUrl(locale, 'handbook_team_table.json')),
-        fetchJson<RawHandbookInfoTable>(gameDataExcelUrl(locale, 'handbook_info_table.json')),
-        fetchJson<RawMainTextTable>(gameDataExcelUrl(locale, 'main_text.json')),
-      ])
-      return [locale, { characters, patch, handbook, handbookInfo, mainText }] as const
-    }),
+  const { dataset, validation } = await fetchAndBuildOperatorDataset(
+    latestSources,
+    new Date().toISOString(),
+    PIPELINE_FETCH_OPTIONS,
   )
-  const localeData = Object.fromEntries(localeEntries)
-  const [
-    cnCharMeta,
-    enCharMeta,
-    cnGacha,
-    cnUniEquip,
-    releaseInfoSource,
-    releaseCandidateSource,
-    releaseEventSource,
-  ] = await Promise.all([
-    fetchJson<RawCharacterMetaTable>(UPSTREAM.cnCharMetaUrl),
-    fetchJson<RawCharacterMetaTable>(UPSTREAM.enCharMetaUrl),
-    fetchJson<RawGachaTable>(UPSTREAM.cnGachaUrl),
-    fetchJson<RawUniEquipData>(gameDataExcelUrl('cn', 'uniequip_data.json')),
-    fetchText(UPSTREAM.releaseInfoUrl),
-    fetchText(UPSTREAM.releaseCandidateUrl),
-    fetchText(UPSTREAM.releaseEventUrl),
-  ])
-
-  const cn = localeData.cn.characters
-  const en = localeData.en.characters
-  const cnPatch = localeData.cn.patch
-  const enPatch = localeData.en.patch
-  const cnHandbookTeams = localeData.cn.handbook
-  const enHandbookTeams = localeData.en.handbook
-  const localizedCharacterTables = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].characters]),
-  )
-  const localizedPatchTables = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].patch]),
-  )
-  const localizedFactionLabels = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [
-      locale,
-      factionLabelsFromHandbook(localeData[locale].handbook),
-    ]),
-  )
-  const localizedClassLabels = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [
-      locale,
-      classLabelsFromMainText(localeData[locale].mainText),
-    ]),
-  )
-  const localizedHandbooks = Object.fromEntries(
-    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].handbookInfo]),
-  )
-
-  const releaseDates = createReleaseDateMap(
-    releaseInfoSource,
-    releaseCandidateSource,
-    releaseEventSource,
-  )
-  const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
-  const dataset = applyRaceMetadata(
-    normalizeCharacterTables(
-      cn,
-      en,
-      latestSources,
-      new Date().toISOString(),
-      {
-        cnPatch,
-        enPatch,
-        cnCharMeta,
-        enCharMeta,
-        cnGacha,
-        factionLabels: factionLabelsFromHandbooks(cnHandbookTeams, enHandbookTeams),
-        localizedCharacterTables,
-        localizedPatchTables,
-        localizedFactionLabels,
-        localizedClassLabels,
-        localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
-        releaseDates,
-        releaseCategories,
-      },
-    ),
-    localizedHandbooks,
-  )
-  const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
   if (!validation.valid) {
     throw new Error(
       `Downloaded operator data failed validation: ${validation.errors.join(' ')}`,

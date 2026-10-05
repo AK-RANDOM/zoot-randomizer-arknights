@@ -55,6 +55,26 @@ describe('Draft pull distributions', () => {
     expect(pulled.operator.id).toBe('four')
   })
 
+  it('keeps generating when only zero-weight buckets still contain operators', () => {
+    const distribution: DraftPullDistribution = {
+      type: 'custom',
+      buckets: [
+        { id: 'remaining', weight: 0, rarities: [1, 2, 3, 4, 5] },
+        { id: 'depleted', weight: 100, rarities: [6] },
+      ],
+    }
+    const pulled = pullDraftCandidate([operator('four', 4)], distribution, { pullsSinceSixStar: 0 }, () => 0.75)
+    expect(pulled.operator.id).toBe('four')
+
+    const maxPityWithoutSix = pullDraftCandidate(
+      [operator('three', 3), operator('four2', 4), operator('five', 5)],
+      { type: 'arknights' },
+      { pullsSinceSixStar: 99 },
+      sequence([0.5, 0]),
+    )
+    expect([3, 4, 5]).toContain(maxPityWithoutSix.operator.rarity)
+  })
+
   it('applies rate-up as a second-stage choice inside a bucket', () => {
     const distribution: DraftPullDistribution = {
       type: 'custom',

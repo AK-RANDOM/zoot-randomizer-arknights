@@ -7,23 +7,22 @@ function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function cloneJson<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T
+function cloneForBaseValidation(value: unknown): unknown {
+  if (value === undefined) return undefined
+  return JSON.parse(JSON.stringify(value)) as unknown
 }
 
 export function validateDraftRulebook(value: unknown): DraftRulebookValidationResult {
-  const cloned = cloneJson(value)
-  let hold: JsonRecord | null = null
+  const cloned = cloneForBaseValidation(value)
 
   if (isRecord(cloned)) {
     const generalRules = cloned.generalRules
     if (isRecord(generalRules)) {
       const actionRules = generalRules.actionRules
       if (isRecord(actionRules) && isRecord(actionRules.hold)) {
-        hold = actionRules.hold
-        delete hold.upkeepMode
-        delete hold.upkeepBaseCost
-        delete hold.upkeepEscalation
+        delete actionRules.hold.upkeepMode
+        delete actionRules.hold.upkeepBaseCost
+        delete actionRules.hold.upkeepEscalation
       }
     }
   }

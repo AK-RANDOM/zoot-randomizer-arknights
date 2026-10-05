@@ -195,7 +195,7 @@ export default function OperatorFilters({
             <div className="operator-filter-faction-standalone-chips">
               {group.races.map((race) => {
                 const enabled = !excludedRaces.has(race.id)
-                return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} title={`${race.operatorCount} operator${race.operatorCount === 1 ? '' : 's'}`} onClick={() => toggleRace(race.id, !enabled)}><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
+                return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} title={`${race.operatorCount} operator${race.operatorCount === 1 ? '' : 's'}`} onClick={() => toggleRace(race.id, !enabled)}><span aria-hidden="true" /><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
               })}
             </div>
           </div>

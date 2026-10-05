@@ -67,6 +67,6 @@
 }
 
 /* Keep a normal panel gap between Release and the Kernel/Alter filter stack. */
-.operators-panel > .release-group + .i6-filter-layout {
+.operators-panel > .release-group + .operator-filter-layout {
   margin-top: 1rem;
 }

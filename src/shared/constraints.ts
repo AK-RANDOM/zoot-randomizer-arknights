@@ -40,11 +40,7 @@ export type FactionMatchMode = 'main' | 'any'
 export type OperatorEraFilter = 'all' | 'kernel' | 'postKernel'
 
 export interface ReleaseConstraint {
-  /**
-   * Region-wide metadata source. Iteration 6 will move the selector to Options,
-   * but this remains the single source of truth for all region-dependent
-   * eligibility until that presentation/persistence migration lands.
-   */
+  /** Region-wide metadata source for all region-dependent eligibility. */
   server: ReleaseServer
   minYear: number | null
   maxYear: number | null

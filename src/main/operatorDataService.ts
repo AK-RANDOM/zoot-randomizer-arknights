@@ -19,12 +19,10 @@ import type {
   OperatorUpdateResult,
 } from '../shared/desktop'
 import type {
-  OperatorClass,
   OperatorDataset,
   OperatorDatasetSources,
 } from '../shared/operator'
 import {
-  CLASS_ICON_FILES,
   GAME_DATA_LOCALES,
   classLabelsFromMainText,
   createReleaseCategoryMap,
@@ -53,7 +51,6 @@ import {
 
 const imageCache = new Map<string, string>()
 const avatarDownloadPromises = new Map<string, Promise<boolean>>()
-const classIconCache = new Map<OperatorClass, string | null>()
 
 function bundledRoot(): string {
   return app.isPackaged
@@ -75,10 +72,6 @@ function downloadedImagePath(operatorId: string): string {
 
 function bundledImagePath(operatorId: string): string {
   return join(bundledRoot(), 'images', `${operatorId}.png`)
-}
-
-function bundledClassIconPath(operatorClass: OperatorClass): string {
-  return join(bundledRoot(), 'class-icons', CLASS_ICON_FILES[operatorClass])
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -241,21 +234,6 @@ export async function syncOperatorAvatars(
 
   imageCache.clear()
   return warnings
-}
-
-export async function getClassIcon(operatorClass: OperatorClass): Promise<string | null> {
-  if (!(operatorClass in CLASS_ICON_FILES)) return null
-  if (classIconCache.has(operatorClass)) return classIconCache.get(operatorClass) ?? null
-
-  try {
-    const data = await readFile(bundledClassIconPath(operatorClass))
-    const url = `data:image/svg+xml;base64,${data.toString('base64')}`
-    classIconCache.set(operatorClass, url)
-    return url
-  } catch {
-    classIconCache.set(operatorClass, null)
-    return null
-  }
 }
 
 async function fetchJson<T>(url: string): Promise<T> {

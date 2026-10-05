@@ -111,17 +111,6 @@ export interface ResolvedDraftConfiguration {
   pullDistribution: DraftPullDistribution
 }
 
-/**
- * Runtime controls stay separate from declarative Draft configuration.
- * Top-level rule fields remain supported for compatibility while Rulebooks migrate
- * toward the `configuration` entry point.
- */
-export interface DraftEngineOptions extends DraftConfigurationInput {
-  configuration?: DraftConfigurationInput
-  candidateGenerator?: DraftCandidateGenerator
-  random?: DraftRandomSource
-}
-
 export interface DraftState {
   targetSize: number
   poolKey: string
@@ -142,6 +131,26 @@ export interface DraftState {
   actionUsage: DraftActionUsageMap
   status: DraftStatus
   completionReason: DraftCompletionReason | null
+}
+
+export type DraftOperatorCostResolver = (
+  operator: Operator,
+  state: DraftState,
+  pool: readonly Operator[],
+  baselineCost: number,
+  configuration: ResolvedDraftConfiguration,
+) => number
+
+/**
+ * Runtime controls stay separate from declarative Draft configuration.
+ * Top-level rule fields remain supported for compatibility while Rulebooks migrate
+ * toward the `configuration` entry point.
+ */
+export interface DraftEngineOptions extends DraftConfigurationInput {
+  configuration?: DraftConfigurationInput
+  candidateGenerator?: DraftCandidateGenerator
+  random?: DraftRandomSource
+  operatorCostResolver?: DraftOperatorCostResolver
 }
 
 export type DraftAction =

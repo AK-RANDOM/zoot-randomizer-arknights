@@ -9,6 +9,9 @@ import type {
   ResolvedDraftConfiguration,
 } from './types'
 
+type DraftActionEconomyState = Pick<DraftState, 'draftedOperatorIds'> &
+  Partial<Pick<DraftState, 'heldOperatorId' | 'holdUpkeepCharges'>>
+
 export function getDraftOperatorCost(
   operator: Operator,
   options: Pick<DraftEngineOptions, 'configuration' | 'economyRules' | 'interactions'> = {},
@@ -48,42 +51,86 @@ export function getDraftOperatorCostForState(
   )
 }
 
+export function draftActionCarriesHoldForward(
+  state: Pick<DraftState, 'heldOperatorId'>,
+  action: DraftAction,
+): boolean {
+  if (!state.heldOperatorId) return false
+  if (action.type === 'forfeit') return true
+  return action.type === 'pick' && action.operatorId !== state.heldOperatorId
+}
+
+export function getDraftHoldUpkeepCostWithConfiguration(
+  state: Pick<DraftState, 'heldOperatorId'> & Partial<Pick<DraftState, 'holdUpkeepCharges'>>,
+  configuration: ResolvedDraftConfiguration,
+): number {
+  const economy = configuration.economyRules
+  if (!economy.enabled || !state.heldOperatorId) return 0
+
+  const upkeep = economy.holdUpkeep
+  if (upkeep.mode === 'none') return 0
+  if (upkeep.mode === 'static') return upkeep.cost
+  return upkeep.baseCost + (state.holdUpkeepCharges ?? 0) * upkeep.escalation
+}
+
+export function getDraftHoldUpkeepCost(
+  state: Pick<DraftState, 'heldOperatorId'> & Partial<Pick<DraftState, 'holdUpkeepCharges'>>,
+  options: Pick<DraftEngineOptions, 'configuration' | 'economyRules'> = {},
+): number {
+  return getDraftHoldUpkeepCostWithConfiguration(
+    state,
+    resolveDraftEngineConfiguration(options),
+  )
+}
+
 export function getDraftActionPointDeltaWithConfiguration(
   pool: readonly Operator[],
   action: DraftAction,
   configuration: ResolvedDraftConfiguration,
-  state?: Pick<DraftState, 'draftedOperatorIds'>,
+  state?: DraftActionEconomyState,
 ): number {
   const economy = configuration.economyRules
   if (!economy.enabled) return 0
 
+  let delta: number
   switch (action.type) {
     case 'pick': {
       const operator = draftOperatorById(pool, action.operatorId)
-      return -(
+      delta = -(
         state
           ? getDraftOperatorCostForStateWithConfiguration(operator, state, configuration)
           : getDraftOperatorCostWithConfiguration(operator, configuration)
       )
+      break
     }
     case 'forfeit':
-      return economy.forfeitRebate
+      delta = economy.forfeitRebate
+      break
     case 'reroll':
-      return -economy.rerollCost
+      delta = -economy.rerollCost
+      break
     case 'hold':
-      return -economy.holdCost
+      delta = -economy.holdCost
+      break
     case 'slot-expansion':
-      return -economy.slotExpansionCost
+      delta = -economy.slotExpansionCost
+      break
     case 'release-hold':
-      return 0
+      delta = 0
+      break
   }
+
+  if (state && draftActionCarriesHoldForward(state, action)) {
+    delta -= getDraftHoldUpkeepCostWithConfiguration(state, configuration)
+  }
+  return delta
 }
 
 export function getDraftActionPointDelta(
   pool: readonly Operator[],
   action: DraftAction,
   options: Pick<DraftEngineOptions, 'configuration' | 'economyRules' | 'interactions'> = {},
-  state?: Pick<DraftState, 'draftedOperatorIds'>,
+  state?: DraftActionEconomyState,
 ): number {
   return getDraftActionPointDeltaWithConfiguration(
     pool,

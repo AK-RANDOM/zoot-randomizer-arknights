@@ -18,6 +18,9 @@ export const DEFAULT_DRAFT_ACTION_RULES: DraftActionRules = {
     perDraftLimit: null,
     cooldownRounds: 0,
     discardUnheldOffer: false,
+    upkeepMode: 'none',
+    upkeepBaseCost: 0,
+    upkeepEscalation: 0,
   },
   forfeit: {
     enabled: false,
@@ -276,6 +279,17 @@ export function validateDraftConfiguration(configuration: ResolvedDraftConfigura
   validateLimitedRule('Forfeit', configuration.actionRules.forfeit)
   validateLimitedRule('Reroll', configuration.actionRules.reroll)
   validateLimitedRule('slot expansion', configuration.actionRules.slotExpansion)
+
+  const hold = configuration.actionRules.hold
+  if (!['none', 'static', 'escalating'].includes(hold.upkeepMode)) {
+    throw new Error('Draft Hold upkeep mode must be none, static, or escalating.')
+  }
+  if (!Number.isFinite(hold.upkeepBaseCost) || hold.upkeepBaseCost < 0) {
+    throw new Error('Draft Hold upkeep base cost must be a non-negative finite number.')
+  }
+  if (!Number.isFinite(hold.upkeepEscalation) || hold.upkeepEscalation < 0) {
+    throw new Error('Draft Hold upkeep escalation must be a non-negative finite number.')
+  }
 
   const capacity = configuration.capacityRules
   for (const [label, value] of [

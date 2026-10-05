@@ -1,5 +1,6 @@
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import { STANDARD_DRAFT_RULEBOOK_ID } from '../../shared/draftRulebook'
+import { migrateDraftRulebookDocument } from '../../shared/draftRulebookPortability'
 import {
   cloneSquadConfiguration,
   type StoredSquadPreset,
@@ -122,6 +123,13 @@ function isEditableRulebookDocument(value: unknown): value is DraftRulebook {
     Array.isArray(value.pool.eligibility.noneOf)
 }
 
+function migrateEditableRulebookDocument(value: unknown): DraftRulebook | null {
+  const migration = migrateDraftRulebookDocument(value)
+  const candidate = migration.issues.length === 0 ? migration.document : value
+  if (!isEditableRulebookDocument(candidate)) return null
+  return cloneJson(candidate) as DraftRulebook
+}
+
 function normalizeRulebookEntries(value: unknown): RulebookLibraryEntry[] {
   if (!Array.isArray(value)) return []
   const seen = new Set<string>()
@@ -129,13 +137,14 @@ function normalizeRulebookEntries(value: unknown): RulebookLibraryEntry[] {
   for (const candidate of value) {
     if (!candidate || typeof candidate !== 'object') continue
     const entry = candidate as Partial<RulebookLibraryEntry>
-    if (!isEditableRulebookDocument(entry.document)) continue
-    if (entry.document.identifier.id === STANDARD_DRAFT_RULEBOOK_ID) continue
-    if (seen.has(entry.document.identifier.id)) continue
+    const document = migrateEditableRulebookDocument(entry.document)
+    if (!document) continue
+    if (document.identifier.id === STANDARD_DRAFT_RULEBOOK_ID) continue
+    if (seen.has(document.identifier.id)) continue
     const origin = entry.origin === 'imported' ? 'imported' : 'local'
-    seen.add(entry.document.identifier.id)
+    seen.add(document.identifier.id)
     result.push({
-      document: cloneJson(entry.document),
+      document,
       origin,
       editor: {
         lastEditedAt: typeof entry.editor?.lastEditedAt === 'string' ? entry.editor.lastEditedAt : null,

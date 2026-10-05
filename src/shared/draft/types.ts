@@ -79,6 +79,11 @@ export interface DraftCapacityRules {
   maxActiveSlots: number
 }
 
+export type DraftHoldUpkeepRules =
+  | { mode: 'none' }
+  | { mode: 'static'; cost: number }
+  | { mode: 'escalating'; baseCost: number; escalation: number }
+
 export interface DraftEconomyRules {
   enabled: boolean
   startingPoints: number
@@ -87,6 +92,7 @@ export interface DraftEconomyRules {
   forfeitRebate: number
   rerollCost: number
   holdCost: number
+  holdUpkeep: DraftHoldUpkeepRules
   slotExpansionCost: number
 }
 
@@ -166,6 +172,7 @@ export interface DraftState {
   currentOfferIds: string[]
   discardedOperatorIds: string[]
   heldOperatorId: string | null
+  holdUpkeepCharges: number
   roundNumber: number
   completedRounds: number
   capacityExpansionCount: number

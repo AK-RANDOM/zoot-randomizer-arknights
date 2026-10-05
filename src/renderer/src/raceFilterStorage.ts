@@ -1,10 +1,4 @@
-const RACE_FILTER_STORAGE_KEY = 'arknights-randomizer:race-filter:v1'
-const RACE_FILTER_VERSION = 1 as const
-
-interface PersistedRaceFilter {
-  version: typeof RACE_FILTER_VERSION
-  excludedIds: string[]
-}
+import { loadRaceExclusions, saveRaceExclusions } from './rendererPersistence'
 
 function normalizeIds(value: unknown): string[] {
   if (!Array.isArray(value)) return []
@@ -20,38 +14,18 @@ function normalizeIds(value: unknown): string[] {
   return result
 }
 
-export function normalizePersistedRaceFilter(value: unknown): PersistedRaceFilter {
-  if (!value || typeof value !== 'object') {
-    return { version: RACE_FILTER_VERSION, excludedIds: [] }
-  }
+export function normalizePersistedRaceFilter(value: unknown): { version: 1; excludedIds: string[] } {
+  if (!value || typeof value !== 'object') return { version: 1, excludedIds: [] }
   const candidate = value as { version?: unknown; excludedIds?: unknown }
-  if (candidate.version !== RACE_FILTER_VERSION) {
-    return { version: RACE_FILTER_VERSION, excludedIds: [] }
-  }
-  return {
-    version: RACE_FILTER_VERSION,
-    excludedIds: normalizeIds(candidate.excludedIds),
-  }
+  return candidate.version === 1
+    ? { version: 1, excludedIds: normalizeIds(candidate.excludedIds) }
+    : { version: 1, excludedIds: [] }
 }
 
 export function loadRaceFilterExclusions(): string[] {
-  try {
-    const raw = window.localStorage.getItem(RACE_FILTER_STORAGE_KEY)
-    if (!raw) return []
-    return normalizePersistedRaceFilter(JSON.parse(raw)).excludedIds
-  } catch {
-    return []
-  }
+  return loadRaceExclusions()
 }
 
 export function saveRaceFilterExclusions(excludedIds: readonly string[]): void {
-  try {
-    const value: PersistedRaceFilter = {
-      version: RACE_FILTER_VERSION,
-      excludedIds: normalizeIds(excludedIds),
-    }
-    window.localStorage.setItem(RACE_FILTER_STORAGE_KEY, JSON.stringify(value))
-  } catch {
-    // Persistence failure must never block filtering in the current session.
-  }
+  saveRaceExclusions(normalizeIds(excludedIds))
 }

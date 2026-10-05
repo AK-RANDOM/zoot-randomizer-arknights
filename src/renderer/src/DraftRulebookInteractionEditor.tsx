@@ -78,126 +78,236 @@ function ResolvedInteractionPreview({
         <p className="filter-note">No operators in the installed dataset currently match this interaction.</p>
       ) : (
         <div className="rulebook-interaction-preview-grid">
-          {affected.slice(0, 6).map((operator) => (
-            <OperatorCard
-              key={operator.id}
-              operator={operator}
-              interactionDetails={buildRulebookOperatorInteractionDetails(
-                rulebook,
-                operator,
-                dataset,
-              )}
-            />
-          ))}
-          {affected.length > 6 && (
-            <div className="rulebook-interaction-preview-more">
-              +{affected.length - 6} more
-            </div>
-          )}
+          {affected.slice(0, 8).map((operator) => {
+            const cost = getDraftRulebookOperatorCostBreakdown(
+              rulebook,
+              operator,
+              dataset.operators,
+            )
+            return (
+              <div className="rulebook-interaction-preview-card" key={operator.id}>
+                <OperatorCard
+                  operator={operator}
+                  interactionDetails={buildRulebookOperatorInteractionDetails(
+                    rulebook,
+                    operator,
+                    dataset,
+                  )}
+                />
+                <div>
+                  <span>Baseline <strong>{cost.baselineCost}</strong></span>
+                  <span>Range <strong>{cost.minimumCost}–{cost.maximumCost}</strong></span>
+                </div>
+              </div>
+            )
+          })}
         </div>
+      )}
+      {affected.length > 8 && (
+        <small className="filter-note">Showing 8 of {affected.length} currently matching operators.</small>
       )}
     </div>
   )
 }
 
-function InteractionSelectorField({
-  label,
-  selector,
-  dataset,
-  disabled,
-  onChange,
-}: {
-  label: string
-  selector: DraftRulebookSelector
-  dataset: OperatorDataset
-  disabled: boolean
-  onChange: (selector: DraftRulebookSelector) => void
-}): React.JSX.Element {
-  return (
-    <div className="rulebook-interaction-selector-field">
-      <strong>{label}</strong>
-      <DraftRulebookSelectorEditor
-        dataset={dataset}
-        selector={selector}
-        disabled={disabled}
-        onChange={onChange}
-      />
-    </div>
-  )
-}
-
-function InteractionEditor({
-  rulebook,
+function AnchorEditor({
   interaction,
   dataset,
   disabled,
   onChange,
-  onRemove,
 }: {
-  rulebook: DraftRulebook
-  interaction: DraftRulebookInteraction
+  interaction: Extract<DraftRulebookInteraction, { type: 'anchor' }>
   dataset: OperatorDataset
   disabled: boolean
   onChange: (interaction: DraftRulebookInteraction) => void
-  onRemove: () => void
 }): React.JSX.Element {
   return (
-    <article className="rulebook-interaction-card">
-      <div className="rulebook-editor-subheading">
-        <div>
-          <strong>{interaction.id}</strong>
-          <small>{interaction.type}</small>
-        </div>
-        <button type="button" className="secondary-button" disabled={disabled} onClick={onRemove}>Remove</button>
+    <div className="rulebook-interaction-fields">
+      <div>
+        <strong>Source</strong>
+        <DraftRulebookSelectorEditor
+          dataset={dataset}
+          selector={interaction.source}
+          disabled={disabled}
+          onChange={(source) => onChange({ ...interaction, source })}
+        />
       </div>
+      <div>
+        <strong>Target</strong>
+        <DraftRulebookSelectorEditor
+          dataset={dataset}
+          selector={interaction.target}
+          disabled={disabled}
+          onChange={(target) => onChange({ ...interaction, target })}
+        />
+      </div>
+      <label className="field">
+        <span>Modifier per formed connection</span>
+        <input
+          type="number"
+          min={0}
+          disabled={disabled}
+          value={interaction.modifier}
+          onChange={(event) => onChange({ ...interaction, modifier: Number(event.target.value) })}
+        />
+      </label>
+    </div>
+  )
+}
 
-      {interaction.type === 'anchor' && (
-        <div className="rulebook-interaction-fields">
-          <InteractionSelectorField label="Source / anchor" selector={interaction.source} dataset={dataset} disabled={disabled} onChange={(source) => onChange({ ...interaction, source })} />
-          <InteractionSelectorField label="Target" selector={interaction.target} dataset={dataset} disabled={disabled} onChange={(target) => onChange({ ...interaction, target })} />
-          <label className="field"><span>Cost reduction</span><input type="number" min={0} disabled={disabled} value={interaction.modifier} onChange={(event) => onChange({ ...interaction, modifier: Number(event.target.value) })} /></label>
+function ProgressiveEditor({
+  interaction,
+  dataset,
+  disabled,
+  onChange,
+}: {
+  interaction: Extract<DraftRulebookInteraction, { type: 'progressive' }>
+  dataset: OperatorDataset
+  disabled: boolean
+  onChange: (interaction: DraftRulebookInteraction) => void
+}): React.JSX.Element {
+  const updateStep = (index: number, patch: Partial<(typeof interaction.steps)[number]>): void => {
+    onChange({
+      ...interaction,
+      steps: interaction.steps.map((step, currentIndex) =>
+        currentIndex === index ? { ...step, ...patch } : step,
+      ),
+    })
+  }
+  const addStep = (): void => {
+    const last = interaction.steps.at(-1)
+    onChange({
+      ...interaction,
+      steps: [
+        ...interaction.steps,
+        { memberCount: (last?.memberCount ?? 1) + 1, modifier: last?.modifier ?? 1 },
+      ],
+    })
+  }
+
+  return (
+    <div className="rulebook-interaction-fields">
+      <div>
+        <strong>Group selector</strong>
+        <DraftRulebookSelectorEditor
+          dataset={dataset}
+          selector={interaction.group}
+          disabled={disabled}
+          onChange={(group) => onChange({ ...interaction, group })}
+        />
+      </div>
+      <div className="rulebook-progressive-steps">
+        <div className="rulebook-editor-subheading">
+          <div><strong>Progressive steps</strong><small>The active modifier is the latest step reached by the resulting group size.</small></div>
+          <button type="button" className="secondary-button" disabled={disabled} onClick={addStep}>Add step</button>
         </div>
-      )}
-
-      {interaction.type === 'progressive' && (
-        <div className="rulebook-interaction-fields">
-          <InteractionSelectorField label="Group" selector={interaction.group} dataset={dataset} disabled={disabled} onChange={(group) => onChange({ ...interaction, group })} />
-          <div className="rulebook-progressive-steps">
-            <div className="rulebook-editor-subheading">
-              <div><strong>Progressive steps</strong><small>Apply the best reached member-count threshold.</small></div>
-              <button type="button" className="secondary-button" disabled={disabled} onClick={() => onChange({
+        {interaction.steps.map((step, index) => (
+          <div className="rulebook-progressive-step" key={index}>
+            <label className="field">
+              <span>Member count</span>
+              <input
+                type="number"
+                min={1}
+                disabled={disabled}
+                value={step.memberCount}
+                onChange={(event) => updateStep(index, { memberCount: Number(event.target.value) })}
+              />
+            </label>
+            <label className="field">
+              <span>Modifier</span>
+              <input
+                type="number"
+                min={0}
+                disabled={disabled}
+                value={step.modifier}
+                onChange={(event) => updateStep(index, { modifier: Number(event.target.value) })}
+              />
+            </label>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={disabled || interaction.steps.length === 1}
+              onClick={() => onChange({
                 ...interaction,
-                steps: [...interaction.steps, {
-                  memberCount: (interaction.steps.at(-1)?.memberCount ?? 0) + 1,
-                  modifier: 1,
-                }],
-              })}>Add step</button>
-            </div>
-            {interaction.steps.map((step, index) => (
-              <div className="rulebook-progressive-step" key={index}>
-                <label className="field"><span>Member count</span><input type="number" min={1} disabled={disabled} value={step.memberCount} onChange={(event) => onChange({ ...interaction, steps: interaction.steps.map((current, currentIndex) => currentIndex === index ? { ...current, memberCount: Number(event.target.value) } : current) })} /></label>
-                <label className="field"><span>Reduction</span><input type="number" min={0} disabled={disabled} value={step.modifier} onChange={(event) => onChange({ ...interaction, steps: interaction.steps.map((current, currentIndex) => currentIndex === index ? { ...current, modifier: Number(event.target.value) } : current) })} /></label>
-                <button type="button" className="secondary-button" disabled={disabled || interaction.steps.length <= 1} onClick={() => onChange({ ...interaction, steps: interaction.steps.filter((_, currentIndex) => currentIndex !== index) })}>Remove step</button>
-              </div>
-            ))}
+                steps: interaction.steps.filter((_, currentIndex) => currentIndex !== index),
+              })}
+            >
+              Remove
+            </button>
           </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ThresholdEditor({
+  interaction,
+  dataset,
+  disabled,
+  onChange,
+}: {
+  interaction: Extract<DraftRulebookInteraction, { type: 'threshold' }>
+  dataset: OperatorDataset
+  disabled: boolean
+  onChange: (interaction: DraftRulebookInteraction) => void
+}): React.JSX.Element {
+  return (
+    <div className="rulebook-interaction-fields">
+      <div>
+        <strong>Group selector</strong>
+        <DraftRulebookSelectorEditor
+          dataset={dataset}
+          selector={interaction.group}
+          disabled={disabled}
+          onChange={(group) => onChange({ ...interaction, group })}
+        />
+      </div>
+      <div className="rulebook-inline-fields">
+        <label className="field">
+          <span>Threshold</span>
+          <input
+            type="number"
+            min={1}
+            disabled={disabled}
+            value={interaction.threshold}
+            onChange={(event) => onChange({ ...interaction, threshold: Number(event.target.value) })}
+          />
+        </label>
+        <label className="field">
+          <span>Modifier</span>
+          <input
+            type="number"
+            min={0}
+            disabled={disabled}
+            value={interaction.modifier}
+            onChange={(event) => onChange({ ...interaction, modifier: Number(event.target.value) })}
+          />
+        </label>
+      </div>
+      <label className="rulebook-toggle">
+        <input
+          type="checkbox"
+          disabled={disabled}
+          checked={interaction.anchor !== undefined}
+          onChange={(event) => onChange(event.target.checked
+            ? { ...interaction, anchor: createDefaultDraftRulebookSelector('operators', dataset) }
+            : { id: interaction.id, type: interaction.type, group: interaction.group, threshold: interaction.threshold, modifier: interaction.modifier })}
+        />
+        <span>Require an anchor selector in addition to the group threshold</span>
+      </label>
+      {interaction.anchor && (
+        <div>
+          <strong>Anchor selector</strong>
+          <DraftRulebookSelectorEditor
+            dataset={dataset}
+            selector={interaction.anchor}
+            disabled={disabled}
+            onChange={(anchor) => onChange({ ...interaction, anchor })}
+          />
         </div>
       )}
-
-      {interaction.type === 'threshold' && (
-        <div className="rulebook-interaction-fields">
-          <InteractionSelectorField label="Group" selector={interaction.group} dataset={dataset} disabled={disabled} onChange={(group) => onChange({ ...interaction, group })} />
-          <div className="rulebook-inline-fields">
-            <label className="field"><span>Threshold</span><input type="number" min={1} disabled={disabled} value={interaction.threshold} onChange={(event) => onChange({ ...interaction, threshold: Number(event.target.value) })} /></label>
-            <label className="field"><span>Cost reduction</span><input type="number" min={0} disabled={disabled} value={interaction.modifier} onChange={(event) => onChange({ ...interaction, modifier: Number(event.target.value) })} /></label>
-          </div>
-          <label className="rulebook-toggle"><input type="checkbox" disabled={disabled} checked={interaction.anchor !== undefined} onChange={(event) => onChange({ ...interaction, anchor: event.target.checked ? createDefaultDraftRulebookSelector('operators', dataset) : undefined })} /><span>Require an anchor selector to be drafted</span></label>
-          {interaction.anchor && <InteractionSelectorField label="Anchor" selector={interaction.anchor} dataset={dataset} disabled={disabled} onChange={(anchor) => onChange({ ...interaction, anchor })} />}
-        </div>
-      )}
-
-      <ResolvedInteractionPreview rulebook={rulebook} interaction={interaction} dataset={dataset} />
-    </article>
+    </div>
   )
 }
 
@@ -207,18 +317,23 @@ export default function DraftRulebookInteractionEditor({
   disabled = false,
   onChange,
 }: DraftRulebookInteractionEditorProps): React.JSX.Element {
+  const updateInteraction = (index: number, interaction: DraftRulebookInteraction): void => {
+    onChange(rulebook.interactions.map((current, currentIndex) =>
+      currentIndex === index ? interaction : current,
+    ))
+  }
   const addInteraction = (type: DraftRulebookInteraction['type']): void => {
     onChange([...rulebook.interactions, createInteraction(type, rulebook.interactions, dataset)])
   }
 
   return (
     <div className="rulebook-interactions-editor">
-      <div className="rulebook-editor-subheading">
+      <div className="rulebook-interaction-toolbar">
         <div>
-          <strong>Interaction rules</strong>
-          <small>Discount operator costs when related operators are already in the drafted squad.</small>
+          <strong>Directional interaction rules</strong>
+          <small>Selectors stay portable; current operator matches are resolved from the installed dataset.</small>
         </div>
-        <div className="rulebook-interaction-add-actions">
+        <div className="section-actions">
           <button type="button" className="secondary-button" disabled={disabled} onClick={() => addInteraction('anchor')}>Add Anchor</button>
           <button type="button" className="secondary-button" disabled={disabled} onClick={() => addInteraction('progressive')}>Add Progressive</button>
           <button type="button" className="secondary-button" disabled={disabled} onClick={() => addInteraction('threshold')}>Add Threshold</button>
@@ -226,19 +341,47 @@ export default function DraftRulebookInteractionEditor({
       </div>
 
       {rulebook.interactions.length === 0 ? (
-        <p className="filter-note">No interaction rules. Operator costs use only their baseline and explicit overrides.</p>
+        <p className="filter-note">No interactions. Operator costs remain at their static baselines.</p>
       ) : (
-        <div className="rulebook-interaction-list">
+        <div className="rulebook-interaction-list-editor">
           {rulebook.interactions.map((interaction, index) => (
-            <InteractionEditor
-              key={interaction.id}
-              rulebook={rulebook}
-              interaction={interaction}
-              dataset={dataset}
-              disabled={disabled}
-              onChange={(next) => onChange(rulebook.interactions.map((current, currentIndex) => currentIndex === index ? next : current))}
-              onRemove={() => onChange(rulebook.interactions.filter((_, currentIndex) => currentIndex !== index))}
-            />
+            <article className="rulebook-interaction-card" key={interaction.id}>
+              <div className="rulebook-editor-subheading">
+                <div>
+                  <strong>{interaction.type === 'anchor' ? 'Anchor' : interaction.type === 'progressive' ? 'Progressive' : 'Threshold'}</strong>
+                  <small>{interaction.id}</small>
+                </div>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={disabled}
+                  onClick={() => onChange(rulebook.interactions.filter((_, currentIndex) => currentIndex !== index))}
+                >
+                  Remove
+                </button>
+              </div>
+
+              <label className="field">
+                <span>Stable interaction ID</span>
+                <input
+                  disabled={disabled}
+                  value={interaction.id}
+                  onChange={(event) => updateInteraction(index, { ...interaction, id: event.target.value })}
+                />
+              </label>
+
+              {interaction.type === 'anchor' && (
+                <AnchorEditor interaction={interaction} dataset={dataset} disabled={disabled} onChange={(next) => updateInteraction(index, next)} />
+              )}
+              {interaction.type === 'progressive' && (
+                <ProgressiveEditor interaction={interaction} dataset={dataset} disabled={disabled} onChange={(next) => updateInteraction(index, next)} />
+              )}
+              {interaction.type === 'threshold' && (
+                <ThresholdEditor interaction={interaction} dataset={dataset} disabled={disabled} onChange={(next) => updateInteraction(index, next)} />
+              )}
+
+              <ResolvedInteractionPreview rulebook={rulebook} interaction={interaction} dataset={dataset} />
+            </article>
           ))}
         </div>
       )}

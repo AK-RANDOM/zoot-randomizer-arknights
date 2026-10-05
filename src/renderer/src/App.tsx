@@ -9,6 +9,7 @@ import {
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import DraftPanel from './DraftPanel'
+import DraftRulebookPanel from './DraftRulebookPanel'
 import useDraftSession from './useDraftSession'
 import Iteration6OperatorFilters from './Iteration6OperatorFilters'
 import OperatorCard from './OperatorCard'
@@ -81,8 +82,9 @@ const PRESET_WARNING_KEY = 'arknights-randomizer:dismiss-preset-replace-warning'
 const INVALID_RELEASE_RANGE_MESSAGE =
   'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 
-type AppTab = 'squads' | 'operators' | 'pool' | 'options'
+type AppTab = 'squads' | 'setup' | 'options'
 type SquadMode = 'standard' | 'draft'
+type SetupMode = 'global-pool' | 'draft-rulebooks'
 
 const limitedLabels: Record<LimitedAcquisitionGroup, string> = {
   anniversary: 'Anniversary',
@@ -330,6 +332,7 @@ export default function App(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const [activeTab, setActiveTab] = useState<AppTab>('squads')
   const [squadMode, setSquadMode] = useState<SquadMode>('standard')
+  const [setupMode, setSetupMode] = useState<SetupMode>('global-pool')
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
   const [userPresets, setUserPresets] = useState<StoredSquadPreset[]>(() => loadUserPresets())
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:none')
@@ -728,8 +731,8 @@ export default function App(): React.JSX.Element {
       </header>
 
       <nav className="main-tabs" aria-label="Randomizer configuration">
-        {([['squads', 'Get Squad'], ['operators', 'Operators'], ['pool', 'Pool'], ['options', 'Options']] as const).map(([tab, label]) => (
-          <button key={tab} type="button" className={activeTab === tab ? 'is-active' : ''} aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)}>{label}</button>
+        {([['squads', 'Get Squad'], ['setup', 'Setup'], ['options', 'Options']] as const).map(([tab, label]) => (
+          <button key={tab} type="button" className={activeTab === tab ? 'is-active' : ''} aria-selected={activeTab === tab} onClick={() => { setActiveTab(tab); if (tab !== 'squads') setEditingSlot(null) }}>{label}</button>
         ))}
       </nav>
 
@@ -737,6 +740,14 @@ export default function App(): React.JSX.Element {
         <nav className="squad-mode-tabs" aria-label="Squad construction mode">
           {([['standard', 'Standard'], ['draft', 'Drafts']] as const).map(([mode, label]) => (
             <button key={mode} type="button" className={squadMode === mode ? 'is-active' : ''} aria-selected={squadMode === mode} onClick={() => { setSquadMode(mode); if (mode === 'draft') setEditingSlot(null) }}>{label}</button>
+          ))}
+        </nav>
+      )}
+
+      {activeTab === 'setup' && (
+        <nav className="squad-mode-tabs" aria-label="Setup section">
+          {([['global-pool', 'Global Pool'], ['draft-rulebooks', 'Draft Rulebooks']] as const).map(([mode, label]) => (
+            <button key={mode} type="button" className={setupMode === mode ? 'is-active' : ''} aria-selected={setupMode === mode} onClick={() => setSetupMode(mode)}>{label}</button>
           ))}
         </nav>
       )}
@@ -856,66 +867,72 @@ export default function App(): React.JSX.Element {
         />
       )}
 
-      {activeTab === 'operators' && (
-        <section className="panel operators-panel" aria-labelledby="operators-heading">
-          <div className="section-heading">
-            <div><p className="eyebrow">OPERATORS</p><h2 id="operators-heading">Eligibility filters</h2></div>
-            <div className="section-actions">
-              <button className="secondary-button" type="button" onClick={resetOperatorFilters}>Reset operator filters</button>
-              <button className="secondary-button" type="button" disabled={busy || !dataset} onClick={() => void checkUpdates()}>{busy ? 'Working…' : 'Check data updates'}</button>
-            </div>
-          </div>
-
-          <fieldset className="constraint-group detail-group release-group">
-            <legend>Release</legend>
-            <div className="release-bounds-grid">
-              <div className="release-bound-card">
-                <h3>Minimum bound</h3>
-                <label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.minYear, constraints.release.minDate)} onChange={(event) => changeReleaseGroup('min', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label>
-                <label className="field"><span>Exact date floor</span><input className="date-input" type="date" value={constraints.release.minDate} onChange={(event) => changeReleaseDate('min', event.target.value)} /></label>
-                <ReleasePreviewStrip label="Starts at event" preview={minReleasePreview} />
-              </div>
-              <div className="release-bound-card">
-                <h3>Maximum bound</h3>
-                <label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.maxYear, constraints.release.maxDate)} onChange={(event) => changeReleaseGroup('max', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label>
-                <label className="field"><span>Exact date ceiling</span><input className="date-input" type="date" value={constraints.release.maxDate} onChange={(event) => changeReleaseDate('max', event.target.value)} /></label>
-                <ReleasePreviewStrip label="Ends at event" preview={maxReleasePreview} />
+      {activeTab === 'setup' && setupMode === 'global-pool' && (
+        <>
+          <section className="panel operators-panel" aria-labelledby="operators-heading">
+            <div className="section-heading">
+              <div><p className="eyebrow">SETUP • GLOBAL POOL</p><h2 id="operators-heading">Eligibility filters</h2></div>
+              <div className="section-actions">
+                <button className="secondary-button" type="button" onClick={resetOperatorFilters}>Reset operator filters</button>
+                <button className="secondary-button" type="button" disabled={busy || !dataset} onClick={() => void checkUpdates()}>{busy ? 'Working…' : 'Check data updates'}</button>
               </div>
             </div>
-            <p className="filter-note">Portraits come only from the exact operator-release event at each bound. Launch is launch day only; later groups increment at anniversary release boundaries. Named groups prefill their exact regional date bounds; manually editing a date changes that side to Custom. Region comes from Options.</p>
-          </fieldset>
 
-          {dataset && <Iteration6OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateOperatorFilters} />}
-
-          <div className="source-filter-layout">
-            <fieldset className="constraint-group detail-group source-filter-group">
-              <legend>Acquisition</legend>
-              <TreeGroup label="Limited" checked={limitedState.all} indeterminate={!limitedState.all && limitedState.some} onChange={setLimitedAll}>
-                {limitedAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={limitedLabels[group]} checked={constraints.acquisition.limited[group]} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, acquisition: { ...current.acquisition, limited: { ...current.acquisition.limited, [group]: checked } } }))} />)}
-              </TreeGroup>
-              <div className="source-standalone"><TriStateCheckbox label={<strong>Standard</strong>} checked={constraints.acquisition.standard} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, acquisition: { ...current.acquisition, standard: checked } }))} /></div>
-              <TreeGroup label="Welfare" checked={welfareState.all} indeterminate={!welfareState.all && welfareState.some} onChange={setWelfareAll}>
-                {welfareAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={welfareLabels[group]} checked={constraints.acquisition.welfare[group]} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: { ...current.acquisition.welfare, [group]: checked } } }))} />)}
-              </TreeGroup>
+            <fieldset className="constraint-group detail-group release-group">
+              <legend>Release</legend>
+              <div className="release-bounds-grid">
+                <div className="release-bound-card">
+                  <h3>Minimum bound</h3>
+                  <label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.minYear, constraints.release.minDate)} onChange={(event) => changeReleaseGroup('min', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label>
+                  <label className="field"><span>Exact date floor</span><input className="date-input" type="date" value={constraints.release.minDate} onChange={(event) => changeReleaseDate('min', event.target.value)} /></label>
+                  <ReleasePreviewStrip label="Starts at event" preview={minReleasePreview} />
+                </div>
+                <div className="release-bound-card">
+                  <h3>Maximum bound</h3>
+                  <label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.maxYear, constraints.release.maxDate)} onChange={(event) => changeReleaseGroup('max', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label>
+                  <label className="field"><span>Exact date ceiling</span><input className="date-input" type="date" value={constraints.release.maxDate} onChange={(event) => changeReleaseDate('max', event.target.value)} /></label>
+                  <ReleasePreviewStrip label="Ends at event" preview={maxReleasePreview} />
+                </div>
+              </div>
+              <p className="filter-note">Portraits come only from the exact operator-release event at each bound. Launch is launch day only; later groups increment at anniversary release boundaries. Named groups prefill their exact regional date bounds; manually editing a date changes that side to Custom. Region comes from Options.</p>
             </fieldset>
 
-            <fieldset className="constraint-group detail-group source-filter-group">
-              <legend>Collaboration source</legend>
-              <TreeGroup label="Collaboration pool" checked={collaborationState.all} indeterminate={!collaborationState.all && collaborationState.some} onChange={setCollaborationAll}>
-                <TriStateCheckbox label="Non-collab" checked={constraints.collaboration.includeNonCollab} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, collaboration: { ...current.collaboration, includeNonCollab: checked } }))} />
-                {collaborationSources.map((source) => <TriStateCheckbox key={source} label={source} checked={constraints.collaboration.sources[source] ?? true} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, collaboration: { ...current.collaboration, sources: { ...current.collaboration.sources, [source]: checked } } }))} />)}
-              </TreeGroup>
-              <p className="filter-note">Collab gacha counts as Limited → Collab; collab welfare counts as Welfare → Event / Story. This section independently controls which crossover sources may enter the pool.</p>
-            </fieldset>
-          </div>
+            {dataset && <Iteration6OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateOperatorFilters} />}
 
-          {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
+            <div className="source-filter-layout">
+              <fieldset className="constraint-group detail-group source-filter-group">
+                <legend>Acquisition</legend>
+                <TreeGroup label="Limited" checked={limitedState.all} indeterminate={!limitedState.all && limitedState.some} onChange={setLimitedAll}>
+                  {limitedAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={limitedLabels[group]} checked={constraints.acquisition.limited[group]} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, acquisition: { ...current.acquisition, limited: { ...current.acquisition.limited, [group]: checked } } }))} />)}
+                </TreeGroup>
+                <div className="source-standalone"><TriStateCheckbox label={<strong>Standard</strong>} checked={constraints.acquisition.standard} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, acquisition: { ...current.acquisition, standard: checked } }))} /></div>
+                <TreeGroup label="Welfare" checked={welfareState.all} indeterminate={!welfareState.all && welfareState.some} onChange={setWelfareAll}>
+                  {welfareAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={welfareLabels[group]} checked={constraints.acquisition.welfare[group]} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: { ...current.acquisition.welfare, [group]: checked } } }))} />)}
+                </TreeGroup>
+              </fieldset>
 
-          {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available.</span><button type="button" className="secondary-button" disabled={busy} onClick={() => void installUpdate()}>Update data</button></div>}
-        </section>
+              <fieldset className="constraint-group detail-group source-filter-group">
+                <legend>Collaboration source</legend>
+                <TreeGroup label="Collaboration pool" checked={collaborationState.all} indeterminate={!collaborationState.all && collaborationState.some} onChange={setCollaborationAll}>
+                  <TriStateCheckbox label="Non-collab" checked={constraints.collaboration.includeNonCollab} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, collaboration: { ...current.collaboration, includeNonCollab: checked } }))} />
+                  {collaborationSources.map((source) => <TriStateCheckbox key={source} label={source} checked={constraints.collaboration.sources[source] ?? true} onChange={(checked) => mutateOperatorFilters((current) => ({ ...current, collaboration: { ...current.collaboration, sources: { ...current.collaboration.sources, [source]: checked } } }))} />)}
+                </TreeGroup>
+                <p className="filter-note">Collab gacha counts as Limited → Collab; collab welfare counts as Welfare → Event / Story. This section independently controls which crossover sources may enter the pool.</p>
+              </fieldset>
+            </div>
+
+            {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
+
+            {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available.</span><button type="button" className="secondary-button" disabled={busy} onClick={() => void installUpdate()}>Update data</button></div>}
+          </section>
+
+          {dataset && <PoolPanel dataset={dataset} constraints={constraints} preferences={operatorPreferences} onPreferencesChange={updatePoolPreferences} />}
+        </>
       )}
 
-      {activeTab === 'pool' && dataset && <PoolPanel dataset={dataset} constraints={constraints} preferences={operatorPreferences} onPreferencesChange={updatePoolPreferences} />}
+      {activeTab === 'setup' && setupMode === 'draft-rulebooks' && dataset && (
+        <DraftRulebookPanel dataset={dataset} />
+      )}
 
       {activeTab === 'options' && <OptionsPanel preferences={operatorPreferences} onMetadataRegionChange={setMetadataRegion} onGameLocaleChange={setGameLocale} onPoolPresentationChange={setPoolPresentation} />}
 

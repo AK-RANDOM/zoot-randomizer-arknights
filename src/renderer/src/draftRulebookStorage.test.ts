@@ -36,7 +36,7 @@ describe('Draft Rulebook library storage', () => {
     const first = createLocalDraftRulebook(STANDARD_DRAFT_RULEBOOK, 'First')
     const duplicate = cloneStandard()
     duplicate.identifier = { ...first.identifier, name: 'Duplicate' }
-    const invalid = cloneStandard() as unknown as DraftRulebook & { schemaVersion: number }
+    const invalid = cloneStandard() as unknown as { schemaVersion: number }
     invalid.schemaVersion = 999
 
     const serialized = JSON.stringify({

@@ -56,6 +56,41 @@ describe('Draft Rulebook execution resolution', () => {
     expect(result.poolSourceLabel).toBe('Inherit Global Pool')
   })
 
+  it('keeps Standard Draft behavior locked to the declarative Rulebook', () => {
+    expect(STANDARD_DRAFT_RULEBOOK.generalRules.offerSize).toBe(3)
+    expect(STANDARD_DRAFT_RULEBOOK.generalRules.pullDistribution).toEqual({ type: 'equal' })
+    expect(STANDARD_DRAFT_RULEBOOK.generalRules.economyRules).toEqual({ enabled: false })
+    expect(STANDARD_DRAFT_RULEBOOK.generalRules.capacityRules).toEqual({ enabled: false })
+    expect(STANDARD_DRAFT_RULEBOOK.generalRules.actionRules).toEqual({
+      hold: { enabled: false },
+      forfeit: { enabled: false },
+      reroll: { enabled: false },
+      slotExpansion: { enabled: false },
+    })
+    expect(STANDARD_DRAFT_RULEBOOK.pool).toEqual({ source: 'inherit-global' })
+    expect(STANDARD_DRAFT_RULEBOOK.overrides).toEqual({ operatorCosts: {} })
+    expect(STANDARD_DRAFT_RULEBOOK.interactions).toEqual([])
+  })
+
+  it('uses the same execution contract for built-in, local, and imported Rulebooks', () => {
+    const local = cloneStandard()
+    local.identifier.id = 'local:test-rulebook'
+    local.identifier.name = 'Local Test Rulebook'
+
+    const imported = cloneStandard()
+    imported.identifier.id = 'portable:test-rulebook'
+    imported.identifier.name = 'Imported Test Rulebook'
+
+    for (const rulebook of [STANDARD_DRAFT_RULEBOOK, local, imported]) {
+      const result = resolveDraftRulebookExecution(rulebook, dataset, globalPool)
+      expect(result.valid).toBe(true)
+      expect(result.pool).toEqual(globalPool)
+      expect(result.configuration?.pullDistribution).toEqual({ type: 'equal' })
+      expect(result.poolSourceLabel).toBe('Inherit Global Pool')
+      expect(result.identityKey).toContain(rulebook.identifier.id)
+    }
+  })
+
   it('keeps Global + Restrictions restrictive-only', () => {
     const rulebook = cloneStandard()
     rulebook.pool = {

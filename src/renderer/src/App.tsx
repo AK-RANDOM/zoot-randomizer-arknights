@@ -10,7 +10,6 @@ import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import DraftPanel from './DraftPanel'
 import DraftRulebookPanel from './DraftRulebookPanel'
-import useDraftSession from './useDraftSession'
 import Iteration6OperatorFilters from './Iteration6OperatorFilters'
 import OperatorCard from './OperatorCard'
 import OptionsPanel from './OptionsPanel'
@@ -376,14 +375,6 @@ export default function App(): React.JSX.Element {
     [constraints, dataset, operatorPreferences.excludedOperatorIds],
   )
 
-  const draftSession = useDraftSession({
-    pool: finalOperatorPool,
-    targetSize: constraints.squadSize,
-    ready: dataset !== null,
-    onMessage: setMessage,
-    onError: setError,
-  })
-
   const validation = useMemo(
     () => dataset ? validateConstraints(constraints, finalOperatorPool) : { valid: false, errors: [] },
     [constraints, dataset, finalOperatorPool],
@@ -597,7 +588,6 @@ export default function App(): React.JSX.Element {
     setSelectedPresetId('custom')
     setMessage(`Deleted squad preset “${selectedPreset.name}”.`)
   }
-
   const mutateOperatorFilters = (update: (current: RandomizerConstraints) => RandomizerConstraints): void => {
     setConstraints((current) => update(current))
     setSquad([])
@@ -857,13 +847,10 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'squads' && squadMode === 'draft' && (
         <DraftPanel
-          state={draftSession.state}
+          dataset={dataset}
           operators={finalOperatorPool}
           targetSize={constraints.squadSize}
           ready={dataset !== null}
-          distributionLabel={draftSession.distributionLabel}
-          onStart={draftSession.start}
-          onPick={draftSession.pick}
         />
       )}
 

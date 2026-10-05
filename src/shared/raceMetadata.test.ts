@@ -6,6 +6,7 @@ import {
   operatorRaceIds,
   raceIdFromSourceValue,
   raceValueFromHandbookRecord,
+  raceValuesFromHandbook,
   type RawHandbookInfoRecord,
 } from './raceMetadata'
 
@@ -101,6 +102,21 @@ describe('M6 race metadata', () => {
       expect(raceValueFromHandbookRecord(handbook(text), 'en')).toBe(expected)
     },
   )
+
+  it("normalizes Ch'en's known EN handbook punctuation quirk only at operator mapping", () => {
+    const values = raceValuesFromHandbook(
+      {
+        handbookDict: {
+          char_010_chen: handbook("[Code Name] Ch'en\n[Race] Lung."),
+          char_other: handbook('[Code Name] Other\n[Race] Lung.'),
+        },
+      },
+      'en',
+    )
+
+    expect(values.char_010_chen).toBe('Lung')
+    expect(values.char_other).toBe('Lung.')
+  })
 
   it('keeps disclosed source values distinct from genuinely missing metadata', () => {
     expect(raceValueFromHandbookRecord(handbook('[Race] Undisclosed'), 'en')).toBe('Undisclosed')

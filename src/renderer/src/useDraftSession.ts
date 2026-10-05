@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Operator } from '../../shared/operator'
 import {
   STANDARD_DRAFT_CONFIGURATION,
+  applyDraftAction,
   createDraftPoolKey,
   draftPullDistributionLabel,
-  pickDraftOperator,
   resolveDraftConfiguration,
   startDraft,
+  type DraftAction,
   type DraftConfigurationInput,
   type DraftState,
+  type ResolvedDraftConfiguration,
 } from '../../shared/draft'
 import { draftCompletionMessage } from './draftSessionMessages'
 
@@ -26,13 +28,42 @@ interface UseDraftSessionOptions {
 
 export interface DraftSessionController {
   state: DraftState | null
+  configuration: ResolvedDraftConfiguration
   distributionLabel: string
   start: () => void
+  act: (action: DraftAction) => void
   pick: (operatorId: string) => void
   reset: (message?: string) => void
 }
 
 const RESET_MESSAGE = 'Draft reset because the squad size, eligible pool, or Draft Rulebook changed.'
+
+function actionMessage(
+  action: DraftAction,
+  before: DraftState,
+  after: DraftState,
+  pool: readonly Operator[],
+): string {
+  if (after.status === 'complete') return draftCompletionMessage(after)
+  switch (action.type) {
+    case 'pick': {
+      const operator = pool.find((candidate) => candidate.id === action.operatorId)
+      return `${operator?.name ?? 'Operator'} drafted. ${after.draftedOperatorIds.length} / ${after.targetSize} selected.`
+    }
+    case 'hold': {
+      const operator = pool.find((candidate) => candidate.id === action.operatorId)
+      return `${operator?.name ?? 'Operator'} moved to Hold. Round ${after.roundNumber} is ready.`
+    }
+    case 'release-hold':
+      return 'Held operator released.'
+    case 'forfeit':
+      return `Round forfeited. ${after.points} point${after.points === 1 ? '' : 's'} available.`
+    case 'reroll':
+      return `Offer rerolled. Round ${after.roundNumber} remains active.`
+    case 'slot-expansion':
+      return `Active capacity expanded to ${after.activeCapacity}.`
+  }
+}
 
 export default function useDraftSession({
   pool,
@@ -94,35 +125,33 @@ export default function useDraftSession({
     }
   }, [engineOptions, identity, onError, onMessage, pool, ready, targetSize])
 
-  const pick = useCallback(
-    (operatorId: string): void => {
-      if (!state) return
-      if (activeIdentity !== identity || state.poolKey !== poolKey) {
-        reset()
-        return
-      }
+  const act = useCallback((action: DraftAction): void => {
+    if (!state) return
+    if (activeIdentity !== identity || state.poolKey !== poolKey) {
+      reset()
+      return
+    }
 
-      onError(null)
-      try {
-        const pickedOperator = pool.find((operator) => operator.id === operatorId)
-        const next = pickDraftOperator(state, pool, operatorId, engineOptions)
-        setState(next)
-        onMessage(
-          next.status === 'complete'
-            ? draftCompletionMessage(next)
-            : `${pickedOperator?.name ?? 'Operator'} drafted. ${next.draftedOperatorIds.length} / ${next.targetSize} selected.`,
-        )
-      } catch (reason) {
-        onError(reason instanceof Error ? reason.message : String(reason))
-      }
-    },
-    [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state],
-  )
+    onError(null)
+    try {
+      const next = applyDraftAction(state, pool, action, engineOptions)
+      setState(next)
+      onMessage(actionMessage(action, state, next, pool))
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : String(reason))
+    }
+  }, [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state])
+
+  const pick = useCallback((operatorId: string): void => {
+    act({ type: 'pick', operatorId })
+  }, [act])
 
   return {
     state,
+    configuration: resolvedConfiguration,
     distributionLabel: draftPullDistributionLabel(resolvedConfiguration.pullDistribution),
     start,
+    act,
     pick,
     reset,
   }

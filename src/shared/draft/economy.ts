@@ -11,6 +11,7 @@ import type {
 
 type DraftActionEconomyState = Pick<DraftState, 'draftedOperatorIds'> &
   Partial<Pick<DraftState, 'heldOperatorId' | 'holdUpkeepCharges'>>
+type DraftHoldEconomyState = Partial<Pick<DraftState, 'heldOperatorId' | 'holdUpkeepCharges'>>
 
 export function getDraftOperatorCost(
   operator: Operator,
@@ -52,7 +53,7 @@ export function getDraftOperatorCostForState(
 }
 
 export function draftActionCarriesHoldForward(
-  state: Pick<DraftState, 'heldOperatorId'>,
+  state: DraftHoldEconomyState,
   action: DraftAction,
 ): boolean {
   if (!state.heldOperatorId) return false
@@ -61,7 +62,7 @@ export function draftActionCarriesHoldForward(
 }
 
 export function getDraftHoldUpkeepCostWithConfiguration(
-  state: Pick<DraftState, 'heldOperatorId'> & Partial<Pick<DraftState, 'holdUpkeepCharges'>>,
+  state: DraftHoldEconomyState,
   configuration: ResolvedDraftConfiguration,
 ): number {
   const economy = configuration.economyRules
@@ -74,7 +75,7 @@ export function getDraftHoldUpkeepCostWithConfiguration(
 }
 
 export function getDraftHoldUpkeepCost(
-  state: Pick<DraftState, 'heldOperatorId'> & Partial<Pick<DraftState, 'holdUpkeepCharges'>>,
+  state: DraftHoldEconomyState,
   options: Pick<DraftEngineOptions, 'configuration' | 'economyRules'> = {},
 ): number {
   return getDraftHoldUpkeepCostWithConfiguration(

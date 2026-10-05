@@ -98,7 +98,7 @@ export default function StandardSquadFeature({
 }: {
   dataset: OperatorDataset | null
   constraints: RandomizerConstraints
-  finalOperatorPool: readonly Operator[]
+  finalOperatorPool: Operator[]
   resetRevision: number
   onConstraintsChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
   onMessage: (message: string) => void

@@ -6,7 +6,7 @@ import {
   type OperatorClass,
   type OperatorDataset,
 } from './operator'
-import { operatorRaceIds } from './raceMetadata'
+import { RACE_UNAVAILABLE_ID, operatorRaceIds } from './raceMetadata'
 
 /**
  * This module is the boundary for Arknights-owned display strings.
@@ -112,7 +112,7 @@ export function localizeOperatorDataset(
     raceLabels[raceId] =
       resolveFromCatalogs(dataset, locale, (catalog) => catalog.raceLabels?.[raceId]) ??
       dataset.raceLabels?.[raceId] ??
-      raceId
+      (raceId === RACE_UNAVAILABLE_ID ? 'Unavailable' : raceId)
   }
 
   // Preserve canonical operator order. Locale switching must only change display

@@ -61,6 +61,32 @@ function resolveFromCatalogs(
   return null
 }
 
+function isNeutralEnglishLikeLabel(value: string): boolean {
+  return /^[\x20-\x7E]+$/.test(value)
+}
+
+function resolveRaceLabel(
+  dataset: OperatorDataset,
+  locale: GameLocale,
+  raceId: string,
+): string {
+  const selected = catalogFor(dataset, locale).raceLabels?.[raceId]?.trim()
+  if (selected) return selected
+
+  if (locale === 'en') {
+    const canonical = dataset.raceLabels?.[raceId]?.trim()
+    const cn = catalogFor(dataset, 'cn').raceLabels?.[raceId]?.trim()
+    if (canonical && (canonical !== cn || isNeutralEnglishLikeLabel(canonical))) return canonical
+    return raceId === RACE_UNAVAILABLE_ID ? 'Unavailable' : 'Untranslated'
+  }
+
+  return (
+    resolveFromCatalogs(dataset, locale, (catalog) => catalog.raceLabels?.[raceId]) ??
+    dataset.raceLabels?.[raceId] ??
+    (raceId === RACE_UNAVAILABLE_ID ? 'Unavailable' : 'Untranslated')
+  )
+}
+
 export function localizedClassLabel(
   dataset: OperatorDataset,
   locale: GameLocale,
@@ -109,10 +135,7 @@ export function localizeOperatorDataset(
 
   const raceLabels: Record<string, string> = {}
   for (const raceId of raceIds) {
-    raceLabels[raceId] =
-      resolveFromCatalogs(dataset, locale, (catalog) => catalog.raceLabels?.[raceId]) ??
-      dataset.raceLabels?.[raceId] ??
-      (raceId === RACE_UNAVAILABLE_ID ? 'Unavailable' : raceId)
+    raceLabels[raceId] = resolveRaceLabel(dataset, locale, raceId)
   }
 
   // Preserve canonical operator order. Locale switching must only change display

@@ -25,6 +25,8 @@ import { saveRaceExclusions } from './rendererPersistence'
 
 const INVALID_RELEASE_RANGE_MESSAGE = 'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 
+type GlobalPoolSection = 'filter' | 'curate'
+
 const limitedLabels: Record<LimitedAcquisitionGroup, string> = {
   anniversary: 'Anniversary', halfAnniversary: 'Half-Anniversary', cny: 'CNY', summer: 'Summer', collab: 'Collab',
 }
@@ -116,6 +118,7 @@ export default function GlobalPoolFeature({
   onCheckUpdates: () => Promise<void>
   onInstallUpdate: () => Promise<void>
 }): React.JSX.Element {
+  const [activeSection, setActiveSection] = useState<GlobalPoolSection>('filter')
   const collaborationSources = useMemo(() => dataset ? [...new Set(dataset.operators.flatMap((operator) => operator.collaboration ?? []))].sort((a, b) => a.localeCompare(b)) : [], [dataset])
   const maxReleaseYear = useMemo(() => dataset ? dataset.operators.reduce((maximum, operator) => Math.max(maximum, operator.release[constraints.release.server].yearGroup ?? 0), 0) : 0, [constraints.release.server, dataset])
   const releaseYearOptions = useMemo(() => Array.from({ length: maxReleaseYear + 1 }, (_, index) => index), [maxReleaseYear])
@@ -164,38 +167,49 @@ export default function GlobalPoolFeature({
 
   return (
     <>
-      <section className="panel operators-panel" aria-labelledby="operators-heading">
-        <div className="section-heading"><div><p className="eyebrow">SETUP • GLOBAL POOL</p><h2 id="operators-heading">Eligibility filters</h2></div><div className="section-actions"><button className="secondary-button" type="button" onClick={resetFilters}>Reset operator filters</button><button className="secondary-button" type="button" disabled={busy || !dataset} onClick={() => void onCheckUpdates()}>{busy ? 'Working…' : 'Check data updates'}</button></div></div>
+      <nav className="squad-mode-tabs" aria-label="Global Pool section">
+        {([['filter', 'Global Filter'], ['curate', 'Curate']] as const).map(([section, label]) => (
+          <button key={section} type="button" className={activeSection === section ? 'is-active' : ''} aria-selected={activeSection === section} onClick={() => setActiveSection(section)}>{label}</button>
+        ))}
+      </nav>
 
-        <fieldset className="constraint-group detail-group release-group">
-          <legend>Release</legend>
-          <div className="release-bounds-grid">
-            <div className="release-bound-card"><h3>Minimum bound</h3><label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.minYear, constraints.release.minDate)} onChange={(event) => changeReleaseGroup('min', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label><label className="field"><span>Exact date floor</span><input className="date-input" type="date" value={constraints.release.minDate} onChange={(event) => commitReleaseChange(applyCustomReleaseDate(constraints.release, 'min', event.target.value))} /></label><ReleasePreviewStrip label="Starts at event" preview={minReleasePreview} /></div>
-            <div className="release-bound-card"><h3>Maximum bound</h3><label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.maxYear, constraints.release.maxDate)} onChange={(event) => changeReleaseGroup('max', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label><label className="field"><span>Exact date ceiling</span><input className="date-input" type="date" value={constraints.release.maxDate} onChange={(event) => commitReleaseChange(applyCustomReleaseDate(constraints.release, 'max', event.target.value))} /></label><ReleasePreviewStrip label="Ends at event" preview={maxReleasePreview} /></div>
+      {activeSection === 'filter' && (
+        <section className="panel operators-panel" aria-labelledby="operators-heading">
+          <div className="section-heading"><div><p className="eyebrow">SETUP • GLOBAL POOL • GLOBAL FILTER</p><h2 id="operators-heading">Global Filter</h2></div><div className="section-actions"><button className="secondary-button" type="button" onClick={resetFilters}>Reset operator filters</button><button className="secondary-button" type="button" disabled={busy || !dataset} onClick={() => void onCheckUpdates()}>{busy ? 'Working…' : 'Check data updates'}</button></div></div>
+
+          <fieldset className="constraint-group detail-group release-group">
+            <legend>Release</legend>
+            <div className="release-bounds-grid">
+              <div className="release-bound-card"><h3>Minimum bound</h3><label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.minYear, constraints.release.minDate)} onChange={(event) => changeReleaseGroup('min', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label><label className="field"><span>Exact date floor</span><input className="date-input" type="date" value={constraints.release.minDate} onChange={(event) => commitReleaseChange(applyCustomReleaseDate(constraints.release, 'min', event.target.value))} /></label><ReleasePreviewStrip label="Starts at event" preview={minReleasePreview} /></div>
+              <div className="release-bound-card"><h3>Maximum bound</h3><label className="field"><span>Release group</span><select value={releaseGroupSelectValue(constraints.release.maxYear, constraints.release.maxDate)} onChange={(event) => changeReleaseGroup('max', event.target.value)}><option value="">Any</option><option value="custom" disabled>Custom</option>{releaseYearOptions.map((year) => <option key={year} value={year}>{releaseGroupLabel(year)}</option>)}</select></label><label className="field"><span>Exact date ceiling</span><input className="date-input" type="date" value={constraints.release.maxDate} onChange={(event) => commitReleaseChange(applyCustomReleaseDate(constraints.release, 'max', event.target.value))} /></label><ReleasePreviewStrip label="Ends at event" preview={maxReleasePreview} /></div>
+            </div>
+            <p className="filter-note">Portraits come only from the exact operator-release event at each bound. Launch is launch day only; later groups increment at anniversary release boundaries. Named groups prefill their exact regional date bounds; manually editing a date changes that side to Custom. Region comes from Options.</p>
+          </fieldset>
+
+          {dataset && <OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateFilters} />}
+
+          <div className="source-filter-layout">
+            <fieldset className="constraint-group detail-group source-filter-group">
+              <legend>Acquisition</legend>
+              <TreeGroup label="Limited" checked={limitedState.all} indeterminate={!limitedState.all && limitedState.some} onChange={setLimitedAll}>{limitedAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={limitedLabels[group]} checked={constraints.acquisition.limited[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, limited: { ...current.acquisition.limited, [group]: checked } } }))} />)}</TreeGroup>
+              <div className="source-standalone"><TriStateCheckbox label={<strong>Standard</strong>} checked={constraints.acquisition.standard} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, standard: checked } }))} /></div>
+              <TreeGroup label="Welfare" checked={welfareState.all} indeterminate={!welfareState.all && welfareState.some} onChange={setWelfareAll}>{welfareAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={welfareLabels[group]} checked={constraints.acquisition.welfare[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: { ...current.acquisition.welfare, [group]: checked } } }))} />)}</TreeGroup>
+            </fieldset>
+            <fieldset className="constraint-group detail-group source-filter-group">
+              <legend>Collaboration source</legend>
+              <TreeGroup label="Collaboration pool" checked={collaborationState.all} indeterminate={!collaborationState.all && collaborationState.some} onChange={setCollaborationAll}><TriStateCheckbox label="Non-collab" checked={constraints.collaboration.includeNonCollab} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, includeNonCollab: checked } }))} />{collaborationSources.map((source) => <TriStateCheckbox key={source} label={source} checked={constraints.collaboration.sources[source] ?? true} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, sources: { ...current.collaboration.sources, [source]: checked } } }))} />)}</TreeGroup>
+              <p className="filter-note">Collab gacha counts as Limited → Collab; collab welfare counts as Welfare → Event / Story. This section independently controls which crossover sources may enter the pool.</p>
+            </fieldset>
           </div>
-          <p className="filter-note">Portraits come only from the exact operator-release event at each bound. Launch is launch day only; later groups increment at anniversary release boundaries. Named groups prefill their exact regional date bounds; manually editing a date changes that side to Custom. Region comes from Options.</p>
-        </fieldset>
 
-        {dataset && <OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateFilters} />}
+          {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
+          {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available.</span><button type="button" className="secondary-button" disabled={busy} onClick={() => void onInstallUpdate()}>Update data</button></div>}
+        </section>
+      )}
 
-        <div className="source-filter-layout">
-          <fieldset className="constraint-group detail-group source-filter-group">
-            <legend>Acquisition</legend>
-            <TreeGroup label="Limited" checked={limitedState.all} indeterminate={!limitedState.all && limitedState.some} onChange={setLimitedAll}>{limitedAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={limitedLabels[group]} checked={constraints.acquisition.limited[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, limited: { ...current.acquisition.limited, [group]: checked } } }))} />)}</TreeGroup>
-            <div className="source-standalone"><TriStateCheckbox label={<strong>Standard</strong>} checked={constraints.acquisition.standard} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, standard: checked } }))} /></div>
-            <TreeGroup label="Welfare" checked={welfareState.all} indeterminate={!welfareState.all && welfareState.some} onChange={setWelfareAll}>{welfareAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={welfareLabels[group]} checked={constraints.acquisition.welfare[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: { ...current.acquisition.welfare, [group]: checked } } }))} />)}</TreeGroup>
-          </fieldset>
-          <fieldset className="constraint-group detail-group source-filter-group">
-            <legend>Collaboration source</legend>
-            <TreeGroup label="Collaboration pool" checked={collaborationState.all} indeterminate={!collaborationState.all && collaborationState.some} onChange={setCollaborationAll}><TriStateCheckbox label="Non-collab" checked={constraints.collaboration.includeNonCollab} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, includeNonCollab: checked } }))} />{collaborationSources.map((source) => <TriStateCheckbox key={source} label={source} checked={constraints.collaboration.sources[source] ?? true} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, sources: { ...current.collaboration.sources, [source]: checked } } }))} />)}</TreeGroup>
-            <p className="filter-note">Collab gacha counts as Limited → Collab; collab welfare counts as Welfare → Event / Story. This section independently controls which crossover sources may enter the pool.</p>
-          </fieldset>
-        </div>
-
-        {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
-        {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available.</span><button type="button" className="secondary-button" disabled={busy} onClick={() => void onInstallUpdate()}>Update data</button></div>}
-      </section>
-      {dataset && <PoolPanel dataset={dataset} constraints={constraints} preferences={preferences} onPreferencesChange={updatePoolPreferences} />}
+      {activeSection === 'curate' && dataset && (
+        <PoolPanel dataset={dataset} constraints={constraints} preferences={preferences} onPreferencesChange={updatePoolPreferences} />
+      )}
     </>
   )
 }

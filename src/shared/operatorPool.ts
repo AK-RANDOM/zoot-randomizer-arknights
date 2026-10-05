@@ -164,8 +164,23 @@ export function applyRaceExclusions(
 }
 
 /**
+ * Canonical Global Filter composition. Every consumer that needs the eligible
+ * universe before individual Curate exclusions should use this function so
+ * Race cannot diverge from the rest of the higher-level eligibility filters.
+ */
+export function buildGlobalFilterOperatorPool(
+  operators: Operator[],
+  constraints: RandomizerConstraints,
+): Operator[] {
+  return applyRaceExclusions(
+    filterHigherLevelEligibleOperators(operators, constraints),
+    constraints.race?.excludedIds ?? [],
+  )
+}
+
+/**
  * Canonical Iteration 6 composition:
- * dataset -> higher-level filters -> Race -> manual exclusions -> final solver pool.
+ * dataset -> Global Filter -> manual Curate exclusions -> final solver pool.
  * Standard generation, Global Pool and Draft all consume this final pool.
  */
 export function buildFinalOperatorPool(
@@ -174,10 +189,7 @@ export function buildFinalOperatorPool(
   excludedOperatorIds: readonly string[],
 ): Operator[] {
   return applyManualOperatorExclusions(
-    applyRaceExclusions(
-      filterHigherLevelEligibleOperators(operators, constraints),
-      constraints.race?.excludedIds ?? [],
-    ),
+    buildGlobalFilterOperatorPool(operators, constraints),
     excludedOperatorIds,
   )
 }

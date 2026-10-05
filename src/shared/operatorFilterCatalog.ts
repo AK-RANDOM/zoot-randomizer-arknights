@@ -15,6 +15,18 @@ export interface SubclassFilterGroup {
   subclasses: OperatorFilterOption[]
 }
 
+export interface RaceFilterOption extends OperatorFilterOption {
+  operatorCount: number
+}
+
+export type RaceFilterGroupKey = 'common' | 'rare' | 'oneOff'
+
+export interface RaceFilterGroup {
+  key: RaceFilterGroupKey
+  label: string
+  races: RaceFilterOption[]
+}
+
 export interface FactionNode {
   id: string
   name: string
@@ -50,14 +62,41 @@ export function buildSubclassFilterGroups(dataset: OperatorDataset): SubclassFil
   })
 }
 
-export function buildRaceFilterOptions(dataset: OperatorDataset): OperatorFilterOption[] {
-  const ids = new Set<string>()
+export function buildRaceFilterOptions(dataset: OperatorDataset): RaceFilterOption[] {
+  const counts = new Map<string, number>()
   for (const operator of dataset.operators) {
-    for (const raceId of operatorRaceIds(operator)) ids.add(raceId)
+    for (const raceId of new Set(operatorRaceIds(operator))) {
+      counts.set(raceId, (counts.get(raceId) ?? 0) + 1)
+    }
   }
-  return [...ids]
-    .map((id) => ({ id, name: dataset.raceLabels?.[id] ?? id }))
+  return [...counts.entries()]
+    .map(([id, operatorCount]) => ({
+      id,
+      name: dataset.raceLabels?.[id] ?? id,
+      operatorCount,
+    }))
     .sort((left, right) => left.name.localeCompare(right.name))
+}
+
+export function buildRaceFilterGroups(dataset: OperatorDataset): RaceFilterGroup[] {
+  const races = buildRaceFilterOptions(dataset)
+  return [
+    {
+      key: 'common',
+      label: 'Common',
+      races: races.filter(({ operatorCount }) => operatorCount >= 5),
+    },
+    {
+      key: 'rare',
+      label: 'Rare',
+      races: races.filter(({ operatorCount }) => operatorCount >= 2 && operatorCount <= 4),
+    },
+    {
+      key: 'oneOff',
+      label: 'One-off',
+      races: races.filter(({ operatorCount }) => operatorCount === 1),
+    },
+  ]
 }
 
 export function buildFactionTree(dataset: OperatorDataset): FactionNode[] {

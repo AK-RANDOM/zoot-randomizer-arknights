@@ -3,7 +3,7 @@ import type { RandomizerConstraints } from '../../shared/constraints'
 import { type OperatorClass, type OperatorDataset } from '../../shared/operator'
 import {
   buildFactionTree,
-  buildRaceFilterOptions,
+  buildRaceFilterGroups,
   buildSubclassFilterGroups,
   descendantFactionIds,
   factionNodeState,
@@ -93,7 +93,7 @@ export default function OperatorFilters({
   onChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
 }): React.JSX.Element {
   const subclassesByClass = useMemo(() => buildSubclassFilterGroups(dataset), [dataset])
-  const races = useMemo(() => buildRaceFilterOptions(dataset), [dataset])
+  const raceGroups = useMemo(() => buildRaceFilterGroups(dataset), [dataset])
   const [selectedClass, setSelectedClass] = useState<OperatorClass>('Vanguard')
   const factionTree = useMemo(() => buildFactionTree(dataset), [dataset])
   const factionGroups = useMemo(() => factionTree.filter((node) => node.children.length > 0), [factionTree])
@@ -104,7 +104,7 @@ export default function OperatorFilters({
   const selectedSubclasses = subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? []
   const allSubclassIds = useMemo(() => subclassesByClass.flatMap(({ subclasses }) => subclasses.map(({ id }) => id)), [subclassesByClass])
   const allFactionIds = useMemo(() => [...new Set(factionTree.flatMap(descendantFactionIds))], [factionTree])
-  const allRaceIds = useMemo(() => races.map(({ id }) => id), [races])
+  const allRaceIds = useMemo(() => raceGroups.flatMap(({ races }) => races.map(({ id }) => id)), [raceGroups])
 
   const setAllSubclassState = (enabled: boolean): void => {
     onChange((current) => ({ ...current, subclass: { excludedIds: enabled ? [] : [...allSubclassIds] } }))
@@ -189,13 +189,18 @@ export default function OperatorFilters({
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Race</legend>
         <div className="operator-filter-global-actions"><span>All races</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button></div></div>
-        <div className="operator-filter-faction-standalone-chips">
-          {races.map((race) => {
-            const enabled = !excludedRaces.has(race.id)
-            return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => toggleRace(race.id, !enabled)}><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
-          })}
-        </div>
-        <p className="filter-note">Race identity is source-driven and stable across display languages. Operators with no Race source data appear under Unavailable.</p>
+        {raceGroups.map((group) => group.races.length > 0 && (
+          <div className="operator-filter-faction-standalone" key={group.key}>
+            <span className="operator-filter-faction-standalone-label">{group.label}</span>
+            <div className="operator-filter-faction-standalone-chips">
+              {group.races.map((race) => {
+                const enabled = !excludedRaces.has(race.id)
+                return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} title={`${race.operatorCount} operator${race.operatorCount === 1 ? '' : 's'}`} onClick={() => toggleRace(race.id, !enabled)}><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
+              })}
+            </div>
+          </div>
+        ))}
+        <p className="filter-note">Common races have 5+ operators, Rare races have 2–4, and One-off races have 1 in the currently loaded dataset. Stable Race IDs remain the filter identity.</p>
       </fieldset>
 
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">

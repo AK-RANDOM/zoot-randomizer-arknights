@@ -76,7 +76,9 @@ function resolveRaceLabel(
   if (locale === 'en') {
     const canonical = dataset.raceLabels?.[raceId]?.trim()
     const cn = catalogFor(dataset, 'cn').raceLabels?.[raceId]?.trim()
-    if (canonical && (canonical !== cn || isNeutralEnglishLikeLabel(canonical))) return canonical
+    if (canonical && (isNeutralEnglishLikeLabel(canonical) || (cn && canonical !== cn))) {
+      return canonical
+    }
     return raceId === RACE_UNAVAILABLE_ID ? 'Unavailable' : 'Untranslated'
   }
 

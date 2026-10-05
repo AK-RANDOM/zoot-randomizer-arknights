@@ -177,6 +177,25 @@ export default function DraftRulebookGeneralRulesEditor({
         <div className="rulebook-action-grid">
           <LimitedActionEditor label="Hold" description="consumes the round and stores one offered operator" rule={actions.hold} disabled={disabled} onChange={(rule) => updateHold(rule)}>
             <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.hold.enabled} checked={actions.hold.discardUnheldOffer} onChange={(event) => updateHold({ discardUnheldOffer: event.target.checked })} /><span>Discard the other offered operators when Hold resolves</span></label>
+            <div className="rulebook-inline-fields rulebook-inline-fields--three">
+              <label className="field">
+                <span>Upkeep</span>
+                <select disabled={disabled || !actions.hold.enabled || !economy.enabled} value={actions.hold.upkeepMode} onChange={(event) => updateHold({ upkeepMode: event.target.value as typeof actions.hold.upkeepMode })}>
+                  <option value="none">None</option>
+                  <option value="static">Static</option>
+                  <option value="escalating">Escalating</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Upkeep base cost</span>
+                <input type="number" min={0} disabled={disabled || !actions.hold.enabled || !economy.enabled || actions.hold.upkeepMode === 'none'} value={actions.hold.upkeepBaseCost} onChange={(event) => updateHold({ upkeepBaseCost: Math.max(0, Number(event.target.value) || 0) })} />
+              </label>
+              <label className="field">
+                <span>Escalation per charge</span>
+                <input type="number" min={0} disabled={disabled || !actions.hold.enabled || !economy.enabled || actions.hold.upkeepMode !== 'escalating'} value={actions.hold.upkeepEscalation} onChange={(event) => updateHold({ upkeepEscalation: Math.max(0, Number(event.target.value) || 0) })} />
+              </label>
+            </div>
+            <small className="filter-note">The initial Hold action uses the ordinary Hold cost. Upkeep starts only if the operator is carried through the following round.</small>
           </LimitedActionEditor>
           <LimitedActionEditor label="Forfeit" description="consumes the round and gives up one usable capacity opportunity" rule={actions.forfeit} disabled={disabled} onChange={(rule) => updateForfeit(rule)}>
             <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.forfeit.enabled} checked={actions.forfeit.discardOffer} onChange={(event) => updateForfeit({ discardOffer: event.target.checked })} /><span>Discard the forfeited offer from the draft pool</span></label>

@@ -3,7 +3,7 @@ import {
   type GameLocale,
   type GameStringCatalog,
   type OperatorDataset,
-} from './operator'
+} from './operator.ts'
 
 export const RACE_UNAVAILABLE_ID = 'race:unavailable' as const
 
@@ -28,23 +28,16 @@ export type LocalizedHandbookInfoTables = Partial<Record<GameLocale, RawHandbook
 const RACE_LINE_PATTERNS: Readonly<Record<GameLocale, RegExp>> = {
   en: /^\[Race\]\s*(.+?)\s*$/im,
   jp: /^【種族】\s*(.+?)\s*$/m,
-  kr: /^\[종족\]\s*(.+?)\s*$/m,
+  kr: /^\[종족\]\s*(.+?)\s*$/im,
   tw: /^【種族】\s*(.+?)\s*$/m,
   cn: /^【种族】\s*(.+?)\s*$/m,
 }
 
-function cleanSourceValue(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const normalized = value.normalize('NFKC').trim().replace(/\s+/g, ' ')
-  return normalized.length > 0 ? normalized : null
+function normalizedRaceLabel(value: string): string {
+  return value.normalize('NFKC').replace(/\s+/g, ' ').trim()
 }
 
-/**
- * Extracts the source-provided Race value from an operator's Basic Info text.
- * The field label is locale-specific, but the returned value is never translated
- * or interpreted by the randomizer.
- */
-export function raceValueFromHandbookRecord(
+export function parseRaceLabelFromHandbook(
   record: RawHandbookInfoRecord | undefined,
   locale: GameLocale,
 ): string | null {
@@ -53,136 +46,102 @@ export function raceValueFromHandbookRecord(
     for (const story of section.stories ?? []) {
       if (typeof story.storyText !== 'string') continue
       const match = pattern.exec(story.storyText)
-      const value = cleanSourceValue(match?.[1])
+      if (!match?.[1]) continue
+      const value = normalizedRaceLabel(match[1])
       if (value) return value
     }
   }
   return null
 }
 
-export function raceValuesFromHandbook(
-  table: RawHandbookInfoTable | undefined,
+function raceIdentitySource(
+  labels: Partial<Record<GameLocale, string>>,
+): { locale: GameLocale; label: string } | null {
+  for (const locale of ['cn', 'en', 'jp', 'kr', 'tw'] as const) {
+    const label = labels[locale]
+    if (label) return { locale, label }
+  }
+  return null
+}
+
+/** Stable source-derived key. The handbook currently exposes localized free-form Race text, not a native ID. */
+export function raceIdFromLabels(labels: Partial<Record<GameLocale, string>>): string {
+  const source = raceIdentitySource(labels)
+  if (!source) return RACE_UNAVAILABLE_ID
+  return `race:${source.locale}:${encodeURIComponent(source.label)}`
+}
+
+export function localizedRaceLabelsForOperator(
+  operatorId: string,
+  handbooks: LocalizedHandbookInfoTables,
+): Partial<Record<GameLocale, string>> {
+  const labels: Partial<Record<GameLocale, string>> = {}
+  for (const locale of gameLocales) {
+    const label = parseRaceLabelFromHandbook(handbooks[locale]?.handbookDict?.[operatorId], locale)
+    if (label) labels[locale] = label
+  }
+  return labels
+}
+
+export function operatorRaceIds(operator: { races?: readonly { id: string }[] }): string[] {
+  return operator.races?.map(({ id }) => id) ?? [RACE_UNAVAILABLE_ID]
+}
+
+function localeFallbackOrder(locale: GameLocale): readonly GameLocale[] {
+  switch (locale) {
+    case 'tw':
+      return ['tw', 'en', 'cn', 'jp', 'kr']
+    case 'cn':
+      return ['cn', 'en', 'jp', 'kr', 'tw']
+    default:
+      return [locale, 'en', 'cn', ...gameLocales.filter((candidate) => candidate !== locale && candidate !== 'en' && candidate !== 'cn')]
+  }
+}
+
+function displayLabel(
+  labels: Partial<Record<GameLocale, string>>,
   locale: GameLocale,
-): Record<string, string> {
-  const values: Record<string, string> = {}
-  for (const [operatorId, record] of Object.entries(table?.handbookDict ?? {})) {
-    const value = raceValueFromHandbookRecord(record, locale)
-    if (value) values[operatorId] = value
+  fallback = 'Unavailable',
+): string {
+  for (const candidate of localeFallbackOrder(locale)) {
+    const value = labels[candidate]
+    if (value) return value
   }
-  return values
+  return fallback
 }
 
-/**
- * Stable filter identity is derived from the canonical CN source value, not the
- * currently selected display language. EN is used only when a CN handbook race
- * value is unavailable for that operator.
- */
-export function raceIdFromSourceValue(value: string, source: 'cn' | 'en' = 'cn'): string {
-  const normalized = cleanSourceValue(value)
-  if (!normalized) return RACE_UNAVAILABLE_ID
-  return `race:${source}:${encodeURIComponent(normalized.toLocaleLowerCase('en-US'))}`
-}
-
-function preferredLabel(values: readonly string[], fallback: string): string {
-  if (values.length === 0) return fallback
-  const counts = new Map<string, number>()
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1)
-  const sorted = [...counts.entries()].sort(
-    ([leftValue, leftCount], [rightValue, rightCount]) =>
-      rightCount - leftCount || leftValue.localeCompare(rightValue),
-  )
-  return sorted[0]?.[0] ?? fallback
-}
-
-function catalogWithRaceLabels(
-  catalog: GameStringCatalog | undefined,
-  raceLabels: Record<string, string>,
-): GameStringCatalog {
-  return {
-    operatorNames: { ...(catalog?.operatorNames ?? {}) },
-    classLabels: { ...(catalog?.classLabels ?? {}) } as GameStringCatalog['classLabels'],
-    subclassLabels: { ...(catalog?.subclassLabels ?? {}) },
-    factionLabels: { ...(catalog?.factionLabels ?? {}) },
-    raceLabels,
-  }
-}
-
-/**
- * Adds source-driven stable race IDs and localized race labels to a normalized
- * operator dataset. This is intentionally additive so schema-v6 datasets from
- * before M6 remain readable and simply resolve to the Unavailable bucket.
- */
 export function applyRaceMetadata(
   dataset: OperatorDataset,
   handbooks: LocalizedHandbookInfoTables,
 ): OperatorDataset {
-  const valuesByLocale = Object.fromEntries(
-    gameLocales.map((locale) => [locale, raceValuesFromHandbook(handbooks[locale], locale)]),
-  ) as Record<GameLocale, Record<string, string>>
+  const raceLabelsByLocale: Partial<Record<GameLocale, GameStringCatalog>> = Object.fromEntries(
+    gameLocales.map((locale) => [locale, {}]),
+  )
 
-  const raceIdByOperator = new Map<string, string>()
-  for (const operator of dataset.operators) {
-    const cnValue = valuesByLocale.cn[operator.id]
-    const enValue = valuesByLocale.en[operator.id]
-    raceIdByOperator.set(
-      operator.id,
-      cnValue
-        ? raceIdFromSourceValue(cnValue, 'cn')
-        : enValue
-          ? raceIdFromSourceValue(enValue, 'en')
-          : RACE_UNAVAILABLE_ID,
-    )
+  const operators = dataset.operators.map((operator) => {
+    const labels = localizedRaceLabelsForOperator(operator.id, handbooks)
+    const raceId = raceIdFromLabels(labels)
+    for (const locale of gameLocales) {
+      raceLabelsByLocale[locale]![raceId] =
+        raceId === RACE_UNAVAILABLE_ID
+          ? 'Unavailable'
+          : displayLabel(labels, locale, raceId)
+    }
+    return { ...operator, races: [{ id: raceId }] }
+  })
+
+  const localizedStrings = { ...(dataset.localizedStrings ?? {}) }
+  for (const locale of gameLocales) {
+    localizedStrings[locale] = {
+      ...(localizedStrings[locale] ?? {}),
+      races: raceLabelsByLocale[locale],
+    }
   }
-
-  const localizedRaceLabels = Object.fromEntries(
-    gameLocales.map((locale) => {
-      const candidates = new Map<string, string[]>()
-      for (const operator of dataset.operators) {
-        const raceId = raceIdByOperator.get(operator.id) ?? RACE_UNAVAILABLE_ID
-        const value = valuesByLocale[locale][operator.id]
-        if (!value) continue
-        const current = candidates.get(raceId) ?? []
-        current.push(value)
-        candidates.set(raceId, current)
-      }
-
-      const labels: Record<string, string> = { [RACE_UNAVAILABLE_ID]: 'Unavailable' }
-      for (const [raceId, values] of candidates) {
-        labels[raceId] = preferredLabel(values, raceId)
-      }
-      return [locale, labels]
-    }),
-  ) as Record<GameLocale, Record<string, string>>
-
-  const canonicalRaceLabels: Record<string, string> = {
-    [RACE_UNAVAILABLE_ID]: 'Unavailable',
-  }
-  for (const operator of dataset.operators) {
-    const raceId = raceIdByOperator.get(operator.id) ?? RACE_UNAVAILABLE_ID
-    canonicalRaceLabels[raceId] ??=
-      valuesByLocale.en[operator.id] ?? valuesByLocale.cn[operator.id] ?? 'Unavailable'
-  }
-
-  const localizations = Object.fromEntries(
-    gameLocales.map((locale) => [
-      locale,
-      catalogWithRaceLabels(dataset.localizations?.[locale], localizedRaceLabels[locale]),
-    ]),
-  ) as OperatorDataset['localizations']
 
   return {
     ...dataset,
-    raceLabels: canonicalRaceLabels,
-    localizations,
-    operators: dataset.operators.map((operator) => ({
-      ...operator,
-      raceIds: [raceIdByOperator.get(operator.id) ?? RACE_UNAVAILABLE_ID],
-    })),
+    operators,
+    localizedStrings,
+    raceLabels: raceLabelsByLocale.en,
   }
-}
-
-export function operatorRaceIds(operator: { raceIds?: readonly string[] }): readonly string[] {
-  return operator.raceIds && operator.raceIds.length > 0
-    ? operator.raceIds
-    : [RACE_UNAVAILABLE_ID]
 }

@@ -1,18 +1,38 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { useOperatorArtworkPreference } from './presentationPreferences'
+import './OperatorCard.css'
+
+export interface OperatorCardInteractionLine {
+  id: string
+  label: string
+  modifier: string
+}
+
+export interface OperatorCardInteractionDetails {
+  baselineCost: number
+  minimumCost: number
+  maximumCost: number
+  currentCost?: number
+  interactions: readonly OperatorCardInteractionLine[]
+}
 
 interface OperatorCardProps {
   operator: Operator
+  interactionDetails?: OperatorCardInteractionDetails
 }
 
 export default function OperatorCard({
   operator,
+  interactionDetails,
 }: OperatorCardProps): React.JSX.Element {
   const artworkPreference = useOperatorArtworkPreference()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [usingPortrait, setUsingPortrait] = useState(false)
+  const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
+  const [tooltipPosition, setTooltipPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -48,6 +68,24 @@ export default function OperatorCard({
     }
   }, [artworkPreference, operator.id])
 
+  const hasInteractions = (interactionDetails?.interactions.length ?? 0) > 0
+  const showInteractionTooltip = (): void => {
+    const indicator = interactionIndicatorRef.current
+    if (!indicator) return
+    const rect = indicator.getBoundingClientRect()
+    const tooltipWidth = Math.min(360, Math.max(0, window.innerWidth - 32))
+    const maximumRight = Math.max(16, window.innerWidth - tooltipWidth - 16)
+    const right = Math.min(
+      Math.max(16, window.innerWidth - rect.right),
+      maximumRight,
+    )
+    if (rect.top > window.innerHeight / 2) {
+      setTooltipPosition({ bottom: Math.max(16, window.innerHeight - rect.top + 6), right })
+    } else {
+      setTooltipPosition({ top: Math.max(16, rect.bottom + 6), right })
+    }
+  }
+
   return (
     <article
       className="operator-card operator-card--portrait"
@@ -72,6 +110,58 @@ export default function OperatorCard({
       </div>
 
       <ClassIcon operatorClass={operator.class} className="operator-card__class-icon" />
+
+      {hasInteractions && interactionDetails && (
+        <>
+          <div className="operator-card__interaction-control">
+            <button
+              ref={interactionIndicatorRef}
+              type="button"
+              className="operator-card__interaction-indicator"
+              aria-label={`Interactions affecting ${operator.name}`}
+              onMouseEnter={showInteractionTooltip}
+              onMouseLeave={() => setTooltipPosition(null)}
+              onFocus={showInteractionTooltip}
+              onBlur={() => setTooltipPosition(null)}
+            >
+              ↔
+            </button>
+          </div>
+          {tooltipPosition && createPortal(
+            <div
+              className="operator-card__interaction-tooltip"
+              role="tooltip"
+              style={{
+                top: tooltipPosition.top,
+                bottom: tooltipPosition.bottom,
+                right: tooltipPosition.right,
+              }}
+            >
+              <strong>{operator.name}</strong>
+              <dl>
+                <div><dt>Baseline Cost</dt><dd>{interactionDetails.baselineCost}</dd></div>
+                <div><dt>Minimum Possible Cost</dt><dd>{interactionDetails.minimumCost}</dd></div>
+                <div><dt>Maximum Possible Cost</dt><dd>{interactionDetails.maximumCost}</dd></div>
+                {interactionDetails.currentCost !== undefined && (
+                  <div><dt>Current Cost</dt><dd>{interactionDetails.currentCost}</dd></div>
+                )}
+              </dl>
+              <div className="operator-card__interaction-list">
+                <span>Interactions affecting this operator:</span>
+                <ul>
+                  {interactionDetails.interactions.map((interaction) => (
+                    <li key={interaction.id}>
+                      <span>{interaction.label}</span>
+                      <strong>{interaction.modifier}</strong>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>,
+            document.body,
+          )}
+        </>
+      )}
 
       <div className="operator-card__caption">
         <strong>{operator.name}</strong>

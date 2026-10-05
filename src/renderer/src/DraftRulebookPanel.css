@@ -227,6 +227,94 @@
   background: rgba(99, 65, 27, 0.12);
 }
 
+.rulebook-interactions-editor,
+.rulebook-interaction-list-editor,
+.rulebook-interaction-fields,
+.rulebook-interaction-preview,
+.rulebook-progressive-steps {
+  display: grid;
+  gap: 12px;
+}
+
+.rulebook-interaction-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.rulebook-interaction-toolbar > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.rulebook-interaction-toolbar small,
+.rulebook-interaction-preview small {
+  color: #85858c;
+}
+
+.rulebook-interaction-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #3a3a40;
+  border-radius: 7px;
+  background: #121214;
+}
+
+.rulebook-interaction-fields > div > strong {
+  display: block;
+  margin-bottom: 7px;
+  color: #d8d8dc;
+  font-size: 0.78rem;
+}
+
+.rulebook-progressive-step {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.5fr) minmax(100px, 0.5fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid #2f2f34;
+  border-radius: 5px;
+  background: #0f0f11;
+}
+
+.rulebook-interaction-preview {
+  padding-top: 12px;
+  border-top: 1px solid #2f2f34;
+}
+
+.rulebook-interaction-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 10px;
+}
+
+.rulebook-interaction-preview-card {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rulebook-interaction-preview-card .operator-card {
+  aspect-ratio: 3 / 4;
+  min-height: 0;
+}
+
+.rulebook-interaction-preview-card > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 5px 10px;
+  color: #96969d;
+  font-size: 0.7rem;
+}
+
+.rulebook-interaction-preview-card strong {
+  color: #f1f1f3;
+}
+
 @media (max-width: 820px) {
   .rulebook-library-toolbar,
   .rulebook-editor-grid,
@@ -245,5 +333,14 @@
 
   .rulebook-override-card {
     grid-template-columns: 90px minmax(0, 1fr);
+  }
+
+  .rulebook-interaction-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rulebook-progressive-step {
+    grid-template-columns: 1fr;
   }
 }

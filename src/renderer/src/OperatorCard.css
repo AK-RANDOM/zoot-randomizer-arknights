@@ -1,0 +1,114 @@
+.operator-card__interaction-control {
+  position: absolute;
+  z-index: 8;
+  top: 7px;
+  right: 7px;
+}
+
+.operator-card__interaction-indicator {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(245, 173, 47, 0.85);
+  border-radius: 50%;
+  color: #111113;
+  background: rgba(245, 173, 47, 0.96);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.45);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 950;
+  line-height: 1;
+  cursor: help;
+  appearance: none;
+}
+
+.operator-card__interaction-indicator:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.operator-card__interaction-tooltip {
+  position: fixed;
+  z-index: 1000;
+  display: block;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(430px, calc(100vh - 32px));
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #55555e;
+  border-radius: 6px;
+  color: #e9e9ec;
+  background: rgba(15, 15, 17, 0.98);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.6);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.operator-card__interaction-tooltip > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #ffffff;
+  font-size: 0.86rem;
+}
+
+.operator-card__interaction-tooltip dl {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+}
+
+.operator-card__interaction-tooltip dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.operator-card__interaction-tooltip dt {
+  color: #9a9aa2;
+}
+
+.operator-card__interaction-tooltip dd {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.operator-card__interaction-list {
+  display: grid;
+  gap: 6px;
+  padding-top: 9px;
+  border-top: 1px solid #34343a;
+}
+
+.operator-card__interaction-list > span {
+  color: #b8b8be;
+  font-weight: 750;
+}
+
+.operator-card__interaction-list ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.operator-card__interaction-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.operator-card__interaction-list li span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.operator-card__interaction-list li strong {
+  color: #f5ad2f;
+  white-space: nowrap;
+}

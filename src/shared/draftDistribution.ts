@@ -177,11 +177,21 @@ export function pullDraftCandidate(
             }))
           })()
 
-    const eligibleBuckets = buckets.filter(
-      (bucket) => bucket.weight > 0 && bucket.candidates.length > 0,
-    )
+    const availableBuckets = buckets.filter((bucket) => bucket.candidates.length > 0)
+    if (availableBuckets.length === 0) {
+      throw new Error('Draft probability distribution has no eligible candidates.')
+    }
+    const positiveBuckets = availableBuckets.filter((bucket) => bucket.weight > 0)
+    const selectableBuckets = positiveBuckets.length > 0 ? positiveBuckets : availableBuckets
     const selected =
-      eligibleBuckets[weightedIndex(eligibleBuckets.map((bucket) => bucket.weight), random)]
+      selectableBuckets[
+        weightedIndex(
+          positiveBuckets.length > 0
+            ? selectableBuckets.map((bucket) => bucket.weight)
+            : selectableBuckets.map(() => 1),
+          random,
+        )
+      ]
     operator = chooseWithinBucket(selected.candidates, selected.rateUp, random)
   }
 

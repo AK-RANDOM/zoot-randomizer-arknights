@@ -60,7 +60,7 @@ export function createDraftRulebookSelectorCatalog(
   const races = new Set<string>()
   for (const operator of dataset.operators) {
     subclasses.set(operator.subclass.id, operator.subclass.name)
-    for (const raceId of operatorRaceIds(operator)) races.add(raceId)
+    for (const raceId of operator.raceIds ?? []) races.add(raceId)
   }
 
   return {
@@ -205,7 +205,7 @@ export function createDraftRulebookDatasetReferences(
     operatorIds.add(operator.id)
     subclassIds.add(operator.subclass.id)
     for (const id of operatorFactionIds(operator)) factionIds.add(id)
-    for (const id of operatorRaceIds(operator)) raceIds.add(id)
+    for (const id of operator.raceIds ?? []) raceIds.add(id)
   }
 
   return { operatorIds, subclassIds, factionIds, raceIds }

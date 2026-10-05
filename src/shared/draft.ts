@@ -139,9 +139,8 @@ export function getDraftOperatorCost(operator: Operator, options: Pick<DraftEngi
   const economy = resolvedEconomyRules(options)
   return economy.operatorCostOverrides[operator.id] ?? economy.rarityCosts[operator.rarity] ?? 0
 }
-function resolvedCapacityRules(options: Pick<DraftEngineOptions, 'capacityRules' | 'actionRules'>): DraftCapacityRules {
-  const inferred = options.capacityRules?.enabled ?? options.actionRules?.slotExpansion?.enabled ?? false
-  return { ...DEFAULT_DRAFT_CAPACITY_RULES, ...options.capacityRules, enabled: inferred }
+function resolvedCapacityRules(options: Pick<DraftEngineOptions, 'capacityRules'>): DraftCapacityRules {
+  return { ...DEFAULT_DRAFT_CAPACITY_RULES, ...options.capacityRules }
 }
 function uniqueOperatorsById(operators: readonly Operator[]): Operator[] { const seen = new Set<string>(); return operators.filter(o => seen.has(o.id) ? false : (seen.add(o.id), true)); }
 function availableOperators(pool: readonly Operator[], state: Pick<DraftState, 'draftedOperatorIds' | 'discardedOperatorIds' | 'heldOperatorId'>): Operator[] { const unavailable = new Set([...state.draftedOperatorIds, ...state.discardedOperatorIds]); if (state.heldOperatorId)
@@ -236,7 +235,12 @@ function actionRule(action: DraftActionType, rules: DraftActionRules): DraftLimi
   case 'reroll': return rules.reroll
   case 'slot-expansion': return rules.slotExpansion
 } }
-export function getDraftActionAvailability(state: DraftState, action: DraftAction, options: Pick<DraftEngineOptions, 'actionRules' | 'capacityRules'> = {}): DraftActionAvailability {
+export function getDraftActionAvailability(
+  state: DraftState,
+  action: DraftAction,
+  options: Pick<DraftEngineOptions, 'actionRules' | 'capacityRules' | 'economyRules'> = {},
+  pool?: readonly Operator[],
+): DraftActionAvailability {
   if (state.status !== 'active')
     return { available: false, reason: 'draft-complete' }
   const selectingCurrent = (action.type === 'pick' || action.type === 'hold') && state.currentOfferIds.includes(action.operatorId)
@@ -254,6 +258,13 @@ export function getDraftActionAvailability(state: DraftState, action: DraftActio
     return { available: false, reason: 'capacity-forfeit-unavailable' }
   if (action.type === 'slot-expansion' && capacity.enabled && state.activeCapacity >= Math.min(state.targetSize, capacity.maxActiveSlots))
     return { available: false, reason: 'capacity-maxed' }
+  if (state.economyRulesEnabled) {
+    const delta = action.type === 'pick' && !pool
+      ? 0
+      : getDraftActionPointDelta(pool ?? [], action, options)
+    if (delta < 0 && state.points + delta < 0)
+      return { available: false, reason: 'insufficient-points' }
+  }
   const rule = actionRule(action.type, resolvedRules(options))
   if (!rule)
     return { available: true, reason: null }
@@ -270,7 +281,7 @@ export function getDraftActionAvailability(state: DraftState, action: DraftActio
 }
 function assertPoolIdentity(state: DraftState, pool: readonly Operator[]) { if (createDraftPoolKey(pool, state.targetSize) !== state.poolKey)
   throw new Error('Draft pool or target size changed after this draft started.'); }
-function assertActionAvailable(state: DraftState, action: DraftAction, options: DraftEngineOptions) { const a = getDraftActionAvailability(state, action, options); if (!a.available)
+function assertActionAvailable(state: DraftState, pool: readonly Operator[], action: DraftAction, options: DraftEngineOptions) { const a = getDraftActionAvailability(state, action, options, pool); if (!a.available)
   throw new Error(`Draft action ${action.type} is unavailable: ${a.reason}.`); }
 function appendDiscarded(current: readonly string[], additions: readonly string[]): string[] { return [...new Set([...current, ...additions])]; }
 function operatorById(pool: readonly Operator[], id: string): Operator {
@@ -303,7 +314,7 @@ export function applyDraftAction(state: DraftState, pool: readonly Operator[], a
   const capacity = resolvedCapacityRules(options)
   validateRules(rules)
   validateCapacityRules(capacity)
-  assertActionAvailable(state, action, options)
+  assertActionAvailable(state, pool, action, options)
   assertEconomyAffordable(state, pool, action, options)
   const actionUsage = recordAction(state, action.type)
   const points = state.points + getDraftActionPointDelta(pool, action, options)

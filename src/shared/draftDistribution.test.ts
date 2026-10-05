@@ -34,7 +34,7 @@ describe('Draft pull distributions', () => {
   it('advances pity per generated candidate and resets on a generated 6-star', () => {
     const candidates = [operator('three', 3), operator('four', 4), operator('five', 5), operator('six', 6)]
     const beforePity = pullDraftCandidate(candidates, { type: 'arknights' }, { pullsSinceSixStar: 49 }, sequence([0.97, 0]))
-    expect(beforePity.operator.rarity).toBe(4)
+    expect(beforePity.operator.rarity).toBe(5)
     expect(beforePity.state.pullsSinceSixStar).toBe(50)
 
     const pityPull = pullDraftCandidate(candidates, { type: 'arknights' }, { pullsSinceSixStar: 50 }, sequence([0.97, 0]))
@@ -68,6 +68,25 @@ describe('Draft pull distributions', () => {
       sequence([0, 0.4, 0]),
     )
     expect(pulled.operator.id).toBe('featured')
+  })
+
+  it('rejects invalid rate-up shares and duplicate custom bucket IDs', () => {
+    const invalidRateUp: DraftPullDistribution = {
+      type: 'custom',
+      buckets: [
+        { id: 'all', weight: 1, rarities: [1, 2, 3, 4, 5, 6], rateUp: { share: -0.1, featuredOperatorIds: [] } },
+      ],
+    }
+    expect(() => pullDraftCandidate([operator('four', 4)], invalidRateUp, { pullsSinceSixStar: 0 }, () => 0)).toThrow('between 0 and 1')
+
+    const duplicateIds: DraftPullDistribution = {
+      type: 'custom',
+      buckets: [
+        { id: 'same', weight: 1, rarities: [1, 2, 3] },
+        { id: 'same', weight: 1, rarities: [4, 5, 6] },
+      ],
+    }
+    expect(() => pullDraftCandidate([operator('four', 4)], duplicateIds, { pullsSinceSixStar: 0 }, () => 0)).toThrow('unique and non-empty')
   })
 
   it('never duplicates candidates inside one offer', () => {

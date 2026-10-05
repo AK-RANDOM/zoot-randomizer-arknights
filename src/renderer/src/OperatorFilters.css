@@ -1,10 +1,10 @@
-.operator-filter-filter-layout {
+.operator-filter-layout {
   display: grid;
   gap: 1rem;
   margin-top: 1rem;
 }
 
-.operator-filter-filter-global-actions {
+.operator-filter-global-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -12,7 +12,7 @@
   margin-bottom: 0.65rem;
 }
 
-.operator-filter-filter-global-actions > span {
+.operator-filter-global-actions > span {
   color: rgba(255, 255, 255, 0.58);
   font-size: 0.76rem;
   font-weight: 700;

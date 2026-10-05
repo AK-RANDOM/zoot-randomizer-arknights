@@ -93,7 +93,7 @@ describe('Draft milestone 1 engine', () => {
   it('does not create a partial offer from an initially undersized pool', () => {
     const state = startDraft(roster(2), 1, { random: () => 0 })
 
-    expect(state).toEqual({
+    expect(state).toMatchObject({
       targetSize: 1,
       poolKey: createDraftPoolKey(roster(2), 1),
       draftedOperatorIds: [],

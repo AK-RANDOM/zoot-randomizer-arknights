@@ -5,7 +5,7 @@ export type DraftCandidateGenerator = (candidates: readonly Operator[], count: n
 export type DraftStatus = 'active' | 'complete'
 export type DraftCompletionReason = 'squad-size-reached' | 'pool-exhausted' | 'capacity-exhausted'
 export type DraftActionType = 'pick' | 'forfeit' | 'hold' | 'release-hold' | 'reroll' | 'slot-expansion'
-export type DraftActionBlockReason = 'draft-complete' | 'action-disabled' | 'invalid-offer-selection' | 'hold-slot-occupied' | 'hold-slot-empty' | 'per-round-limit' | 'per-draft-limit' | 'cooldown' | 'capacity-full' | 'capacity-maxed' | 'capacity-forfeit-unavailable'
+export type DraftActionBlockReason = 'draft-complete' | 'action-disabled' | 'invalid-offer-selection' | 'hold-slot-occupied' | 'hold-slot-empty' | 'per-round-limit' | 'per-draft-limit' | 'cooldown' | 'capacity-full' | 'capacity-maxed' | 'capacity-forfeit-unavailable' | 'insufficient-points'
 export interface DraftActionUsage {
   total: number
   round: number
@@ -40,6 +40,16 @@ export interface DraftCapacityRules {
   overflowSlots: number
   maxActiveSlots: number
 }
+export interface DraftEconomyRules {
+  enabled: boolean
+  startingPoints: number
+  rarityCosts: Record<number, number>
+  operatorCostOverrides: Record<string, number>
+  forfeitRebate: number
+  rerollCost: number
+  holdCost: number
+  slotExpansionCost: number
+}
 export const DEFAULT_DRAFT_ACTION_RULES: DraftActionRules = {
   hold: { enabled: false, perRoundLimit: 1, perDraftLimit: null, cooldownRounds: 0, discardUnheldOffer: false },
   forfeit: { enabled: false, perRoundLimit: 1, perDraftLimit: null, cooldownRounds: 0, discardOffer: false },
@@ -47,6 +57,16 @@ export const DEFAULT_DRAFT_ACTION_RULES: DraftActionRules = {
   slotExpansion: { enabled: false, perRoundLimit: 1, perDraftLimit: null, cooldownRounds: 0 },
 }
 export const DEFAULT_DRAFT_CAPACITY_RULES: DraftCapacityRules = { enabled: false, startingActiveSlots: 6, overflowSlots: 1, maxActiveSlots: 12 }
+export const DEFAULT_DRAFT_ECONOMY_RULES: DraftEconomyRules = {
+  enabled: false,
+  startingPoints: 0,
+  rarityCosts: { 1: -8, 2: -6, 3: -4, 4: 0, 5: 12, 6: 32 },
+  operatorCostOverrides: {},
+  forfeitRebate: 4,
+  rerollCost: 0,
+  holdCost: 0,
+  slotExpansionCost: 2,
+}
 export interface DraftState {
   targetSize: number
   poolKey: string
@@ -61,6 +81,8 @@ export interface DraftState {
   overflowCapacity: number
   forfeitedCapacityCount: number
   capacityRulesEnabled: boolean
+  points: number
+  economyRulesEnabled: boolean
   actionUsage: DraftActionUsageMap
   status: DraftStatus
   completionReason: DraftCompletionReason | null
@@ -76,6 +98,7 @@ export interface DraftEngineOptions {
   random?: DraftRandomSource
   actionRules?: PartialDraftActionRules
   capacityRules?: Partial<DraftCapacityRules>
+  economyRules?: Partial<DraftEconomyRules>
 }
 export type DraftAction = {
   type: 'pick'
@@ -100,6 +123,19 @@ function emptyUsage(): DraftActionUsageMap {
   return { pick: { total: 0, round: 0, lastUsedRound: null }, forfeit: { total: 0, round: 0, lastUsedRound: null }, hold: { total: 0, round: 0, lastUsedRound: null }, 'release-hold': { total: 0, round: 0, lastUsedRound: null }, reroll: { total: 0, round: 0, lastUsedRound: null }, 'slot-expansion': { total: 0, round: 0, lastUsedRound: null } }
 }
 function resolvedRules(options: Pick<DraftEngineOptions, 'actionRules'>): DraftActionRules { const c = options.actionRules ?? {}; return { hold: { ...DEFAULT_DRAFT_ACTION_RULES.hold, ...c.hold }, forfeit: { ...DEFAULT_DRAFT_ACTION_RULES.forfeit, ...c.forfeit }, reroll: { ...DEFAULT_DRAFT_ACTION_RULES.reroll, ...c.reroll }, slotExpansion: { ...DEFAULT_DRAFT_ACTION_RULES.slotExpansion, ...c.slotExpansion } }; }
+function resolvedEconomyRules(options: Pick<DraftEngineOptions, 'economyRules'>): DraftEconomyRules {
+  const custom = options.economyRules ?? {}
+  return {
+    ...DEFAULT_DRAFT_ECONOMY_RULES,
+    ...custom,
+    rarityCosts: { ...DEFAULT_DRAFT_ECONOMY_RULES.rarityCosts, ...custom.rarityCosts },
+    operatorCostOverrides: { ...DEFAULT_DRAFT_ECONOMY_RULES.operatorCostOverrides, ...custom.operatorCostOverrides },
+  }
+}
+export function getDraftOperatorCost(operator: Operator, options: Pick<DraftEngineOptions, 'economyRules'> = {}): number {
+  const economy = resolvedEconomyRules(options)
+  return economy.operatorCostOverrides[operator.id] ?? economy.rarityCosts[operator.rarity] ?? 0
+}
 function resolvedCapacityRules(options: Pick<DraftEngineOptions, 'capacityRules' | 'actionRules'>): DraftCapacityRules {
   const inferred = options.capacityRules?.enabled ?? options.actionRules?.slotExpansion?.enabled ?? false
   return { ...DEFAULT_DRAFT_CAPACITY_RULES, ...options.capacityRules, enabled: inferred }
@@ -160,12 +196,13 @@ function beginNextRound(state: DraftState, pool: readonly Operator[], options: D
 export function startDraft(pool: readonly Operator[], targetSize: number, options: DraftEngineOptions = {}): DraftState {
   const rules = resolvedRules(options)
   const capacity = resolvedCapacityRules(options)
+  const economy = resolvedEconomyRules(options)
   validateRules(rules)
   validateCapacityRules(capacity)
   const poolKey = createDraftPoolKey(pool, targetSize)
   const activeCapacity = capacity.enabled ? Math.min(targetSize, capacity.startingActiveSlots) : targetSize
   const overflowCapacity = capacity.enabled ? Math.max(0, Math.min(capacity.overflowSlots, targetSize - activeCapacity)) : 0
-  const base: DraftState = { targetSize, poolKey, draftedOperatorIds: [], currentOfferIds: [], discardedOperatorIds: [], heldOperatorId: null, roundNumber: 1, completedRounds: 0, capacityExpansionCount: 0, activeCapacity, overflowCapacity, forfeitedCapacityCount: 0, capacityRulesEnabled: capacity.enabled, actionUsage: emptyUsage(), status: 'active', completionReason: null }
+  const base: DraftState = { targetSize, poolKey, draftedOperatorIds: [], currentOfferIds: [], discardedOperatorIds: [], heldOperatorId: null, roundNumber: 1, completedRounds: 0, capacityExpansionCount: 0, activeCapacity, overflowCapacity, forfeitedCapacityCount: 0, capacityRulesEnabled: capacity.enabled, points: economy.enabled ? economy.startingPoints : 0, economyRulesEnabled: economy.enabled, actionUsage: emptyUsage(), status: 'active', completionReason: null }
   const offer = generatedOffer(pool, base, options)
   return offer ? { ...base, currentOfferIds: offer } : completeState(base, 'pool-exhausted')
 }
@@ -214,6 +251,30 @@ function assertPoolIdentity(state: DraftState, pool: readonly Operator[]) { if (
 function assertActionAvailable(state: DraftState, action: DraftAction, options: DraftEngineOptions) { const a = getDraftActionAvailability(state, action, options); if (!a.available)
   throw new Error(`Draft action ${action.type} is unavailable: ${a.reason}.`); }
 function appendDiscarded(current: readonly string[], additions: readonly string[]): string[] { return [...new Set([...current, ...additions])]; }
+function operatorById(pool: readonly Operator[], id: string): Operator {
+  const operator = pool.find(candidate => candidate.id === id)
+  if (!operator)
+    throw new Error(`Draft operator ${id} is not in the eligible pool.`)
+  return operator
+}
+export function getDraftActionPointDelta(state: DraftState, pool: readonly Operator[], action: DraftAction, options: Pick<DraftEngineOptions, 'economyRules'> = {}): number {
+  const economy = resolvedEconomyRules(options)
+  if (!economy.enabled)
+    return 0
+  switch (action.type) {
+    case 'pick': return -getDraftOperatorCost(operatorById(pool, action.operatorId), options)
+    case 'forfeit': return economy.forfeitRebate
+    case 'reroll': return -economy.rerollCost
+    case 'hold': return -economy.holdCost
+    case 'slot-expansion': return -economy.slotExpansionCost
+    case 'release-hold': return 0
+  }
+}
+function assertEconomyAffordable(state: DraftState, pool: readonly Operator[], action: DraftAction, options: DraftEngineOptions): void {
+  const delta = getDraftActionPointDelta(state, pool, action, options)
+  if (state.economyRulesEnabled && delta < 0 && state.points + delta < 0)
+    throw new Error(`Draft action ${action.type} is unavailable: insufficient-points.`)
+}
 export function applyDraftAction(state: DraftState, pool: readonly Operator[], action: DraftAction, options: DraftEngineOptions = {}): DraftState {
   assertPoolIdentity(state, pool)
   const rules = resolvedRules(options)
@@ -221,30 +282,32 @@ export function applyDraftAction(state: DraftState, pool: readonly Operator[], a
   validateRules(rules)
   validateCapacityRules(capacity)
   assertActionAvailable(state, action, options)
+  assertEconomyAffordable(state, pool, action, options)
   const actionUsage = recordAction(state, action.type)
+  const points = state.points + getDraftActionPointDelta(state, pool, action, options)
   switch (action.type) {
     case 'pick': {
       if (state.draftedOperatorIds.includes(action.operatorId))
         throw new Error(`Operator ${action.operatorId} has already been drafted.`)
       const fromHold = state.heldOperatorId === action.operatorId
-      return beginNextRound({ ...state, draftedOperatorIds: [...state.draftedOperatorIds, action.operatorId], heldOperatorId: fromHold ? null : state.heldOperatorId, actionUsage }, pool, options)
+      return beginNextRound({ ...state, draftedOperatorIds: [...state.draftedOperatorIds, action.operatorId], heldOperatorId: fromHold ? null : state.heldOperatorId, points, actionUsage }, pool, options)
     }
     case 'hold': {
       const discarded = rules.hold.discardUnheldOffer ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds.filter(id => id !== action.operatorId)) : state.discardedOperatorIds
-      return beginNextRound({ ...state, heldOperatorId: action.operatorId, discardedOperatorIds: discarded, actionUsage }, pool, options)
+      return beginNextRound({ ...state, heldOperatorId: action.operatorId, discardedOperatorIds: discarded, points, actionUsage }, pool, options)
     }
-    case 'release-hold': return { ...state, heldOperatorId: null, actionUsage }
+    case 'release-hold': return { ...state, heldOperatorId: null, points, actionUsage }
     case 'forfeit': {
       const discarded = rules.forfeit.discardOffer ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds) : state.discardedOperatorIds
-      return beginNextRound({ ...state, discardedOperatorIds: discarded, forfeitedCapacityCount: capacity.enabled ? state.forfeitedCapacityCount + 1 : state.forfeitedCapacityCount, actionUsage }, pool, options)
+      return beginNextRound({ ...state, discardedOperatorIds: discarded, forfeitedCapacityCount: capacity.enabled ? state.forfeitedCapacityCount + 1 : state.forfeitedCapacityCount, points, actionUsage }, pool, options)
     }
     case 'reroll': {
       const discarded = rules.reroll.discardOffer ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds) : state.discardedOperatorIds
-      const next = { ...state, discardedOperatorIds: discarded, actionUsage, currentOfferIds: [] }
+      const next = { ...state, discardedOperatorIds: discarded, points, actionUsage, currentOfferIds: [] }
       const offer = generatedOffer(pool, next, options)
       return offer ? { ...next, currentOfferIds: offer } : completeState(next, 'pool-exhausted')
     }
-    case 'slot-expansion': return { ...state, activeCapacity: capacity.enabled ? state.activeCapacity + 1 : state.activeCapacity, capacityExpansionCount: state.capacityExpansionCount + 1, actionUsage }
+    case 'slot-expansion': return { ...state, activeCapacity: capacity.enabled ? state.activeCapacity + 1 : state.activeCapacity, capacityExpansionCount: state.capacityExpansionCount + 1, points, actionUsage }
   }
 }
 export function pickDraftOperator(state: DraftState, pool: readonly Operator[], operatorId: string, options: DraftEngineOptions = {}): DraftState { return applyDraftAction(state, pool, { type: 'pick', operatorId }, options); }

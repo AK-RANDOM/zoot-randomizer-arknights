@@ -6,6 +6,7 @@ on:
     branches:
       - main
 
+# One-time authorized build trigger.
 permissions:
   contents: read
 

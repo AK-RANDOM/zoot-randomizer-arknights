@@ -21,7 +21,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
-      - run: npm run build:win
+      - name: Build portable Windows package
+        run: npm run build && npx electron-builder --win portable --publish never
       - name: Verify portable launch
         shell: pwsh
         run: |

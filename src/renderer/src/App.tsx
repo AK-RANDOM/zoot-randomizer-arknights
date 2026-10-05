@@ -15,6 +15,7 @@ import {
 } from '../../shared/operatorPool'
 import { releaseRangeIsValid, remapReleaseConstraintServer } from '../../shared/releaseBounds'
 import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPreferencesStorage'
+import { loadRaceExclusions } from './rendererPersistence'
 
 const INVALID_RELEASE_RANGE_MESSAGE = 'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 
@@ -33,6 +34,7 @@ export default function App(): React.JSX.Element {
   const [constraints, setConstraints] = useState<RandomizerConstraints>(() => {
     const next = createDefaultConstraints()
     next.release.server = operatorPreferences.metadataRegion
+    next.race = { excludedIds: loadRaceExclusions() }
     return next
   })
   const [message, setMessage] = useState('Loading operator data…')

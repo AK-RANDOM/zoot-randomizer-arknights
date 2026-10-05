@@ -64,6 +64,12 @@ function mainFactionLabel(operator: Operator, dataset: OperatorDataset): string 
   return `${labels[0]} (${labels.at(-1)})`
 }
 
+export function operatorRaceLabel(operator: Operator, raceLabels: OperatorDataset['raceLabels']): string {
+  const raceIds = operator.raceIds ?? []
+  if (raceIds.length === 0) return raceLabels?.['race:unavailable'] ?? 'Unavailable'
+  return raceIds.map((id) => raceLabels?.[id] ?? id).join(', ')
+}
+
 function groupLabel(
   operator: Operator,
   groupBy: PoolGroupBy,
@@ -149,6 +155,7 @@ export function expandAllPoolGroups(): Set<string> {
 function OperatorEntry({
   operator,
   factionLabel,
+  raceLabel,
   classLabel,
   included,
   presentation,
@@ -157,6 +164,7 @@ function OperatorEntry({
 }: {
   operator: Operator
   factionLabel: string
+  raceLabel: string
   classLabel: string
   included: boolean
   presentation: OperatorPreferences['poolPresentation']
@@ -189,6 +197,7 @@ function OperatorEntry({
         <strong>{operator.name}</strong>
         <small>{operator.rarity}★ · {classLabel} · {operator.subclass.name}</small>
         <small>Main faction: {factionLabel}</small>
+        <small>Race: {raceLabel}</small>
       </span>
       <span className="pool-entry-status">{stateLabel}</span>
     </button>
@@ -298,7 +307,7 @@ export default function PoolPanel({
                 <button type="button" className="pool-group-collapse" aria-expanded={!collapsed} onClick={() => setCollapsedGroups((current) => { const next = new Set(current); if (next.has(label)) next.delete(label); else next.add(label); return next })}><span>{collapsed ? '▸' : '▾'} {label}</span><span>{operators.length}</span></button>
                 <button type="button" className="pool-group-sort-toggle" aria-label={`${label} operator order: ${reversed ? 'reversed' : 'normal'}. Toggle operator order.`} title={`${label}: ${reversed ? 'Reverse' : 'Normal'} operator order`} onClick={() => toggleOneGroupDirection(label)}><span aria-hidden="true">{reversed ? '↓' : '↑'}</span></button>
               </div>}
-              {!collapsed && <div className="pool-entries">{visibleOperators.map((operator) => <OperatorEntry key={operator.id} operator={operator} factionLabel={mainFactionLabel(operator, dataset)} classLabel={dataset.classLabels?.[operator.class] ?? operator.class} included={!excludedIds.has(operator.id)} presentation={preferences.poolPresentation} artwork={artwork} onToggle={() => toggleOperator(operator)} />)}</div>}
+              {!collapsed && <div className="pool-entries">{visibleOperators.map((operator) => <OperatorEntry key={operator.id} operator={operator} factionLabel={mainFactionLabel(operator, dataset)} raceLabel={operatorRaceLabel(operator, dataset.raceLabels)} classLabel={dataset.classLabels?.[operator.class] ?? operator.class} included={!excludedIds.has(operator.id)} presentation={preferences.poolPresentation} artwork={artwork} onToggle={() => toggleOperator(operator)} />)}</div>}
             </section>
           )
         })}

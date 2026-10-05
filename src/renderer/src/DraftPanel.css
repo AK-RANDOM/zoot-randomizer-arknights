@@ -187,6 +187,28 @@
   border-radius: 0;
 }
 
+.draft-interaction-breakdown {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border-bottom: 1px solid #303036;
+  color: #a8a8af;
+  background: rgba(245, 173, 47, 0.045);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.draft-interaction-breakdown span {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.draft-interaction-breakdown strong {
+  color: #f5ad2f;
+  white-space: nowrap;
+}
+
 .draft-candidate-actions {
   padding: 9px;
 }

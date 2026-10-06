@@ -189,7 +189,7 @@ export default function SquadConstraintEditor({
             : (amiyaForms.find((operator) => operator.class === AMIYA_DEFAULT_CLASS) ??
               matchingAmiyaForms[0]),
         aliases: amiyaForms.flatMap((operator) => [operator.name, operator.class]),
-        classIcons: amiyaForms.map((operator) => operator.class),
+        classIcons: matchingAmiyaForms.map((operator) => operator.class),
       })
     }
 

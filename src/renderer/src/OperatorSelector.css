@@ -25,7 +25,7 @@
 .operator-selector-option,
 .operator-selector-selected {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -81,8 +81,7 @@
   border-color: var(--rarity-border-color, #8d6728);
 }
 
-.operator-selector-option > span,
-.operator-selector-selected > span {
+.operator-selector-copy {
   display: grid;
   min-width: 0;
   gap: 2px;
@@ -126,6 +125,23 @@
   place-items: center;
   color: #8c8c93;
   font-weight: 850;
+}
+
+.operator-selector-class-stack {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  justify-items: center;
+}
+
+.operator-selector-class-stack .class-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.operator-selector-class-stack.is-multiple .class-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .operator-selector-empty {

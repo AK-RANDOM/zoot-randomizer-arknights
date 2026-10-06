@@ -5,14 +5,20 @@ import {
   type SlotConstraint,
 } from './constraints'
 import type { Operator, OperatorClass } from './operator'
-import { cloneSquadConfiguration } from './presets'
-import { constraintsWithSlotDraft, operatorMatchesSlotConstraint } from './randomizer'
+import {
+  applySquadConfiguration,
+  cloneSquadConfiguration,
+  squadConfigurationFromConstraints,
+} from './presets'
+import {
+  canSlotResolveTo,
+  constraintsWithSlotDraft,
+  generateSquad,
+  operatorMatchesSlotConstraint,
+  validateConstraints,
+} from './randomizer'
 
-function operator(
-  id: string,
-  operatorClass: OperatorClass,
-  subclassId: string,
-): Operator {
+function operator(id: string, operatorClass: OperatorClass, subclassId: string): Operator {
   return {
     id,
     name: id,
@@ -35,9 +41,19 @@ function operator(
 
 const pioneer = operator('pioneer', 'Vanguard', 'subclass:pioneer')
 const charger = operator('charger', 'Vanguard', 'subclass:charger')
+const mystic = operator('mystic', 'Caster', 'subclass:mystic')
+const pool = [pioneer, charger, mystic]
 
 function slot(overrides: Partial<SlotConstraint> = {}): SlotConstraint {
   return { rarities: [], classes: [], ...overrides }
+}
+
+function seededRandom(): () => number {
+  let state = 7
+  return () => {
+    state = (state * 48271) % 2147483647
+    return state / 2147483647
+  }
 }
 
 describe('per-slot subclass constraints', () => {
@@ -58,6 +74,28 @@ describe('per-slot subclass constraints', () => {
     expect(operatorMatchesSlotConstraint(charger, constraint)).toBe(false)
   })
 
+  it('generates from the selected subclass allow-list', () => {
+    const constraints = createDefaultConstraints()
+    constraints.squadSize = 1
+    constraints.slots[0] = slot({ classes: ['Vanguard'], subclasses: ['subclass:charger'] })
+
+    expect(validateConstraints(constraints, pool).valid).toBe(true)
+    expect(generateSquad(pool, constraints, seededRandom())[0].id).toBe('charger')
+  })
+
+  it('supports subclass feasibility probes', () => {
+    const constraints = createDefaultConstraints()
+    constraints.squadSize = 1
+    const draft = slot({ classes: ['Vanguard'] })
+
+    expect(
+      canSlotResolveTo(pool, constraints, 0, draft, { subclassId: 'subclass:pioneer' }),
+    ).toBe(true)
+    expect(
+      canSlotResolveTo(pool, constraints, 0, draft, { subclassId: 'subclass:mystic' }),
+    ).toBe(false)
+  })
+
   it('clones and drafts subclass sets without sharing the source array', () => {
     const source = slot({ subclasses: ['subclass:pioneer'] })
     const cloned = cloneSlotConstraint(source)
@@ -71,7 +109,7 @@ describe('per-slot subclass constraints', () => {
     expect(constraints.slots[0].subclasses).toBeUndefined()
   })
 
-  it('preserves explicit subclass filters through squad preset cloning', () => {
+  it('preserves explicit subclass filters through squad preset cloning and application', () => {
     const constraints = createDefaultConstraints()
     constraints.slots[0] = slot({ subclasses: ['subclass:pioneer'] })
 
@@ -79,5 +117,9 @@ describe('per-slot subclass constraints', () => {
     expect(cloned.slots[0].subclasses).toEqual(['subclass:pioneer'])
     cloned.slots[0].subclasses!.push('subclass:charger')
     expect(constraints.slots[0].subclasses).toEqual(['subclass:pioneer'])
+
+    const saved = squadConfigurationFromConstraints(constraints)
+    const applied = applySquadConfiguration(createDefaultConstraints(), saved)
+    expect(applied.slots[0].subclasses).toEqual(['subclass:pioneer'])
   })
 })

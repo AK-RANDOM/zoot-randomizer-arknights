@@ -1,0 +1,91 @@
+import ClassIcon from './ClassIcon'
+import OperatorCard from './OperatorCard'
+import type { SlotConstraint } from '../../shared/constraints'
+import type { Operator, OperatorClass } from '../../shared/operator'
+import { operatorMatchesSlotConstraint } from '../../shared/randomizer'
+import './LockedSlotCard.css'
+
+const AMIYA_MANDATORY_GROUP = 'amiya-forms'
+const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
+
+export interface LockedSlotPresentation {
+  operator: Operator
+  classes: OperatorClass[]
+}
+
+function amiyaClassOrder(operatorClass: OperatorClass): number {
+  const index = AMIYA_CLASS_ORDER.indexOf(operatorClass)
+  return index < 0 ? AMIYA_CLASS_ORDER.length : index
+}
+
+export function lockedSlotPresentation(
+  constraint: SlotConstraint,
+  operators: readonly Operator[],
+): LockedSlotPresentation | null {
+  if (constraint.operatorId) {
+    const operator = operators.find((candidate) => candidate.id === constraint.operatorId)
+    return operator && operatorMatchesSlotConstraint(operator, constraint)
+      ? { operator, classes: [operator.class] }
+      : null
+  }
+
+  const group = constraint.mandatoryExclusivityGroup
+  if (!group) return null
+
+  const candidates = operators
+    .filter(
+      (operator) =>
+        operator.mandatoryExclusivityGroup === group &&
+        operatorMatchesSlotConstraint(operator, constraint),
+    )
+    .sort((left, right) => {
+      if (group === AMIYA_MANDATORY_GROUP) {
+        return amiyaClassOrder(left.class) - amiyaClassOrder(right.class)
+      }
+      return left.name.localeCompare(right.name)
+    })
+
+  if (candidates.length === 0) return null
+
+  const classes = [...new Set(candidates.map((operator) => operator.class))]
+  if (group === AMIYA_MANDATORY_GROUP) {
+    classes.sort((left, right) => amiyaClassOrder(left) - amiyaClassOrder(right))
+  }
+
+  return { operator: candidates[0], classes }
+}
+
+export default function LockedSlotCard({
+  presentation,
+  slot,
+  onClick,
+}: {
+  presentation: LockedSlotPresentation
+  slot: number
+  onClick: () => void
+}): React.JSX.Element {
+  const multipleClasses = presentation.classes.length > 1
+  return (
+    <button
+      type="button"
+      className={`slot-locked-card${multipleClasses ? ' is-multi-class' : ''}`}
+      aria-label={`Configure squad slot ${slot}, locked to ${presentation.operator.name}`}
+      onClick={onClick}
+    >
+      <OperatorCard operator={presentation.operator} />
+      <span className="slot-lock-indicator" title="Specific operator locked" aria-hidden="true">
+        🔒
+      </span>
+      {multipleClasses && (
+        <span
+          className="slot-locked-class-stack"
+          aria-label={`Eligible classes: ${presentation.classes.join(', ')}`}
+        >
+          {presentation.classes.map((operatorClass) => (
+            <ClassIcon key={operatorClass} operatorClass={operatorClass} />
+          ))}
+        </span>
+      )}
+    </button>
+  )
+}

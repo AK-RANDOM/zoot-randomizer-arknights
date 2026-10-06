@@ -25,7 +25,6 @@
 .operator-selector-option,
 .operator-selector-selected {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -37,8 +36,15 @@
 }
 
 .operator-selector-option {
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   min-height: 48px;
   padding: 4px 7px 4px 4px;
+}
+
+.operator-selector-selected {
+  grid-template-columns: 42px minmax(0, 1fr) auto auto;
+  padding: 5px;
+  border-color: var(--rarity-border-color, #8d6728);
 }
 
 .operator-selector-option[data-rarity='1'],
@@ -74,11 +80,6 @@
 
 .operator-selector-option:disabled {
   opacity: 0.44;
-}
-
-.operator-selector-selected {
-  padding: 5px;
-  border-color: var(--rarity-border-color, #8d6728);
 }
 
 .operator-selector-copy {
@@ -128,15 +129,24 @@
 }
 
 .operator-selector-class-stack {
-  display: grid;
-  gap: 2px;
-  align-content: center;
-  justify-items: center;
+  display: flex;
+  min-width: 32px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
 }
 
 .operator-selector-class-stack .class-icon {
   width: 22px;
   height: 22px;
+  flex: 0 0 auto;
+}
+
+.operator-selector-class-stack.is-multiple {
+  min-width: max-content;
+  flex-direction: row;
+  flex-wrap: nowrap;
 }
 
 .operator-selector-class-stack.is-multiple .class-icon {

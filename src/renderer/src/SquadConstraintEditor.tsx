@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import OperatorSelector, { type OperatorSelectorOption } from './OperatorSelector'
 import ClassIcon from './ClassIcon'
+import { SubclassIcon } from './FilterAssetIcon'
 import {
   createEmptySlotConstraint,
   rarityGroupDefinitions,
@@ -22,6 +23,8 @@ import {
   reservedMandatoryGroupsFromSlotConstraints,
   validateConstraints,
 } from '../../shared/randomizer'
+import './OperatorFilters.css'
+import './SquadConstraintEditor.css'
 
 const AMIYA_MANDATORY_GROUP = 'amiya-forms'
 const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
@@ -39,6 +42,7 @@ function cloneDraft(value: SlotConstraint): SlotConstraint {
   return {
     rarities: [...value.rarities],
     classes: [...value.classes],
+    ...(value.subclasses !== undefined ? { subclasses: [...value.subclasses] } : {}),
     operatorId: value.operatorId ?? null,
     mandatoryExclusivityGroup: value.mandatoryExclusivityGroup ?? null,
   }
@@ -54,6 +58,15 @@ function sortAmiyaForms(forms: readonly Operator[]): Operator[] {
     const rightIndex = AMIYA_CLASS_ORDER.indexOf(right.class)
     return (leftIndex < 0 ? 99 : leftIndex) - (rightIndex < 0 ? 99 : rightIndex)
   })
+}
+
+function normalizeAllowedSubclasses(
+  values: Iterable<string>,
+  allSubclassIds: readonly string[],
+): string[] | undefined {
+  const selected = new Set(values)
+  const ordered = allSubclassIds.filter((id) => selected.has(id))
+  return ordered.length === allSubclassIds.length ? undefined : ordered
 }
 
 export default function SquadConstraintEditor({
@@ -74,9 +87,13 @@ export default function SquadConstraintEditor({
   onClose: () => void
 }): React.JSX.Element {
   const [draft, setDraft] = useState<SlotConstraint>(() => cloneDraft(value))
+  const [selectedClass, setSelectedClass] = useState<OperatorClass>(
+    () => value.classes[0] ?? 'Vanguard',
+  )
 
   useEffect(() => {
     setDraft(cloneDraft(value))
+    setSelectedClass(value.classes[0] ?? 'Vanguard')
   }, [slotIndex, value])
 
   const eligiblePool = useMemo(
@@ -92,6 +109,31 @@ export default function SquadConstraintEditor({
     () => reservedMandatoryGroupsFromSlotConstraints(eligiblePool, constraints, slotIndex),
     [constraints, eligiblePool, slotIndex],
   )
+
+  const subclassesByClass = useMemo(
+    () =>
+      operatorClasses.map((operatorClass) => {
+        const subclasses = new Map<string, string>()
+        for (const operator of eligiblePool) {
+          if (operator.class === operatorClass) {
+            subclasses.set(operator.subclass.id, operator.subclass.name)
+          }
+        }
+        return {
+          operatorClass,
+          subclasses: [...subclasses.entries()]
+            .map(([id, name]) => ({ id, name }))
+            .sort((left, right) => left.name.localeCompare(right.name)),
+        }
+      }),
+    [eligiblePool],
+  )
+  const allSubclassIds = useMemo(
+    () => subclassesByClass.flatMap(({ subclasses }) => subclasses.map(({ id }) => id)),
+    [subclassesByClass],
+  )
+  const selectedSubclassOptions =
+    subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? []
 
   const draftConstraints = useMemo(
     () => constraintsWithSlotDraft(constraints, slotIndex, draft),
@@ -123,7 +165,7 @@ export default function SquadConstraintEditor({
               valid,
               reason:
                 directCandidates === 0
-                  ? 'No eligible operator matches this rarity with the current class/operator criteria.'
+                  ? 'No eligible operator matches this rarity with the current class/subclass/operator criteria.'
                   : valid
                     ? ''
                     : 'This rarity cannot participate in any full squad under the current squad bounds.',
@@ -151,7 +193,7 @@ export default function SquadConstraintEditor({
               valid,
               reason:
                 directCandidates === 0
-                  ? 'No eligible operator matches this class with the current rarity/operator criteria.'
+                  ? 'No eligible operator matches this class with the current rarity/subclass/operator criteria.'
                   : valid
                     ? ''
                     : 'This class cannot participate in any full squad under the current squad bounds.',
@@ -188,7 +230,11 @@ export default function SquadConstraintEditor({
             ? matchingAmiyaForms[0]
             : (amiyaForms.find((operator) => operator.class === AMIYA_DEFAULT_CLASS) ??
               matchingAmiyaForms[0]),
-        aliases: amiyaForms.flatMap((operator) => [operator.name, operator.class]),
+        aliases: amiyaForms.flatMap((operator) => [
+          operator.name,
+          operator.class,
+          operator.subclass.name,
+        ]),
         classIcons: matchingAmiyaForms.map((operator) => operator.class),
       })
     }
@@ -206,6 +252,7 @@ export default function SquadConstraintEditor({
         key: `operator:${operator.id}`,
         label: operator.name,
         operator,
+        aliases: [operator.subclass.name],
       })
     }
     return options.sort(
@@ -227,6 +274,35 @@ export default function SquadConstraintEditor({
     setDraft((current) => ({ ...current, rarities: [...rarities] }))
   }
 
+  const toggleSubclass = (subclassId: string): void => {
+    setDraft((current) => {
+      const allowed = current.subclasses === undefined ? [...allSubclassIds] : [...current.subclasses]
+      const next = new Set(allowed)
+      if (next.has(subclassId)) next.delete(subclassId)
+      else next.add(subclassId)
+      return {
+        ...current,
+        subclasses: normalizeAllowedSubclasses(next, allSubclassIds),
+      }
+    })
+  }
+
+  const setSelectedClassSubclassState = (enabled: boolean): void => {
+    const classSubclassIds = selectedSubclassOptions.map(({ id }) => id)
+    setDraft((current) => {
+      const allowed = current.subclasses === undefined ? [...allSubclassIds] : [...current.subclasses]
+      const next = new Set(allowed)
+      for (const id of classSubclassIds) {
+        if (enabled) next.add(id)
+        else next.delete(id)
+      }
+      return {
+        ...current,
+        subclasses: normalizeAllowedSubclasses(next, allSubclassIds),
+      }
+    })
+  }
+
   const selectOperator = (option: OperatorSelectorOption | null): void => {
     if (!option) {
       setDraft((current) => ({ ...current, operatorId: null, mandatoryExclusivityGroup: null }))
@@ -235,7 +311,7 @@ export default function SquadConstraintEditor({
     if (option.key === `group:${AMIYA_MANDATORY_GROUP}`) {
       setDraft((current) => ({
         ...current,
-        classes: current.classes.length === 0 ? [AMIYA_DEFAULT_CLASS] : current.classes,
+        classes: current.classes.length === 0 ? [option.operator.class] : current.classes,
         operatorId: null,
         mandatoryExclusivityGroup: AMIYA_MANDATORY_GROUP,
       }))
@@ -247,6 +323,8 @@ export default function SquadConstraintEditor({
       mandatoryExclusivityGroup: null,
     }))
   }
+
+  const selectedClassLabel = classLabels?.[selectedClass] ?? selectedClass
 
   return (
     <div className="slot-editor-backdrop" role="presentation" onMouseDown={onClose}>
@@ -323,37 +401,102 @@ export default function SquadConstraintEditor({
           </div>
         </div>
 
-        <div className="slot-editor-section">
+        <div className="slot-editor-section slot-editor-class-section">
           <div className="slot-editor-label-row">
-            <strong>Class</strong>
-            <span>{draft.classes.length === 0 ? 'Any class' : 'OR within selected classes'}</span>
+            <strong>Class &amp; subclass</strong>
+            <span>
+              {draft.classes.length === 0 ? 'Any class' : 'OR within selected classes'} ·{' '}
+              {draft.subclasses === undefined ? 'Any subclass' : 'Filtered subclasses'}
+            </span>
           </div>
-          <div className="criteria-chip-grid" aria-label="Allowed classes">
-            {operatorClasses.map((operatorClass) => {
+          <div
+            className="operator-filter-class-selector slot-constraint-class-selector"
+            role="group"
+            aria-label="Allowed classes and subclass parent"
+          >
+            {subclassesByClass.map(({ operatorClass, subclasses }) => {
               const selected = draft.classes.includes(operatorClass)
+              const enabled = draft.classes.length === 0 || selected
               const availability = classAvailability.get(operatorClass)!
               const disabled = !selected && !availability.valid
               const displayClass = classLabels?.[operatorClass] ?? operatorClass
+              const enabledSubclassCount = subclasses.filter(
+                ({ id }) => draft.subclasses === undefined || draft.subclasses.includes(id),
+              ).length
               return (
                 <button
                   key={operatorClass}
                   type="button"
-                  className={`criteria-chip criteria-chip--class${selected ? ' is-selected' : ''}${!availability.valid ? ' is-unavailable' : ''}`}
-                  aria-pressed={selected}
+                  className={`operator-filter-class-tab slot-constraint-class-tab${selectedClass === operatorClass ? ' is-active' : ''}${enabled ? ' is-enabled' : ''}${!availability.valid ? ' is-unavailable' : ''}`}
+                  aria-pressed={enabled}
                   disabled={disabled}
                   title={availability.reason || `${displayClass} is available`}
-                  onClick={() =>
+                  onClick={() => {
+                    setSelectedClass(operatorClass)
                     setDraft((current) => ({
                       ...current,
-                      classes: toggleValue<OperatorClass>(current.classes, operatorClass),
+                      classes:
+                        current.classes.length === 0
+                          ? [operatorClass]
+                          : toggleValue<OperatorClass>(current.classes, operatorClass),
                     }))
-                  }
+                  }}
                 >
-                  <ClassIcon operatorClass={operatorClass} className="criteria-chip-class-icon" />
+                  <ClassIcon operatorClass={operatorClass} className="operator-filter-class-icon" />
                   <span>{displayClass}</span>
+                  <small>
+                    {enabledSubclassCount}/{subclasses.length}
+                  </small>
                 </button>
               )
             })}
+          </div>
+
+          <div className="operator-filter-subclass-panel slot-constraint-subclass-panel">
+            <div className="operator-filter-subclass-panel-heading">
+              <div className="slot-constraint-subclass-heading-copy">
+                <strong>{selectedClassLabel} subclasses</strong>
+                <small>
+                  {draft.subclasses === undefined
+                    ? 'All subclasses currently allowed'
+                    : 'Only enabled subclass tiles are allowed'}
+                </small>
+              </div>
+              <div className="operator-filter-subclass-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setSelectedClassSubclassState(true)}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setSelectedClassSubclassState(false)}
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="operator-filter-subclass-tiles">
+              {selectedSubclassOptions.map((subclass) => {
+                const enabled =
+                  draft.subclasses === undefined || draft.subclasses.includes(subclass.id)
+                return (
+                  <button
+                    key={subclass.id}
+                    type="button"
+                    className={`operator-filter-subclass-tile${enabled ? ' is-enabled' : ''}`}
+                    aria-pressed={enabled}
+                    onClick={() => toggleSubclass(subclass.id)}
+                  >
+                    <SubclassIcon id={subclass.id} className="operator-filter-subclass-icon" />
+                    <span>{subclass.name}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 

@@ -38,6 +38,7 @@ export function cloneSquadConfiguration(configuration: SquadConfiguration): Squa
         rarities: [...(source?.rarities ?? [])],
         classes: [...(source?.classes ?? [])],
       }
+      if (source?.subclasses !== undefined) slot.subclasses = [...source.subclasses]
       if (source?.operatorId) slot.operatorId = source.operatorId
       if (source?.mandatoryExclusivityGroup)
         slot.mandatoryExclusivityGroup = source.mandatoryExclusivityGroup

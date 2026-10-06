@@ -20,7 +20,7 @@ export interface SlotConstraint {
   rarities: OperatorRarity[]
   /** Empty means any class. */
   classes: OperatorClass[]
-  /** Empty/absent means any subclass. Stable game-data subProfessionId values. */
+  /** Undefined means any subclass. A defined array is the exact allowed subclass-ID set. */
   subclasses?: string[]
   /** Exact stable operator ID. Mutually exclusive with mandatoryExclusivityGroup. */
   operatorId?: string | null
@@ -185,7 +185,7 @@ export function slotConstraintIsEmpty(constraint: SlotConstraint | undefined): b
     !constraint ||
     (constraint.rarities.length === 0 &&
       constraint.classes.length === 0 &&
-      (constraint.subclasses?.length ?? 0) === 0 &&
+      constraint.subclasses === undefined &&
       !constraint.operatorId &&
       !constraint.mandatoryExclusivityGroup)
   )
@@ -196,7 +196,7 @@ export function cloneSlotConstraint(constraint: SlotConstraint | undefined): Slo
     rarities: [...(constraint?.rarities ?? [])],
     classes: [...(constraint?.classes ?? [])],
   }
-  if (constraint?.subclasses?.length) clone.subclasses = [...constraint.subclasses]
+  if (constraint?.subclasses !== undefined) clone.subclasses = [...constraint.subclasses]
   if (constraint?.operatorId) clone.operatorId = constraint.operatorId
   if (constraint?.mandatoryExclusivityGroup)
     clone.mandatoryExclusivityGroup = constraint.mandatoryExclusivityGroup
@@ -318,12 +318,12 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
       ) {
         errors.push(`Slot ${index + 1} contains an invalid or duplicate class choice.`)
       }
-      const subclasses = slot.subclasses ?? []
       if (
-        subclasses.some(
-          (subclassId) => typeof subclassId !== 'string' || subclassId.trim().length === 0,
+        slot.subclasses !== undefined &&
+        (slot.subclasses.some((subclassId) =>
+          typeof subclassId !== 'string' || subclassId.trim().length === 0,
         ) ||
-        new Set(subclasses).size !== subclasses.length
+          new Set(slot.subclasses).size !== slot.subclasses.length)
       ) {
         errors.push(`Slot ${index + 1} contains an invalid or duplicate subclass choice.`)
       }

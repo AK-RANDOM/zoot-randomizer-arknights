@@ -167,6 +167,9 @@ export function operatorMatchesSlotConstraint(
   if (constraint.classes.length > 0 && !constraint.classes.includes(operator.class)) {
     return false
   }
+  if (constraint.subclasses !== undefined && !constraint.subclasses.includes(operator.subclass.id)) {
+    return false
+  }
   if (constraint.operatorId && operator.id !== constraint.operatorId) return false
   if (
     constraint.mandatoryExclusivityGroup &&
@@ -404,10 +407,12 @@ function solveAssignment(
     const leftSpecificity =
       leftConstraint.rarities.length +
       leftConstraint.classes.length +
+      (leftConstraint.subclasses === undefined ? 0 : leftConstraint.subclasses.length + 1) +
       (leftConstraint.operatorId || leftConstraint.mandatoryExclusivityGroup ? 1 : 0)
     const rightSpecificity =
       rightConstraint.rarities.length +
       rightConstraint.classes.length +
+      (rightConstraint.subclasses === undefined ? 0 : rightConstraint.subclasses.length + 1) +
       (rightConstraint.operatorId || rightConstraint.mandatoryExclusivityGroup ? 1 : 0)
     return rightSpecificity - leftSpecificity
   })
@@ -581,6 +586,7 @@ export function constraintsWithSlotDraft(
   slots[slotIndex] = {
     rarities: [...draft.rarities],
     classes: [...draft.classes],
+    ...(draft.subclasses !== undefined ? { subclasses: [...draft.subclasses] } : {}),
     ...(draft.operatorId ? { operatorId: draft.operatorId } : {}),
     ...(draft.mandatoryExclusivityGroup
       ? { mandatoryExclusivityGroup: draft.mandatoryExclusivityGroup }
@@ -597,6 +603,7 @@ export function canSlotResolveTo(
   probe: {
     rarity?: OperatorRarity
     operatorClass?: OperatorClass
+    subclassId?: string
     operatorId?: string
     mandatoryExclusivityGroup?: string
   },
@@ -605,6 +612,11 @@ export function canSlotResolveTo(
   const forced: SlotConstraint = {
     rarities: probe.rarity === undefined ? [...draft.rarities] : [probe.rarity],
     classes: probe.operatorClass === undefined ? [...draft.classes] : [probe.operatorClass],
+    ...(probe.subclassId !== undefined
+      ? { subclasses: [probe.subclassId] }
+      : draft.subclasses !== undefined
+        ? { subclasses: [...draft.subclasses] }
+        : {}),
     operatorId: probe.operatorId ?? draft.operatorId ?? null,
     mandatoryExclusivityGroup:
       probe.operatorId !== undefined

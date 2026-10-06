@@ -8,13 +8,14 @@ function operator(
   name: string,
   operatorClass: OperatorClass,
   mandatoryExclusivityGroup: string | null = null,
+  subclassId = 'test',
 ): Operator {
   return {
     id,
     name,
     rarity: 5,
     class: operatorClass,
-    subclass: { id: 'test', name: 'Test' },
+    subclass: { id: subclassId, name: subclassId },
     faction: { main: null, affiliations: [] },
     availableOn: { cn: true, global: true },
     release: {
@@ -30,9 +31,9 @@ function operator(
 }
 
 const amiyaForms = [
-  operator('char_002_amiya', 'Amiya (Caster)', 'Caster', 'amiya-forms'),
-  operator('char_1001_amiya2', 'Amiya (Guard)', 'Guard', 'amiya-forms'),
-  operator('char_1037_amiya3', 'Amiya (Medic)', 'Medic', 'amiya-forms'),
+  operator('char_002_amiya', 'Amiya (Caster)', 'Caster', 'amiya-forms', 'corecaster'),
+  operator('char_1001_amiya2', 'Amiya (Guard)', 'Guard', 'amiya-forms', 'artsfghter'),
+  operator('char_1037_amiya3', 'Amiya (Medic)', 'Medic', 'amiya-forms', 'incantationmedic'),
 ]
 
 function constraint(overrides: Partial<SlotConstraint>): SlotConstraint {
@@ -79,5 +80,17 @@ describe('locked slot presentation', () => {
         amiyaForms,
       ),
     ).toEqual({ operator: amiyaForms[2], classes: ['Medic'] })
+  })
+
+  it('lets a subclass filter narrow the visible Amiya form icons while preserving class order', () => {
+    expect(
+      lockedSlotPresentation(
+        constraint({
+          subclasses: ['artsfghter', 'incantationmedic'],
+          mandatoryExclusivityGroup: 'amiya-forms',
+        }),
+        amiyaForms,
+      ),
+    ).toEqual({ operator: amiyaForms[0], classes: ['Guard', 'Medic'] })
   })
 })

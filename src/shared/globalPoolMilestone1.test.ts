@@ -47,11 +47,13 @@ function filterDataset(): OperatorDataset {
       [COMMON_RACE]: 'Common',
       [RARE_RACE]: 'Rare',
       [ONE_OFF_RACE]: 'One-off',
+      [UNTRANSLATED_RACE]: 'Untranslated',
     },
     operators: [
       ...Array.from({ length: 5 }, (_, index) => operator(`common_${index}`, COMMON_RACE)),
       ...Array.from({ length: 3 }, (_, index) => operator(`rare_${index}`, RARE_RACE)),
       operator('one_off', ONE_OFF_RACE),
+      operator('untranslated', UNTRANSLATED_RACE),
     ],
   }
 }
@@ -91,10 +93,7 @@ function localizationDataset(): OperatorDataset {
       tw: catalog(),
       cn: catalog({ [COMMON_RACE]: '鬼', [UNTRANSLATED_RACE]: '新种族' }),
     },
-    operators: [
-      operator('translated', COMMON_RACE),
-      operator('untranslated', UNTRANSLATED_RACE),
-    ],
+    operators: [operator('translated', COMMON_RACE), operator('untranslated', UNTRANSLATED_RACE)],
   }
 }
 
@@ -111,11 +110,24 @@ describe('#57 milestone 1 Global Pool foundation', () => {
   it('groups Race choices from the loaded dataset using the Milestone 1 thresholds', () => {
     const groups = buildRaceFilterGroups(filterDataset())
 
-    expect(groups.map(({ key, races }) => [key, races.map(({ id, operatorCount }) => [id, operatorCount])])).toEqual([
+    expect(
+      groups.map(({ key, races }) => [
+        key,
+        races.map(({ id, operatorCount }) => [id, operatorCount]),
+      ]),
+    ).toEqual([
       ['common', [[COMMON_RACE, 5]]],
       ['rare', [[RARE_RACE, 3]]],
       ['oneOff', [[ONE_OFF_RACE, 1]]],
     ])
+  })
+
+  it('omits unresolved Race labels from the filter UI instead of showing Untranslated', () => {
+    const raceIds = buildRaceFilterGroups(filterDataset()).flatMap(({ races }) =>
+      races.map(({ id }) => id),
+    )
+
+    expect(raceIds).not.toContain(UNTRANSLATED_RACE)
   })
 
   it('does not fall through to a CN Race string when English Race text is unavailable', () => {

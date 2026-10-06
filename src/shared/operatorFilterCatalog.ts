@@ -1,8 +1,4 @@
-import {
-  operatorClasses,
-  type OperatorClass,
-  type OperatorDataset,
-} from './operator'
+import { operatorClasses, type OperatorClass, type OperatorDataset } from './operator'
 import { operatorRaceIds } from './raceMetadata'
 
 export interface OperatorFilterOption {
@@ -18,9 +14,7 @@ export interface SubclassFilterGroup {
 export interface RaceFilterOption extends OperatorFilterOption {
   operatorCount: number
 }
-
 export type RaceFilterGroupKey = 'common' | 'rare' | 'oneOff'
-
 export interface RaceFilterGroup {
   key: RaceFilterGroupKey
   label: string
@@ -37,7 +31,10 @@ export function descendantFactionIds(node: FactionNode): string[] {
   return [node.id, ...node.children.flatMap(descendantFactionIds)]
 }
 
-export function factionNodeState(node: FactionNode, excluded: ReadonlySet<string>): {
+export function factionNodeState(
+  node: FactionNode,
+  excluded: ReadonlySet<string>,
+): {
   allEnabled: boolean
   mixed: boolean
 } {
@@ -51,7 +48,8 @@ export function buildSubclassFilterGroups(dataset: OperatorDataset): SubclassFil
   return operatorClasses.map((operatorClass) => {
     const subclasses = new Map<string, string>()
     for (const operator of dataset.operators) {
-      if (operator.class === operatorClass) subclasses.set(operator.subclass.id, operator.subclass.name)
+      if (operator.class === operatorClass)
+        subclasses.set(operator.subclass.id, operator.subclass.name)
     }
     return {
       operatorClass,
@@ -65,9 +63,8 @@ export function buildSubclassFilterGroups(dataset: OperatorDataset): SubclassFil
 export function buildRaceFilterOptions(dataset: OperatorDataset): RaceFilterOption[] {
   const counts = new Map<string, number>()
   for (const operator of dataset.operators) {
-    for (const raceId of new Set(operatorRaceIds(operator))) {
+    for (const raceId of new Set(operatorRaceIds(operator)))
       counts.set(raceId, (counts.get(raceId) ?? 0) + 1)
-    }
   }
   return [...counts.entries()]
     .map(([id, operatorCount]) => ({
@@ -75,6 +72,12 @@ export function buildRaceFilterOptions(dataset: OperatorDataset): RaceFilterOpti
       name: dataset.raceLabels?.[id] ?? id,
       operatorCount,
     }))
+    .filter(
+      ({ name, operatorCount }) =>
+        operatorCount > 0 &&
+        name.trim().length > 0 &&
+        name.trim().toLocaleLowerCase() !== 'untranslated',
+    )
     .sort((left, right) => left.name.localeCompare(right.name))
 }
 
@@ -118,7 +121,9 @@ export function buildFactionTree(dataset: OperatorDataset): FactionNode[] {
     }
   }
 
-  const dublinnId = Object.entries(dataset.factionLabels).find(([, label]) => label === 'Dublinn')?.[0]
+  const dublinnId = Object.entries(dataset.factionLabels).find(
+    ([, label]) => label === 'Dublinn',
+  )?.[0]
   if (dublinnId) displayedIds.add(dublinnId)
 
   const parentByChild = new Map<string, string>()
@@ -131,7 +136,9 @@ export function buildFactionTree(dataset: OperatorDataset): FactionNode[] {
     const nextSeen = new Set(seen).add(id)
     const childIds = [...(children.get(id) ?? [])]
       .filter((child) => displayedIds.has(child) && parentByChild.get(child) === id)
-      .sort((left, right) => (dataset.factionLabels[left] ?? left).localeCompare(dataset.factionLabels[right] ?? right))
+      .sort((left, right) =>
+        (dataset.factionLabels[left] ?? left).localeCompare(dataset.factionLabels[right] ?? right),
+      )
     return {
       id,
       name: dataset.factionLabels[id] ?? id,
@@ -141,6 +148,8 @@ export function buildFactionTree(dataset: OperatorDataset): FactionNode[] {
 
   return [...displayedIds]
     .filter((id) => !parentByChild.has(id))
-    .sort((left, right) => (dataset.factionLabels[left] ?? left).localeCompare(dataset.factionLabels[right] ?? right))
+    .sort((left, right) =>
+      (dataset.factionLabels[left] ?? left).localeCompare(dataset.factionLabels[right] ?? right),
+    )
     .map((id) => nodeFor(id))
 }

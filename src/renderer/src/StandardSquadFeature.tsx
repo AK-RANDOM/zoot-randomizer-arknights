@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import OperatorCard from './OperatorCard'
@@ -65,26 +65,128 @@ function raritySetSummary(rarities: readonly OperatorRarity[]): string {
     const definition = rarityGroupDefinitions[group]
     if (sameValues(rarities, definition.rarities)) return definition.label
   }
-  return [...rarities].sort((left, right) => left - right).map((rarity) => `${rarity}★`).join(' / ')
+  return [...rarities]
+    .sort((left, right) => left - right)
+    .map((rarity) => `${rarity}★`)
+    .join(' / ')
 }
 
-function classSetSummary(classes: readonly OperatorClass[], classLabels?: Readonly<Record<OperatorClass, string>>): string {
+function classSetSummary(
+  classes: readonly OperatorClass[],
+  classLabels?: Readonly<Record<OperatorClass, string>>,
+): string {
   if (classes.length === 0) return 'Any class'
-  return operatorClasses.filter((operatorClass) => classes.includes(operatorClass)).map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass).join(' / ')
+  return operatorClasses
+    .filter((operatorClass) => classes.includes(operatorClass))
+    .map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass)
+    .join(' / ')
+}
+
+function specificOperatorSummary(
+  constraint: SlotConstraint,
+  dataset: OperatorDataset | null,
+): string | null {
+  if (constraint.mandatoryExclusivityGroup === 'amiya-forms') return 'Amiya — Random Form'
+  if (constraint.mandatoryExclusivityGroup)
+    return `Any form — ${constraint.mandatoryExclusivityGroup}`
+  if (!constraint.operatorId) return null
+  const operator = dataset?.operators.find((candidate) => candidate.id === constraint.operatorId)
+  if (!operator) return constraint.operatorId
+  if (operator.mandatoryExclusivityGroup === 'amiya-forms') {
+    return `Amiya — ${dataset?.classLabels?.[operator.class] ?? operator.class}`
+  }
+  return operator.name
+}
+
+function activeSlotConstraintSummary(
+  constraint: SlotConstraint,
+  dataset: OperatorDataset | null,
+): string {
+  const parts: string[] = []
+  if (constraint.rarities.length > 0) parts.push(raritySetSummary(constraint.rarities))
+  if (constraint.classes.length > 0)
+    parts.push(classSetSummary(constraint.classes, dataset?.classLabels))
+  const specific = specificOperatorSummary(constraint, dataset)
+  if (specific) parts.push(specific)
+  return parts.join(' · ') || 'Any'
+}
+
+function slotConstraintStyle(rarities: readonly OperatorRarity[]): CSSProperties | undefined {
+  if (rarities.length === 0) return undefined
+  const sorted = [...new Set(rarities)].sort((left, right) => right - left)
+  const colors = sorted.map((rarity) => `var(--rarity-${rarity})`)
+  const gradient =
+    colors.length === 1
+      ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})`
+      : `linear-gradient(135deg, ${colors.join(', ')})`
+  return { '--slot-constraint-gradient': gradient } as CSSProperties
+}
+
+function numericSummary(label: string, constraint: NumericConstraint | undefined): string | null {
+  const resolved = resolveNumericConstraint(constraint)
+  if (numericConstraintIsDefault(resolved)) return null
+  if (resolved.min === resolved.max) return `Exactly ${resolved.min} ${label}`
+  if (resolved.min > 0 && resolved.max === 12) return `At least ${resolved.min} ${label}`
+  if (resolved.min === 0 && resolved.max < 12) return `At most ${resolved.max} ${label}`
+  return `${resolved.min}–${resolved.max} ${label}`
 }
 
 function ValidationBox({ errors }: { errors: string[] }): React.JSX.Element {
-  return <div className="validation-box" role="alert"><strong>Current configuration cannot generate a squad.</strong><ul>{errors.map((error) => <li key={error}>{error}</li>)}</ul></div>
+  return (
+    <div className="validation-box" role="alert">
+      <strong>Current configuration cannot generate a squad.</strong>
+      <ul>
+        {errors.map((error) => (
+          <li key={error}>{error}</li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
-function ConfirmationDialog({ confirmation, dontShowAgain, setDontShowAgain, onCancel, onConfirm }: {
+function ConfirmationDialog({
+  confirmation,
+  dontShowAgain,
+  setDontShowAgain,
+  onCancel,
+  onConfirm,
+}: {
   confirmation: PendingConfirmation
   dontShowAgain: boolean
   setDontShowAgain: (value: boolean) => void
   onCancel: () => void
   onConfirm: () => void
 }): React.JSX.Element {
-  return <div className="confirmation-backdrop" role="presentation" onMouseDown={onCancel}><div className="confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmation-title" onMouseDown={(event) => event.stopPropagation()}><h3 id="confirmation-title">{confirmation.title}</h3><p>{confirmation.body}</p><label className="confirmation-checkbox"><input type="checkbox" checked={dontShowAgain} onChange={(event) => setDontShowAgain(event.target.checked)} /><span>Don&apos;t show this warning again</span></label><div className="confirmation-actions"><button type="button" className="secondary-button" onClick={onCancel}>Cancel</button><button type="button" className="randomize-button" onClick={onConfirm}>{confirmation.confirmLabel}</button></div></div></div>
+  return (
+    <div className="confirmation-backdrop" role="presentation" onMouseDown={onCancel}>
+      <div
+        className="confirmation-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirmation-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <h3 id="confirmation-title">{confirmation.title}</h3>
+        <p>{confirmation.body}</p>
+        <label className="confirmation-checkbox">
+          <input
+            type="checkbox"
+            checked={dontShowAgain}
+            onChange={(event) => setDontShowAgain(event.target.checked)}
+          />
+          <span>Don&apos;t show this warning again</span>
+        </label>
+        <div className="confirmation-actions">
+          <button type="button" className="secondary-button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="button" className="randomize-button" onClick={onConfirm}>
+            {confirmation.confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function StandardSquadFeature({
@@ -112,7 +214,9 @@ export default function StandardSquadFeature({
   const [dontShowAgain, setDontShowAgain] = useState(false)
   const lastResetRevision = useRef(resetRevision)
 
-  useEffect(() => { saveUserSquadPresets(userPresets) }, [userPresets])
+  useEffect(() => {
+    saveUserSquadPresets(userPresets)
+  }, [userPresets])
   useEffect(() => {
     if (!dataset || squad.length === 0) return
     const byId = new Map(dataset.operators.map((operator) => [operator.id, operator]))
@@ -125,14 +229,41 @@ export default function StandardSquadFeature({
     setEditingSlot(null)
   }, [resetRevision])
 
-  const validation = useMemo(() => dataset ? validateConstraints(constraints, finalOperatorPool) : { valid: false, errors: [] }, [constraints, dataset, finalOperatorPool])
-  const currentSquadConfiguration = useMemo(() => squadConfigurationFromConstraints(constraints), [constraints])
-  const allPresets = useMemo<SquadPreset[]>(() => [...BUILT_IN_SQUAD_PRESETS, ...userPresets], [userPresets])
-  const selectedPreset = useMemo(() => allPresets.find((preset) => preset.id === selectedPresetId), [allPresets, selectedPresetId])
-  const presetIsDirty = useMemo(() => !selectedPreset || !squadConfigurationEquals(currentSquadConfiguration, selectedPreset.configuration), [currentSquadConfiguration, selectedPreset])
+  const validation = useMemo(
+    () =>
+      dataset ? validateConstraints(constraints, finalOperatorPool) : { valid: false, errors: [] },
+    [constraints, dataset, finalOperatorPool],
+  )
+  const currentSquadConfiguration = useMemo(
+    () => squadConfigurationFromConstraints(constraints),
+    [constraints],
+  )
+  const allPresets = useMemo<SquadPreset[]>(
+    () => [...BUILT_IN_SQUAD_PRESETS, ...userPresets],
+    [userPresets],
+  )
+  const selectedPreset = useMemo(
+    () => allPresets.find((preset) => preset.id === selectedPresetId),
+    [allPresets, selectedPresetId],
+  )
+  const presetIsDirty = useMemo(
+    () =>
+      !selectedPreset ||
+      !squadConfigurationEquals(currentSquadConfiguration, selectedPreset.configuration),
+    [currentSquadConfiguration, selectedPreset],
+  )
 
-  const requestConfirmation = (preferenceKey: string, title: string, body: string, confirmLabel: string, apply: () => void): void => {
-    if (warningIsDismissed(preferenceKey)) { apply(); return }
+  const requestConfirmation = (
+    preferenceKey: string,
+    title: string,
+    body: string,
+    confirmLabel: string,
+    apply: () => void,
+  ): void => {
+    if (warningIsDismissed(preferenceKey)) {
+      apply()
+      return
+    }
     setDontShowAgain(false)
     setPendingConfirmation({ title, body, confirmLabel, preferenceKey, apply })
   }
@@ -144,13 +275,22 @@ export default function StandardSquadFeature({
     setDontShowAgain(false)
     action()
   }
-  const markCustom = (): void => { if (!selectedPreset) setSelectedPresetId('custom') }
+  const markCustom = (): void => {
+    if (!selectedPreset) setSelectedPresetId('custom')
+  }
 
   const changeSquadSize = (squadSize: number): void => {
     if (squad.length > 0) return
-    onConstraintsChange((current) => ({ ...current, squadSize, slots: current.slots.map((slot, index) => index < squadSize ? cloneSlotConstraint(slot) : createEmptySlotConstraint()) }))
-    setEditingSlot((current) => current !== null && current >= squadSize ? null : current)
-    markCustom(); onError(null)
+    onConstraintsChange((current) => ({
+      ...current,
+      squadSize,
+      slots: current.slots.map((slot, index) =>
+        index < squadSize ? cloneSlotConstraint(slot) : createEmptySlotConstraint(),
+      ),
+    }))
+    setEditingSlot((current) => (current !== null && current >= squadSize ? null : current))
+    markCustom()
+    onError(null)
   }
   const saveSlotConstraint = (slotIndex: number, value: SlotConstraint): void => {
     onConstraintsChange((current) => {
@@ -158,73 +298,506 @@ export default function StandardSquadFeature({
       nextSlots[slotIndex] = cloneSlotConstraint(value)
       return { ...current, slots: nextSlots }
     })
-    setEditingSlot(null); markCustom(); onError(null)
+    setEditingSlot(null)
+    markCustom()
+    onError(null)
   }
 
   const constrainedInRange = constraints.slots.slice(0, constraints.squadSize)
   const constrainedSlots = constrainedInRange.filter((slot) => !slotConstraintIsEmpty(slot))
-  const constraintsAlreadyPacked = constrainedInRange.every((slot, index) => index < constrainedSlots.length ? !slotConstraintIsEmpty(slot) : slotConstraintIsEmpty(slot))
+  const constraintsAlreadyPacked = constrainedInRange.every((slot, index) =>
+    index < constrainedSlots.length ? !slotConstraintIsEmpty(slot) : slotConstraintIsEmpty(slot),
+  )
   const canMoveConstraints = constrainedSlots.length > 0 && !constraintsAlreadyPacked
+  const currentConstraintSummary = useMemo(() => {
+    const items: string[] = []
+    for (const rarity of [...operatorRarities].reverse()) {
+      const summary = numericSummary(`${rarity}★`, constraints.rarity[rarity])
+      if (summary) items.push(summary)
+    }
+    for (const group of rarityGroupKeys) {
+      const summary = numericSummary(
+        rarityGroupDefinitions[group].label,
+        constraints.rarityGroups[group],
+      )
+      if (summary) items.push(summary)
+    }
+    for (const operatorClass of operatorClasses) {
+      const summary = numericSummary(
+        dataset?.classLabels?.[operatorClass] ?? operatorClass,
+        constraints.class[operatorClass],
+      )
+      if (summary) items.push(summary)
+    }
+    constrainedInRange.forEach((slot, index) => {
+      if (!slotConstraintIsEmpty(slot)) {
+        items.push(`Slot ${index + 1}: ${activeSlotConstraintSummary(slot, dataset)}`)
+      }
+    })
+    return items
+  }, [constrainedInRange, constraints.class, constraints.rarity, constraints.rarityGroups, dataset])
+  const resetSlotConstraints = (): void => {
+    if (squad.length > 0 || constrainedSlots.length === 0) return
+    onConstraintsChange((current) => ({ ...current, slots: createEmptySlotConstraints() }))
+    setEditingSlot(null)
+    markCustom()
+    onError(null)
+    onMessage(
+      'Per-slot constraints reset. Squad-wide bounds and Global Pool filters were preserved.',
+    )
+  }
   const moveConstraintsToTop = (): void => {
     if (!canMoveConstraints || squad.length > 0) return
     onConstraintsChange((current) => {
-      const active = current.slots.slice(0, current.squadSize).filter((slot) => !slotConstraintIsEmpty(slot)).map(cloneSlotConstraint)
+      const active = current.slots
+        .slice(0, current.squadSize)
+        .filter((slot) => !slotConstraintIsEmpty(slot))
+        .map(cloneSlotConstraint)
       const nextSlots = createEmptySlotConstraints()
-      active.forEach((slot, index) => { nextSlots[index] = slot })
+      active.forEach((slot, index) => {
+        nextSlots[index] = slot
+      })
       return { ...current, slots: nextSlots }
     })
-    setEditingSlot(null); markCustom()
+    setEditingSlot(null)
+    markCustom()
   }
-  const clearSquad = (): void => { setSquad([]); onError(null); onMessage('Squad cleared. Slot constraints are ready to edit.') }
+  const clearSquad = (): void => {
+    setSquad([])
+    onError(null)
+    onMessage('Squad cleared. Slot constraints are ready to edit.')
+  }
 
-  const applyBoundChange = (label: string, update: (current: RandomizerConstraints) => RandomizerConstraints): void => requestConfirmation(
-    BOUND_WARNING_KEY,
-    'Apply boundary change?',
-    `Changing the ${label} squad bound will reset every slot constraint to Any / Any and clear the generated squad.`,
-    'Apply & Reset',
-    () => {
-      onConstraintsChange((current) => ({ ...update(current), slots: createEmptySlotConstraints() }))
-      setSquad([]); setEditingSlot(null); markCustom(); onError(null); onMessage(`${label} bound saved. Slot constraints were reset.`)
-    },
-  )
+  const applyBoundChange = (
+    label: string,
+    update: (current: RandomizerConstraints) => RandomizerConstraints,
+  ): void =>
+    requestConfirmation(
+      BOUND_WARNING_KEY,
+      'Apply boundary change?',
+      `Changing the ${label} squad bound will reset every slot constraint to Any / Any and clear the generated squad.`,
+      'Apply & Reset',
+      () => {
+        onConstraintsChange((current) => ({
+          ...update(current),
+          slots: createEmptySlotConstraints(),
+        }))
+        setSquad([])
+        setEditingSlot(null)
+        markCustom()
+        onError(null)
+        onMessage(`${label} bound saved. Slot constraints were reset.`)
+      },
+    )
   const saveRarityBound = (rarity: OperatorRarity, next: NumericConstraint): void => {
-    const current = resolveNumericConstraint(constraints.rarity[rarity]); if (current.min === next.min && current.max === next.max) return
-    applyBoundChange(`${rarity}★`, (state) => { const rarityBounds = { ...state.rarity }; if (numericConstraintIsDefault(next)) delete rarityBounds[rarity]; else rarityBounds[rarity] = { ...next }; return { ...state, rarity: rarityBounds } })
+    const current = resolveNumericConstraint(constraints.rarity[rarity])
+    if (current.min === next.min && current.max === next.max) return
+    applyBoundChange(`${rarity}★`, (state) => {
+      const rarityBounds = { ...state.rarity }
+      if (numericConstraintIsDefault(next)) delete rarityBounds[rarity]
+      else rarityBounds[rarity] = { ...next }
+      return { ...state, rarity: rarityBounds }
+    })
   }
   const saveRarityGroupBound = (group: RarityGroupKey, next: NumericConstraint): void => {
-    const current = resolveNumericConstraint(constraints.rarityGroups[group]); if (current.min === next.min && current.max === next.max) return
-    applyBoundChange(rarityGroupDefinitions[group].label, (state) => { const rarityGroups = { ...state.rarityGroups }; if (numericConstraintIsDefault(next)) delete rarityGroups[group]; else rarityGroups[group] = { ...next }; return { ...state, rarityGroups } })
+    const current = resolveNumericConstraint(constraints.rarityGroups[group])
+    if (current.min === next.min && current.max === next.max) return
+    applyBoundChange(rarityGroupDefinitions[group].label, (state) => {
+      const rarityGroups = { ...state.rarityGroups }
+      if (numericConstraintIsDefault(next)) delete rarityGroups[group]
+      else rarityGroups[group] = { ...next }
+      return { ...state, rarityGroups }
+    })
   }
   const saveClassBound = (operatorClass: OperatorClass, next: NumericConstraint): void => {
-    const current = resolveNumericConstraint(constraints.class[operatorClass]); if (current.min === next.min && current.max === next.max) return
-    applyBoundChange(operatorClass, (state) => { const classBounds = { ...state.class }; if (numericConstraintIsDefault(next)) delete classBounds[operatorClass]; else classBounds[operatorClass] = { ...next }; return { ...state, class: classBounds } })
+    const current = resolveNumericConstraint(constraints.class[operatorClass])
+    if (current.min === next.min && current.max === next.max) return
+    applyBoundChange(operatorClass, (state) => {
+      const classBounds = { ...state.class }
+      if (numericConstraintIsDefault(next)) delete classBounds[operatorClass]
+      else classBounds[operatorClass] = { ...next }
+      return { ...state, class: classBounds }
+    })
   }
 
   const applyPreset = (preset: SquadPreset): void => {
-    const apply = (): void => { onConstraintsChange((current) => applySquadConfiguration(current, preset.configuration)); setSquad([]); setEditingSlot(null); setSelectedPresetId(preset.id); onError(null); onMessage(`Applied squad preset “${preset.name}”.`) }
-    if (squadConfigurationEquals(currentSquadConfiguration, preset.configuration)) { setSelectedPresetId(preset.id); return }
-    if (!squadConfigurationEquals(currentSquadConfiguration, BUILT_IN_SQUAD_PRESETS[0].configuration)) requestConfirmation(PRESET_WARNING_KEY, `Apply “${preset.name}”?`, 'This will replace the current squad size, composition bounds, and per-slot constraints. Operator eligibility filters will be preserved.', 'Apply Preset', apply)
+    const apply = (): void => {
+      onConstraintsChange((current) => applySquadConfiguration(current, preset.configuration))
+      setSquad([])
+      setEditingSlot(null)
+      setSelectedPresetId(preset.id)
+      onError(null)
+      onMessage(`Applied squad preset “${preset.name}”.`)
+    }
+    if (squadConfigurationEquals(currentSquadConfiguration, preset.configuration)) {
+      setSelectedPresetId(preset.id)
+      return
+    }
+    if (
+      !squadConfigurationEquals(currentSquadConfiguration, BUILT_IN_SQUAD_PRESETS[0].configuration)
+    )
+      requestConfirmation(
+        PRESET_WARNING_KEY,
+        `Apply “${preset.name}”?`,
+        'This will replace the current squad size, composition bounds, and per-slot constraints. Operator eligibility filters will be preserved.',
+        'Apply Preset',
+        apply,
+      )
     else apply()
   }
-  const saveAsPreset = (): void => { const name = window.prompt('Name this squad preset:'); if (!name?.trim()) return; const preset = createUserPreset(name, currentSquadConfiguration); setUserPresets((current) => [...current, preset]); setSelectedPresetId(preset.id); onMessage(`Saved squad preset “${preset.name}”.`) }
-  const updateSelectedPreset = (): void => { if (!selectedPreset || selectedPreset.builtIn) return; setUserPresets((current) => current.map((preset) => preset.id === selectedPreset.id ? { ...preset, configuration: cloneSquadConfiguration(currentSquadConfiguration) } : preset)); onMessage(`Updated squad preset “${selectedPreset.name}”.`) }
-  const renameSelectedPreset = (): void => { if (!selectedPreset || selectedPreset.builtIn) return; const name = window.prompt('Rename squad preset:', selectedPreset.name); if (!name?.trim()) return; setUserPresets((current) => current.map((preset) => preset.id === selectedPreset.id ? { ...preset, name: name.trim() } : preset)) }
-  const duplicateSelectedPreset = (): void => { if (!selectedPreset) return; const name = window.prompt('Name the duplicated preset:', `${selectedPreset.name} copy`); if (!name?.trim()) return; const duplicate = createUserPreset(name, currentSquadConfiguration); setUserPresets((current) => [...current, duplicate]); setSelectedPresetId(duplicate.id) }
-  const deleteSelectedPreset = (): void => { if (!selectedPreset || selectedPreset.builtIn || !window.confirm(`Delete squad preset “${selectedPreset.name}”?`)) return; setUserPresets((current) => current.filter((preset) => preset.id !== selectedPreset.id)); setSelectedPresetId('custom'); onMessage(`Deleted squad preset “${selectedPreset.name}”.`) }
-  const randomize = (): void => { if (!dataset) return; onError(null); const result = validateConstraints(constraints, finalOperatorPool); if (!result.valid) { onError(result.errors.join(' ')); return } try { setSquad(generateSquad(finalOperatorPool, constraints)); onMessage(`Generated a squad of ${constraints.squadSize} operators.`) } catch (reason) { onError(reason instanceof Error ? reason.message : String(reason)) } }
+  const saveAsPreset = (): void => {
+    const name = window.prompt('Name this squad preset:')
+    if (!name?.trim()) return
+    const preset = createUserPreset(name, currentSquadConfiguration)
+    setUserPresets((current) => [...current, preset])
+    setSelectedPresetId(preset.id)
+    onMessage(`Saved squad preset “${preset.name}”.`)
+  }
+  const updateSelectedPreset = (): void => {
+    if (!selectedPreset || selectedPreset.builtIn) return
+    setUserPresets((current) =>
+      current.map((preset) =>
+        preset.id === selectedPreset.id
+          ? { ...preset, configuration: cloneSquadConfiguration(currentSquadConfiguration) }
+          : preset,
+      ),
+    )
+    onMessage(`Updated squad preset “${selectedPreset.name}”.`)
+  }
+  const renameSelectedPreset = (): void => {
+    if (!selectedPreset || selectedPreset.builtIn) return
+    const name = window.prompt('Rename squad preset:', selectedPreset.name)
+    if (!name?.trim()) return
+    setUserPresets((current) =>
+      current.map((preset) =>
+        preset.id === selectedPreset.id ? { ...preset, name: name.trim() } : preset,
+      ),
+    )
+  }
+  const duplicateSelectedPreset = (): void => {
+    if (!selectedPreset) return
+    const name = window.prompt('Name the duplicated preset:', `${selectedPreset.name} copy`)
+    if (!name?.trim()) return
+    const duplicate = createUserPreset(name, currentSquadConfiguration)
+    setUserPresets((current) => [...current, duplicate])
+    setSelectedPresetId(duplicate.id)
+  }
+  const deleteSelectedPreset = (): void => {
+    if (
+      !selectedPreset ||
+      selectedPreset.builtIn ||
+      !window.confirm(`Delete squad preset “${selectedPreset.name}”?`)
+    )
+      return
+    setUserPresets((current) => current.filter((preset) => preset.id !== selectedPreset.id))
+    setSelectedPresetId('custom')
+    onMessage(`Deleted squad preset “${selectedPreset.name}”.`)
+  }
+  const randomize = (): void => {
+    if (!dataset) return
+    onError(null)
+    const result = validateConstraints(constraints, finalOperatorPool)
+    if (!result.valid) {
+      onError(result.errors.join(' '))
+      return
+    }
+    try {
+      setSquad(generateSquad(finalOperatorPool, constraints))
+      onMessage(`Generated a squad of ${constraints.squadSize} operators.`)
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : String(reason))
+    }
+  }
 
   return (
     <>
       <section className="panel squad-panel" aria-labelledby="squad-heading">
-        <div className="section-heading"><div><p className="eyebrow">GET SQUAD • STANDARD</p><h2 id="squad-heading">Standard squad</h2></div><div className="section-actions"><button className="secondary-button" type="button" disabled={squad.length === 0 && !canMoveConstraints} onClick={squad.length > 0 ? clearSquad : moveConstraintsToTop}>{squad.length > 0 ? 'Clear Squad' : 'Move Constraints to Top'}</button><button className="randomize-button" type="button" disabled={!dataset || !validation.valid} onClick={randomize}>{squad.length > 0 ? 'Randomize Again' : 'Randomize'}</button></div></div>
-        <div className="preset-toolbar"><label className="preset-select"><span>Squad preset</span><select value={presetIsDirty ? 'custom' : selectedPresetId} onChange={(event) => { const id = event.target.value; if (id === 'custom') { setSelectedPresetId('custom'); return } const preset = allPresets.find((candidate) => candidate.id === id); if (preset) applyPreset(preset) }}><option value="custom">Custom</option><optgroup label="Built-in">{BUILT_IN_SQUAD_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}</optgroup>{userPresets.length > 0 && <optgroup label="Saved">{userPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}</option>)}</optgroup>}</select></label><div className="preset-actions"><button type="button" className="secondary-button" onClick={saveAsPreset}>Save as preset…</button>{selectedPreset && <button type="button" className="secondary-button" onClick={duplicateSelectedPreset}>Duplicate</button>}{selectedPreset && !selectedPreset.builtIn && <><button type="button" className="secondary-button" onClick={updateSelectedPreset}>Update</button><button type="button" className="secondary-button" onClick={renameSelectedPreset}>Rename</button><button type="button" className="secondary-button" onClick={deleteSelectedPreset}>Delete</button></>}</div></div>
-        <div className="squad-grid-heading"><div><strong>Operator slots</strong><span>Click an empty in-range slot to configure allowed rarity and class sets.</span></div></div>
-        <div className="squad-grid">{slots.map((slot, index) => { const operator = squad[index]; const inRange = index < constraints.squadSize; const slotConstraint = constraints.slots[index] ?? createEmptySlotConstraint(); const constrained = !slotConstraintIsEmpty(slotConstraint); return <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>{!inRange ? <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}><strong>SLOT {slot}</strong><span>Unavailable</span><small>Squad size {constraints.squadSize}</small></div> : operator ? <><OperatorCard operator={operator} />{constrained && <div className="slot-constraint-badge" title="Generated under a slot constraint"><span>{raritySetSummary(slotConstraint.rarities)}</span><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span></div>}</> : <button type="button" className={`slot-config-card${constrained ? ' is-constrained' : ''}`} aria-label={`Configure squad slot ${slot}`} onClick={() => setEditingSlot(index)}><span className="slot-config-number">SLOT {slot}</span>{constrained ? <span className="slot-config-summary"><strong>{raritySetSummary(slotConstraint.rarities)}</strong><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span></span> : <span className="slot-config-any"><strong>Any</strong><span>Click to configure</span></span>}</button>}</div> })}</div>
-        <details className="squad-filter-disclosure"><summary>Squad filters</summary><div className="squad-filter-content"><div className="squad-size-control"><div className="squad-size-heading"><span>Squad size</span><strong>{constraints.squadSize}</strong></div><div className="squad-size-slider-row"><span>1</span><input type="range" min={1} max={12} step={1} value={constraints.squadSize} disabled={squad.length > 0} aria-label="Squad size" onChange={(event) => changeSquadSize(Number(event.target.value))} /><span>12</span></div>{squad.length > 0 && <small>Clear the generated squad to change its size or slot constraints.</small>}</div><div className="squad-bounds-layout"><fieldset className="constraint-group squad-bound-group"><legend>Rarity bounds</legend><div className="bound-grid">{[...operatorRarities].reverse().map((rarity) => <BoundPill key={rarity} label={`${rarity}★`} value={constraints.rarity[rarity]} disabled={squad.length > 0} onSave={(next) => saveRarityBound(rarity, next)} />)}</div><div className="aggregate-bound-heading"><span>Aggregate rarity groups</span><small>Counts overlap exact rarity bounds and are solved together.</small></div><div className="bound-grid bound-grid--aggregate">{rarityGroupKeys.map((group) => <BoundPill key={group} label={rarityGroupDefinitions[group].label} value={constraints.rarityGroups[group]} disabled={squad.length > 0} onSave={(next) => saveRarityGroupBound(group, next)} />)}</div></fieldset><fieldset className="constraint-group squad-bound-group"><legend>Class bounds</legend><div className="bound-grid bound-grid--classes">{operatorClasses.map((operatorClass) => <BoundPill key={operatorClass} label={<span className="bound-class-label"><ClassIcon operatorClass={operatorClass} className="filter-class-icon" /><span>{dataset?.classLabels?.[operatorClass] ?? operatorClass}</span></span>} labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass} value={constraints.class[operatorClass]} disabled={squad.length > 0} onSave={(next) => saveClassBound(operatorClass, next)} />)}</div></fieldset></div></div></details>
-        {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">GET SQUAD • STANDARD</p>
+            <h2 id="squad-heading">Standard squad</h2>
+          </div>
+          <div className="section-actions">
+            {constrainedSlots.length > 0 && (
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={squad.length > 0}
+                onClick={resetSlotConstraints}
+              >
+                Reset Constraints
+              </button>
+            )}
+            {constrainedSlots.length > 0 && (
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={squad.length > 0 || !canMoveConstraints}
+                title={!canMoveConstraints ? 'Constraints are already at the top.' : undefined}
+                onClick={moveConstraintsToTop}
+              >
+                Move Constraints to Top
+              </button>
+            )}
+            {squad.length > 0 && (
+              <button className="secondary-button" type="button" onClick={clearSquad}>
+                Clear Squad
+              </button>
+            )}
+            <button
+              className="randomize-button"
+              type="button"
+              disabled={!dataset || !validation.valid}
+              onClick={randomize}
+            >
+              {squad.length > 0 ? 'Randomize Again' : 'Randomize'}
+            </button>
+          </div>
+        </div>
+
+        <div className="preset-toolbar">
+          <label className="preset-select">
+            <span>Squad preset</span>
+            <select
+              value={presetIsDirty ? 'custom' : selectedPresetId}
+              onChange={(event) => {
+                const id = event.target.value
+                if (id === 'custom') {
+                  setSelectedPresetId('custom')
+                  return
+                }
+                const preset = allPresets.find((candidate) => candidate.id === id)
+                if (preset) applyPreset(preset)
+              }}
+            >
+              <option value="custom">Custom</option>
+              <optgroup label="Built-in">
+                {BUILT_IN_SQUAD_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
+              </optgroup>
+              {userPresets.length > 0 && (
+                <optgroup label="Saved">
+                  {userPresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </label>
+          <div className="preset-actions">
+            <button type="button" className="secondary-button" onClick={saveAsPreset}>
+              Save as preset…
+            </button>
+            {selectedPreset && (
+              <button type="button" className="secondary-button" onClick={duplicateSelectedPreset}>
+                Duplicate
+              </button>
+            )}
+            {selectedPreset && !selectedPreset.builtIn && (
+              <>
+                <button type="button" className="secondary-button" onClick={updateSelectedPreset}>
+                  Update
+                </button>
+                <button type="button" className="secondary-button" onClick={renameSelectedPreset}>
+                  Rename
+                </button>
+                <button type="button" className="secondary-button" onClick={deleteSelectedPreset}>
+                  Delete
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="current-constraint-summary" aria-label="Current squad constraints">
+          <strong>Current constraints</strong>
+          {currentConstraintSummary.length > 0 ? (
+            <div>
+              {currentConstraintSummary.map((summary) => (
+                <span key={summary}>{summary}</span>
+              ))}
+            </div>
+          ) : (
+            <p>No active squad-wide or per-slot constraints.</p>
+          )}
+        </div>
+
+        {dataset && !validation.valid && validation.errors.length > 0 && (
+          <ValidationBox errors={validation.errors} />
+        )}
+
+        <div className="squad-grid">
+          {slots.map((slot, index) => {
+            const operator = squad[index]
+            const inRange = index < constraints.squadSize
+            const slotConstraint = constraints.slots[index] ?? createEmptySlotConstraint()
+            const constrained = !slotConstraintIsEmpty(slotConstraint)
+            const specificSummary = specificOperatorSummary(slotConstraint, dataset)
+            const constraintStyle = slotConstraintStyle(slotConstraint.rarities)
+            return (
+              <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>
+                {!inRange ? (
+                  <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}>
+                    <strong>SLOT {slot}</strong>
+                    <span>Unavailable</span>
+                    <small>Squad size {constraints.squadSize}</small>
+                  </div>
+                ) : operator ? (
+                  <>
+                    <OperatorCard operator={operator} />
+                    {constrained && (
+                      <div
+                        className="slot-constraint-badge"
+                        style={constraintStyle}
+                        title="Generated under a slot constraint"
+                      >
+                        <span>{raritySetSummary(slotConstraint.rarities)}</span>
+                        <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
+                        {specificSummary && <span>{specificSummary}</span>}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className={`slot-config-card${constrained ? ' is-constrained' : ''}`}
+                    style={constraintStyle}
+                    aria-label={`Configure squad slot ${slot}`}
+                    onClick={() => setEditingSlot(index)}
+                  >
+                    <span className="slot-config-number">SLOT {slot}</span>
+                    {constrained ? (
+                      <span className="slot-config-summary">
+                        <strong>{raritySetSummary(slotConstraint.rarities)}</strong>
+                        <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
+                        {specificSummary && (
+                          <span className="slot-config-specific">{specificSummary}</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="slot-config-any">
+                        <strong>Any</strong>
+                        <span>Click to configure</span>
+                      </span>
+                    )}
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        <details className="squad-filter-disclosure">
+          <summary>Squad filters</summary>
+          <div className="squad-filter-content">
+            <div className="squad-size-control">
+              <div className="squad-size-heading">
+                <span>Squad size</span>
+                <strong>{constraints.squadSize}</strong>
+              </div>
+              <div className="squad-size-slider-row">
+                <span>1</span>
+                <input
+                  type="range"
+                  min={1}
+                  max={12}
+                  step={1}
+                  value={constraints.squadSize}
+                  disabled={squad.length > 0}
+                  aria-label="Squad size"
+                  onChange={(event) => changeSquadSize(Number(event.target.value))}
+                />
+                <span>12</span>
+              </div>
+              {squad.length > 0 && (
+                <small>Clear the generated squad to change its size or slot constraints.</small>
+              )}
+            </div>
+            <div className="squad-bounds-layout">
+              <fieldset className="constraint-group squad-bound-group">
+                <legend>Rarity bounds</legend>
+                <div className="bound-grid">
+                  {[...operatorRarities].reverse().map((rarity) => (
+                    <BoundPill
+                      key={rarity}
+                      label={`${rarity}★`}
+                      value={constraints.rarity[rarity]}
+                      disabled={squad.length > 0}
+                      onSave={(next) => saveRarityBound(rarity, next)}
+                    />
+                  ))}
+                </div>
+                <div className="aggregate-bound-heading">
+                  <span>Aggregate rarity groups</span>
+                  <small>Counts overlap exact rarity bounds and are solved together.</small>
+                </div>
+                <div className="bound-grid bound-grid--aggregate">
+                  {rarityGroupKeys.map((group) => (
+                    <BoundPill
+                      key={group}
+                      label={rarityGroupDefinitions[group].label}
+                      value={constraints.rarityGroups[group]}
+                      disabled={squad.length > 0}
+                      onSave={(next) => saveRarityGroupBound(group, next)}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="constraint-group squad-bound-group">
+                <legend>Class bounds</legend>
+                <div className="bound-grid bound-grid--classes">
+                  {operatorClasses.map((operatorClass) => (
+                    <BoundPill
+                      key={operatorClass}
+                      label={
+                        <span className="bound-class-label">
+                          <ClassIcon operatorClass={operatorClass} className="filter-class-icon" />
+                          <span>{dataset?.classLabels?.[operatorClass] ?? operatorClass}</span>
+                        </span>
+                      }
+                      labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass}
+                      value={constraints.class[operatorClass]}
+                      disabled={squad.length > 0}
+                      onSave={(next) => saveClassBound(operatorClass, next)}
+                    />
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </details>
       </section>
-      {editingSlot !== null && dataset && squad.length === 0 && editingSlot < constraints.squadSize && <SquadConstraintEditor slotIndex={editingSlot} value={constraints.slots[editingSlot] ?? createEmptySlotConstraint()} constraints={constraints} operators={finalOperatorPool} classLabels={dataset.classLabels} onApply={(value) => saveSlotConstraint(editingSlot, value)} onClose={() => setEditingSlot(null)} />}
-      {pendingConfirmation && <ConfirmationDialog confirmation={pendingConfirmation} dontShowAgain={dontShowAgain} setDontShowAgain={setDontShowAgain} onCancel={() => { setPendingConfirmation(null); setDontShowAgain(false) }} onConfirm={confirmPending} />}
+      {editingSlot !== null &&
+        dataset &&
+        squad.length === 0 &&
+        editingSlot < constraints.squadSize && (
+          <SquadConstraintEditor
+            slotIndex={editingSlot}
+            value={constraints.slots[editingSlot] ?? createEmptySlotConstraint()}
+            constraints={constraints}
+            operators={finalOperatorPool}
+            classLabels={dataset.classLabels}
+            onApply={(value) => saveSlotConstraint(editingSlot, value)}
+            onClose={() => setEditingSlot(null)}
+          />
+        )}
+      {pendingConfirmation && (
+        <ConfirmationDialog
+          confirmation={pendingConfirmation}
+          dontShowAgain={dontShowAgain}
+          setDontShowAgain={setDontShowAgain}
+          onCancel={() => {
+            setPendingConfirmation(null)
+            setDontShowAgain(false)
+          }}
+          onConfirm={confirmPending}
+        />
+      )}
     </>
   )
 }

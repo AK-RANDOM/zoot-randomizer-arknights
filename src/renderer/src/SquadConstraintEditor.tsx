@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import OperatorSelector, { type OperatorSelectorOption } from './OperatorSelector'
+import ClassIcon from './ClassIcon'
 import {
   createEmptySlotConstraint,
   rarityGroupDefinitions,
@@ -23,6 +24,7 @@ import {
 } from '../../shared/randomizer'
 
 const AMIYA_MANDATORY_GROUP = 'amiya-forms'
+const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
 
 function toggleValue<T>(values: readonly T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
@@ -43,6 +45,14 @@ function cloneDraft(value: SlotConstraint): SlotConstraint {
 
 function withoutSpecificOperator(value: SlotConstraint): SlotConstraint {
   return { ...cloneDraft(value), operatorId: null, mandatoryExclusivityGroup: null }
+}
+
+function sortAmiyaForms(forms: readonly Operator[]): Operator[] {
+  return [...forms].sort((left, right) => {
+    const leftIndex = AMIYA_CLASS_ORDER.indexOf(left.class)
+    const rightIndex = AMIYA_CLASS_ORDER.indexOf(right.class)
+    return (leftIndex < 0 ? 99 : leftIndex) - (rightIndex < 0 ? 99 : rightIndex)
+  })
 }
 
 export default function SquadConstraintEditor({
@@ -153,61 +163,44 @@ export default function SquadConstraintEditor({
 
   const amiyaForms = useMemo(
     () =>
-      eligiblePool.filter(
-        (operator) => operator.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP,
+      sortAmiyaForms(
+        eligiblePool.filter(
+          (operator) => operator.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP,
+        ),
       ),
     [eligiblePool],
-  )
-  const selectedExactOperator = draft.operatorId ? (byId.get(draft.operatorId) ?? null) : null
-  const amiyaSelected =
-    draft.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP ||
-    selectedExactOperator?.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP
-  const amiyaLockForms = useMemo(
-    () =>
-      amiyaForms.filter((operator) =>
-        operatorMatchesSlotConstraint(operator, draftWithoutOperator),
-      ),
-    [amiyaForms, draftWithoutOperator],
   )
 
   const operatorOptions = useMemo<OperatorSelectorOption[]>(() => {
     const options: OperatorSelectorOption[] = []
-    const amiya = amiyaForms[0]
-    if (amiya) {
-      const matchingForms = amiyaForms.filter((operator) =>
+    const matchingAmiyaForms = sortAmiyaForms(
+      amiyaForms.filter((operator) =>
         operatorMatchesSlotConstraint(operator, draftWithoutOperator),
-      )
-      const groupReserved = reservedMandatoryGroups.has(AMIYA_MANDATORY_GROUP)
+      ),
+    )
+    if (matchingAmiyaForms.length > 0 && !reservedMandatoryGroups.has(AMIYA_MANDATORY_GROUP)) {
       options.push({
         key: `group:${AMIYA_MANDATORY_GROUP}`,
         label: 'Amiya',
-        operator: amiya,
+        operator: matchingAmiyaForms[0],
         aliases: amiyaForms.flatMap((operator) => [operator.name, operator.class]),
-        disabled: groupReserved || matchingForms.length === 0,
-        disabledReason: groupReserved
-          ? 'Amiya is already reserved by another slot.'
-          : matchingForms.length === 0
-            ? 'No Amiya form matches the current rarity/class criteria.'
-            : undefined,
+        classIcons: matchingAmiyaForms.map((operator) => operator.class),
       })
     }
 
     for (const operator of eligiblePool) {
       if (operator.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) continue
-      const dimensionsMatch = operatorMatchesSlotConstraint(operator, draftWithoutOperator)
-      const groupReserved =
-        !!operator.mandatoryExclusivityGroup &&
+      if (!operatorMatchesSlotConstraint(operator, draftWithoutOperator)) continue
+      if (
+        operator.mandatoryExclusivityGroup &&
         reservedMandatoryGroups.has(operator.mandatoryExclusivityGroup)
+      ) {
+        continue
+      }
       options.push({
         key: `operator:${operator.id}`,
         label: operator.name,
         operator,
-        disabled: !dimensionsMatch || groupReserved,
-        disabledReason: groupReserved
-          ? 'A mutually exclusive form is already reserved by another slot.'
-          : !dimensionsMatch
-            ? 'Does not match the current rarity/class criteria.'
-            : undefined,
       })
     }
     return options.sort(
@@ -247,29 +240,6 @@ export default function SquadConstraintEditor({
       operatorId: option.operator.id,
       mandatoryExclusivityGroup: null,
     }))
-  }
-
-  const setAmiyaMode = (mode: 'random' | 'lock'): void => {
-    if (mode === 'random') {
-      setDraft((current) => ({
-        ...current,
-        operatorId: null,
-        mandatoryExclusivityGroup: AMIYA_MANDATORY_GROUP,
-      }))
-      return
-    }
-    const currentForm = draft.operatorId ? byId.get(draft.operatorId) : null
-    const nextForm =
-      currentForm?.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP &&
-      amiyaLockForms.some((form) => form.id === currentForm.id)
-        ? currentForm
-        : amiyaLockForms[0]
-    if (nextForm)
-      setDraft((current) => ({
-        ...current,
-        operatorId: nextForm.id,
-        mandatoryExclusivityGroup: null,
-      }))
   }
 
   return (
@@ -373,7 +343,8 @@ export default function SquadConstraintEditor({
                     }))
                   }
                 >
-                  {displayClass}
+                  <ClassIcon operatorClass={operatorClass} className="criteria-chip-class-icon" />
+                  <span>{displayClass}</span>
                 </button>
               )
             })}
@@ -390,56 +361,6 @@ export default function SquadConstraintEditor({
             valueKey={operatorSelectionKey}
             onSelect={selectOperator}
           />
-          {amiyaSelected && (
-            <div className="amiya-form-control">
-              <div className="slot-editor-label-row">
-                <strong>Amiya form</strong>
-                <span>All forms share one mandatory-exclusive identity</span>
-              </div>
-              <div className="amiya-mode-row">
-                <label>
-                  <input
-                    type="radio"
-                    name="amiya-form-mode"
-                    checked={draft.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP}
-                    onChange={() => setAmiyaMode('random')}
-                  />{' '}
-                  Randomize Form
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="amiya-form-mode"
-                    checked={!!draft.operatorId}
-                    onChange={() => setAmiyaMode('lock')}
-                    disabled={amiyaLockForms.length === 0}
-                  />{' '}
-                  Lock Form
-                </label>
-              </div>
-              {!!draft.operatorId && (
-                <label className="amiya-form-select">
-                  <span>Form</span>
-                  <select
-                    value={draft.operatorId}
-                    onChange={(event) =>
-                      setDraft((current) => ({
-                        ...current,
-                        operatorId: event.target.value,
-                        mandatoryExclusivityGroup: null,
-                      }))
-                    }
-                  >
-                    {amiyaLockForms.map((form) => (
-                      <option key={form.id} value={form.id}>
-                        {classLabels?.[form.class] ?? form.class}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-            </div>
-          )}
         </div>
 
         <div className={`slot-feasibility${validation.valid ? ' is-valid' : ' is-invalid'}`}>
@@ -458,10 +379,10 @@ export default function SquadConstraintEditor({
         <div className="slot-editor-actions">
           <button
             type="button"
-            className="text-button"
+            className="danger-button"
             onClick={() => setDraft(createEmptySlotConstraint())}
           >
-            Reset to Any
+            Reset Constraint
           </button>
           <span className="slot-editor-spacer" />
           <button type="button" className="secondary-button" onClick={onClose}>

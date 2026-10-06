@@ -19,6 +19,7 @@ import type {
   OperatorUpdateResult,
 } from '../shared/desktop'
 import type { OperatorDataset } from '../shared/operator'
+import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
 import {
   UPSTREAM,
   validateOperatorDataset,
@@ -139,10 +140,13 @@ async function downloadAvatarToCache(
   const promise = (async () => {
     const timeout = AbortSignal.timeout(60_000)
     try {
-      const response = await fetch(`${UPSTREAM.avatarBaseUrl}/${operatorId}.png`, {
-        headers: { 'User-Agent': 'arknights-randomizer' },
-        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-      })
+      const response = await fetch(
+        `${UPSTREAM.avatarBaseUrl}/${operatorAvatarSourceFilename(operatorId)}`,
+        {
+          headers: { 'User-Agent': 'arknights-randomizer' },
+          signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+        },
+      )
       if (!response.ok) return false
 
       await mkdir(join(downloadedRoot(), 'images'), { recursive: true })
@@ -248,10 +252,13 @@ async function downloadAvatar(
   operatorId: string,
   destination: string,
 ): Promise<boolean> {
-  const response = await fetch(`${UPSTREAM.avatarBaseUrl}/${operatorId}.png`, {
-    headers: { 'User-Agent': 'arknights-randomizer' },
-    signal: AbortSignal.timeout(60_000),
-  })
+  const response = await fetch(
+    `${UPSTREAM.avatarBaseUrl}/${operatorAvatarSourceFilename(operatorId)}`,
+    {
+      headers: { 'User-Agent': 'arknights-randomizer' },
+      signal: AbortSignal.timeout(60_000),
+    },
+  )
 
   if (!response.ok) return false
   await writeFile(destination, Buffer.from(await response.arrayBuffer()))

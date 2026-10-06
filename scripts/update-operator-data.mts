@@ -6,6 +6,7 @@ import {
   UPSTREAM,
   validateOperatorDataset,
 } from '../src/shared/operatorData.ts'
+import { operatorAvatarSourceFilename } from '../src/shared/operatorAvatar.ts'
 import {
   fetchAndBuildOperatorDataset,
   fetchLatestOperatorDatasetSources,
@@ -61,7 +62,8 @@ async function fileExists(path: string): Promise<boolean> {
 async function downloadAvatar(id: string): Promise<boolean> {
   const destination = join(imageDir, `${id}.png`)
   if (await fileExists(destination)) return true
-  const response = await fetch(`${UPSTREAM.avatarBaseUrl}/${id}.png`, {
+  const sourceFilename = operatorAvatarSourceFilename(id)
+  const response = await fetch(`${UPSTREAM.avatarBaseUrl}/${sourceFilename}`, {
     headers: { 'User-Agent': 'arknights-randomizer-data-updater' },
     signal: AbortSignal.timeout(60_000),
   })
@@ -83,17 +85,19 @@ async function downloadNamedAssets(
 
   for (let index = 0; index < uniqueFiles.length; index += batchSize) {
     const batch = uniqueFiles.slice(index, index + batchSize)
-    const results = await Promise.all(batch.map(async (filename) => {
-      const destination = join(directory, filename)
-      if (await fileExists(destination)) return { filename, ok: true }
-      const response = await fetch(`${baseUrl}/${filename}`, {
-        headers: { 'User-Agent': 'arknights-randomizer-data-updater' },
-        signal: AbortSignal.timeout(60_000),
-      })
-      if (!response.ok) return { filename, ok: false }
-      await writeFile(destination, Buffer.from(await response.arrayBuffer()))
-      return { filename, ok: true }
-    }))
+    const results = await Promise.all(
+      batch.map(async (filename) => {
+        const destination = join(directory, filename)
+        if (await fileExists(destination)) return { filename, ok: true }
+        const response = await fetch(`${baseUrl}/${filename}`, {
+          headers: { 'User-Agent': 'arknights-randomizer-data-updater' },
+          signal: AbortSignal.timeout(60_000),
+        })
+        if (!response.ok) return { filename, ok: false }
+        await writeFile(destination, Buffer.from(await response.arrayBuffer()))
+        return { filename, ok: true }
+      }),
+    )
     missing.push(...results.filter((result) => !result.ok).map((result) => result.filename))
   }
 

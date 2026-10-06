@@ -25,6 +25,7 @@ import {
 
 const AMIYA_MANDATORY_GROUP = 'amiya-forms'
 const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
+const AMIYA_DEFAULT_CLASS: OperatorClass = 'Caster'
 
 function toggleValue<T>(values: readonly T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
@@ -182,9 +183,11 @@ export default function SquadConstraintEditor({
       options.push({
         key: `group:${AMIYA_MANDATORY_GROUP}`,
         label: 'Amiya',
-        operator: matchingAmiyaForms[0],
+        operator:
+          amiyaForms.find((operator) => operator.class === AMIYA_DEFAULT_CLASS) ??
+          matchingAmiyaForms[0],
         aliases: amiyaForms.flatMap((operator) => [operator.name, operator.class]),
-        classIcons: matchingAmiyaForms.map((operator) => operator.class),
+        classIcons: amiyaForms.map((operator) => operator.class),
       })
     }
 
@@ -230,6 +233,7 @@ export default function SquadConstraintEditor({
     if (option.key === `group:${AMIYA_MANDATORY_GROUP}`) {
       setDraft((current) => ({
         ...current,
+        classes: current.classes.length === 0 ? [AMIYA_DEFAULT_CLASS] : current.classes,
         operatorId: null,
         mandatoryExclusivityGroup: AMIYA_MANDATORY_GROUP,
       }))

@@ -388,7 +388,7 @@
   border: 1px solid transparent;
   background:
     linear-gradient(#17140e, #17140e) padding-box,
-    var(--slot-constraint-gradient, linear-gradient(135deg, #9c7129, #9c7129)) border-box;
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
 }
 
 .slot-config-number {
@@ -467,7 +467,7 @@
     linear-gradient(rgba(18, 14, 7, 0.9), rgba(18, 14, 7, 0.9)) padding-box,
     var(
         --slot-constraint-gradient,
-        linear-gradient(135deg, rgba(245, 173, 47, 0.7), rgba(245, 173, 47, 0.7))
+        linear-gradient(135deg, rgba(118, 118, 128, 0.75), rgba(118, 118, 128, 0.75))
       )
       border-box;
   font-size: 0.55rem;

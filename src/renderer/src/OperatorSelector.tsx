@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { Operator } from '../../shared/operator'
+import type { Operator, OperatorClass } from '../../shared/operator'
+import ClassIcon from './ClassIcon'
 import './OperatorSelector.css'
 
 export interface OperatorSelectorOption {
@@ -7,6 +8,7 @@ export interface OperatorSelectorOption {
   label: string
   operator: Operator
   aliases?: readonly string[]
+  classIcons?: readonly OperatorClass[]
   disabled?: boolean
   disabledReason?: string
 }
@@ -42,6 +44,28 @@ function OperatorAvatar({ operator }: { operator: Operator }): React.JSX.Element
   )
 }
 
+function optionClasses(option: OperatorSelectorOption): readonly OperatorClass[] {
+  return option.classIcons?.length ? option.classIcons : [option.operator.class]
+}
+
+function OperatorClassStack({ option }: { option: OperatorSelectorOption }): React.JSX.Element {
+  const classes = optionClasses(option)
+  return (
+    <span
+      className={`operator-selector-class-stack${classes.length > 1 ? ' is-multiple' : ''}`}
+      aria-label={classes.join(', ')}
+    >
+      {classes.map((operatorClass) => (
+        <ClassIcon key={operatorClass} operatorClass={operatorClass} />
+      ))}
+    </span>
+  )
+}
+
+function optionMeta(option: OperatorSelectorOption): string {
+  return `${option.operator.rarity}★ · ${optionClasses(option).join(' / ')}`
+}
+
 export default function OperatorSelector({
   options,
   valueKey,
@@ -69,20 +93,6 @@ export default function OperatorSelector({
 
   return (
     <div className="operator-selector">
-      {selected && (
-        <div className="operator-selector-selected" data-rarity={selected.operator.rarity}>
-          <OperatorAvatar operator={selected.operator} />
-          <span>
-            <strong>{selected.label}</strong>
-            <small>
-              {selected.operator.rarity}★ · {selected.operator.class}
-            </small>
-          </span>
-          <button type="button" className="text-button" onClick={() => onSelect(null)}>
-            Clear
-          </button>
-        </div>
-      )}
       <label className="operator-selector-search">
         <span className="sr-only">Search operators</span>
         <input
@@ -92,6 +102,19 @@ export default function OperatorSelector({
           onChange={(event) => setSearch(event.target.value)}
         />
       </label>
+      {selected && (
+        <div className="operator-selector-selected" data-rarity={selected.operator.rarity}>
+          <OperatorAvatar operator={selected.operator} />
+          <span className="operator-selector-copy">
+            <strong>{selected.label}</strong>
+            <small>{optionMeta(selected)}</small>
+          </span>
+          <OperatorClassStack option={selected} />
+          <button type="button" className="text-button" onClick={() => onSelect(null)}>
+            Clear
+          </button>
+        </div>
+      )}
       <div className="operator-selector-results" role="listbox" aria-label="Eligible operators">
         {visible.map((option) => (
           <button
@@ -106,12 +129,11 @@ export default function OperatorSelector({
             data-rarity={option.operator.rarity}
           >
             <OperatorAvatar operator={option.operator} />
-            <span>
+            <span className="operator-selector-copy">
               <strong>{option.label}</strong>
-              <small>
-                {option.operator.rarity}★ · {option.operator.class}
-              </small>
+              <small>{optionMeta(option)}</small>
             </span>
+            <OperatorClassStack option={option} />
             {option.disabled && <em>{option.disabledReason ?? 'Unavailable'}</em>}
           </button>
         ))}

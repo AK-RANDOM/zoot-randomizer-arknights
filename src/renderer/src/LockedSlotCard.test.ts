@@ -50,20 +50,26 @@ describe('locked slot presentation', () => {
 
   it('defaults Amiya to Caster and exposes all eligible form classes in order', () => {
     expect(
-      lockedSlotPresentation(
-        constraint({ mandatoryExclusivityGroup: 'amiya-forms' }),
-        amiyaForms,
-      ),
+      lockedSlotPresentation(constraint({ mandatoryExclusivityGroup: 'amiya-forms' }), amiyaForms),
     ).toEqual({ operator: amiyaForms[0], classes: ['Caster', 'Guard', 'Medic'] })
   })
 
-  it('uses the first eligible Amiya class as the portrait when Caster is excluded', () => {
+  it('keeps the Caster base portrait while multiple non-Caster forms remain eligible', () => {
     expect(
       lockedSlotPresentation(
         constraint({ classes: ['Guard', 'Medic'], mandatoryExclusivityGroup: 'amiya-forms' }),
         amiyaForms,
       ),
-    ).toEqual({ operator: amiyaForms[1], classes: ['Guard', 'Medic'] })
+    ).toEqual({ operator: amiyaForms[0], classes: ['Guard', 'Medic'] })
+  })
+
+  it('uses the Guard form when Guard is the only eligible Amiya class', () => {
+    expect(
+      lockedSlotPresentation(
+        constraint({ classes: ['Guard'], mandatoryExclusivityGroup: 'amiya-forms' }),
+        amiyaForms,
+      ),
+    ).toEqual({ operator: amiyaForms[1], classes: ['Guard'] })
   })
 
   it('uses the Medic form when Medic is the only eligible Amiya class', () => {

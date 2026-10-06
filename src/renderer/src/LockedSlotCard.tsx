@@ -18,6 +18,12 @@ function amiyaClassOrder(operatorClass: OperatorClass): number {
   return index < 0 ? AMIYA_CLASS_ORDER.length : index
 }
 
+function sortAmiyaForms(forms: readonly Operator[]): Operator[] {
+  return [...forms].sort(
+    (left, right) => amiyaClassOrder(left.class) - amiyaClassOrder(right.class),
+  )
+}
+
 export function lockedSlotPresentation(
   constraint: SlotConstraint,
   operators: readonly Operator[],
@@ -32,12 +38,11 @@ export function lockedSlotPresentation(
   const group = constraint.mandatoryExclusivityGroup
   if (!group) return null
 
-  const candidates = operators
-    .filter(
-      (operator) =>
-        operator.mandatoryExclusivityGroup === group &&
-        operatorMatchesSlotConstraint(operator, constraint),
-    )
+  const groupOperators = operators.filter(
+    (operator) => operator.mandatoryExclusivityGroup === group,
+  )
+  const candidates = groupOperators
+    .filter((operator) => operatorMatchesSlotConstraint(operator, constraint))
     .sort((left, right) => {
       if (group === AMIYA_MANDATORY_GROUP) {
         return amiyaClassOrder(left.class) - amiyaClassOrder(right.class)
@@ -50,6 +55,12 @@ export function lockedSlotPresentation(
   const classes = [...new Set(candidates.map((operator) => operator.class))]
   if (group === AMIYA_MANDATORY_GROUP) {
     classes.sort((left, right) => amiyaClassOrder(left) - amiyaClassOrder(right))
+    const amiyaForms = sortAmiyaForms(groupOperators)
+    const operator =
+      classes.length === 1
+        ? (candidates.find((candidate) => candidate.class === classes[0]) ?? candidates[0])
+        : (amiyaForms.find((candidate) => candidate.class === 'Caster') ?? candidates[0])
+    return { operator, classes }
   }
 
   return { operator: candidates[0], classes }

@@ -61,6 +61,27 @@ function resolveFromCatalogs(
   return null
 }
 
+function resolveOperatorName(
+  dataset: OperatorDataset,
+  locale: GameLocale,
+  operatorId: string,
+  canonicalName: string,
+): string {
+  const selected = catalogFor(dataset, locale).operatorNames[operatorId]?.trim()
+  if (selected) return selected
+
+  if (locale !== 'en') {
+    const english = catalogFor(dataset, 'en').operatorNames[operatorId]?.trim()
+    if (english) return english
+  }
+
+  const canonical = canonicalName.trim()
+  if (canonical) return canonical
+
+  const chinese = catalogFor(dataset, 'cn').operatorNames[operatorId]?.trim()
+  return chinese || operatorId
+}
+
 function isNeutralEnglishLikeLabel(value: string): boolean {
   return /^[\x20-\x7E]+$/.test(value)
 }
@@ -144,9 +165,7 @@ export function localizeOperatorDataset(
   // strings, never the solver/randomizer input ordering or source-derived IDs.
   const operators = dataset.operators.map((operator) => ({
     ...operator,
-    name:
-      resolveFromCatalogs(dataset, locale, (catalog) => catalog.operatorNames[operator.id]) ??
-      operator.name,
+    name: resolveOperatorName(dataset, locale, operator.id, operator.name),
     subclass: {
       ...operator.subclass,
       name:

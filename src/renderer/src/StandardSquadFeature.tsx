@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
+import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
 import OperatorCard from './OperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
 import {
@@ -46,6 +47,8 @@ import {
 const slots = Array.from({ length: 12 }, (_, index) => index + 1)
 const BOUND_WARNING_KEY = 'arknights-randomizer:dismiss-bound-reset-warning'
 const PRESET_WARNING_KEY = 'arknights-randomizer:dismiss-preset-replace-warning'
+const AMIYA_MANDATORY_GROUP = 'amiya-forms'
+const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
 
 interface PendingConfirmation {
   title: string
@@ -82,17 +85,42 @@ function classSetSummary(
     .join(' / ')
 }
 
+function constraintTargetsAmiya(
+  constraint: SlotConstraint,
+  dataset: OperatorDataset | null,
+): boolean {
+  if (constraint.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) return true
+  if (!constraint.operatorId) return false
+  return (
+    dataset?.operators.find((candidate) => candidate.id === constraint.operatorId)
+      ?.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP
+  )
+}
+
+function amiyaClassSummary(
+  constraint: SlotConstraint,
+  classLabels?: Readonly<Record<OperatorClass, string>>,
+): string {
+  const classes =
+    constraint.classes.length > 0
+      ? AMIYA_CLASS_ORDER.filter((operatorClass) => constraint.classes.includes(operatorClass))
+      : AMIYA_CLASS_ORDER
+  return classes.map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass).join(' / ')
+}
+
 function specificOperatorSummary(
   constraint: SlotConstraint,
   dataset: OperatorDataset | null,
 ): string | null {
-  if (constraint.mandatoryExclusivityGroup === 'amiya-forms') return 'Amiya — Random Form'
+  if (constraint.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) {
+    return `Amiya — ${amiyaClassSummary(constraint, dataset?.classLabels)}`
+  }
   if (constraint.mandatoryExclusivityGroup)
     return `Any form — ${constraint.mandatoryExclusivityGroup}`
   if (!constraint.operatorId) return null
   const operator = dataset?.operators.find((candidate) => candidate.id === constraint.operatorId)
   if (!operator) return constraint.operatorId
-  if (operator.mandatoryExclusivityGroup === 'amiya-forms') {
+  if (operator.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) {
     return `Amiya — ${dataset?.classLabels?.[operator.class] ?? operator.class}`
   }
   return operator.name
@@ -104,8 +132,9 @@ function activeSlotConstraintSummary(
 ): string {
   const parts: string[] = []
   if (constraint.rarities.length > 0) parts.push(raritySetSummary(constraint.rarities))
-  if (constraint.classes.length > 0)
+  if (constraint.classes.length > 0 && !constraintTargetsAmiya(constraint, dataset)) {
     parts.push(classSetSummary(constraint.classes, dataset?.classLabels))
+  }
   const specific = specificOperatorSummary(constraint, dataset)
   if (specific) parts.push(specific)
   return parts.join(' · ') || 'Any'
@@ -520,7 +549,7 @@ export default function StandardSquadFeature({
           <div className="section-actions">
             {constrainedSlots.length > 0 && (
               <button
-                className="secondary-button"
+                className="danger-button"
                 type="button"
                 disabled={squad.length > 0}
                 onClick={resetSlotConstraints}
@@ -639,6 +668,13 @@ export default function StandardSquadFeature({
             const constrained = !slotConstraintIsEmpty(slotConstraint)
             const specificSummary = specificOperatorSummary(slotConstraint, dataset)
             const constraintStyle = slotConstraintStyle(slotConstraint.rarities)
+            const lockedPresentation =
+              !operator &&
+              inRange &&
+              constrained &&
+              (slotConstraint.operatorId || slotConstraint.mandatoryExclusivityGroup)
+                ? lockedSlotPresentation(slotConstraint, finalOperatorPool)
+                : null
             return (
               <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>
                 {!inRange ? (
@@ -662,6 +698,12 @@ export default function StandardSquadFeature({
                       </div>
                     )}
                   </>
+                ) : lockedPresentation ? (
+                  <LockedSlotCard
+                    presentation={lockedPresentation}
+                    slot={slot}
+                    onClick={() => setEditingSlot(index)}
+                  />
                 ) : (
                   <button
                     type="button"

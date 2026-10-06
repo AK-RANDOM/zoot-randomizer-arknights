@@ -66,32 +66,22 @@ function shuffled<T>(input: readonly T[], random: RandomSource): T[] {
   return values
 }
 
-function acquisitionEnabled(
-  operator: Operator,
-  constraints: RandomizerConstraints,
-): boolean {
+function acquisitionEnabled(operator: Operator, constraints: RandomizerConstraints): boolean {
   switch (operator.acquisition.family) {
     case 'limited':
       return operator.acquisition.group !== null
-        ? constraints.acquisition.limited[
-            operator.acquisition.group as LimitedAcquisitionGroup
-          ]
+        ? constraints.acquisition.limited[operator.acquisition.group as LimitedAcquisitionGroup]
         : false
     case 'standard':
       return constraints.acquisition.standard
     case 'welfare':
       return operator.acquisition.group !== null
-        ? constraints.acquisition.welfare[
-            operator.acquisition.group as WelfareAcquisitionGroup
-          ]
+        ? constraints.acquisition.welfare[operator.acquisition.group as WelfareAcquisitionGroup]
         : false
   }
 }
 
-function factionEnabled(
-  operator: Operator,
-  constraints: RandomizerConstraints,
-): boolean {
+function factionEnabled(operator: Operator, constraints: RandomizerConstraints): boolean {
   const excluded = new Set(constraints.faction.excludedIds)
   if (excluded.size === 0) return true
 
@@ -122,16 +112,10 @@ export function filterHigherLevelEligibleOperators(
     if (!operator.availableOn[server]) return false
 
     const release = operator.release[server]
-    if (
-      minYear !== null &&
-      (release.yearGroup === null || release.yearGroup < minYear)
-    ) {
+    if (minYear !== null && (release.yearGroup === null || release.yearGroup < minYear)) {
       return false
     }
-    if (
-      maxYear !== null &&
-      (release.yearGroup === null || release.yearGroup > maxYear)
-    ) {
+    if (maxYear !== null && (release.yearGroup === null || release.yearGroup > maxYear)) {
       return false
     }
     if (minDate && (!release.date || release.date < minDate)) return false
@@ -140,12 +124,7 @@ export function filterHigherLevelEligibleOperators(
     if (!acquisitionEnabled(operator, constraints)) return false
 
     if (operator.collaboration) {
-      if (
-        !collaborationSourceEnabled(
-          constraints.collaboration,
-          operator.collaboration,
-        )
-      ) {
+      if (!collaborationSourceEnabled(constraints.collaboration, operator.collaboration)) {
         return false
       }
     } else if (!constraints.collaboration.includeNonCollab) {
@@ -182,15 +161,16 @@ export function operatorMatchesSlotConstraint(
   constraint: SlotConstraint | undefined,
 ): boolean {
   if (!constraint) return true
-  if (
-    constraint.rarities.length > 0 &&
-    !constraint.rarities.includes(operator.rarity)
-  ) {
+  if (constraint.rarities.length > 0 && !constraint.rarities.includes(operator.rarity)) {
     return false
   }
+  if (constraint.classes.length > 0 && !constraint.classes.includes(operator.class)) {
+    return false
+  }
+  if (constraint.operatorId && operator.id !== constraint.operatorId) return false
   if (
-    constraint.classes.length > 0 &&
-    !constraint.classes.includes(operator.class)
+    constraint.mandatoryExclusivityGroup &&
+    operator.mandatoryExclusivityGroup !== constraint.mandatoryExclusivityGroup
   ) {
     return false
   }
@@ -207,10 +187,25 @@ export function countEligibleOperatorsForSlot(
   ).length
 }
 
-function exclusivityKeys(
-  operator: Operator,
+export function reservedMandatoryGroupsFromSlotConstraints(
+  operators: readonly Operator[],
   constraints: RandomizerConstraints,
-): string[] {
+  exceptSlotIndex: number | null = null,
+): Set<string> {
+  const byId = new Map(operators.map((operator) => [operator.id, operator]))
+  const groups = new Set<string>()
+  constraints.slots.slice(0, constraints.squadSize).forEach((slot, index) => {
+    if (index === exceptSlotIndex) return
+    if (slot.mandatoryExclusivityGroup) groups.add(slot.mandatoryExclusivityGroup)
+    if (slot.operatorId) {
+      const group = byId.get(slot.operatorId)?.mandatoryExclusivityGroup
+      if (group) groups.add(group)
+    }
+  })
+  return groups
+}
+
+function exclusivityKeys(operator: Operator, constraints: RandomizerConstraints): string[] {
   const keys: string[] = []
   if (operator.mandatoryExclusivityGroup) {
     keys.push(`mandatory:${operator.mandatoryExclusivityGroup}`)
@@ -225,9 +220,7 @@ const rarityGroupsByRarity = Object.fromEntries(
   operatorRarities.map((rarity) => [
     rarity,
     rarityGroupKeys.filter((group) =>
-      (rarityGroupDefinitions[group].rarities as readonly OperatorRarity[]).includes(
-        rarity,
-      ),
+      (rarityGroupDefinitions[group].rarities as readonly OperatorRarity[]).includes(rarity),
     ),
   ]),
 ) as unknown as Record<OperatorRarity, readonly RarityGroupKey[]>
@@ -236,10 +229,7 @@ function rarityGroupsFor(rarity: OperatorRarity): readonly RarityGroupKey[] {
   return rarityGroupsByRarity[rarity]
 }
 
-function countFor<T extends string | number>(
-  counts: ConstraintCountMap<T>,
-  key: T,
-): number {
+function countFor<T extends string | number>(counts: ConstraintCountMap<T>, key: T): number {
   return counts.get(key) ?? 0
 }
 
@@ -295,15 +285,13 @@ function satisfiesMinimums(
 ): boolean {
   return (
     operatorClasses.every(
-      (operatorClass) =>
-        countFor(classCounts, operatorClass) >= bounds.class[operatorClass].min,
+      (operatorClass) => countFor(classCounts, operatorClass) >= bounds.class[operatorClass].min,
     ) &&
     operatorRarities.every(
       (rarity) => countFor(rarityCounts, rarity) >= bounds.rarity[rarity].min,
     ) &&
     rarityGroupKeys.every(
-      (group) =>
-        countFor(rarityGroupCounts, group) >= bounds.rarityGroups[group].min,
+      (group) => countFor(rarityGroupCounts, group) >= bounds.rarityGroups[group].min,
     )
   )
 }
@@ -323,8 +311,7 @@ function candidateCanFitMaximums(
     return false
   }
   return candidate.rarityGroups.every(
-    (group) =>
-      countFor(rarityGroupCounts, group) + 1 <= bounds.rarityGroups[group].max,
+    (group) => countFor(rarityGroupCounts, group) + 1 <= bounds.rarityGroups[group].max,
   )
 }
 
@@ -342,9 +329,7 @@ function minimumsStillReachable(
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some(
-          (candidate) => candidate.operator.class === operatorClass,
-        )
+        (candidatesBySlot[slot].some((candidate) => candidate.operator.class === operatorClass)
           ? 1
           : 0),
       0,
@@ -358,11 +343,7 @@ function minimumsStillReachable(
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some(
-          (candidate) => candidate.operator.rarity === rarity,
-        )
-          ? 1
-          : 0),
+        (candidatesBySlot[slot].some((candidate) => candidate.operator.rarity === rarity) ? 1 : 0),
       0,
     )
     if (countFor(rarityCounts, rarity) + possible < minimum) return false
@@ -374,9 +355,7 @@ function minimumsStillReachable(
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some((candidate) =>
-          candidate.rarityGroups.includes(group),
-        )
+        (candidatesBySlot[slot].some((candidate) => candidate.rarityGroups.includes(group))
           ? 1
           : 0),
       0,
@@ -396,15 +375,10 @@ function solveAssignment(
 ): SearchResult {
   const target = constraints.squadSize
   const bounds = prepareBounds(constraints)
-  const preparedCandidates = eligible.map((operator) =>
-    prepareCandidate(operator, constraints),
-  )
+  const preparedCandidates = eligible.map((operator) => prepareCandidate(operator, constraints))
   const candidatesBySlot = Array.from({ length: target }, (_, slotIndex) =>
     preparedCandidates.filter((candidate) =>
-      operatorMatchesSlotConstraint(
-        candidate.operator,
-        constraints.slots[slotIndex],
-      ),
+      operatorMatchesSlotConstraint(candidate.operator, constraints.slots[slotIndex]),
     ),
   )
 
@@ -422,24 +396,23 @@ function solveAssignment(
     }
   }
 
-  const slotOrder = Array.from({ length: target }, (_, index) => index).sort(
-    (left, right) => {
-      const candidateDelta =
-        candidatesBySlot[left].length - candidatesBySlot[right].length
-      if (candidateDelta !== 0) return candidateDelta
-      const leftConstraint = constraints.slots[left]
-      const rightConstraint = constraints.slots[right]
-      const leftSpecificity =
-        leftConstraint.rarities.length + leftConstraint.classes.length
-      const rightSpecificity =
-        rightConstraint.rarities.length + rightConstraint.classes.length
-      return rightSpecificity - leftSpecificity
-    },
-  )
+  const slotOrder = Array.from({ length: target }, (_, index) => index).sort((left, right) => {
+    const candidateDelta = candidatesBySlot[left].length - candidatesBySlot[right].length
+    if (candidateDelta !== 0) return candidateDelta
+    const leftConstraint = constraints.slots[left]
+    const rightConstraint = constraints.slots[right]
+    const leftSpecificity =
+      leftConstraint.rarities.length +
+      leftConstraint.classes.length +
+      (leftConstraint.operatorId || leftConstraint.mandatoryExclusivityGroup ? 1 : 0)
+    const rightSpecificity =
+      rightConstraint.rarities.length +
+      rightConstraint.classes.length +
+      (rightConstraint.operatorId || rightConstraint.mandatoryExclusivityGroup ? 1 : 0)
+    return rightSpecificity - leftSpecificity
+  })
 
-  const randomizedCandidates = candidatesBySlot.map((candidates) =>
-    shuffled(candidates, random),
-  )
+  const randomizedCandidates = candidatesBySlot.map((candidates) => shuffled(candidates, random))
   const assignment: Array<Operator | undefined> = Array(target).fill(undefined)
   const usedIds = new Set<string>()
   const usedExclusivity = new Set<string>()
@@ -479,13 +452,7 @@ function solveAssignment(
     if (candidate.exclusivityKeys.some((key) => usedExclusivity.has(key))) {
       return false
     }
-    return candidateCanFitMaximums(
-      candidate,
-      classCounts,
-      rarityCounts,
-      rarityGroupCounts,
-      bounds,
-    )
+    return candidateCanFitMaximums(candidate, classCounts, rarityCounts, rarityGroupCounts, bounds)
   }
 
   const deficitScore = (candidate: PreparedCandidate): number => {
@@ -498,19 +465,14 @@ function solveAssignment(
       score += 1
     }
     for (const group of candidate.rarityGroups) {
-      if (
-        countFor(rarityGroupCounts, group) <
-        bounds.rarityGroups[group].min
-      ) {
+      if (countFor(rarityGroupCounts, group) < bounds.rarityGroups[group].min) {
         score += 1
       }
     }
     return score
   }
 
-  const orderedCandidatesForSlot = (
-    slotIndex: number,
-  ): readonly PreparedCandidate[] => {
+  const orderedCandidatesForSlot = (slotIndex: number): readonly PreparedCandidate[] => {
     const candidates = randomizedCandidates[slotIndex]
     if (candidateOrdering === 'random') return candidates
 
@@ -520,10 +482,7 @@ function solveAssignment(
         randomIndex,
         score: deficitScore(candidate),
       }))
-      .sort(
-        (left, right) =>
-          right.score - left.score || left.randomIndex - right.randomIndex,
-      )
+      .sort((left, right) => right.score - left.score || left.randomIndex - right.randomIndex)
       .map(({ candidate }) => candidate)
   }
 
@@ -546,10 +505,7 @@ function solveAssignment(
       }
     }
 
-    ;[slotOrder[depth], slotOrder[bestPosition]] = [
-      slotOrder[bestPosition],
-      slotOrder[depth],
-    ]
+    ;[slotOrder[depth], slotOrder[bestPosition]] = [slotOrder[bestPosition], slotOrder[depth]]
   }
 
   function search(depth: number): boolean {
@@ -560,12 +516,7 @@ function solveAssignment(
     }
 
     if (depth >= slotOrder.length) {
-      return satisfiesMinimums(
-        classCounts,
-        rarityCounts,
-        rarityGroupCounts,
-        bounds,
-      )
+      return satisfiesMinimums(classCounts, rarityCounts, rarityGroupCounts, bounds)
     }
 
     if (slotSelection === 'dynamic') selectMostConstrainedSlot(depth)
@@ -630,6 +581,10 @@ export function constraintsWithSlotDraft(
   slots[slotIndex] = {
     rarities: [...draft.rarities],
     classes: [...draft.classes],
+    ...(draft.operatorId ? { operatorId: draft.operatorId } : {}),
+    ...(draft.mandatoryExclusivityGroup
+      ? { mandatoryExclusivityGroup: draft.mandatoryExclusivityGroup }
+      : {}),
   }
   return { ...constraints, slots }
 }
@@ -639,21 +594,25 @@ export function canSlotResolveTo(
   constraints: RandomizerConstraints,
   slotIndex: number,
   draft: SlotConstraint,
-  probe: { rarity?: OperatorRarity; operatorClass?: OperatorClass },
+  probe: {
+    rarity?: OperatorRarity
+    operatorClass?: OperatorClass
+    operatorId?: string
+    mandatoryExclusivityGroup?: string
+  },
 ): boolean {
   if (slotIndex < 0 || slotIndex >= constraints.squadSize) return false
   const forced: SlotConstraint = {
-    rarities:
-      probe.rarity === undefined ? [...draft.rarities] : [probe.rarity],
-    classes:
-      probe.operatorClass === undefined
-        ? [...draft.classes]
-        : [probe.operatorClass],
+    rarities: probe.rarity === undefined ? [...draft.rarities] : [probe.rarity],
+    classes: probe.operatorClass === undefined ? [...draft.classes] : [probe.operatorClass],
+    operatorId: probe.operatorId ?? draft.operatorId ?? null,
+    mandatoryExclusivityGroup:
+      probe.operatorId !== undefined
+        ? null
+        : (probe.mandatoryExclusivityGroup ?? draft.mandatoryExclusivityGroup ?? null),
   }
-  return validateConstraints(
-    constraintsWithSlotDraft(constraints, slotIndex, forced),
-    operators,
-  ).valid
+  return validateConstraints(constraintsWithSlotDraft(constraints, slotIndex, forced), operators)
+    .valid
 }
 
 export function validateConstraints(
@@ -686,13 +645,7 @@ export function validateConstraints(
   // Validation only needs a witness that a valid squad exists. Prefer candidates
   // that satisfy outstanding minimums so background checks avoid unnecessary
   // backtracking; user-facing generation intentionally keeps random ordering.
-  const result = solveAssignment(
-    eligible,
-    constraints,
-    validationRandom(),
-    'static',
-    'deficit',
-  )
+  const result = solveAssignment(eligible, constraints, validationRandom(), 'static', 'deficit')
   if (!result.squad) {
     errors.push(
       result.exhausted
@@ -728,13 +681,7 @@ export function measureConstraintSearch(
     }
   }
 
-  const result = solveAssignment(
-    eligible,
-    constraints,
-    random,
-    slotSelection,
-    candidateOrdering,
-  )
+  const result = solveAssignment(eligible, constraints, random, slotSelection, candidateOrdering)
   return { solved: result.squad !== null, stats: result.stats }
 }
 

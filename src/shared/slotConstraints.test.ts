@@ -10,6 +10,7 @@ import {
   canSlotResolveTo,
   constraintsWithSlotDraft,
   generateSquad,
+  reservedMandatoryGroupsFromSlotConstraints,
   validateConstraints,
 } from './randomizer'
 
@@ -116,13 +117,9 @@ describe('per-slot allowed sets', () => {
 
     const draft: SlotConstraint = { rarities: [], classes: [] }
     expect(canSlotResolveTo(pool, current, 2, draft, { rarity: 6 })).toBe(false)
-    expect(
-      canSlotResolveTo(pool, current, 2, draft, { operatorClass: 'Guard' }),
-    ).toBe(false)
+    expect(canSlotResolveTo(pool, current, 2, draft, { operatorClass: 'Guard' })).toBe(false)
     expect(canSlotResolveTo(pool, current, 2, draft, { rarity: 5 })).toBe(true)
-    expect(
-      canSlotResolveTo(pool, current, 2, draft, { operatorClass: 'Caster' }),
-    ).toBe(true)
+    expect(canSlotResolveTo(pool, current, 2, draft, { operatorClass: 'Caster' })).toBe(true)
   })
 
   it('keeps slot order instead of shuffling constrained assignments after solving', () => {
@@ -133,11 +130,7 @@ describe('per-slot allowed sets', () => {
     })
 
     const squad = generateSquad(pool, current, seededRandom())
-    expect(squad.map((item) => item.id)).toEqual([
-      'specialist1',
-      'sniper6',
-      'caster3',
-    ])
+    expect(squad.map((item) => item.id)).toEqual(['specialist1', 'sniper6', 'caster3'])
   })
 
   it('supports aggregate rarity bounds alongside exact rarity bounds', () => {
@@ -160,6 +153,70 @@ describe('per-slot allowed sets', () => {
     expect(current.slots[0]).toEqual({ rarities: [], classes: [] })
     expect(next.slots[0]).toEqual(draft)
     expect(validateConstraints(next, pool).valid).toBe(true)
+  })
+
+  it('locks a slot to one specific stable operator ID', () => {
+    const current = constraints(2, {
+      0: { rarities: [], classes: [], operatorId: 'caster5' },
+    })
+
+    const result = validateConstraints(current, pool)
+    expect(result.valid).toBe(true)
+
+    const squad = generateSquad(pool, current, seededRandom())
+    expect(squad[0].id).toBe('caster5')
+  })
+
+  it('reserves a mandatory-exclusive identity while allowing any eligible form', () => {
+    const forms = [
+      operator('amiya-caster', 5, 'Caster', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      operator('amiya-guard', 5, 'Guard', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      operator('amiya-medic', 5, 'Medic', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      ...pool,
+    ]
+    const current = constraints(2, {
+      0: { rarities: [5], classes: [], mandatoryExclusivityGroup: 'amiya-forms' },
+    })
+
+    const squad = generateSquad(forms, current, seededRandom())
+    expect(squad[0].mandatoryExclusivityGroup).toBe('amiya-forms')
+    expect(['amiya-caster', 'amiya-guard', 'amiya-medic']).toContain(squad[0].id)
+  })
+
+  it('rejects conflicting exact/random reservations for the same mandatory-exclusive identity', () => {
+    const forms = [
+      operator('amiya-caster', 5, 'Caster', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      operator('amiya-guard', 5, 'Guard', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      ...pool,
+    ]
+    const current = constraints(2, {
+      0: { rarities: [], classes: [], mandatoryExclusivityGroup: 'amiya-forms' },
+      1: { rarities: [], classes: [], operatorId: 'amiya-guard' },
+    })
+
+    const result = validateConstraints(current, forms)
+    expect(result.valid).toBe(false)
+    expect(result.errors.join(' ')).toContain('No squad of 2 operators can satisfy')
+  })
+
+  it('reports mandatory-exclusive identities already reserved by other slots', () => {
+    const forms = [
+      operator('amiya-caster', 5, 'Caster', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      operator('amiya-guard', 5, 'Guard', { mandatoryExclusivityGroup: 'amiya-forms' }),
+      ...pool,
+    ]
+    const current = constraints(3, {
+      0: { rarities: [], classes: [], operatorId: 'amiya-caster' },
+      1: { rarities: [], classes: [], mandatoryExclusivityGroup: 'other-forms' },
+    })
+
+    expect([...reservedMandatoryGroupsFromSlotConstraints(forms, current, 2)].sort()).toEqual([
+      'amiya-forms',
+      'other-forms',
+    ])
+    expect([...reservedMandatoryGroupsFromSlotConstraints(forms, current, 0)]).toEqual([
+      'other-forms',
+    ])
   })
 
   it('rejects a hole-producing impossible slot configuration instead of returning partial output', () => {

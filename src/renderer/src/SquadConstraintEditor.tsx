@@ -184,8 +184,10 @@ export default function SquadConstraintEditor({
         key: `group:${AMIYA_MANDATORY_GROUP}`,
         label: 'Amiya',
         operator:
-          amiyaForms.find((operator) => operator.class === AMIYA_DEFAULT_CLASS) ??
-          matchingAmiyaForms[0],
+          matchingAmiyaForms.length === 1
+            ? matchingAmiyaForms[0]
+            : (amiyaForms.find((operator) => operator.class === AMIYA_DEFAULT_CLASS) ??
+              matchingAmiyaForms[0]),
         aliases: amiyaForms.flatMap((operator) => [operator.name, operator.class]),
         classIcons: amiyaForms.map((operator) => operator.class),
       })

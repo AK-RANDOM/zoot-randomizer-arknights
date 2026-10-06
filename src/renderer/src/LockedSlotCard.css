@@ -51,14 +51,20 @@
   z-index: 8;
   top: 7px;
   left: 7px;
-  display: grid;
-  gap: 3px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: max-content;
   pointer-events: none;
 }
 
 .slot-locked-class-stack .class-icon {
   width: 28px;
   height: 28px;
+  flex: 0 0 auto;
 }
 
 .slot-locked-card.is-multi-class .operator-card__class-icon {

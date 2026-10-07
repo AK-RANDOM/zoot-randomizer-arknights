@@ -39,6 +39,7 @@ export default function DraftRulebookPanel({
           <DraftRulebookIdentifierEditor
             rulebook={selected}
             disabled={library.builtIn}
+            lastEditedAt={library.selectedEntry.editor.lastEditedAt}
             onChange={library.updateSelected}
           />
         )

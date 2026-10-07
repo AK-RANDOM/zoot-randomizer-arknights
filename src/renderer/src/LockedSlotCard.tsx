@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
-import ClassIcon from './ClassIcon'
 import OperatorCard from './OperatorCard'
+import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import type { SlotConstraint } from '../../shared/constraints'
 import type { Operator, OperatorClass, OperatorRarity } from '../../shared/operator'
 import { operatorMatchesSlotConstraint } from '../../shared/randomizer'
@@ -81,10 +81,14 @@ function lockedSlotBorderStyle(rarities: readonly OperatorRarity[]): CSSProperti
 
 export default function LockedSlotCard({
   presentation,
+  constraint,
+  operators,
   slot,
   onClick,
 }: {
   presentation: LockedSlotPresentation
+  constraint: SlotConstraint
+  operators: readonly Operator[]
   slot: number
   onClick: () => void
 }): React.JSX.Element {
@@ -103,14 +107,12 @@ export default function LockedSlotCard({
         🔒
       </span>
       {multipleClasses && (
-        <span
-          className="slot-locked-class-stack"
-          aria-label={`Eligible classes: ${presentation.classes.join(', ')}`}
-        >
-          {presentation.classes.map((operatorClass) => (
-            <ClassIcon key={operatorClass} operatorClass={operatorClass} />
-          ))}
-        </span>
+        <SlotClassConstraintIndicator
+          constraint={constraint}
+          operators={operators}
+          classes={presentation.classes}
+          side="left"
+        />
       )}
     </button>
   )

@@ -49,6 +49,14 @@ export function buildSlotClassIndicatorItems(
     })
 }
 
+export function splitSlotClassIndicatorItems(
+  items: readonly SlotClassIndicatorItem[],
+  maxVisible = 3,
+): { visible: SlotClassIndicatorItem[]; overflow: number } {
+  const visible = items.slice(0, Math.max(0, maxVisible))
+  return { visible, overflow: Math.max(0, items.length - visible.length) }
+}
+
 export default function SlotClassConstraintIndicator({
   constraint,
   operators,
@@ -65,8 +73,7 @@ export default function SlotClassConstraintIndicator({
   const items = buildSlotClassIndicatorItems(constraint, operators, classes)
   if (items.length === 0) return null
 
-  const visible = items.slice(0, maxVisible)
-  const overflow = Math.max(0, items.length - visible.length)
+  const { visible, overflow } = splitSlotClassIndicatorItems(items, maxVisible)
   const description = items
     .map(({ operatorClass, subclassNames }) =>
       subclassNames.length > 0

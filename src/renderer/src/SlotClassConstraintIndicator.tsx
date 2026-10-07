@@ -5,6 +5,7 @@ import {
   type Operator,
   type OperatorClass,
 } from '../../shared/operator'
+import './SlotClassConstraintIndicator.css'
 
 export interface SlotClassIndicatorItem {
   operatorClass: OperatorClass
@@ -113,7 +114,7 @@ export default function SlotClassConstraintIndicator({
             flex: '0 0 auto',
           }}
         >
-          <ClassIcon operatorClass={operatorClass} />
+          <ClassIcon operatorClass={operatorClass} className="slot-class-constraint-icon" />
           {subclassNames.length > 0 && (
             <span
               className="slot-class-constraint-subcount"

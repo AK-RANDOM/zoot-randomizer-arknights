@@ -6,10 +6,7 @@ import {
   type DraftRateUpRule,
 } from '../../shared/draftDistribution'
 import { operatorRarities, type OperatorDataset, type OperatorRarity } from '../../shared/operator'
-
-function selectedValues(event: React.ChangeEvent<HTMLSelectElement>): string[] {
-  return Array.from(event.target.selectedOptions, (option) => option.value)
-}
+import { OperatorMultiSelector, type OperatorSelectorOption } from './OperatorSelector'
 
 function clampShare(percent: number): number {
   if (!Number.isFinite(percent)) return 0
@@ -23,10 +20,15 @@ function rateUpOrDefault(rateUp: DraftRateUpRule | undefined): DraftRateUpRule {
 function operatorOptions(
   dataset: OperatorDataset,
   predicate: (rarity: OperatorRarity) => boolean,
-): Array<{ id: string; label: string }> {
+): OperatorSelectorOption[] {
   return dataset.operators
     .filter((operator) => predicate(operator.rarity))
-    .map((operator) => ({ id: operator.id, label: `${operator.name} (${operator.rarity}★)` }))
+    .map((operator) => ({
+      key: operator.id,
+      label: operator.name,
+      operator,
+      aliases: [operator.subclass.name],
+    }))
     .sort((left, right) => left.label.localeCompare(right.label))
 }
 
@@ -39,7 +41,7 @@ function RateUpEditor({
 }: {
   label: string
   rateUp: DraftRateUpRule | undefined
-  operators: Array<{ id: string; label: string }>
+  operators: OperatorSelectorOption[]
   disabled: boolean
   onChange: (rateUp: DraftRateUpRule | undefined) => void
 }): React.JSX.Element {
@@ -68,34 +70,38 @@ function RateUpEditor({
               step={1}
               disabled={disabled}
               value={Math.round(current.share * 10000) / 100}
-              onChange={(event) => onChange({
-                ...current,
-                share: clampShare(Number(event.target.value)),
-              })}
+              onChange={(event) =>
+                onChange({
+                  ...current,
+                  share: clampShare(Number(event.target.value)),
+                })
+              }
             />
           </label>
-          <label className="field rulebook-rateup-featured">
+          <div className="field rulebook-rateup-featured">
             <span>Featured operators</span>
-            <select
-              multiple
-              size={Math.min(6, Math.max(3, operators.length))}
+            <OperatorMultiSelector
+              options={operators}
+              valueKeys={current.featuredOperatorIds}
               disabled={disabled}
-              value={current.featuredOperatorIds}
-              onChange={(event) => onChange({
-                ...current,
-                featuredOperatorIds: selectedValues(event),
-              })}
-            >
-              {operators.map((operator) => <option key={operator.id} value={operator.id}>{operator.label}</option>)}
-            </select>
-          </label>
+              onChange={(featuredOperatorIds) =>
+                onChange({
+                  ...current,
+                  featuredOperatorIds,
+                })
+              }
+            />
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-function normalizedPercent(bucket: DraftProbabilityBucket, buckets: readonly DraftProbabilityBucket[]): string {
+function normalizedPercent(
+  bucket: DraftProbabilityBucket,
+  buckets: readonly DraftProbabilityBucket[],
+): string {
   const total = buckets.reduce((sum, current) => sum + Math.max(0, current.weight), 0)
   if (total <= 0) return '0%'
   return `${((Math.max(0, bucket.weight) / total) * 100).toFixed(1)}%`
@@ -140,11 +146,16 @@ export default function DraftRulebookDistributionEditor({
     onChange({ type: 'arknights', rateUps: Object.keys(next).length > 0 ? next : undefined })
   }
 
-  const updateBucket = (bucketId: string, update: (bucket: DraftProbabilityBucket) => DraftProbabilityBucket): void => {
+  const updateBucket = (
+    bucketId: string,
+    update: (bucket: DraftProbabilityBucket) => DraftProbabilityBucket,
+  ): void => {
     if (distribution.type !== 'custom') return
     onChange({
       type: 'custom',
-      buckets: distribution.buckets.map((bucket) => bucket.id === bucketId ? update(bucket) : bucket),
+      buckets: distribution.buckets.map((bucket) =>
+        bucket.id === bucketId ? update(bucket) : bucket,
+      ),
     })
   }
 
@@ -155,7 +166,10 @@ export default function DraftRulebookDistributionEditor({
       buckets: distribution.buckets.map((bucket) => {
         const withoutRarity = bucket.rarities.filter((current) => current !== rarity)
         if (bucket.id !== bucketId || !checked) return { ...bucket, rarities: withoutRarity }
-        return { ...bucket, rarities: [...withoutRarity, rarity].sort((left, right) => left - right) }
+        return {
+          ...bucket,
+          rarities: [...withoutRarity, rarity].sort((left, right) => left - right),
+        }
       }),
     })
   }
@@ -163,19 +177,29 @@ export default function DraftRulebookDistributionEditor({
   const addBucket = (): void => {
     if (distribution.type !== 'custom') return
     const id = `bucket-${Date.now().toString(36)}`
-    onChange({ type: 'custom', buckets: [...distribution.buckets, { id, weight: 1, rarities: [] }] })
+    onChange({
+      type: 'custom',
+      buckets: [...distribution.buckets, { id, weight: 1, rarities: [] }],
+    })
   }
 
   const removeBucket = (bucketId: string): void => {
     if (distribution.type !== 'custom') return
-    onChange({ type: 'custom', buckets: distribution.buckets.filter((bucket) => bucket.id !== bucketId) })
+    onChange({
+      type: 'custom',
+      buckets: distribution.buckets.filter((bucket) => bucket.id !== bucketId),
+    })
   }
 
   return (
     <div className="rulebook-distribution-editor">
       <label className="field">
         <span>Mode</span>
-        <select disabled={disabled} value={distribution.type} onChange={(event) => setType(event.target.value as DraftPullDistribution['type'])}>
+        <select
+          disabled={disabled}
+          value={distribution.type}
+          onChange={(event) => setType(event.target.value as DraftPullDistribution['type'])}
+        >
           <option value="equal">Equal Opportunity</option>
           <option value="arknights">Arknights Headhunting</option>
           <option value="custom">Custom Distribution</option>
@@ -183,17 +207,28 @@ export default function DraftRulebookDistributionEditor({
       </label>
 
       {distribution.type === 'equal' && (
-        <p className="filter-note">Every currently eligible operator has equal probability for each candidate slot.</p>
+        <p className="filter-note">
+          Every currently eligible operator has equal probability for each candidate slot.
+        </p>
       )}
 
       {distribution.type === 'arknights' && (
         <div className="rulebook-distribution-details">
-          <p className="filter-note">Fixed 40 / 50 / 8 / 2 buckets with Arknights-style 6★ pity. Each generated candidate advances pity, including rerolls.</p>
+          <p className="filter-note">
+            Fixed 40 / 50 / 8 / 2 buckets with Arknights-style 6★ pity. Each generated candidate
+            advances pity, including rerolls.
+          </p>
           {Object.entries(ARKNIGHTS_BUCKET_RATES).map(([bucketId, rate]) => {
-            const options = operatorOptions(dataset, (rarity) => arknightsBucketForRarity(rarity) === bucketId)
+            const options = operatorOptions(
+              dataset,
+              (rarity) => arknightsBucketForRarity(rarity) === bucketId,
+            )
             return (
               <div className="rulebook-bucket-editor" key={bucketId}>
-                <div className="rulebook-editor-subheading"><strong>{bucketId}★ bucket</strong><span>{rate}%</span></div>
+                <div className="rulebook-editor-subheading">
+                  <strong>{bucketId}★ bucket</strong>
+                  <span>{rate}%</span>
+                </div>
                 <RateUpEditor
                   label={`${bucketId}★ bucket`}
                   rateUp={distribution.rateUps?.[bucketId]}
@@ -210,8 +245,20 @@ export default function DraftRulebookDistributionEditor({
       {distribution.type === 'custom' && (
         <div className="rulebook-distribution-details">
           <div className="rulebook-editor-subheading">
-            <div><strong>Probability buckets</strong><small>Weights normalize automatically. Each rarity must belong to exactly one bucket.</small></div>
-            <button type="button" className="secondary-button" disabled={disabled} onClick={addBucket}>Add bucket</button>
+            <div>
+              <strong>Probability buckets</strong>
+              <small>
+                Weights normalize automatically. Each rarity must belong to exactly one bucket.
+              </small>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={disabled}
+              onClick={addBucket}
+            >
+              Add bucket
+            </button>
           </div>
           {distribution.buckets.map((bucket) => {
             const options = operatorOptions(dataset, (rarity) => bucket.rarities.includes(rarity))
@@ -223,7 +270,12 @@ export default function DraftRulebookDistributionEditor({
                     <input
                       disabled={disabled}
                       value={bucket.id}
-                      onChange={(event) => updateBucket(bucket.id, (current) => ({ ...current, id: event.target.value }))}
+                      onChange={(event) =>
+                        updateBucket(bucket.id, (current) => ({
+                          ...current,
+                          id: event.target.value,
+                        }))
+                      }
                     />
                   </label>
                   <label className="field">
@@ -234,10 +286,18 @@ export default function DraftRulebookDistributionEditor({
                       step="any"
                       disabled={disabled}
                       value={bucket.weight}
-                      onChange={(event) => updateBucket(bucket.id, (current) => ({ ...current, weight: Number(event.target.value) }))}
+                      onChange={(event) =>
+                        updateBucket(bucket.id, (current) => ({
+                          ...current,
+                          weight: Number(event.target.value),
+                        }))
+                      }
                     />
                   </label>
-                  <div className="rulebook-readout"><span>Normalized</span><strong>{normalizedPercent(bucket, distribution.buckets)}</strong></div>
+                  <div className="rulebook-readout">
+                    <span>Normalized</span>
+                    <strong>{normalizedPercent(bucket, distribution.buckets)}</strong>
+                  </div>
                 </div>
                 <div className="rulebook-rarity-membership">
                   {operatorRarities.map((rarity) => (
@@ -246,7 +306,9 @@ export default function DraftRulebookDistributionEditor({
                         type="checkbox"
                         disabled={disabled}
                         checked={bucket.rarities.includes(rarity)}
-                        onChange={(event) => setBucketRarity(bucket.id, rarity, event.target.checked)}
+                        onChange={(event) =>
+                          setBucketRarity(bucket.id, rarity, event.target.checked)
+                        }
                       />
                       <span>{rarity}★</span>
                     </label>
@@ -257,9 +319,18 @@ export default function DraftRulebookDistributionEditor({
                   rateUp={bucket.rateUp}
                   operators={options}
                   disabled={disabled}
-                  onChange={(rateUp) => updateBucket(bucket.id, (current) => ({ ...current, rateUp }))}
+                  onChange={(rateUp) =>
+                    updateBucket(bucket.id, (current) => ({ ...current, rateUp }))
+                  }
                 />
-                <button type="button" className="secondary-button" disabled={disabled || distribution.buckets.length <= 1} onClick={() => removeBucket(bucket.id)}>Remove bucket</button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={disabled || distribution.buckets.length <= 1}
+                  onClick={() => removeBucket(bucket.id)}
+                >
+                  Remove bucket
+                </button>
               </div>
             )
           })}

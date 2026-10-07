@@ -35,7 +35,7 @@ export const ANNIVERSARY_BOUNDARIES: Record<ReleaseServer, readonly string[]> = 
     '2023-05-01',
     '2024-05-01',
     '2025-05-01',
-    '2026-04-30',
+    '2026-05-01',
   ],
   global: [
     '2020-12-30',

@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import OperatorSelector, { type OperatorSelectorOption } from './OperatorSelector'
 import ClassIcon from './ClassIcon'
 import { SubclassIcon } from './FilterAssetIcon'
 import {
-  createEmptySlotConstraint,
   rarityGroupDefinitions,
   type RandomizerConstraints,
   type SlotConstraint,
@@ -75,6 +74,7 @@ export default function SquadConstraintEditor({
   constraints,
   operators,
   classLabels,
+  resetValue,
   onApply,
   onClose,
 }: {
@@ -83,16 +83,33 @@ export default function SquadConstraintEditor({
   constraints: RandomizerConstraints
   operators: Operator[]
   classLabels?: Readonly<Record<OperatorClass, string>>
+  resetValue: SlotConstraint
   onApply: (value: SlotConstraint) => void
   onClose: () => void
 }): React.JSX.Element {
   const [draft, setDraft] = useState<SlotConstraint>(() => cloneDraft(value))
   const [selectedClass, setSelectedClass] = useState<OperatorClass | null>(null)
+  const classSectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setDraft(cloneDraft(value))
     setSelectedClass(null)
   }, [slotIndex, value])
+
+  useEffect(() => {
+    const closeSubclassPanel = (event: Event): void => {
+      const target = event.target
+      if (target instanceof Node && !classSectionRef.current?.contains(target)) {
+        setSelectedClass(null)
+      }
+    }
+    document.addEventListener('pointerdown', closeSubclassPanel)
+    document.addEventListener('focusin', closeSubclassPanel)
+    return () => {
+      document.removeEventListener('pointerdown', closeSubclassPanel)
+      document.removeEventListener('focusin', closeSubclassPanel)
+    }
+  }, [])
 
   const eligiblePool = useMemo(
     () => filterEligibleOperators(operators, constraints),
@@ -329,7 +346,7 @@ export default function SquadConstraintEditor({
           <div className="quick-select-row"><span>Quick select</span>{(['lte3','lte4','lte5','gte4','gte5'] as const).map((group) => { const definition=rarityGroupDefinitions[group]; const selected=sameSet(draft.rarities,definition.rarities); return <button key={group} type="button" className={`quick-select${selected ? ' is-selected' : ''}`} onClick={() => setRaritySet(definition.rarities)}>{definition.label}</button> })}</div>
         </div>
 
-        <div className="slot-editor-section slot-editor-class-section">
+        <div ref={classSectionRef} className="slot-editor-section slot-editor-class-section">
           <div className="slot-editor-label-row"><strong>Class &amp; subclass</strong><span>{draft.classes.length === 0 ? 'Any class' : 'OR within selected classes'} · {draft.subclasses === undefined ? 'Any subclass' : 'Filtered subclasses'}</span></div>
           <div className="operator-filter-class-selector slot-constraint-class-selector" role="group" aria-label="Allowed classes and subclass parent">
             {subclassesByClass.map(({ operatorClass, subclasses }) => {
@@ -361,7 +378,7 @@ export default function SquadConstraintEditor({
         <div className={`slot-feasibility${validation.valid ? ' is-valid' : ' is-invalid'}`}>{validation.valid ? <span>✓ {candidateCount} eligible operator{candidateCount === 1 ? '' : 's'} match this slot; a complete squad remains feasible.</span> : <span>⚠ {validation.errors[0] ?? 'This slot cannot participate in a complete valid squad.'}</span>}</div>
 
         <div className="slot-editor-actions">
-          <button type="button" className="danger-button" onClick={() => setDraft(createEmptySlotConstraint())}>Reset Constraint</button>
+          <button type="button" className="danger-button" onClick={() => { setDraft(cloneDraft(resetValue)); setSelectedClass(null) }}>Reset Constraint</button>
           <span className="slot-editor-spacer" />
           <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
           <button type="button" className="randomize-button" disabled={!validation.valid} onClick={() => onApply(draft)}>Apply</button>

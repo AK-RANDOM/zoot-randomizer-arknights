@@ -1,7 +1,8 @@
+import type { CSSProperties } from 'react'
 import ClassIcon from './ClassIcon'
 import OperatorCard from './OperatorCard'
 import type { SlotConstraint } from '../../shared/constraints'
-import type { Operator, OperatorClass } from '../../shared/operator'
+import type { Operator, OperatorClass, OperatorRarity } from '../../shared/operator'
 import { operatorMatchesSlotConstraint } from '../../shared/randomizer'
 import './LockedSlotCard.css'
 
@@ -11,6 +12,7 @@ const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
 export interface LockedSlotPresentation {
   operator: Operator
   classes: OperatorClass[]
+  rarities: OperatorRarity[]
 }
 
 function amiyaClassOrder(operatorClass: OperatorClass): number {
@@ -31,7 +33,7 @@ export function lockedSlotPresentation(
   if (constraint.operatorId) {
     const operator = operators.find((candidate) => candidate.id === constraint.operatorId)
     return operator && operatorMatchesSlotConstraint(operator, constraint)
-      ? { operator, classes: [operator.class] }
+      ? { operator, classes: [operator.class], rarities: [...constraint.rarities] }
       : null
   }
 
@@ -60,10 +62,21 @@ export function lockedSlotPresentation(
       classes.length === 1
         ? (candidates.find((candidate) => candidate.class === classes[0]) ?? candidates[0])
         : (amiyaForms.find((candidate) => candidate.class === 'Caster') ?? candidates[0])
-    return { operator, classes }
+    return { operator, classes, rarities: [...constraint.rarities] }
   }
 
-  return { operator: candidates[0], classes }
+  return { operator: candidates[0], classes, rarities: [...constraint.rarities] }
+}
+
+function lockedSlotBorderStyle(rarities: readonly OperatorRarity[]): CSSProperties | undefined {
+  if (rarities.length === 0) return undefined
+  const sorted = [...new Set(rarities)].sort((left, right) => right - left)
+  const colors = sorted.map((rarity) => `var(--rarity-${rarity})`)
+  const gradient =
+    colors.length === 1
+      ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})`
+      : `linear-gradient(135deg, ${colors.join(', ')})`
+  return { '--slot-constraint-gradient': gradient } as CSSProperties
 }
 
 export default function LockedSlotCard({
@@ -80,6 +93,8 @@ export default function LockedSlotCard({
     <button
       type="button"
       className={`slot-locked-card${multipleClasses ? ' is-multi-class' : ''}`}
+      data-rarity={presentation.operator.rarity}
+      style={lockedSlotBorderStyle(presentation.rarities)}
       aria-label={`Configure squad slot ${slot}, locked to ${presentation.operator.name}`}
       onClick={onClick}
     >

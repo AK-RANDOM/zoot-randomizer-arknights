@@ -4,6 +4,7 @@ import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
 import OperatorCard from './OperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
+import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -100,45 +101,6 @@ function subclassOptions(
 function subclassSetSummary(constraint: SlotConstraint, dataset: OperatorDataset | null): string | null {
   const options = subclassOptions(constraint, dataset)
   return options.length > 0 ? options.map(({ name }) => name).join(' / ') : null
-}
-
-function SlotSubclassIndicator({
-  constraint,
-  dataset,
-}: {
-  constraint: SlotConstraint
-  dataset: OperatorDataset | null
-}): React.JSX.Element | null {
-  const options = subclassOptions(constraint, dataset)
-  if (options.length === 0) return null
-  const names = options.map(({ name }) => name).join(', ')
-  return (
-    <span
-      title={`Allowed subclasses: ${names}`}
-      aria-label={`Allowed subclasses: ${names}`}
-      style={{
-        position: 'absolute',
-        zIndex: 7,
-        top: 7,
-        right: 7,
-        display: 'inline-flex',
-        alignItems: 'center',
-        minHeight: 22,
-        padding: '0 6px',
-        border: '1px solid #5a5035',
-        borderRadius: 999,
-        color: '#f0d69a',
-        background: 'rgba(20, 18, 12, 0.92)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.38)',
-        fontSize: '0.55rem',
-        fontWeight: 850,
-        letterSpacing: '0.04em',
-        pointerEvents: 'none',
-      }}
-    >
-      SUB{options.length > 1 ? ` ${options.length}` : ''}
-    </span>
-  )
 }
 
 function constraintTargetsAmiya(
@@ -622,6 +584,7 @@ export default function StandardSquadFeature({
         const constrained = !slotConstraintIsEmpty(slotConstraint)
         const specificSummary = specificOperatorSummary(slotConstraint, dataset)
         const constraintStyle = slotConstraintStyle(slotConstraint.rarities)
+        const indicatorOperators = dataset?.operators ?? finalOperatorPool
         const lockedPresentation = !operator && inRange && constrained && (slotConstraint.operatorId || slotConstraint.mandatoryExclusivityGroup)
           ? lockedSlotPresentation(slotConstraint, finalOperatorPool)
           : null
@@ -631,7 +594,7 @@ export default function StandardSquadFeature({
             : operator
               ? <><OperatorCard operator={operator} />{constrained && <div className="slot-constraint-badge" style={constraintStyle} title="Generated under a slot constraint"><span>{raritySetSummary(slotConstraint.rarities)}</span><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>{specificSummary && <span>{specificSummary}</span>}</div>}</>
               : lockedPresentation
-                ? <LockedSlotCard presentation={lockedPresentation} slot={slot} onClick={() => setEditingSlot(index)} />
+                ? <LockedSlotCard presentation={lockedPresentation} constraint={slotConstraint} operators={indicatorOperators} slot={slot} onClick={() => setEditingSlot(index)} />
                 : <button
                     type="button"
                     className={`slot-config-card${constrained ? ' is-constrained' : ''}`}
@@ -644,7 +607,9 @@ export default function StandardSquadFeature({
                       ? <span className="slot-config-summary"><strong>{raritySetSummary(slotConstraint.rarities)}</strong><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>{specificSummary && <span className="slot-config-specific">{specificSummary}</span>}</span>
                       : <span className="slot-config-any"><strong>Any</strong><span>Click to configure</span></span>}
                   </button>}
-          {inRange && constrained && !operator && !lockedPresentation && <SlotSubclassIndicator constraint={slotConstraint} dataset={dataset} />}
+          {inRange && constrained && !operator && !lockedPresentation && (
+            <SlotClassConstraintIndicator constraint={slotConstraint} operators={indicatorOperators} />
+          )}
         </div>
       })}</div>
 

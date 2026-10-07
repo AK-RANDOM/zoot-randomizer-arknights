@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { RandomizerConstraints } from '../../shared/constraints'
 import { type OperatorClass, type OperatorDataset } from '../../shared/operator'
 import {
@@ -87,10 +87,12 @@ export default function OperatorFilters({
   dataset,
   constraints,
   onChange,
+  afterEra,
 }: {
   dataset: OperatorDataset
   constraints: RandomizerConstraints
   onChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
+  afterEra?: ReactNode
 }): React.JSX.Element {
   const subclassesByClass = useMemo(() => buildSubclassFilterGroups(dataset), [dataset])
   const raceGroups = useMemo(() => buildRaceFilterGroups(dataset), [dataset])
@@ -176,6 +178,8 @@ export default function OperatorFilters({
         </label>
         <p className="filter-note">Kernel/Post-Kernel classifies 5★ and 6★ operators using the selected region&apos;s cutoff. 1★–4★ operators remain available in either mode when other filters pass.</p>
       </fieldset>
+
+      {afterEra}
 
       <fieldset className="constraint-group detail-group special-rules-group">
         <legend>Alter Exclusivity</legend>

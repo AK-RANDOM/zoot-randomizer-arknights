@@ -165,6 +165,22 @@ export default function GlobalPoolFeature({
   const setWelfareAll = (checked: boolean): void => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: Object.fromEntries(welfareAcquisitionGroups.map((group) => [group, checked])) as RandomizerConstraints['acquisition']['welfare'] } }))
   const setCollaborationAll = (checked: boolean): void => mutateFilters((current) => ({ ...current, collaboration: { includeNonCollab: checked, sources: Object.fromEntries(collaborationSources.map((source) => [source, checked])) } }))
 
+  const sourceFilters = (
+    <div className="source-filter-layout">
+      <fieldset className="constraint-group detail-group source-filter-group">
+        <legend>Acquisition</legend>
+        <TreeGroup label="Limited" checked={limitedState.all} indeterminate={!limitedState.all && limitedState.some} onChange={setLimitedAll}>{limitedAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={limitedLabels[group]} checked={constraints.acquisition.limited[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, limited: { ...current.acquisition.limited, [group]: checked } } }))} />)}</TreeGroup>
+        <div className="source-standalone"><TriStateCheckbox label={<strong>Standard</strong>} checked={constraints.acquisition.standard} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, standard: checked } }))} /></div>
+        <TreeGroup label="Welfare" checked={welfareState.all} indeterminate={!welfareState.all && welfareState.some} onChange={setWelfareAll}>{welfareAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={welfareLabels[group]} checked={constraints.acquisition.welfare[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: { ...current.acquisition.welfare, [group]: checked } } }))} />)}</TreeGroup>
+      </fieldset>
+      <fieldset className="constraint-group detail-group source-filter-group">
+        <legend>Collaboration source</legend>
+        <TreeGroup label="Collaboration pool" checked={collaborationState.all} indeterminate={!collaborationState.all && collaborationState.some} onChange={setCollaborationAll}><TriStateCheckbox label="Non-collab" checked={constraints.collaboration.includeNonCollab} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, includeNonCollab: checked } }))} />{collaborationSources.map((source) => <TriStateCheckbox key={source} label={source} checked={constraints.collaboration.sources[source] ?? true} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, sources: { ...current.collaboration.sources, [source]: checked } } }))} />)}</TreeGroup>
+        <p className="filter-note">Collab gacha counts as Limited → Collab; collab welfare counts as Welfare → Event / Story. This section independently controls which crossover sources may enter the pool.</p>
+      </fieldset>
+    </div>
+  )
+
   return (
     <>
       <nav className="squad-mode-tabs" aria-label="Global Pool section">
@@ -186,21 +202,7 @@ export default function GlobalPoolFeature({
             <p className="filter-note">Portraits come only from the exact operator-release event at each bound. Launch is launch day only; later groups increment at anniversary release boundaries. Named groups prefill their exact regional date bounds; manually editing a date changes that side to Custom. Region comes from Options.</p>
           </fieldset>
 
-          {dataset && <OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateFilters} />}
-
-          <div className="source-filter-layout">
-            <fieldset className="constraint-group detail-group source-filter-group">
-              <legend>Acquisition</legend>
-              <TreeGroup label="Limited" checked={limitedState.all} indeterminate={!limitedState.all && limitedState.some} onChange={setLimitedAll}>{limitedAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={limitedLabels[group]} checked={constraints.acquisition.limited[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, limited: { ...current.acquisition.limited, [group]: checked } } }))} />)}</TreeGroup>
-              <div className="source-standalone"><TriStateCheckbox label={<strong>Standard</strong>} checked={constraints.acquisition.standard} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, standard: checked } }))} /></div>
-              <TreeGroup label="Welfare" checked={welfareState.all} indeterminate={!welfareState.all && welfareState.some} onChange={setWelfareAll}>{welfareAcquisitionGroups.map((group) => <TriStateCheckbox key={group} label={welfareLabels[group]} checked={constraints.acquisition.welfare[group]} onChange={(checked) => mutateFilters((current) => ({ ...current, acquisition: { ...current.acquisition, welfare: { ...current.acquisition.welfare, [group]: checked } } }))} />)}</TreeGroup>
-            </fieldset>
-            <fieldset className="constraint-group detail-group source-filter-group">
-              <legend>Collaboration source</legend>
-              <TreeGroup label="Collaboration pool" checked={collaborationState.all} indeterminate={!collaborationState.all && collaborationState.some} onChange={setCollaborationAll}><TriStateCheckbox label="Non-collab" checked={constraints.collaboration.includeNonCollab} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, includeNonCollab: checked } }))} />{collaborationSources.map((source) => <TriStateCheckbox key={source} label={source} checked={constraints.collaboration.sources[source] ?? true} onChange={(checked) => mutateFilters((current) => ({ ...current, collaboration: { ...current.collaboration, sources: { ...current.collaboration.sources, [source]: checked } } }))} />)}</TreeGroup>
-              <p className="filter-note">Collab gacha counts as Limited → Collab; collab welfare counts as Welfare → Event / Story. This section independently controls which crossover sources may enter the pool.</p>
-            </fieldset>
-          </div>
+          {dataset && <OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateFilters} afterEra={sourceFilters} />}
 
           {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
           {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available.</span><button type="button" className="secondary-button" disabled={busy} onClick={() => void onInstallUpdate()}>Update data</button></div>}

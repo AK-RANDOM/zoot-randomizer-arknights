@@ -46,13 +46,21 @@ describe('locked slot presentation', () => {
     expect(lockedSlotPresentation(constraint({ operatorId: exusiai.id }), [exusiai])).toEqual({
       operator: exusiai,
       classes: ['Sniper'],
+      rarities: [],
     })
+  })
+
+  it('carries selected rarities so the locked-card border can use the slot gradient', () => {
+    const exusiai = operator('char_103_angel', 'Exusiai', 'Sniper')
+    expect(
+      lockedSlotPresentation(constraint({ rarities: [5, 4], operatorId: exusiai.id }), [exusiai]),
+    ).toEqual({ operator: exusiai, classes: ['Sniper'], rarities: [5, 4] })
   })
 
   it('defaults Amiya to Caster and exposes all eligible form classes in order', () => {
     expect(
       lockedSlotPresentation(constraint({ mandatoryExclusivityGroup: 'amiya-forms' }), amiyaForms),
-    ).toEqual({ operator: amiyaForms[0], classes: ['Caster', 'Guard', 'Medic'] })
+    ).toEqual({ operator: amiyaForms[0], classes: ['Caster', 'Guard', 'Medic'], rarities: [] })
   })
 
   it('keeps the Caster base portrait while multiple non-Caster forms remain eligible', () => {
@@ -61,7 +69,7 @@ describe('locked slot presentation', () => {
         constraint({ classes: ['Guard', 'Medic'], mandatoryExclusivityGroup: 'amiya-forms' }),
         amiyaForms,
       ),
-    ).toEqual({ operator: amiyaForms[0], classes: ['Guard', 'Medic'] })
+    ).toEqual({ operator: amiyaForms[0], classes: ['Guard', 'Medic'], rarities: [] })
   })
 
   it('uses the Guard form when Guard is the only eligible Amiya class', () => {
@@ -70,7 +78,7 @@ describe('locked slot presentation', () => {
         constraint({ classes: ['Guard'], mandatoryExclusivityGroup: 'amiya-forms' }),
         amiyaForms,
       ),
-    ).toEqual({ operator: amiyaForms[1], classes: ['Guard'] })
+    ).toEqual({ operator: amiyaForms[1], classes: ['Guard'], rarities: [] })
   })
 
   it('uses the Medic form when Medic is the only eligible Amiya class', () => {
@@ -79,7 +87,7 @@ describe('locked slot presentation', () => {
         constraint({ classes: ['Medic'], mandatoryExclusivityGroup: 'amiya-forms' }),
         amiyaForms,
       ),
-    ).toEqual({ operator: amiyaForms[2], classes: ['Medic'] })
+    ).toEqual({ operator: amiyaForms[2], classes: ['Medic'], rarities: [] })
   })
 
   it('lets a subclass filter narrow the visible Amiya form icons while preserving class order', () => {
@@ -91,6 +99,6 @@ describe('locked slot presentation', () => {
         }),
         amiyaForms,
       ),
-    ).toEqual({ operator: amiyaForms[0], classes: ['Guard', 'Medic'] })
+    ).toEqual({ operator: amiyaForms[0], classes: ['Guard', 'Medic'], rarities: [] })
   })
 })

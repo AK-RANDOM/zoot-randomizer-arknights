@@ -6,7 +6,7 @@ import {
   type OperatorClass,
   type OperatorDataset,
 } from './operator'
-import { RACE_UNAVAILABLE_ID, operatorRaceIds } from './raceMetadata'
+import { RACE_UNAVAILABLE_ID, applyOperatorRaceOverrides, operatorRaceIds } from './raceMetadata'
 
 /**
  * This module is the boundary for Arknights-owned display strings.
@@ -125,52 +125,53 @@ export function localizeOperatorDataset(
   dataset: OperatorDataset,
   locale: GameLocale,
 ): OperatorDataset {
+  const source = applyOperatorRaceOverrides(dataset)
   const classLabels = Object.fromEntries(
     operatorClasses.map((operatorClass) => [
       operatorClass,
-      localizedClassLabel(dataset, locale, operatorClass),
+      localizedClassLabel(source, locale, operatorClass),
     ]),
   ) as Record<OperatorClass, string>
 
   const factionIds = new Set<string>()
-  for (const operator of dataset.operators) {
+  for (const operator of source.operators) {
     for (const factionId of operator.faction.affiliations) factionIds.add(factionId)
   }
-  for (const catalog of Object.values(dataset.localizations ?? {})) {
+  for (const catalog of Object.values(source.localizations ?? {})) {
     for (const factionId of Object.keys(catalog.factionLabels)) factionIds.add(factionId)
   }
 
   const factionLabels: Record<string, string> = {}
   for (const factionId of factionIds) {
     factionLabels[factionId] =
-      resolveFromCatalogs(dataset, locale, (catalog) => catalog.factionLabels[factionId]) ??
-      dataset.factionLabels[factionId] ??
+      resolveFromCatalogs(source, locale, (catalog) => catalog.factionLabels[factionId]) ??
+      source.factionLabels[factionId] ??
       factionId
   }
 
   const raceIds = new Set<string>()
-  for (const operator of dataset.operators) {
+  for (const operator of source.operators) {
     for (const raceId of operatorRaceIds(operator)) raceIds.add(raceId)
   }
-  for (const catalog of Object.values(dataset.localizations ?? {})) {
+  for (const catalog of Object.values(source.localizations ?? {})) {
     for (const raceId of Object.keys(catalog.raceLabels ?? {})) raceIds.add(raceId)
   }
 
   const raceLabels: Record<string, string> = {}
   for (const raceId of raceIds) {
-    raceLabels[raceId] = resolveRaceLabel(dataset, locale, raceId)
+    raceLabels[raceId] = resolveRaceLabel(source, locale, raceId)
   }
 
   // Preserve canonical operator order. Locale switching must only change display
   // strings, never the solver/randomizer input ordering or source-derived IDs.
-  const operators = dataset.operators.map((operator) => ({
+  const operators = source.operators.map((operator) => ({
     ...operator,
-    name: resolveOperatorName(dataset, locale, operator.id, operator.name),
+    name: resolveOperatorName(source, locale, operator.id, operator.name),
     subclass: {
       ...operator.subclass,
       name:
         resolveFromCatalogs(
-          dataset,
+          source,
           locale,
           (catalog) => catalog.subclassLabels[operator.subclass.id],
         ) ?? operator.subclass.name,
@@ -178,7 +179,7 @@ export function localizeOperatorDataset(
   }))
 
   return {
-    ...dataset,
+    ...source,
     classLabels,
     factionLabels,
     raceLabels,

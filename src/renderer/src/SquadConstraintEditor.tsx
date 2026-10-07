@@ -87,13 +87,11 @@ export default function SquadConstraintEditor({
   onClose: () => void
 }): React.JSX.Element {
   const [draft, setDraft] = useState<SlotConstraint>(() => cloneDraft(value))
-  const [selectedClass, setSelectedClass] = useState<OperatorClass>(
-    () => value.classes[0] ?? 'Vanguard',
-  )
+  const [selectedClass, setSelectedClass] = useState<OperatorClass | null>(null)
 
   useEffect(() => {
     setDraft(cloneDraft(value))
-    setSelectedClass(value.classes[0] ?? 'Vanguard')
+    setSelectedClass(null)
   }, [slotIndex, value])
 
   const eligiblePool = useMemo(
@@ -132,8 +130,9 @@ export default function SquadConstraintEditor({
     () => subclassesByClass.flatMap(({ subclasses }) => subclasses.map(({ id }) => id)),
     [subclassesByClass],
   )
-  const selectedSubclassOptions =
-    subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? []
+  const selectedSubclassOptions = selectedClass
+    ? (subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? [])
+    : []
 
   const draftConstraints = useMemo(
     () => constraintsWithSlotDraft(constraints, slotIndex, draft),
@@ -245,9 +244,7 @@ export default function SquadConstraintEditor({
       if (
         operator.mandatoryExclusivityGroup &&
         reservedMandatoryGroups.has(operator.mandatoryExclusivityGroup)
-      ) {
-        continue
-      }
+      ) continue
       options.push({
         key: `operator:${operator.id}`,
         label: operator.name,
@@ -280,10 +277,7 @@ export default function SquadConstraintEditor({
       const next = new Set(allowed)
       if (next.has(subclassId)) next.delete(subclassId)
       else next.add(subclassId)
-      return {
-        ...current,
-        subclasses: normalizeAllowedSubclasses(next, allSubclassIds),
-      }
+      return { ...current, subclasses: normalizeAllowedSubclasses(next, allSubclassIds) }
     })
   }
 
@@ -296,10 +290,7 @@ export default function SquadConstraintEditor({
         if (enabled) next.add(id)
         else next.delete(id)
       }
-      return {
-        ...current,
-        subclasses: normalizeAllowedSubclasses(next, allSubclassIds),
-      }
+      return { ...current, subclasses: normalizeAllowedSubclasses(next, allSubclassIds) }
     })
   }
 
@@ -309,242 +300,71 @@ export default function SquadConstraintEditor({
       return
     }
     if (option.key === `group:${AMIYA_MANDATORY_GROUP}`) {
-      setDraft((current) => ({
-        ...current,
-        classes: current.classes.length === 0 ? [option.operator.class] : current.classes,
-        operatorId: null,
-        mandatoryExclusivityGroup: AMIYA_MANDATORY_GROUP,
-      }))
+      setDraft((current) => ({ ...current, classes: current.classes.length === 0 ? [option.operator.class] : current.classes, operatorId: null, mandatoryExclusivityGroup: AMIYA_MANDATORY_GROUP }))
       return
     }
-    setDraft((current) => ({
-      ...current,
-      operatorId: option.operator.id,
-      mandatoryExclusivityGroup: null,
-    }))
+    setDraft((current) => ({ ...current, operatorId: option.operator.id, mandatoryExclusivityGroup: null }))
   }
 
-  const selectedClassLabel = classLabels?.[selectedClass] ?? selectedClass
+  const selectedClassLabel = selectedClass ? (classLabels?.[selectedClass] ?? selectedClass) : null
 
   return (
     <div className="slot-editor-backdrop" role="presentation" onMouseDown={onClose}>
-      <div
-        className="slot-editor"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="slot-editor-title"
-        onMouseDown={(event) => event.stopPropagation()}
-      >
+      <div className="slot-editor" role="dialog" aria-modal="true" aria-labelledby="slot-editor-title" onMouseDown={(event) => event.stopPropagation()}>
         <div className="slot-editor-heading">
-          <div>
-            <p className="eyebrow">SLOT CONSTRAINT</p>
-            <h3 id="slot-editor-title">Slot {slotIndex + 1}</h3>
-          </div>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Close slot editor"
-            onClick={onClose}
-          >
-            ×
-          </button>
+          <div><p className="eyebrow">SLOT CONSTRAINT</p><h3 id="slot-editor-title">Slot {slotIndex + 1}</h3></div>
+          <button type="button" className="icon-button" aria-label="Close slot editor" onClick={onClose}>×</button>
         </div>
 
         <div className="slot-editor-section">
-          <div className="slot-editor-label-row">
-            <strong>Rarity</strong>
-            <span>
-              {draft.rarities.length === 0 ? 'Any rarity' : 'OR within selected rarities'}
-            </span>
-          </div>
+          <div className="slot-editor-label-row"><strong>Rarity</strong><span>{draft.rarities.length === 0 ? 'Any rarity' : 'OR within selected rarities'}</span></div>
           <div className="criteria-chip-row" aria-label="Allowed rarities">
             {operatorRarities.map((rarity) => {
               const selected = draft.rarities.includes(rarity)
               const availability = rarityAvailability.get(rarity)!
               const disabled = !selected && !availability.valid
-              return (
-                <button
-                  key={rarity}
-                  type="button"
-                  className={`criteria-chip${selected ? ' is-selected' : ''}${!availability.valid ? ' is-unavailable' : ''}`}
-                  aria-pressed={selected}
-                  disabled={disabled}
-                  title={availability.reason || `${rarity} star is available`}
-                  onClick={() =>
-                    setDraft((current) => ({
-                      ...current,
-                      rarities: toggleValue(current.rarities, rarity),
-                    }))
-                  }
-                >
-                  {rarity}★
-                </button>
-              )
+              return <button key={rarity} type="button" className={`criteria-chip${selected ? ' is-selected' : ''}${!availability.valid ? ' is-unavailable' : ''}`} aria-pressed={selected} disabled={disabled} title={availability.reason || `${rarity} star is available`} onClick={() => setDraft((current) => ({ ...current, rarities: toggleValue(current.rarities, rarity) }))}>{rarity}★</button>
             })}
           </div>
-          <div className="quick-select-row">
-            <span>Quick select</span>
-            {(['lte3', 'lte4', 'lte5', 'gte4', 'gte5'] as const).map((group) => {
-              const definition = rarityGroupDefinitions[group]
-              const selected = sameSet(draft.rarities, definition.rarities)
-              return (
-                <button
-                  key={group}
-                  type="button"
-                  className={`quick-select${selected ? ' is-selected' : ''}`}
-                  onClick={() => setRaritySet(definition.rarities)}
-                >
-                  {definition.label}
-                </button>
-              )
-            })}
-          </div>
+          <div className="quick-select-row"><span>Quick select</span>{(['lte3','lte4','lte5','gte4','gte5'] as const).map((group) => { const definition=rarityGroupDefinitions[group]; const selected=sameSet(draft.rarities,definition.rarities); return <button key={group} type="button" className={`quick-select${selected ? ' is-selected' : ''}`} onClick={() => setRaritySet(definition.rarities)}>{definition.label}</button> })}</div>
         </div>
 
         <div className="slot-editor-section slot-editor-class-section">
-          <div className="slot-editor-label-row">
-            <strong>Class &amp; subclass</strong>
-            <span>
-              {draft.classes.length === 0 ? 'Any class' : 'OR within selected classes'} ·{' '}
-              {draft.subclasses === undefined ? 'Any subclass' : 'Filtered subclasses'}
-            </span>
-          </div>
-          <div
-            className="operator-filter-class-selector slot-constraint-class-selector"
-            role="group"
-            aria-label="Allowed classes and subclass parent"
-          >
+          <div className="slot-editor-label-row"><strong>Class &amp; subclass</strong><span>{draft.classes.length === 0 ? 'Any class' : 'OR within selected classes'} · {draft.subclasses === undefined ? 'Any subclass' : 'Filtered subclasses'}</span></div>
+          <div className="operator-filter-class-selector slot-constraint-class-selector" role="group" aria-label="Allowed classes and subclass parent">
             {subclassesByClass.map(({ operatorClass, subclasses }) => {
               const selected = draft.classes.includes(operatorClass)
               const enabled = draft.classes.length === 0 || selected
               const availability = classAvailability.get(operatorClass)!
               const disabled = !selected && !availability.valid
               const displayClass = classLabels?.[operatorClass] ?? operatorClass
-              const enabledSubclassCount = subclasses.filter(
-                ({ id }) => draft.subclasses === undefined || draft.subclasses.includes(id),
-              ).length
-              return (
-                <button
-                  key={operatorClass}
-                  type="button"
-                  className={`operator-filter-class-tab slot-constraint-class-tab${selectedClass === operatorClass ? ' is-active' : ''}${enabled ? ' is-enabled' : ''}${!availability.valid ? ' is-unavailable' : ''}`}
-                  aria-pressed={enabled}
-                  disabled={disabled}
-                  title={availability.reason || `${displayClass} is available`}
-                  onClick={() => {
-                    setSelectedClass(operatorClass)
-                    setDraft((current) => ({
-                      ...current,
-                      classes:
-                        current.classes.length === 0
-                          ? [operatorClass]
-                          : toggleValue<OperatorClass>(current.classes, operatorClass),
-                    }))
-                  }}
-                >
-                  <ClassIcon operatorClass={operatorClass} className="operator-filter-class-icon" />
-                  <span>{displayClass}</span>
-                  <small>
-                    {enabledSubclassCount}/{subclasses.length}
-                  </small>
-                </button>
-              )
+              const enabledSubclassCount = subclasses.filter(({ id }) => draft.subclasses === undefined || draft.subclasses.includes(id)).length
+              return <button key={operatorClass} type="button" className={`operator-filter-class-tab slot-constraint-class-tab${selectedClass === operatorClass ? ' is-active' : ''}${enabled ? ' is-enabled' : ''}${!availability.valid ? ' is-unavailable' : ''}`} aria-pressed={enabled} disabled={disabled} title={availability.reason || `${displayClass} is available`} onClick={() => { setSelectedClass(operatorClass); setDraft((current) => ({ ...current, classes: current.classes.length === 0 ? [operatorClass] : toggleValue<OperatorClass>(current.classes, operatorClass) })) }}><ClassIcon operatorClass={operatorClass} className="operator-filter-class-icon" /><span>{displayClass}</span><small>{enabledSubclassCount}/{subclasses.length}</small></button>
             })}
           </div>
-
-          <div className="operator-filter-subclass-panel slot-constraint-subclass-panel">
-            <div className="operator-filter-subclass-panel-heading">
-              <div className="slot-constraint-subclass-heading-copy">
-                <strong>{selectedClassLabel} subclasses</strong>
-                <small>
-                  {draft.subclasses === undefined
-                    ? 'All subclasses currently allowed'
-                    : 'Only enabled subclass tiles are allowed'}
-                </small>
+          {selectedClass && selectedClassLabel && (
+            <div className="operator-filter-subclass-panel slot-constraint-subclass-panel">
+              <div className="operator-filter-subclass-panel-heading">
+                <div className="slot-constraint-subclass-heading-copy"><strong>{selectedClassLabel} subclasses</strong><small>{draft.subclasses === undefined ? 'All subclasses currently allowed' : 'Only enabled subclass tiles are allowed'}</small></div>
+                <div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setSelectedClassSubclassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setSelectedClassSubclassState(false)}>None</button></div>
               </div>
-              <div className="operator-filter-subclass-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setSelectedClassSubclassState(true)}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setSelectedClassSubclassState(false)}
-                >
-                  None
-                </button>
-              </div>
+              <div className="operator-filter-subclass-tiles">{selectedSubclassOptions.map((subclass) => { const enabled=draft.subclasses === undefined || draft.subclasses.includes(subclass.id); return <button key={subclass.id} type="button" className={`operator-filter-subclass-tile${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => toggleSubclass(subclass.id)}><SubclassIcon id={subclass.id} className="operator-filter-subclass-icon" /><span>{subclass.name}</span></button> })}</div>
             </div>
-            <div className="operator-filter-subclass-tiles">
-              {selectedSubclassOptions.map((subclass) => {
-                const enabled =
-                  draft.subclasses === undefined || draft.subclasses.includes(subclass.id)
-                return (
-                  <button
-                    key={subclass.id}
-                    type="button"
-                    className={`operator-filter-subclass-tile${enabled ? ' is-enabled' : ''}`}
-                    aria-pressed={enabled}
-                    onClick={() => toggleSubclass(subclass.id)}
-                  >
-                    <SubclassIcon id={subclass.id} className="operator-filter-subclass-icon" />
-                    <span>{subclass.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        <div className="slot-editor-section">
-          <div className="slot-editor-label-row">
-            <strong>Specific Operator</strong>
-            <span>Optional · searches the current eligible pool</span>
-          </div>
-          <OperatorSelector
-            options={operatorOptions}
-            valueKey={operatorSelectionKey}
-            onSelect={selectOperator}
-          />
-        </div>
-
-        <div className={`slot-feasibility${validation.valid ? ' is-valid' : ' is-invalid'}`}>
-          {validation.valid ? (
-            <span>
-              ✓ {candidateCount} eligible operator{candidateCount === 1 ? '' : 's'} match this slot;
-              a complete squad remains feasible.
-            </span>
-          ) : (
-            <span>
-              ⚠ {validation.errors[0] ?? 'This slot cannot participate in a complete valid squad.'}
-            </span>
           )}
         </div>
 
+        <div className="slot-editor-section">
+          <div className="slot-editor-label-row"><strong>Specific Operator</strong><span>Optional · searches the current eligible pool</span></div>
+          <OperatorSelector options={operatorOptions} valueKey={operatorSelectionKey} onSelect={selectOperator} />
+        </div>
+
+        <div className={`slot-feasibility${validation.valid ? ' is-valid' : ' is-invalid'}`}>{validation.valid ? <span>✓ {candidateCount} eligible operator{candidateCount === 1 ? '' : 's'} match this slot; a complete squad remains feasible.</span> : <span>⚠ {validation.errors[0] ?? 'This slot cannot participate in a complete valid squad.'}</span>}</div>
+
         <div className="slot-editor-actions">
-          <button
-            type="button"
-            className="danger-button"
-            onClick={() => setDraft(createEmptySlotConstraint())}
-          >
-            Reset Constraint
-          </button>
+          <button type="button" className="danger-button" onClick={() => setDraft(createEmptySlotConstraint())}>Reset Constraint</button>
           <span className="slot-editor-spacer" />
-          <button type="button" className="secondary-button" onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="randomize-button"
-            disabled={!validation.valid}
-            onClick={() => onApply(draft)}
-          >
-            Apply
-          </button>
+          <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+          <button type="button" className="randomize-button" disabled={!validation.valid} onClick={() => onApply(draft)}>Apply</button>
         </div>
       </div>
     </div>

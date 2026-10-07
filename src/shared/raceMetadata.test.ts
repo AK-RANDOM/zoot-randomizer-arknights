@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { GameLocale, OperatorDataset } from './operator'
 import {
+  AMIYA_RACE_ID,
+  AMIYA_RACE_LABEL,
   RACE_UNAVAILABLE_ID,
+  applyOperatorRaceOverrides,
   applyRaceMetadata,
   operatorRaceIds,
   raceIdFromSourceValue,
@@ -151,6 +154,25 @@ describe('M6 race metadata', () => {
     expect(result.raceLabels?.[raceId]).toBe('Oni')
     expect(result.localizations?.en.raceLabels?.[raceId]).toBe('Oni')
     expect(result.localizations?.kr.raceLabels?.[raceId]).toBe('오니')
+  })
+
+  it('forces every Amiya form into the shared Cautus/Chimera race bucket', () => {
+    const source = dataset()
+    const template = source.operators[0]
+    source.operators = [
+      ['char_002_amiya', 'Amiya'],
+      ['char_1001_amiya2', 'Amiya (Guard)'],
+      ['char_1037_amiya3', 'Amiya (Medic)'],
+    ].map(([id, name]) => ({ ...template, id, name, raceIds: [RACE_UNAVAILABLE_ID] }))
+
+    const result = applyOperatorRaceOverrides(source)
+
+    expect(result.operators.map(({ raceIds }) => raceIds)).toEqual([
+      [AMIYA_RACE_ID],
+      [AMIYA_RACE_ID],
+      [AMIYA_RACE_ID],
+    ])
+    expect(result.raceLabels?.[AMIYA_RACE_ID]).toBe(AMIYA_RACE_LABEL)
   })
 
   it('keeps pre-M6 schema-v6 operators backward compatible', () => {

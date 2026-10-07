@@ -79,13 +79,13 @@ describe('generic slot class indicator model', () => {
     ])
   })
 
-  it('accepts the locked-slot class override used by Amiya and other multi-form identities', () => {
+  it('preserves the locked-slot class override order used by Amiya and other multi-form identities', () => {
     const items = buildSlotClassIndicatorItems(
       constraint(),
       operators,
       ['Caster', 'Guard', 'Medic'],
     )
-    expect(items.map(({ operatorClass }) => operatorClass)).toEqual(['Guard', 'Caster', 'Medic'])
+    expect(items.map(({ operatorClass }) => operatorClass)).toEqual(['Caster', 'Guard', 'Medic'])
   })
 
   it('collapses class overflow after three visible icons', () => {

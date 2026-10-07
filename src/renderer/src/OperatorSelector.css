@@ -138,9 +138,18 @@
 }
 
 .operator-selector-class-stack .class-icon {
+  display: grid;
   width: 22px;
   height: 22px;
+  box-sizing: border-box;
+  place-items: center;
   flex: 0 0 auto;
+}
+
+.operator-selector-class-stack .class-icon img {
+  width: 16px;
+  height: 16px;
+  object-position: center;
 }
 
 .operator-selector-class-stack.is-multiple {
@@ -152,6 +161,11 @@
 .operator-selector-class-stack.is-multiple .class-icon {
   width: 18px;
   height: 18px;
+}
+
+.operator-selector-class-stack.is-multiple .class-icon img {
+  width: 13px;
+  height: 13px;
 }
 
 .operator-selector-empty {

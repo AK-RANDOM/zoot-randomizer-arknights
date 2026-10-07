@@ -6,16 +6,21 @@
   min-height: 184px;
   padding: 0;
   overflow: hidden;
-  border: 1px solid #3c3c43;
+  border: 1px solid transparent;
   border-radius: 4px;
   color: inherit;
-  background: #111113;
+  background:
+    linear-gradient(#111113, #111113) padding-box,
+    var(
+      --slot-constraint-gradient,
+      linear-gradient(135deg, var(--rarity-color), var(--rarity-color))
+    ) border-box;
   text-align: inherit;
   appearance: none;
 }
 
 .slot-locked-card:hover {
-  border-color: #62626a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16);
 }
 
 .slot-locked-card:focus-visible {

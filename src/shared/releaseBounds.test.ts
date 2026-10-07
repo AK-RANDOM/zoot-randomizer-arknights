@@ -76,9 +76,9 @@ describe('release group bounds', () => {
     })
   })
 
-  it("starts CN Year 8 on the Kal'tsit2 banner boundary", () => {
-    expect(releaseYearGroup('2026-04-29', 'cn')).toBe(7)
-    expect(releaseYearGroup('2026-04-30', 'cn')).toBe(8)
+  it("starts CN Year 8 on the Kal'tsit the Esperanta banner boundary", () => {
+    expect(releaseYearGroup('2026-04-30', 'cn')).toBe(7)
+    expect(releaseYearGroup('2026-05-01', 'cn')).toBe(8)
     expect(releaseYearGroup('2026-05-31', 'cn')).toBe(8)
   })
 
@@ -88,7 +88,7 @@ describe('release group bounds', () => {
       end: '2026-09-16',
     })
     expect(getReleaseGroupBounds(currentOperators, 'cn', 8)).toEqual({
-      start: '2026-04-30',
+      start: '2026-05-01',
       end: '2026-09-03',
     })
   })

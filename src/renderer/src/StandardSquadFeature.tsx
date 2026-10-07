@@ -355,11 +355,6 @@ export default function StandardSquadFeature({
   }
 
   const constrainedInRange = constraints.slots.slice(0, constraints.squadSize)
-  const constrainedSlots = constrainedInRange.filter((slot) => !slotConstraintIsEmpty(slot))
-  const constraintsAlreadyPacked = constrainedInRange.every((slot, index) =>
-    index < constrainedSlots.length ? !slotConstraintIsEmpty(slot) : slotConstraintIsEmpty(slot),
-  )
-  const canMoveConstraints = constrainedSlots.length > 0 && !constraintsAlreadyPacked
   const currentConstraintSummary = useMemo(() => {
     const items: string[] = []
     for (const rarity of [...operatorRarities].reverse()) {
@@ -387,20 +382,6 @@ export default function StandardSquadFeature({
     if (!selectedPreset) setSelectedPresetId('custom')
     onError(null)
     onMessage(selectedPreset ? `Constraints reset to preset “${selectedPreset.name}”.` : 'Custom constraints reset to a blank slate. Global Pool filters were preserved.')
-  }
-  const moveConstraintsToTop = (): void => {
-    if (!canMoveConstraints || squad.length > 0) return
-    onConstraintsChange((current) => {
-      const active = current.slots
-        .slice(0, current.squadSize)
-        .filter((slot) => !slotConstraintIsEmpty(slot))
-        .map(cloneSlotConstraint)
-      const nextSlots = createEmptySlotConstraints()
-      active.forEach((slot, index) => { nextSlots[index] = slot })
-      return { ...current, slots: nextSlots }
-    })
-    setEditingSlot(null)
-    markCustom()
   }
   const clearSquad = (): void => {
     setSquad([])
@@ -538,7 +519,6 @@ export default function StandardSquadFeature({
         <div><p className="eyebrow">GET SQUAD • STANDARD</p><h2 id="squad-heading">Standard squad</h2></div>
         <div className="section-actions">
           {canResetConstraints && <button className="danger-button" type="button" onClick={resetConstraints}>Reset Constraints</button>}
-          {constrainedSlots.length > 0 && <button className="secondary-button" type="button" disabled={squad.length > 0 || !canMoveConstraints} title={!canMoveConstraints ? 'Constraints are already at the top.' : undefined} onClick={moveConstraintsToTop}>Move Constraints to Top</button>}
           {squad.length > 0 && <button className="secondary-button" type="button" onClick={clearSquad}>Clear Squad</button>}
           <button className="randomize-button" type="button" disabled={!dataset || !validation.valid} onClick={randomize}>{squad.length > 0 ? 'Randomize Again' : 'Randomize'}</button>
         </div>
@@ -590,7 +570,7 @@ export default function StandardSquadFeature({
           : null
         return <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>
           {!inRange
-            ? <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}><strong>SLOT {slot}</strong><span>Unavailable</span><small>Squad size {constraints.squadSize}</small></div>
+            ? <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}><span className="slot-config-number">{slot}</span><span>Unavailable</span><small>Squad size {constraints.squadSize}</small></div>
             : operator
               ? <><OperatorCard operator={operator} />{constrained && <div className="slot-constraint-badge" style={constraintStyle} title="Generated under a slot constraint"><span>{raritySetSummary(slotConstraint.rarities)}</span><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>{specificSummary && <span>{specificSummary}</span>}</div>}</>
               : lockedPresentation
@@ -602,7 +582,7 @@ export default function StandardSquadFeature({
                     aria-label={`Configure squad slot ${slot}`}
                     onClick={() => setEditingSlot(index)}
                   >
-                    <span className="slot-config-number">SLOT {slot}</span>
+                    <span className="slot-config-number">{slot}</span>
                     {constrained
                       ? <span className="slot-config-summary"><strong>{raritySetSummary(slotConstraint.rarities)}</strong><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>{specificSummary && <span className="slot-config-specific">{specificSummary}</span>}</span>
                       : <span className="slot-config-any"><strong>Any</strong><span>Click to configure</span></span>}

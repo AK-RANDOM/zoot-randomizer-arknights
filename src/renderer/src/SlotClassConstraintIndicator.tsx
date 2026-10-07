@@ -17,36 +17,36 @@ export function buildSlotClassIndicatorItems(
   classOverride?: readonly OperatorClass[],
 ): SlotClassIndicatorItem[] {
   const selectedSubclassIds = new Set(constraint.subclasses ?? [])
+  const inferredClasses =
+    constraint.classes.length > 0
+      ? [...constraint.classes]
+      : selectedSubclassIds.size > 0
+        ? [...new Set(
+            operators
+              .filter((operator) => selectedSubclassIds.has(operator.subclass.id))
+              .map((operator) => operator.class),
+          )]
+        : []
   const requestedClasses =
     classOverride && classOverride.length > 0
-      ? [...classOverride]
-      : constraint.classes.length > 0
-        ? [...constraint.classes]
-        : selectedSubclassIds.size > 0
-          ? [...new Set(
-              operators
-                .filter((operator) => selectedSubclassIds.has(operator.subclass.id))
-                .map((operator) => operator.class),
-            )]
-          : []
+      ? [...new Set(classOverride)]
+      : operatorClasses.filter((operatorClass) => inferredClasses.includes(operatorClass))
 
-  return operatorClasses
-    .filter((operatorClass) => requestedClasses.includes(operatorClass))
-    .map((operatorClass) => {
-      const subclassNames =
-        selectedSubclassIds.size === 0
-          ? []
-          : [...new Map(
-              operators
-                .filter(
-                  (operator) =>
-                    operator.class === operatorClass &&
-                    selectedSubclassIds.has(operator.subclass.id),
-                )
-                .map((operator) => [operator.subclass.id, operator.subclass.name]),
-            ).values()].sort((left, right) => left.localeCompare(right))
-      return { operatorClass, subclassNames }
-    })
+  return requestedClasses.map((operatorClass) => {
+    const subclassNames =
+      selectedSubclassIds.size === 0
+        ? []
+        : [...new Map(
+            operators
+              .filter(
+                (operator) =>
+                  operator.class === operatorClass &&
+                  selectedSubclassIds.has(operator.subclass.id),
+              )
+              .map((operator) => [operator.subclass.id, operator.subclass.name]),
+          ).values()].sort((left, right) => left.localeCompare(right))
+    return { operatorClass, subclassNames }
+  })
 }
 
 export function splitSlotClassIndicatorItems(

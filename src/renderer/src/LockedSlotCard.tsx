@@ -1,6 +1,6 @@
-import type { CSSProperties } from 'react'
 import OperatorCard from './OperatorCard'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
+import { slotConstraintFrameStyle } from './SlotConstraintFrame'
 import type { SlotConstraint } from '../../shared/constraints'
 import type { Operator, OperatorClass, OperatorRarity } from '../../shared/operator'
 import { operatorMatchesSlotConstraint } from '../../shared/randomizer'
@@ -68,17 +68,6 @@ export function lockedSlotPresentation(
   return { operator: candidates[0], classes, rarities: [...constraint.rarities] }
 }
 
-function lockedSlotBorderStyle(rarities: readonly OperatorRarity[]): CSSProperties | undefined {
-  if (rarities.length === 0) return undefined
-  const sorted = [...new Set(rarities)].sort((left, right) => right - left)
-  const colors = sorted.map((rarity) => `var(--rarity-${rarity})`)
-  const gradient =
-    colors.length === 1
-      ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})`
-      : `linear-gradient(135deg, ${colors.join(', ')})`
-  return { '--slot-constraint-gradient': gradient } as CSSProperties
-}
-
 export default function LockedSlotCard({
   presentation,
   constraint,
@@ -92,21 +81,20 @@ export default function LockedSlotCard({
   slot: number
   onClick: () => void
 }): React.JSX.Element {
-  const multipleClasses = presentation.classes.length > 1
+  const showClassIndicator =
+    presentation.classes.length > 1 || (constraint.subclasses?.length ?? 0) > 0
   return (
     <button
       type="button"
-      className={`slot-locked-card${multipleClasses ? ' is-multi-class' : ''}`}
+      className={`slot-locked-card${showClassIndicator ? ' has-class-indicator' : ''}`}
       data-rarity={presentation.operator.rarity}
-      style={lockedSlotBorderStyle(presentation.rarities)}
+      style={slotConstraintFrameStyle(presentation.rarities, 'transparent')}
       aria-label={`Configure squad slot ${slot}, locked to ${presentation.operator.name}`}
       onClick={onClick}
     >
       <OperatorCard operator={presentation.operator} />
-      <span className="slot-lock-indicator" title="Specific operator locked" aria-hidden="true">
-        🔒
-      </span>
-      {multipleClasses && (
+      <span className="slot-lock-indicator" title="Specific operator locked" aria-hidden="true">🔒</span>
+      {showClassIndicator && (
         <SlotClassConstraintIndicator
           constraint={constraint}
           operators={operators}

@@ -64,3 +64,10 @@
   font-size: .62rem;
   font-weight: 900;
 }
+
+.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card.is-constrained {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(#17140e, #17140e) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
+}

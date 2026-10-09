@@ -1,6 +1,9 @@
 name: Build Windows release
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -21,32 +24,26 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
-      - name: Build portable Windows package
-        run: npm run build && npx electron-builder --win portable --publish never
-      - name: Verify portable launch
+      - name: Build raw Windows Electron directory
+        run: npm run build && npx electron-builder --win --dir --publish never
+      - name: Verify raw Windows launch
         shell: pwsh
         run: |
           $env:ELECTRON_SMOKE_TEST = '1'
-          $portable = Get-ChildItem dist/*-Portable.exe | Select-Object -First 1
-          if (-not $portable) { throw 'Portable executable was not produced.' }
+          $app = Get-ChildItem dist/win-unpacked/*.exe | Select-Object -First 1
+          if (-not $app) { throw 'Raw Windows executable was not produced.' }
 
-          $portableProcess = Start-Process -FilePath $portable.FullName -PassThru
-          if (-not $portableProcess.WaitForExit(60000)) {
-            $portableProcess.Kill()
-            throw 'Portable application did not complete the smoke launch.'
+          $process = Start-Process -FilePath $app.FullName -PassThru
+          if (-not $process.WaitForExit(60000)) {
+            $process.Kill()
+            throw 'Raw Windows application did not complete the smoke launch.'
           }
 
-          if ($portableProcess.ExitCode -ne 0) {
-            throw "Portable application exited with code $($portableProcess.ExitCode)."
+          if ($process.ExitCode -ne 0) {
+            throw "Raw Windows application exited with code $($process.ExitCode)."
           }
-
-          $portableData = Join-Path $portable.DirectoryName 'Arknights-Randomizer-Data'
-          if (-not (Test-Path $portableData)) {
-            throw 'Portable application did not create its sidecar data directory.'
-          }
-          Remove-Item $portableData -Recurse -Force
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-portable
-          path: dist/*-Portable.exe
+          name: windows-raw-electron
+          path: dist/win-unpacked/**
           if-no-files-found: error

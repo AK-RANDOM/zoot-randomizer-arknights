@@ -1,16 +1,20 @@
-import { useMemo } from 'react'
-import type {
-  DraftAction,
-  DraftState,
-  ResolvedDraftConfiguration,
-} from '../../shared/draft'
+import { useMemo, useState } from 'react'
+import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import DraftDecisionPlane from './DraftDecisionPlane'
+import DraftConfirmationDialog from './DraftConfirmationDialog'
 import OperatorCard from './OperatorCard'
 import DraftSquadGrid from './DraftSquadGrid'
 import { resolveDraftStatusPresentation } from './draftPresentation'
 import { draftCompletionMessage } from './draftSessionMessages'
+import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
+import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
+
+interface PendingDraftConfirmation {
+  intent: DraftConfirmationIntent
+  execute: () => void
+}
 
 export interface DraftSessionViewProps {
   state: DraftState | null
@@ -29,7 +33,6 @@ export interface DraftSessionViewProps {
   onPick: (operatorId: string) => void
   onAction?: (action: DraftAction) => void
 }
-
 export default function DraftSessionView({
   state,
   operators,
@@ -53,6 +56,70 @@ export default function DraftSessionView({
   )
   const canStart = ready && validationErrors.length === 0 && operators.length >= 3
   const status = resolveDraftStatusPresentation(state, targetSize)
+  const confirmationsEnabled = useDraftActionConfirmationPreference()
+  const [sessionConfirmationsSuppressed, setSessionConfirmationsSuppressed] = useState(false)
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingDraftConfirmation | null>(
+    null,
+  )
+  const [suppressPendingSession, setSuppressPendingSession] = useState(false)
+
+  const requestAction = (action: DraftAction, execute: () => void): void => {
+    if (!confirmationsEnabled || sessionConfirmationsSuppressed) {
+      execute()
+      return
+    }
+    const operatorName =
+      action.type === 'pick' || action.type === 'hold'
+        ? operatorById.get(action.operatorId)?.name
+        : undefined
+    setSuppressPendingSession(false)
+    setPendingConfirmation({
+      intent: { type: 'draft-action', action, operatorName },
+      execute,
+    })
+  }
+
+  const requestPick = (operatorId: string): void => {
+    requestAction({ type: 'pick', operatorId }, () => onPick(operatorId))
+  }
+
+  const requestEngineAction = (action: DraftAction): void => {
+    if (!onAction) return
+    requestAction(action, () => onAction(action))
+  }
+
+  const requestStart = (): void => {
+    if (!state) {
+      setSessionConfirmationsSuppressed(false)
+      onStart()
+      return
+    }
+    if (!confirmationsEnabled || sessionConfirmationsSuppressed) {
+      setSessionConfirmationsSuppressed(false)
+      onStart()
+      return
+    }
+    setSuppressPendingSession(false)
+    setPendingConfirmation({ intent: { type: 'new-draft' }, execute: onStart })
+  }
+
+  const cancelPendingConfirmation = (): void => {
+    setPendingConfirmation(null)
+    setSuppressPendingSession(false)
+  }
+
+  const confirmPendingAction = (): void => {
+    if (!pendingConfirmation) return
+    const { intent, execute } = pendingConfirmation
+    setPendingConfirmation(null)
+    if (intent.type === 'new-draft') {
+      setSessionConfirmationsSuppressed(suppressPendingSession)
+    } else if (suppressPendingSession) {
+      setSessionConfirmationsSuppressed(true)
+    }
+    setSuppressPendingSession(false)
+    execute()
+  }
 
   return (
     <section className="panel draft-panel" aria-labelledby="draft-heading">
@@ -87,12 +154,11 @@ export default function DraftSessionView({
           className="randomize-button draft-status-new"
           type="button"
           disabled={!canStart}
-          onClick={onStart}
+          onClick={requestStart}
         >
           {state ? 'New Draft' : 'Start Draft'}
         </button>
       </div>
-
       <div className="draft-status-context" aria-label="Draft Rulebook context">
         <span>Revision {rulebook.identifier.revision}</span>
         <span>{poolSourceLabel}</span>
@@ -102,7 +168,6 @@ export default function DraftSessionView({
       {rulebook.identifier.description && (
         <p className="draft-rulebook-description">{rulebook.identifier.description}</p>
       )}
-
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>
@@ -125,7 +190,6 @@ export default function DraftSessionView({
           them resets the session.
         </p>
       )}
-
       {!state ? (
         <div className="draft-empty-state">
           <strong>
@@ -137,20 +201,10 @@ export default function DraftSessionView({
                   ? 'Ready to draft'
                   : 'Not enough eligible operators'}
           </strong>
-          <p>
-            {!ready
-              ? 'Draft will be available after the operator dataset finishes loading.'
-              : validationErrors.length > 0
-                ? 'Fix the Rulebook in Setup → Draft Rulebooks before starting this draft.'
-                : operators.length >= 3
-                  ? 'The selected Draft Rulebook controls the effective pool, economy, actions, and pull distribution.'
-                  : 'A Draft offer requires three distinct eligible operators. Adjust the Rulebook or Global Pool before starting.'}
-          </p>
         </div>
       ) : state.status === 'complete' ? (
         <div className="draft-complete" role="status">
           <strong>{draftCompletionMessage(state)}</strong>
-          <span>Start a new draft to generate a fresh first offer.</span>
         </div>
       ) : configuration && onAction ? (
         <DraftDecisionPlane
@@ -159,8 +213,8 @@ export default function DraftSessionView({
           rulebook={rulebook}
           configuration={configuration}
           dataset={dataset}
-          onPick={onPick}
-          onAction={onAction}
+          onPick={requestPick}
+          onAction={requestEngineAction}
         />
       ) : (
         <div className="draft-offer-grid">
@@ -173,7 +227,7 @@ export default function DraftSessionView({
                 <button
                   type="button"
                   className="draft-candidate__action"
-                  onClick={() => onPick(operator.id)}
+                  onClick={() => requestPick(operator.id)}
                 >
                   Draft {operator.name}
                 </button>
@@ -182,13 +236,21 @@ export default function DraftSessionView({
           })}
         </div>
       )}
-
       {state && configuration && onAction && (
         <DraftSquadGrid
           state={state}
           operators={operators}
           configuration={configuration}
-          onAction={onAction}
+          onAction={requestEngineAction}
+        />
+      )}
+      {pendingConfirmation && (
+        <DraftConfirmationDialog
+          copy={draftConfirmationCopy(pendingConfirmation.intent)}
+          suppressSession={suppressPendingSession}
+          onSuppressSessionChange={setSuppressPendingSession}
+          onCancel={cancelPendingConfirmation}
+          onConfirm={confirmPendingAction}
         />
       )}
     </section>

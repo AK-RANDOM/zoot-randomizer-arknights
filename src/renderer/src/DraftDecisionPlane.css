@@ -184,12 +184,6 @@
   border-color: #4a765b;
 }
 
-.draft-decision-capacity-action {
-  display: flex;
-  justify-content: flex-end;
-  margin: -2px 0 14px;
-}
-
 @media (max-width: 1050px) {
   .draft-decision-plane {
     flex-wrap: wrap;

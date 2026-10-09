@@ -201,10 +201,20 @@ export default function DraftSessionView({
                   ? 'Ready to draft'
                   : 'Not enough eligible operators'}
           </strong>
+          <p>
+            {!ready
+              ? 'Draft will be available after the operator dataset finishes loading.'
+              : validationErrors.length > 0
+                ? 'Fix the Rulebook in Setup → Draft Rulebooks before starting this draft.'
+                : operators.length >= 3
+                  ? 'The selected Draft Rulebook controls the effective pool, economy, actions, and pull distribution.'
+                  : 'A Draft offer requires three distinct eligible operators. Adjust the Rulebook or Global Pool before starting.'}
+          </p>
         </div>
       ) : state.status === 'complete' ? (
         <div className="draft-complete" role="status">
           <strong>{draftCompletionMessage(state)}</strong>
+          <span>Start a new draft to generate a fresh first offer.</span>
         </div>
       ) : configuration && onAction ? (
         <DraftDecisionPlane

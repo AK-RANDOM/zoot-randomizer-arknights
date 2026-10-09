@@ -23,8 +23,10 @@
 .draft-squad-slot,
 .draft-squad-overflow,
 .draft-squad-expand {
+  width: 75%;
   aspect-ratio: 1 / 1;
   min-width: 0;
+  justify-self: center;
 }
 
 .draft-squad-slot {

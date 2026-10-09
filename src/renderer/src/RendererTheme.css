@@ -46,9 +46,13 @@
   padding: 1rem;
 }
 
+.squad-grid {
+  gap: 10px;
+}
+
 .squad-grid .squad-slot {
-  width: 90%;
-  justify-self: center;
+  width: 100%;
+  justify-self: stretch;
 }
 
 .squad-grid .squad-slot,
@@ -88,11 +92,11 @@
 .squad-grid .slot-config-number {
   position: absolute;
   z-index: 8;
-  top: 7px;
-  left: 7px;
+  top: 8px;
+  left: 8px;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   place-items: center;
   border: 1px solid rgba(255,255,255,.24);
@@ -100,7 +104,7 @@
   color: #e8e8eb;
   background: rgba(7,7,9,.76);
   box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  font-size: .7rem;
+  font-size: .61rem;
   font-weight: 900;
   letter-spacing: 0;
   line-height: 1;
@@ -119,3 +123,13 @@
 .operators-panel > .release-group + .operator-filter-layout {
   margin-top: 1rem;
 }
+
+
+/* Canonical Standard slot badge geometry: selected class icon, constraint class icon, and slot number. */
+.squad-grid .slot-class-constraint-indicator { top: 8px; max-height: calc(100% - 16px); }
+.squad-grid .slot-class-constraint-indicator.is-left { left: 8px; }
+.squad-grid .slot-class-constraint-indicator.is-right { right: 8px; }
+.squad-grid .slot-class-constraint-item,
+.squad-grid .slot-class-constraint-item .class-icon { width: 30px; height: 30px; }
+.squad-grid .slot-class-constraint-item .class-icon img { width: 23px; height: 23px; }
+.squad-grid .slot-class-constraint-overflow { min-width: 30px; height: 30px; }

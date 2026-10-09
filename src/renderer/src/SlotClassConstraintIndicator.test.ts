@@ -64,8 +64,8 @@ describe('generic slot class indicator model', () => {
       operators,
     )
     expect(items).toEqual([
-      { operatorClass: 'Vanguard', subclassNames: ['Charger'] },
-      { operatorClass: 'Guard', subclassNames: ['Arts Fighter'] },
+      { operatorClass: 'Vanguard', subclassNames: ['Charger'], subclassCount: 1 },
+      { operatorClass: 'Guard', subclassNames: [], subclassCount: null },
     ])
   })
 
@@ -75,7 +75,18 @@ describe('generic slot class indicator model', () => {
       operators,
     )
     expect(items).toEqual([
-      { operatorClass: 'Vanguard', subclassNames: ['Charger', 'Tactician'] },
+      { operatorClass: 'Vanguard', subclassNames: [], subclassCount: null },
+    ])
+  })
+
+  it('shows subclass counts only for classes with a partial subclass set', () => {
+    const items = buildSlotClassIndicatorItems(
+      constraint({ classes: ['Vanguard', 'Guard'], subclasses: ['charger', 'tactician'] }),
+      operators,
+    )
+    expect(items).toEqual([
+      { operatorClass: 'Vanguard', subclassNames: [], subclassCount: null },
+      { operatorClass: 'Guard', subclassNames: [], subclassCount: 0 },
     ])
   })
 

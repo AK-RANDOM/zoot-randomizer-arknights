@@ -28,10 +28,10 @@
 .squad-panel > .validation-box { margin-bottom: 14px; }
 .slot-config-card:not(.is-constrained):hover { border-color: #55555c; background: #151518; }
 .slot-config-card.is-constrained { position: relative; align-items: center; justify-content: center; }
-.slot-config-card.is-constrained .slot-config-number { position: absolute; top: 10px; left: 10px; }
+.slot-config-card.is-constrained .slot-config-number { position: absolute; top: 8px; left: 8px; }
 .slot-config-card.is-constrained .slot-config-summary { width: 100%; margin: 0; place-items: center; text-align: center; }
 .danger-button {
-  min-height: 34px; padding: 0 11px; border: 1px solid #8e3f46; border-radius: 4px; color: #ffd9dc;
-  background: #3a171b; font-size: .7rem; font-weight: 800;
+  min-width: 132px; min-height: 38px; padding: 0 15px; border: 1px solid #8e3f46; border-radius: 4px; color: #ffd9dc;
+  background: #3a171b; font-size: inherit; font-weight: 750; white-space: nowrap;
 }
 .danger-button:hover:not(:disabled) { border-color: #c95863; background: #552027; }

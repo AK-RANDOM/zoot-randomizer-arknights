@@ -33,7 +33,7 @@
 }
 
 .draft-decision-group .operator-card {
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 2;
 }
 
 .draft-decision-control {
@@ -67,7 +67,7 @@
 .draft-forfeit-surface {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1 / 2;
   overflow: hidden;
   padding: 14px;
   border: 1px solid rgba(207, 73, 79, 0.86);

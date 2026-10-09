@@ -74,6 +74,23 @@ describe('per-slot subclass constraints', () => {
     expect(operatorMatchesSlotConstraint(charger, constraint)).toBe(false)
   })
 
+  it('derives subclass-only eligibility from the selected subclasses parent classes only', () => {
+    const constraint = slot({ subclasses: ['subclass:pioneer'] })
+    expect(operatorMatchesSlotConstraint(pioneer, constraint)).toBe(true)
+    expect(operatorMatchesSlotConstraint(charger, constraint)).toBe(false)
+    expect(operatorMatchesSlotConstraint(mystic, constraint)).toBe(false)
+  })
+
+  it('keeps a fully enabled class unrestricted while another class is partially filtered', () => {
+    const constraint = slot({
+      classes: ['Vanguard', 'Caster'],
+      subclasses: ['subclass:pioneer', 'subclass:charger'],
+    })
+    expect(operatorMatchesSlotConstraint(pioneer, constraint)).toBe(true)
+    expect(operatorMatchesSlotConstraint(charger, constraint)).toBe(true)
+    expect(operatorMatchesSlotConstraint(mystic, constraint)).toBe(false)
+  })
+
   it('generates from the selected subclass allow-list', () => {
     const constraints = createDefaultConstraints()
     constraints.squadSize = 1

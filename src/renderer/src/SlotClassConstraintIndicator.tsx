@@ -10,6 +10,7 @@ import './SlotClassConstraintIndicator.css'
 export interface SlotClassIndicatorItem {
   operatorClass: OperatorClass
   subclassNames: string[]
+  subclassCount: number | null
 }
 
 export function buildSlotClassIndicatorItems(
@@ -33,19 +34,27 @@ export function buildSlotClassIndicatorItems(
           : []
 
   return requestedClasses.map((operatorClass) => {
-    const subclassNames =
+    const availableSubclasses = new Map(
+      operators
+        .filter((operator) => operator.class === operatorClass)
+        .map((operator) => [operator.subclass.id, operator.subclass.name]),
+    )
+    const selectedSubclassNames =
       selectedSubclassIds.size === 0
         ? []
-        : [...new Map(
-            operators
-              .filter(
-                (operator) =>
-                  operator.class === operatorClass &&
-                  selectedSubclassIds.has(operator.subclass.id),
-              )
-              .map((operator) => [operator.subclass.id, operator.subclass.name]),
-          ).values()].sort((left, right) => left.localeCompare(right))
-    return { operatorClass, subclassNames }
+        : [...availableSubclasses.entries()]
+            .filter(([id]) => selectedSubclassIds.has(id))
+            .map(([, name]) => name)
+            .sort((left, right) => left.localeCompare(right))
+    const subclassCount =
+      selectedSubclassIds.size > 0 && selectedSubclassNames.length < availableSubclasses.size
+        ? selectedSubclassNames.length
+        : null
+    return {
+      operatorClass,
+      subclassNames: subclassCount === null ? [] : selectedSubclassNames,
+      subclassCount,
+    }
   })
 }
 
@@ -75,10 +84,12 @@ export default function SlotClassConstraintIndicator({
 
   const { visible, overflow } = splitSlotClassIndicatorItems(items, maxVisible)
   const description = items
-    .map(({ operatorClass, subclassNames }) =>
-      subclassNames.length > 0
-        ? `${operatorClass}: ${subclassNames.join(', ')}`
-        : operatorClass,
+    .map(({ operatorClass, subclassNames, subclassCount }) =>
+      subclassCount === null
+        ? operatorClass
+        : subclassNames.length > 0
+          ? `${operatorClass}: ${subclassNames.join(', ')}`
+          : `${operatorClass}: no subclasses`,
     )
     .join('; ')
 
@@ -88,15 +99,15 @@ export default function SlotClassConstraintIndicator({
       aria-label={`Allowed classes and subclasses: ${description}`}
       title={description}
     >
-      {visible.map(({ operatorClass, subclassNames }) => (
+      {visible.map(({ operatorClass, subclassCount }) => (
         <span
           key={operatorClass}
-          className={`slot-class-constraint-item${subclassNames.length > 0 ? ' is-subfiltered' : ''}`}
+          className={`slot-class-constraint-item${subclassCount !== null ? ' is-subfiltered' : ''}`}
         >
           <ClassIcon operatorClass={operatorClass} />
-          {subclassNames.length > 0 && (
+          {subclassCount !== null && (
             <span className="slot-class-constraint-subcount" aria-hidden="true">
-              {subclassNames.length}
+              {subclassCount}
             </span>
           )}
         </span>

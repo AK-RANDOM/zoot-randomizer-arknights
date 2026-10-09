@@ -137,9 +137,11 @@
 .operator-selector-avatar {
   width: 42px;
   height: 42px;
-  object-fit: cover;
+  box-sizing: border-box;
+  padding: 3px;
+  object-fit: contain;
   border-radius: 3px;
-  background: #0c0c0e;
+  background: transparent;
 }
 
 .operator-selector-avatar--fallback {
@@ -160,16 +162,18 @@
 
 .operator-selector-class-stack .class-icon {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   box-sizing: border-box;
+  padding: 3px;
   place-items: center;
   flex: 0 0 auto;
 }
 
 .operator-selector-class-stack .class-icon img {
-  width: 16px;
-  height: 16px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -180,13 +184,14 @@
 }
 
 .operator-selector-class-stack.is-multiple .class-icon {
-  width: 18px;
-  height: 18px;
+  width: 26px;
+  height: 26px;
+  padding: 3px;
 }
 
 .operator-selector-class-stack.is-multiple .class-icon img {
-  width: 13px;
-  height: 13px;
+  width: 100%;
+  height: 100%;
 }
 
 .operator-selector-selection-state {

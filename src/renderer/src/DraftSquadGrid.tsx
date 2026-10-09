@@ -166,7 +166,7 @@ export default function DraftSquadGrid({
 
         {showContextualColumn && (
           <div className="draft-squad-capacity-column" aria-label="Overflow and capacity controls">
-            {squad.overflowVisible ? (
+            {squad.overflowVisible && (
               <div
                 className={`draft-squad-overflow${overflowOperator ? ' is-occupied' : ''}`}
                 aria-label={
@@ -183,14 +183,10 @@ export default function DraftSquadGrid({
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="draft-squad-capacity-spacer" aria-hidden="true" />
             )}
 
-            {expand ? (
+            {expand && (
               <ExpandControl presentation={expand} onExpand={() => onAction(expand.action)} />
-            ) : (
-              <div className="draft-squad-capacity-spacer" aria-hidden="true" />
             )}
           </div>
         )}

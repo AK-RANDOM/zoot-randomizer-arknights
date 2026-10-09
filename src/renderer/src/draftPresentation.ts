@@ -58,6 +58,25 @@ export interface DraftStatusPresentation {
   capacity: DraftCapacityPresentation
 }
 
+export type DraftSquadSlotState = 'valid' | 'expandable' | 'invalid'
+
+export interface DraftSquadSlotPresentation {
+  slotNumber: number
+  state: DraftSquadSlotState
+  operatorId: string | null
+}
+
+export interface DraftSquadPresentation {
+  permanentCapacity: number
+  maximum: number
+  overflowCapacity: number
+  overflowVisible: boolean
+  overflowOperatorId: string | null
+  slots: readonly DraftSquadSlotPresentation[]
+}
+
+export const DRAFT_STANDARD_SLOT_COUNT = 12
+
 const actionReasonLabels: Record<DraftActionBlockReason, string> = {
   'draft-complete': 'Draft is complete.',
   'action-disabled': 'This action is disabled by the Draft Rulebook.',
@@ -147,6 +166,74 @@ export function resolveDraftHoldPresentation(
   }
 }
 
+function resolveDraftCapacityPresentation(state: DraftState): DraftCapacityPresentation {
+  const maximum = Math.max(0, state.targetSize)
+  if (!state.capacityRulesEnabled) {
+    return {
+      effectivePermanent: maximum,
+      overflow: 0,
+      ownership: maximum,
+      maximum,
+      label: `${maximum} / ${maximum}`,
+    }
+  }
+
+  const effectivePermanent = Math.max(
+    0,
+    Math.min(maximum, state.activeCapacity - state.forfeitedCapacityCount),
+  )
+  const overflow =
+    effectivePermanent < maximum
+      ? Math.max(0, Math.min(state.overflowCapacity, maximum - effectivePermanent))
+      : 0
+  const ownership = Math.min(maximum, effectivePermanent + overflow)
+  const capacityCore = overflow > 0 ? `${effectivePermanent}+${overflow}` : String(effectivePermanent)
+
+  return {
+    effectivePermanent,
+    overflow,
+    ownership,
+    maximum,
+    label: `${capacityCore} / ${maximum}`,
+  }
+}
+
+export function resolveDraftSquadPresentation(state: DraftState): DraftSquadPresentation {
+  const capacity = resolveDraftCapacityPresentation(state)
+  const maximum = Math.min(DRAFT_STANDARD_SLOT_COUNT, capacity.maximum)
+  const permanentCapacity = Math.min(maximum, capacity.effectivePermanent)
+  const overflowCapacity = Math.min(capacity.overflow, Math.max(0, maximum - permanentCapacity))
+  const overflowVisible = overflowCapacity > 0 && permanentCapacity < maximum
+  const overflowOperatorId = overflowVisible
+    ? state.draftedOperatorIds[permanentCapacity] ?? null
+    : null
+
+  const slots = Array.from({ length: DRAFT_STANDARD_SLOT_COUNT }, (_, index) => {
+    const slotNumber = index + 1
+    const slotState: DraftSquadSlotState =
+      slotNumber <= permanentCapacity
+        ? 'valid'
+        : slotNumber <= maximum
+          ? 'expandable'
+          : 'invalid'
+    return {
+      slotNumber,
+      state: slotState,
+      operatorId:
+        slotState === 'valid' ? (state.draftedOperatorIds[index] ?? null) : null,
+    }
+  })
+
+  return {
+    permanentCapacity,
+    maximum,
+    overflowCapacity,
+    overflowVisible,
+    overflowOperatorId,
+    slots,
+  }
+}
+
 export function resolveDraftStatusPresentation(
   state: DraftState | null,
   targetSize: number,
@@ -167,12 +254,12 @@ export function resolveDraftStatusPresentation(
     }
   }
 
+  const capacity = resolveDraftCapacityPresentation(state)
+
+  // Keep the canonical capacity helper exercised here as a defensive consistency check.
+  // Presentation uses the decomposed permanent + overflow values above, while the engine
+  // remains authoritative for the total number of owned operators that can be accepted.
   const ownership = currentDraftOwnershipCapacity(state)
-  const configuredOverflow = state.capacityRulesEnabled ? Math.max(0, state.overflowCapacity) : 0
-  const overflow = Math.min(configuredOverflow, ownership)
-  const effectivePermanent = Math.max(0, ownership - overflow)
-  const capacityCore =
-    overflow > 0 ? `${effectivePermanent}+${overflow}` : String(effectivePermanent)
 
   return {
     roundNumber: state.roundNumber,
@@ -180,11 +267,8 @@ export function resolveDraftStatusPresentation(
     targetSize: state.targetSize,
     points: state.economyRulesEnabled ? state.points : null,
     capacity: {
-      effectivePermanent,
-      overflow,
+      ...capacity,
       ownership,
-      maximum: state.targetSize,
-      label: `${capacityCore} / ${state.targetSize}`,
     },
   }
 }

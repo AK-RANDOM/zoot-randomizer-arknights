@@ -97,7 +97,11 @@ export default function OperatorSelector({
 }): React.JSX.Element {
   const [search, setSearch] = useState('')
   const selected = options.find((option) => option.key === valueKey) ?? null
-  const visible = useMemo(() => filterOperatorSelectorOptions(options, search), [options, search])
+  const hasSearch = search.trim().length > 0
+  const visible = useMemo(
+    () => (hasSearch ? filterOperatorSelectorOptions(options, search) : []),
+    [hasSearch, options, search],
+  )
 
   return (
     <div className="operator-selector">
@@ -129,36 +133,33 @@ export default function OperatorSelector({
           </button>
         </div>
       )}
-      <div className="operator-selector-results" role="listbox" aria-label="Eligible operators">
-        {visible.map((option) => (
-          <button
-            key={option.key}
-            type="button"
-            role="option"
-            aria-selected={option.key === valueKey}
-            disabled={disabled || option.disabled}
-            className={`operator-selector-option${option.key === valueKey ? ' is-selected' : ''}`}
-            title={option.disabled ? option.disabledReason : option.label}
-            onClick={() => onSelect(option)}
-            data-rarity={option.operator.rarity}
-          >
-            <OperatorAvatar operator={option.operator} />
-            <span className="operator-selector-copy">
-              <strong>{option.label}</strong>
-              <small>{optionMeta(option)}</small>
-            </span>
-            <OperatorClassStack option={option} />
-            {option.disabled && <em>{option.disabledReason ?? 'Unavailable'}</em>}
-          </button>
-        ))}
-        {visible.length === 0 && (
-          <p className="operator-selector-empty">No eligible operators match this search.</p>
-        )}
-      </div>
-      {options.length > 60 && !search.trim() && (
-        <small className="operator-selector-hint">
-          Showing the first 60 operators. Search to narrow the eligible pool.
-        </small>
+      {hasSearch && (
+        <div className="operator-selector-results" role="listbox" aria-label="Eligible operators">
+          {visible.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              role="option"
+              aria-selected={option.key === valueKey}
+              disabled={disabled || option.disabled}
+              className={`operator-selector-option${option.key === valueKey ? ' is-selected' : ''}`}
+              title={option.disabled ? option.disabledReason : option.label}
+              onClick={() => onSelect(option)}
+              data-rarity={option.operator.rarity}
+            >
+              <OperatorAvatar operator={option.operator} />
+              <span className="operator-selector-copy">
+                <strong>{option.label}</strong>
+                <small>{optionMeta(option)}</small>
+              </span>
+              <OperatorClassStack option={option} />
+              {option.disabled && <em>{option.disabledReason ?? 'Unavailable'}</em>}
+            </button>
+          ))}
+          {visible.length === 0 && (
+            <p className="operator-selector-empty">No eligible operators match this search.</p>
+          )}
+        </div>
       )}
     </div>
   )
@@ -194,7 +195,11 @@ export function OperatorMultiSelector({
     () => valueKeys.filter((key) => !optionByKey.has(key)),
     [optionByKey, valueKeys],
   )
-  const visible = useMemo(() => filterOperatorSelectorOptions(options, search), [options, search])
+  const hasSearch = search.trim().length > 0
+  const visible = useMemo(
+    () => (hasSearch ? filterOperatorSelectorOptions(options, search) : []),
+    [hasSearch, options, search],
+  )
 
   const toggle = (key: string): void => {
     if (disabled) return
@@ -263,47 +268,47 @@ export function OperatorMultiSelector({
         </div>
       )}
 
-      <div
-        className="operator-selector-results"
-        role="listbox"
-        aria-label="Available operators"
-        aria-multiselectable="true"
-      >
-        {visible.map((option) => {
-          const isSelected = selectedKeys.has(option.key)
-          return (
-            <button
-              key={option.key}
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              disabled={disabled || option.disabled}
-              className={`operator-selector-option${isSelected ? ' is-selected' : ''}`}
-              title={option.disabled ? option.disabledReason : option.label}
-              onClick={() => toggle(option.key)}
-              data-rarity={option.operator.rarity}
-            >
-              <OperatorAvatar operator={option.operator} />
-              <span className="operator-selector-copy">
-                <strong>{option.label}</strong>
-                <small>{optionMeta(option)}</small>
-              </span>
-              <OperatorClassStack option={option} />
-              <span className="operator-selector-selection-state" aria-hidden="true">
-                {isSelected ? '✓' : '+'}
-              </span>
-            </button>
-          )
-        })}
-        {visible.length === 0 && (
-          <p className="operator-selector-empty">No eligible operators match this search.</p>
-        )}
-      </div>
+      {hasSearch && (
+        <div
+          className="operator-selector-results"
+          role="listbox"
+          aria-label="Available operators"
+          aria-multiselectable="true"
+        >
+          {visible.map((option) => {
+            const isSelected = selectedKeys.has(option.key)
+            return (
+              <button
+                key={option.key}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                disabled={disabled || option.disabled}
+                className={`operator-selector-option${isSelected ? ' is-selected' : ''}`}
+                title={option.disabled ? option.disabledReason : option.label}
+                onClick={() => toggle(option.key)}
+                data-rarity={option.operator.rarity}
+              >
+                <OperatorAvatar operator={option.operator} />
+                <span className="operator-selector-copy">
+                  <strong>{option.label}</strong>
+                  <small>{optionMeta(option)}</small>
+                </span>
+                <OperatorClassStack option={option} />
+                <span className="operator-selector-selection-state" aria-hidden="true">
+                  {isSelected ? '✓' : '+'}
+                </span>
+              </button>
+            )
+          })}
+          {visible.length === 0 && (
+            <p className="operator-selector-empty">No eligible operators match this search.</p>
+          )}
+        </div>
+      )}
       <small className="operator-selector-hint">
         {valueKeys.length} selected
-        {options.length > 60 && !search.trim()
-          ? ' · Showing the first 60 operators; search to narrow the list.'
-          : ''}
+        {!hasSearch ? ' · Start typing to show operators.' : ''}
       </small>
     </div>
   )

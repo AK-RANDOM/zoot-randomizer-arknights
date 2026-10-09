@@ -103,9 +103,6 @@ export default function DraftDecisionPlane({
   const releaseHold = heldOperator
     ? resolveDraftActionPresentation(state, operators, { type: 'release-hold' }, configuration)
     : null
-  const slotExpansion = configuration.actionRules.slotExpansion.enabled
-    ? resolveDraftActionPresentation(state, operators, { type: 'slot-expansion' }, configuration)
-    : null
   const holdPresentation = resolveDraftHoldPresentation(state, configuration)
   const rerollLimit = reroll
     ? remainingLimitLabel(configuration.actionRules.reroll, state.actionUsage.reroll)
@@ -236,19 +233,6 @@ export default function DraftDecisionPlane({
           </section>
         )}
       </div>
-      {slotExpansion && (
-        <div className="draft-decision-capacity-action" aria-label="Capacity action">
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={!slotExpansion.available}
-            title={slotExpansion.blockReasonLabel ?? undefined}
-            onClick={() => onAction(slotExpansion.action)}
-          >
-            Expand slot · {pointDeltaLabel(slotExpansion.economy)}
-          </button>
-        </div>
-      )}
     </>
   )
 }

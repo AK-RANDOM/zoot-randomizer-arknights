@@ -10,6 +10,7 @@ function state(completionReason: DraftState['completionReason']): DraftState {
     currentOfferIds: [],
     discardedOperatorIds: [],
     heldOperatorId: null,
+    holdUpkeepCharges: 0,
     roundNumber: 3,
     completedRounds: 2,
     capacityExpansionCount: 0,

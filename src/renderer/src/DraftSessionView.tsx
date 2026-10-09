@@ -8,7 +8,7 @@ import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import DraftDecisionPlane from './DraftDecisionPlane'
 import OperatorCard from './OperatorCard'
-import { buildRulebookOperatorInteractionDetails } from './draftInteractionPresentation'
+import DraftSquadGrid from './DraftSquadGrid'
 import { resolveDraftStatusPresentation } from './draftPresentation'
 import { draftCompletionMessage } from './draftSessionMessages'
 
@@ -50,15 +50,6 @@ export default function DraftSessionView({
   const operatorById = useMemo(
     () => new Map(operators.map((operator) => [operator.id, operator] as const)),
     [operators],
-  )
-  const draftedOperators = state
-    ? state.draftedOperatorIds
-        .map((id) => operatorById.get(id))
-        .filter((operator): operator is Operator => operator !== undefined)
-    : []
-  const rosterSlots = Array.from(
-    { length: targetSize },
-    (_, index) => draftedOperators[index] ?? null,
   )
   const canStart = ready && validationErrors.length === 0 && operators.length >= 3
   const status = resolveDraftStatusPresentation(state, targetSize)
@@ -192,39 +183,14 @@ export default function DraftSessionView({
         </div>
       )}
 
-      <div className="draft-roster-heading">
-        <div>
-          <strong>Drafted roster</strong>
-          <span>
-            Selected operators remain owned for the rest of this draft and cannot reappear.
-          </span>
-        </div>
-      </div>
-      <div className="draft-roster-grid">
-        {rosterSlots.map((operator, index) => (
-          <div className="draft-roster-slot" key={index}>
-            {operator ? (
-              <OperatorCard
-                operator={operator}
-                interactionDetails={
-                  dataset
-                    ? buildRulebookOperatorInteractionDetails(
-                        rulebook,
-                        operator,
-                        dataset,
-                        operators,
-                      )
-                    : undefined
-                }
-              />
-            ) : (
-              <div className="empty-slot">
-                <span>SLOT {index + 1}</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {state && configuration && onAction && (
+        <DraftSquadGrid
+          state={state}
+          operators={operators}
+          configuration={configuration}
+          onAction={onAction}
+        />
+      )}
     </section>
   )
 }

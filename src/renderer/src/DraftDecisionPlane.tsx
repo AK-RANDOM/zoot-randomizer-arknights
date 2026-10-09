@@ -1,11 +1,14 @@
 import type { CSSProperties } from 'react'
-import type { DraftAction, DraftLimitedActionRules, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
+import type {
+  DraftAction,
+  DraftLimitedActionRules,
+  DraftState,
+  ResolvedDraftConfiguration,
+} from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import DraftOperatorCard from './DraftOperatorCard'
-import {
-  buildLiveRulebookOperatorInteractionDetails,
-} from './draftInteractionPresentation'
+import { buildLiveRulebookOperatorInteractionDetails } from './draftInteractionPresentation'
 import {
   resolveDraftActionPresentation,
   resolveDraftHoldPresentation,
@@ -35,12 +38,10 @@ function remainingLimitLabel(
   usage: DraftState['actionUsage']['reroll'],
 ): string | null {
   const parts: string[] = []
-  if (rules.perRoundLimit !== null) {
+  if (rules.perRoundLimit !== null)
     parts.push(`${Math.max(0, rules.perRoundLimit - usage.round)} this round`)
-  }
-  if (rules.perDraftLimit !== null) {
+  if (rules.perDraftLimit !== null)
     parts.push(`${Math.max(0, rules.perDraftLimit - usage.total)} this draft`)
-  }
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
@@ -90,8 +91,9 @@ export default function DraftDecisionPlane({
   const offeredOperators = state.currentOfferIds
     .map((id) => operatorById.get(id))
     .filter((operator): operator is Operator => operator !== undefined)
-  const heldOperator = state.heldOperatorId ? operatorById.get(state.heldOperatorId) ?? null : null
-
+  const heldOperator = state.heldOperatorId
+    ? (operatorById.get(state.heldOperatorId) ?? null)
+    : null
   const reroll = configuration.actionRules.reroll.enabled
     ? resolveDraftActionPresentation(state, operators, { type: 'reroll' }, configuration)
     : null
@@ -108,7 +110,6 @@ export default function DraftDecisionPlane({
   const rerollLimit = reroll
     ? remainingLimitLabel(configuration.actionRules.reroll, state.actionUsage.reroll)
     : null
-
   const offerGridStyle = {
     gridTemplateColumns: `repeat(${Math.max(1, offeredOperators.length)}, minmax(0, 1fr))`,
   } satisfies CSSProperties
@@ -122,9 +123,11 @@ export default function DraftDecisionPlane({
         </div>
         <span>Round {state.roundNumber}</span>
       </div>
-
       <div className="draft-decision-plane" aria-label="Current Draft decision">
-        <section className="draft-decision-group draft-decision-group--offers" aria-label="Current offers">
+        <section
+          className="draft-decision-group draft-decision-group--offers"
+          aria-label="Current offers"
+        >
           <div className="draft-decision-group__label">Offers</div>
           <div className="draft-decision-offer-grid" style={offerGridStyle}>
             {offeredOperators.map((operator) => {
@@ -145,7 +148,6 @@ export default function DraftDecisionPlane({
                   )
                 : undefined
               const holdAction = presentation.hold?.action
-
               return (
                 <DraftOperatorCard
                   key={operator.id}
@@ -158,7 +160,6 @@ export default function DraftDecisionPlane({
               )
             })}
           </div>
-
           {reroll && (
             <div className="draft-decision-control draft-decision-control--offers">
               <button
@@ -177,9 +178,11 @@ export default function DraftDecisionPlane({
             </div>
           )}
         </section>
-
         {heldOperator && (
-          <section className="draft-decision-group draft-decision-group--held" aria-label="Held operator">
+          <section
+            className="draft-decision-group draft-decision-group--held"
+            aria-label="Held operator"
+          >
             <div className="draft-decision-group__label">Held</div>
             <DraftOperatorCard
               operator={heldOperator}
@@ -223,15 +226,16 @@ export default function DraftDecisionPlane({
             )}
           </section>
         )}
-
         {forfeit && (
-          <section className="draft-decision-group draft-decision-group--forfeit" aria-label="Forfeit">
+          <section
+            className="draft-decision-group draft-decision-group--forfeit"
+            aria-label="Forfeit"
+          >
             <div className="draft-decision-group__label">Round end</div>
             <ForfeitSurface presentation={forfeit} onForfeit={() => onAction(forfeit.action)} />
           </section>
         )}
       </div>
-
       {slotExpansion && (
         <div className="draft-decision-capacity-action" aria-label="Capacity action">
           <button

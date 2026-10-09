@@ -118,7 +118,6 @@ export default function DraftSquadGrid({
       <div className="draft-roster-heading">
         <div>
           <strong id="draft-selected-squad-heading">Selected Squad</strong>
-          <span>Permanent slots follow Standard&apos;s 6×2 column-major ordering.</span>
         </div>
         <span>
           {squad.permanentCapacity} permanent / {squad.maximum} max
@@ -130,7 +129,7 @@ export default function DraftSquadGrid({
       >
         <div className="draft-squad-grid" aria-label="Selected squad slots">
           {squad.slots.map((slot) => {
-            const operator = slot.operatorId ? operatorById.get(slot.operatorId) ?? null : null
+            const operator = slot.operatorId ? (operatorById.get(slot.operatorId) ?? null) : null
             return (
               <div
                 className={`draft-squad-slot draft-squad-slot--${slot.state}`}

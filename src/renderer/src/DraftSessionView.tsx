@@ -38,9 +38,7 @@ export default function DraftSessionView({
   operators,
   targetSize,
   ready,
-  distributionLabel,
   rulebook,
-  poolSourceLabel,
   dataset,
   configuration,
   validationErrors = [],
@@ -159,15 +157,6 @@ export default function DraftSessionView({
           {state ? 'New Draft' : 'Start Draft'}
         </button>
       </div>
-      <div className="draft-status-context" aria-label="Draft Rulebook context">
-        <span>Revision {rulebook.identifier.revision}</span>
-        <span>{poolSourceLabel}</span>
-        <span>{distributionLabel}</span>
-        <span>{operators.length} eligible operators</span>
-      </div>
-      {rulebook.identifier.description && (
-        <p className="draft-rulebook-description">{rulebook.identifier.description}</p>
-      )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>
@@ -184,12 +173,6 @@ export default function DraftSessionView({
         </div>
       )}
       {statusMessage && !statusError && <p className="draft-session-note">{statusMessage}</p>}
-      {state && (
-        <p className="draft-session-note">
-          This Draft is tied to its starting pool, target size, and Draft Rulebook. Changing any of
-          them resets the session.
-        </p>
-      )}
       {!state ? (
         <div className="draft-empty-state">
           <strong>

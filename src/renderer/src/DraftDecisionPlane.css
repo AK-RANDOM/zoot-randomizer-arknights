@@ -1,7 +1,7 @@
 .draft-decision-plane {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
   margin-bottom: 12px;
 }
 
@@ -10,30 +10,30 @@
 }
 
 .draft-decision-group--offers {
-  flex: 1 1 auto;
+  flex: 0 0 calc(50% - 5px);
 }
 
 .draft-decision-group--held,
 .draft-decision-group--forfeit {
-  flex: 0 0 clamp(150px, 15vw, 185px);
-}
-
-.draft-decision-group__label {
-  margin-bottom: 6px;
-  color: #818187;
-  font-size: 0.66rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  flex: 0 0 calc((100% - 50px) / 6);
 }
 
 .draft-decision-offer-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .draft-decision-group .operator-card {
   aspect-ratio: 1 / 2;
+}
+
+/* Draft offer cards intentionally match Standard squad cards exactly. */
+.draft-decision-group .operator-card--portrait {
+  border: 3px solid var(--rarity-color, #66666e);
+  border-radius: 4px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 8px 20px rgba(0, 0, 0, 0.28);
 }
 
 .draft-decision-control {
@@ -73,9 +73,7 @@
   border: 1px solid rgba(207, 73, 79, 0.86);
   border-radius: 6px;
   color: #f1d4d6;
-  background:
-    linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)),
-    #171113;
+  background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
   text-align: left;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
@@ -85,9 +83,7 @@
   border-color: #f07b82;
   outline: 2px solid #ffffff;
   outline-offset: 2px;
-  background:
-    linear-gradient(180deg, rgba(151, 38, 45, 0.4), rgba(52, 17, 21, 0.95)),
-    #1b1114;
+  background: linear-gradient(180deg, rgba(151, 38, 45, 0.4), rgba(52, 17, 21, 0.95)), #1b1114;
 }
 
 .draft-forfeit-surface:disabled {

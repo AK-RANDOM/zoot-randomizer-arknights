@@ -112,127 +112,115 @@ export default function DraftDecisionPlane({
   } satisfies CSSProperties
 
   return (
-    <>
-      <div className="draft-round-heading">
-        <div>
-          <span>Current round</span>
-          <strong>Pick, Hold, or Forfeit to resolve the round</strong>
+    <div className="draft-decision-plane" aria-label="Current Draft decision">
+      <section
+        className="draft-decision-group draft-decision-group--offers"
+        aria-label="Current offers"
+      >
+        <div className="draft-decision-offer-grid" style={offerGridStyle}>
+          {offeredOperators.map((operator) => {
+            const presentation = resolveDraftOperatorPresentation(
+              state,
+              operators,
+              operator,
+              configuration,
+            )
+            const interactionDetails = dataset
+              ? buildLiveRulebookOperatorInteractionDetails(
+                  rulebook,
+                  operator,
+                  dataset,
+                  operators,
+                  state,
+                  configuration,
+                )
+              : undefined
+            const holdAction = presentation.hold?.action
+            return (
+              <DraftOperatorCard
+                key={operator.id}
+                operator={operator}
+                presentation={presentation}
+                interactionDetails={interactionDetails}
+                onPick={() => onPick(operator.id)}
+                onHold={holdAction ? () => onAction(holdAction) : undefined}
+              />
+            )
+          })}
         </div>
-        <span>Round {state.roundNumber}</span>
-      </div>
-      <div className="draft-decision-plane" aria-label="Current Draft decision">
+        {reroll && (
+          <div className="draft-decision-control draft-decision-control--offers">
+            <button
+              type="button"
+              className="secondary-button draft-decision-action"
+              disabled={!reroll.available}
+              title={reroll.blockReasonLabel ?? undefined}
+              onClick={() => onAction(reroll.action)}
+            >
+              <strong>Reroll</strong>
+              <span>
+                {rerollLimit ? `${rerollLimit} · ` : ''}
+                {pointDeltaLabel(reroll.economy)}
+              </span>
+            </button>
+          </div>
+        )}
+      </section>
+      {heldOperator && (
         <section
-          className="draft-decision-group draft-decision-group--offers"
-          aria-label="Current offers"
+          className="draft-decision-group draft-decision-group--held"
+          aria-label="Held operator"
         >
-          <div className="draft-decision-group__label">Offers</div>
-          <div className="draft-decision-offer-grid" style={offerGridStyle}>
-            {offeredOperators.map((operator) => {
-              const presentation = resolveDraftOperatorPresentation(
-                state,
-                operators,
-                operator,
-                configuration,
-              )
-              const interactionDetails = dataset
+          <DraftOperatorCard
+            operator={heldOperator}
+            presentation={resolveDraftOperatorPresentation(
+              state,
+              operators,
+              heldOperator,
+              configuration,
+            )}
+            interactionDetails={
+              dataset
                 ? buildLiveRulebookOperatorInteractionDetails(
                     rulebook,
-                    operator,
+                    heldOperator,
                     dataset,
                     operators,
                     state,
                     configuration,
                   )
                 : undefined
-              const holdAction = presentation.hold?.action
-              return (
-                <DraftOperatorCard
-                  key={operator.id}
-                  operator={operator}
-                  presentation={presentation}
-                  interactionDetails={interactionDetails}
-                  onPick={() => onPick(operator.id)}
-                  onHold={holdAction ? () => onAction(holdAction) : undefined}
-                />
-              )
-            })}
-          </div>
-          {reroll && (
-            <div className="draft-decision-control draft-decision-control--offers">
+            }
+            currentUpkeep={holdPresentation?.currentUpkeep ?? null}
+            showHold={false}
+            onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
+          />
+          {releaseHold && (
+            <div className="draft-decision-control">
               <button
                 type="button"
                 className="secondary-button draft-decision-action"
-                disabled={!reroll.available}
-                title={reroll.blockReasonLabel ?? undefined}
-                onClick={() => onAction(reroll.action)}
+                disabled={!releaseHold.available}
+                title={releaseHold.blockReasonLabel ?? undefined}
+                onClick={() => onAction(releaseHold.action)}
               >
-                <strong>Reroll</strong>
-                <span>
-                  {rerollLimit ? `${rerollLimit} · ` : ''}
-                  {pointDeltaLabel(reroll.economy)}
-                </span>
+                <strong>Release</strong>
+                {releaseHold.economy.pointDelta !== 0 && (
+                  <span>{pointDeltaLabel(releaseHold.economy)}</span>
+                )}
               </button>
             </div>
           )}
         </section>
-        {heldOperator && (
-          <section
-            className="draft-decision-group draft-decision-group--held"
-            aria-label="Held operator"
-          >
-            <div className="draft-decision-group__label">Held</div>
-            <DraftOperatorCard
-              operator={heldOperator}
-              presentation={resolveDraftOperatorPresentation(
-                state,
-                operators,
-                heldOperator,
-                configuration,
-              )}
-              interactionDetails={
-                dataset
-                  ? buildLiveRulebookOperatorInteractionDetails(
-                      rulebook,
-                      heldOperator,
-                      dataset,
-                      operators,
-                      state,
-                      configuration,
-                    )
-                  : undefined
-              }
-              currentUpkeep={holdPresentation?.currentUpkeep ?? null}
-              showHold={false}
-              onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
-            />
-            {releaseHold && (
-              <div className="draft-decision-control">
-                <button
-                  type="button"
-                  className="secondary-button draft-decision-action"
-                  disabled={!releaseHold.available}
-                  title={releaseHold.blockReasonLabel ?? undefined}
-                  onClick={() => onAction(releaseHold.action)}
-                >
-                  <strong>Release</strong>
-                  {releaseHold.economy.pointDelta !== 0 && (
-                    <span>{pointDeltaLabel(releaseHold.economy)}</span>
-                  )}
-                </button>
-              </div>
-            )}
-          </section>
-        )}
-        {forfeit && (
-          <section
-            className="draft-decision-group draft-decision-group--forfeit"
-            aria-label="Forfeit"
-          >
-            <div className="draft-decision-group__label">Round end</div>
-            <ForfeitSurface presentation={forfeit} onForfeit={() => onAction(forfeit.action)} />
-          </section>
-        )}
-      </div>
-    </>
+      )}
+      {forfeit && (
+        <section
+          className="draft-decision-group draft-decision-group--forfeit"
+          aria-label="Forfeit"
+        >
+          <ForfeitSurface presentation={forfeit} onForfeit={() => onAction(forfeit.action)} />
+        </section>
+      )}
+    </div>
   )
 }

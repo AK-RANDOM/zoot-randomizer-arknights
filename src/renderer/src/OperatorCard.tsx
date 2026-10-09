@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
@@ -39,11 +39,31 @@ export default function OperatorCard({
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [usingPortrait, setUsingPortrait] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
+  const nameViewportRef = useRef<HTMLDivElement | null>(null)
+  const nameTextRef = useRef<HTMLSpanElement | null>(null)
+  const [nameOverflow, setNameOverflow] = useState(0)
   const [tooltipPosition, setTooltipPosition] = useState<{
     top?: number
     bottom?: number
     right: number
   } | null>(null)
+
+  useEffect(() => {
+    const viewport = nameViewportRef.current
+    const text = nameTextRef.current
+    if (!viewport || !text) return
+
+    const measure = (): void => {
+      setNameOverflow(Math.max(0, text.scrollWidth - viewport.clientWidth))
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(text)
+
+    return () => observer.disconnect()
+  }, [operator.name])
 
   useEffect(() => {
     let active = true
@@ -194,7 +214,17 @@ export default function OperatorCard({
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
-        <strong>{operator.name}</strong>
+        <div
+          ref={nameViewportRef}
+          className={`operator-card__name-viewport${nameOverflow > 0 ? ' is-overflowing' : ''}`}
+          style={{ '--operator-name-overflow': `${nameOverflow}px` } as CSSProperties}
+        >
+          <strong>
+            <span ref={nameTextRef} className="operator-card__name-text">
+              {operator.name}
+            </span>
+          </strong>
+        </div>
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
           {'★'.repeat(operator.rarity)}
         </span>

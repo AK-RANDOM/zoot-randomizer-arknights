@@ -1,7 +1,4 @@
-import type {
-  OperatorDataset,
-  OperatorDatasetSources,
-} from './operator.ts'
+import type { OperatorDataset, OperatorDatasetSources } from './operator.ts'
 import {
   GAME_DATA_LOCALES,
   UPSTREAM,
@@ -11,7 +8,6 @@ import {
   factionLabelsFromHandbook,
   factionLabelsFromHandbooks,
   gameDataExcelPath,
-  gameDataExcelUrl,
   normalizeCharacterTables,
   subclassLabelsFromUniEquip,
   validateOperatorDataset,
@@ -23,10 +19,23 @@ import {
   type RawMainTextTable,
   type RawUniEquipData,
 } from './operatorData.ts'
-import {
-  applyRaceMetadata,
-  type RawHandbookInfoTable,
-} from './raceMetadata.ts'
+import { applyRaceMetadata, type RawHandbookInfoTable } from './raceMetadata.ts'
+
+const GAMEDATA_BRANCH = 'master'
+const RESOURCES_BRANCH = 'main'
+const RELEASE_BRANCH = 'main'
+
+function githubRawUrl(repository: string, revision: string, path: string): string {
+  return `https://raw.githubusercontent.com/${repository}/${revision}/${path}`
+}
+
+function gameDataExcelUrlAtRevision(
+  locale: (typeof GAME_DATA_LOCALES)[number],
+  filename: string,
+  revision: string,
+): string {
+  return githubRawUrl(UPSTREAM.gamedataRepo, revision, gameDataExcelPath(locale, filename))
+}
 
 export interface OperatorDataFetchOptions {
   userAgent?: string
@@ -70,61 +79,41 @@ async function fetchText(url: string, options: OperatorDataFetchOptions): Promis
   return response.text()
 }
 
-async function latestCommit(
+async function latestBranchCommit(
   repository: string,
-  path: string,
+  branch: string,
   options: OperatorDataFetchOptions,
 ): Promise<string> {
-  const url = new URL(`https://api.github.com/repos/${repository}/commits`)
-  url.searchParams.set('path', path)
-  url.searchParams.set('per_page', '1')
-  const commits = await fetchJson<Array<{ sha: string }>>(url.toString(), options)
-  if (!commits[0]?.sha) throw new Error(`No upstream commit found for ${repository}/${path}`)
-  return commits[0].sha
+  const ref = await fetchJson<{ object?: { sha?: string } }>(
+    `https://api.github.com/repos/${repository}/git/ref/heads/${branch}`,
+    options,
+  )
+  if (!ref.object?.sha) {
+    throw new Error(`No upstream branch head found for ${repository}@${branch}`)
+  }
+  return ref.object.sha
 }
 
 export async function fetchLatestOperatorDatasetSources(
   options: OperatorDataFetchOptions = {},
 ): Promise<OperatorDatasetSources> {
-  const [
-    gamedataCnCommit,
-    gamedataEnCommit,
-    gamedataJpCommit,
-    gamedataKrCommit,
-    gamedataTwCommit,
-    gamedataCnHandbookCommit,
-    gamedataEnHandbookCommit,
-    gamedataJpHandbookCommit,
-    gamedataKrHandbookCommit,
-    gamedataTwHandbookCommit,
-    resourcesCommit,
-    releaseMetadataCommit,
-  ] = await Promise.all([
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'character_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'character_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'character_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'character_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'character_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('cn', 'handbook_info_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('en', 'handbook_info_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('jp', 'handbook_info_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('kr', 'handbook_info_table.json'), options),
-    latestCommit(UPSTREAM.gamedataRepo, gameDataExcelPath('tw', 'handbook_info_table.json'), options),
-    latestCommit(UPSTREAM.resourcesRepo, UPSTREAM.resourceAvatarPath, options),
-    latestCommit(UPSTREAM.releaseRepo, UPSTREAM.releaseInfoPath, options),
+  const [gamedataCommit, resourcesCommit, releaseMetadataCommit] = await Promise.all([
+    latestBranchCommit(UPSTREAM.gamedataRepo, GAMEDATA_BRANCH, options),
+    latestBranchCommit(UPSTREAM.resourcesRepo, RESOURCES_BRANCH, options),
+    latestBranchCommit(UPSTREAM.releaseRepo, RELEASE_BRANCH, options),
   ])
 
   return {
-    gamedataCnCommit,
-    gamedataEnCommit,
-    gamedataJpCommit,
-    gamedataKrCommit,
-    gamedataTwCommit,
-    gamedataCnHandbookCommit,
-    gamedataEnHandbookCommit,
-    gamedataJpHandbookCommit,
-    gamedataKrHandbookCommit,
-    gamedataTwHandbookCommit,
+    gamedataCnCommit: gamedataCommit,
+    gamedataEnCommit: gamedataCommit,
+    gamedataJpCommit: gamedataCommit,
+    gamedataKrCommit: gamedataCommit,
+    gamedataTwCommit: gamedataCommit,
+    gamedataCnHandbookCommit: gamedataCommit,
+    gamedataEnHandbookCommit: gamedataCommit,
+    gamedataJpHandbookCommit: gamedataCommit,
+    gamedataKrHandbookCommit: gamedataCommit,
+    gamedataTwHandbookCommit: gamedataCommit,
     resourcesCommit,
     releaseMetadataCommit,
   }
@@ -155,14 +144,32 @@ export async function fetchAndBuildOperatorDataset(
   generatedAt = new Date().toISOString(),
   options: OperatorDataFetchOptions = {},
 ): Promise<{ dataset: OperatorDataset; validation: OperatorDatasetValidation }> {
+  const gamedataRevision = sources.gamedataCnCommit ?? GAMEDATA_BRANCH
+  const releaseRevision = sources.releaseMetadataCommit ?? RELEASE_BRANCH
+
   const localeEntries = await Promise.all(
     GAME_DATA_LOCALES.map(async (locale) => {
       const [characters, patch, handbook, handbookInfo, mainText] = await Promise.all([
-        fetchJson<RawCharacterTable>(gameDataExcelUrl(locale, 'character_table.json'), options),
-        fetchJson<RawCharacterPatchTable>(gameDataExcelUrl(locale, 'char_patch_table.json'), options),
-        fetchJson<RawHandbookTeamTable>(gameDataExcelUrl(locale, 'handbook_team_table.json'), options),
-        fetchJson<RawHandbookInfoTable>(gameDataExcelUrl(locale, 'handbook_info_table.json'), options),
-        fetchJson<RawMainTextTable>(gameDataExcelUrl(locale, 'main_text.json'), options),
+        fetchJson<RawCharacterTable>(
+          gameDataExcelUrlAtRevision(locale, 'character_table.json', gamedataRevision),
+          options,
+        ),
+        fetchJson<RawCharacterPatchTable>(
+          gameDataExcelUrlAtRevision(locale, 'char_patch_table.json', gamedataRevision),
+          options,
+        ),
+        fetchJson<RawHandbookTeamTable>(
+          gameDataExcelUrlAtRevision(locale, 'handbook_team_table.json', gamedataRevision),
+          options,
+        ),
+        fetchJson<RawHandbookInfoTable>(
+          gameDataExcelUrlAtRevision(locale, 'handbook_info_table.json', gamedataRevision),
+          options,
+        ),
+        fetchJson<RawMainTextTable>(
+          gameDataExcelUrlAtRevision(locale, 'main_text.json', gamedataRevision),
+          options,
+        ),
       ])
       return [locale, { characters, patch, handbook, handbookInfo, mainText }] as const
     }),
@@ -178,13 +185,34 @@ export async function fetchAndBuildOperatorDataset(
     releaseCandidateSource,
     releaseEventSource,
   ] = await Promise.all([
-    fetchJson<RawCharacterMetaTable>(UPSTREAM.cnCharMetaUrl, options),
-    fetchJson<RawCharacterMetaTable>(UPSTREAM.enCharMetaUrl, options),
-    fetchJson<RawGachaTable>(UPSTREAM.cnGachaUrl, options),
-    fetchJson<RawUniEquipData>(gameDataExcelUrl('cn', 'uniequip_data.json'), options),
-    fetchText(UPSTREAM.releaseInfoUrl, options),
-    fetchText(UPSTREAM.releaseCandidateUrl, options),
-    fetchText(UPSTREAM.releaseEventUrl, options),
+    fetchJson<RawCharacterMetaTable>(
+      githubRawUrl(UPSTREAM.gamedataRepo, gamedataRevision, UPSTREAM.cnCharMetaPath),
+      options,
+    ),
+    fetchJson<RawCharacterMetaTable>(
+      githubRawUrl(UPSTREAM.gamedataRepo, gamedataRevision, UPSTREAM.enCharMetaPath),
+      options,
+    ),
+    fetchJson<RawGachaTable>(
+      githubRawUrl(UPSTREAM.gamedataRepo, gamedataRevision, UPSTREAM.cnGachaPath),
+      options,
+    ),
+    fetchJson<RawUniEquipData>(
+      gameDataExcelUrlAtRevision('cn', 'uniequip_data.json', gamedataRevision),
+      options,
+    ),
+    fetchText(
+      githubRawUrl(UPSTREAM.releaseRepo, releaseRevision, UPSTREAM.releaseInfoPath),
+      options,
+    ),
+    fetchText(
+      githubRawUrl(UPSTREAM.releaseRepo, releaseRevision, UPSTREAM.releaseCandidatePath),
+      options,
+    ),
+    fetchText(
+      githubRawUrl(UPSTREAM.releaseRepo, releaseRevision, UPSTREAM.releaseEventPath),
+      options,
+    ),
   ])
 
   const localizedCharacterTables = Object.fromEntries(
@@ -227,10 +255,7 @@ export async function fetchAndBuildOperatorDataset(
         cnCharMeta,
         enCharMeta,
         cnGacha,
-        factionLabels: factionLabelsFromHandbooks(
-          localeData.cn.handbook,
-          localeData.en.handbook,
-        ),
+        factionLabels: factionLabelsFromHandbooks(localeData.cn.handbook, localeData.en.handbook),
         localizedCharacterTables,
         localizedPatchTables,
         localizedFactionLabels,

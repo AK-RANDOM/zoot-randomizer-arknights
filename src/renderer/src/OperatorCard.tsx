@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
@@ -22,17 +22,27 @@ export interface OperatorCardInteractionDetails {
 interface OperatorCardProps {
   operator: Operator
   interactionDetails?: OperatorCardInteractionDetails
+  variant?: 'standard' | 'draft-compact'
+  topRightAdornment?: ReactNode
+  overlay?: ReactNode
 }
 
 export default function OperatorCard({
   operator,
   interactionDetails,
+  variant = 'standard',
+  topRightAdornment,
+  overlay,
 }: OperatorCardProps): React.JSX.Element {
   const artworkPreference = useOperatorArtworkPreference()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [usingPortrait, setUsingPortrait] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
-  const [tooltipPosition, setTooltipPosition] = useState<{ top?: number; bottom?: number; right: number } | null>(null)
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    top?: number
+    bottom?: number
+    right: number
+  } | null>(null)
 
   useEffect(() => {
     let active = true
@@ -75,10 +85,7 @@ export default function OperatorCard({
     const rect = indicator.getBoundingClientRect()
     const tooltipWidth = Math.min(360, Math.max(0, window.innerWidth - 32))
     const maximumRight = Math.max(16, window.innerWidth - tooltipWidth - 16)
-    const right = Math.min(
-      Math.max(16, window.innerWidth - rect.right),
-      maximumRight,
-    )
+    const right = Math.min(Math.max(16, window.innerWidth - rect.right), maximumRight)
     if (rect.top > window.innerHeight / 2) {
       setTooltipPosition({ bottom: Math.max(16, window.innerHeight - rect.top + 6), right })
     } else {
@@ -88,7 +95,7 @@ export default function OperatorCard({
 
   return (
     <article
-      className="operator-card operator-card--portrait"
+      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
       title={`${operator.name} — ${artworkPreference.toUpperCase()} artwork`}
@@ -111,6 +118,10 @@ export default function OperatorCard({
 
       <ClassIcon operatorClass={operator.class} className="operator-card__class-icon" />
 
+      {topRightAdornment && (
+        <div className="operator-card__top-right-adornment">{topRightAdornment}</div>
+      )}
+
       {hasInteractions && interactionDetails && (
         <>
           <div className="operator-card__interaction-control">
@@ -127,41 +138,56 @@ export default function OperatorCard({
               ↔
             </button>
           </div>
-          {tooltipPosition && createPortal(
-            <div
-              className="operator-card__interaction-tooltip"
-              role="tooltip"
-              style={{
-                top: tooltipPosition.top,
-                bottom: tooltipPosition.bottom,
-                right: tooltipPosition.right,
-              }}
-            >
-              <strong>{operator.name}</strong>
-              <dl>
-                <div><dt>Baseline Cost</dt><dd>{interactionDetails.baselineCost}</dd></div>
-                <div><dt>Minimum Possible Cost</dt><dd>{interactionDetails.minimumCost}</dd></div>
-                <div><dt>Maximum Possible Cost</dt><dd>{interactionDetails.maximumCost}</dd></div>
-                {interactionDetails.currentCost !== undefined && (
-                  <div><dt>Current Cost</dt><dd>{interactionDetails.currentCost}</dd></div>
-                )}
-              </dl>
-              <div className="operator-card__interaction-list">
-                <span>Interactions affecting this operator:</span>
-                <ul>
-                  {interactionDetails.interactions.map((interaction) => (
-                    <li key={interaction.id}>
-                      <span>{interaction.label}</span>
-                      <strong>{interaction.modifier}</strong>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>,
-            document.body,
-          )}
+          {tooltipPosition &&
+            createPortal(
+              <div
+                className="operator-card__interaction-tooltip"
+                role="tooltip"
+                style={{
+                  top: tooltipPosition.top,
+                  bottom: tooltipPosition.bottom,
+                  right: tooltipPosition.right,
+                }}
+              >
+                <strong>{operator.name}</strong>
+                <dl>
+                  <div>
+                    <dt>Baseline Cost</dt>
+                    <dd>{interactionDetails.baselineCost}</dd>
+                  </div>
+                  <div>
+                    <dt>Minimum Possible Cost</dt>
+                    <dd>{interactionDetails.minimumCost}</dd>
+                  </div>
+                  <div>
+                    <dt>Maximum Possible Cost</dt>
+                    <dd>{interactionDetails.maximumCost}</dd>
+                  </div>
+                  {interactionDetails.currentCost !== undefined && (
+                    <div>
+                      <dt>Current Cost</dt>
+                      <dd>{interactionDetails.currentCost}</dd>
+                    </div>
+                  )}
+                </dl>
+                <div className="operator-card__interaction-list">
+                  <span>Interactions affecting this operator:</span>
+                  <ul>
+                    {interactionDetails.interactions.map((interaction) => (
+                      <li key={interaction.id}>
+                        <span>{interaction.label}</span>
+                        <strong>{interaction.modifier}</strong>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>,
+              document.body,
+            )}
         </>
       )}
+
+      {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
         <strong>{operator.name}</strong>

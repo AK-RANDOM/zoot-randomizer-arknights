@@ -139,6 +139,42 @@ export function operatorDatasetSourcesEqual(
   )
 }
 
+export function alignAvailabilityWithReleaseMetadata(dataset: OperatorDataset): OperatorDataset {
+  const operators = dataset.operators.flatMap((operator) => {
+    const cnAvailable =
+      operator.availableOn.cn &&
+      operator.release.cn.date !== null &&
+      operator.release.cn.yearGroup !== null
+    const globalAvailable =
+      operator.availableOn.global &&
+      operator.release.global.date !== null &&
+      operator.release.global.yearGroup !== null
+
+    if (!cnAvailable && !globalAvailable) return []
+    if (
+      cnAvailable === operator.availableOn.cn &&
+      globalAvailable === operator.availableOn.global
+    ) {
+      return [operator]
+    }
+
+    return [
+      {
+        ...operator,
+        availableOn: { cn: cnAvailable, global: globalAvailable },
+        release: {
+          cn: cnAvailable ? operator.release.cn : { date: null, yearGroup: null },
+          global: globalAvailable
+            ? operator.release.global
+            : { date: null, yearGroup: null },
+        },
+      },
+    ]
+  })
+
+  return { ...dataset, operators }
+}
+
 export async function fetchAndBuildOperatorDataset(
   sources: OperatorDatasetSources,
   generatedAt = new Date().toISOString(),
@@ -243,29 +279,31 @@ export async function fetchAndBuildOperatorDataset(
     releaseEventSource,
   )
   const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
-  const dataset = applyRaceMetadata(
-    normalizeCharacterTables(
-      localeData.cn.characters,
-      localeData.en.characters,
-      sources,
-      generatedAt,
-      {
-        cnPatch: localeData.cn.patch,
-        enPatch: localeData.en.patch,
-        cnCharMeta,
-        enCharMeta,
-        cnGacha,
-        factionLabels: factionLabelsFromHandbooks(localeData.cn.handbook, localeData.en.handbook),
-        localizedCharacterTables,
-        localizedPatchTables,
-        localizedFactionLabels,
-        localizedClassLabels,
-        localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
-        releaseDates,
-        releaseCategories,
-      },
+  const dataset = alignAvailabilityWithReleaseMetadata(
+    applyRaceMetadata(
+      normalizeCharacterTables(
+        localeData.cn.characters,
+        localeData.en.characters,
+        sources,
+        generatedAt,
+        {
+          cnPatch: localeData.cn.patch,
+          enPatch: localeData.en.patch,
+          cnCharMeta,
+          enCharMeta,
+          cnGacha,
+          factionLabels: factionLabelsFromHandbooks(localeData.cn.handbook, localeData.en.handbook),
+          localizedCharacterTables,
+          localizedPatchTables,
+          localizedFactionLabels,
+          localizedClassLabels,
+          localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
+          releaseDates,
+          releaseCategories,
+        },
+      ),
+      localizedHandbooks,
     ),
-    localizedHandbooks,
   )
 
   return {

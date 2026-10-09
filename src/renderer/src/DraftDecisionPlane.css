@@ -1,6 +1,7 @@
 .draft-decision-plane {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 50%) minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
   margin-bottom: 12px;
 }
@@ -10,17 +11,25 @@
 }
 
 .draft-decision-group--offers {
-  flex: 0 0 calc(50% - 5px);
+  grid-column: 2;
+  width: 100%;
+  justify-self: center;
 }
 
-.draft-decision-group--held,
-.draft-decision-group--forfeit {
-  flex: 0 0 calc((100% - 50px) / 6);
+.draft-decision-side-rail {
+  grid-column: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
 }
 
 .draft-decision-offer-grid {
   display: grid;
   gap: 10px;
+  justify-content: center;
+  justify-items: stretch;
+  margin-inline: auto;
 }
 
 .draft-decision-group .operator-card {
@@ -182,30 +191,34 @@
 
 @media (max-width: 1050px) {
   .draft-decision-plane {
-    flex-wrap: wrap;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .draft-decision-group--offers,
+  .draft-decision-side-rail {
+    grid-column: 1;
   }
 
   .draft-decision-group--offers {
-    flex-basis: 100%;
+    width: min(100%, 720px);
   }
 
-  .draft-decision-group--held,
-  .draft-decision-group--forfeit {
-    flex-basis: min(185px, calc(50% - 7px));
+  .draft-decision-side-rail {
+    width: min(100%, 380px);
+    justify-self: center;
   }
 }
 
 @media (max-width: 820px) {
-  .draft-decision-plane {
-    flex-direction: column;
-  }
-
   .draft-decision-group--offers,
   .draft-decision-group--held,
   .draft-decision-group--forfeit {
     width: 100%;
     max-width: none;
-    flex-basis: auto;
+  }
+
+  .draft-decision-side-rail {
+    width: 100%;
   }
 
   .draft-decision-offer-grid {

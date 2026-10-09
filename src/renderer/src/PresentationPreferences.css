@@ -12,6 +12,7 @@
 }
 
 .operator-card--portrait {
+  aspect-ratio: 1 / 2;
   border-width: 1px;
   border-color: rgba(255, 255, 255, 0.16);
   border-radius: 5px;
@@ -44,13 +45,33 @@
   background: #171719;
 }
 
-.operator-card--portrait .operator-card__art img {
+.operator-card--portrait .operator-card__faction-logo {
+  position: absolute;
+  z-index: 0;
+  top: 5px;
+  left: 50%;
+  width: 90%;
+  height: 50%;
+  object-fit: contain;
+  object-position: top center;
+  opacity: 0.5;
+  transform: translateX(-50%);
+  filter: grayscale(0.15);
+  pointer-events: none;
+  user-select: none;
+}
+
+.operator-card--portrait .operator-card__art img:not(.operator-card__faction-logo) {
+  position: relative;
+  z-index: 1;
   object-fit: cover;
   object-position: center top;
   animation: operator-art-in 160ms ease-out both;
 }
 
-.operator-card--portrait .operator-card__art img.is-avatar-fallback {
+.operator-card--portrait
+  .operator-card__art
+  img.is-avatar-fallback:not(.operator-card__faction-logo) {
   object-position: center;
 }
 

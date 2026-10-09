@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
+import { FactionIcon } from './FilterAssetIcon'
 import { useOperatorArtworkPreference } from './presentationPreferences'
 import './OperatorCard.css'
 
@@ -101,6 +102,9 @@ export default function OperatorCard({
       title={`${operator.name} — ${artworkPreference.toUpperCase()} artwork`}
     >
       <div className="operator-card__art">
+        {operator.faction.main && (
+          <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
+        )}
         {imageUrl ? (
           <img
             key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}`}

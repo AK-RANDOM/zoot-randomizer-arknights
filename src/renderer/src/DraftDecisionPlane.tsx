@@ -166,60 +166,64 @@ export default function DraftDecisionPlane({
           </div>
         )}
       </section>
-      {heldOperator && (
-        <section
-          className="draft-decision-group draft-decision-group--held"
-          aria-label="Held operator"
-        >
-          <DraftOperatorCard
-            operator={heldOperator}
-            presentation={resolveDraftOperatorPresentation(
-              state,
-              operators,
-              heldOperator,
-              configuration,
-            )}
-            interactionDetails={
-              dataset
-                ? buildLiveRulebookOperatorInteractionDetails(
-                    rulebook,
-                    heldOperator,
-                    dataset,
-                    operators,
-                    state,
-                    configuration,
-                  )
-                : undefined
-            }
-            currentUpkeep={holdPresentation?.currentUpkeep ?? null}
-            showHold={false}
-            onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
-          />
-          {releaseHold && (
-            <div className="draft-decision-control">
-              <button
-                type="button"
-                className="secondary-button draft-decision-action"
-                disabled={!releaseHold.available}
-                title={releaseHold.blockReasonLabel ?? undefined}
-                onClick={() => onAction(releaseHold.action)}
-              >
-                <strong>Release</strong>
-                {releaseHold.economy.pointDelta !== 0 && (
-                  <span>{pointDeltaLabel(releaseHold.economy)}</span>
+      {(heldOperator || forfeit) && (
+        <div className="draft-decision-side-rail">
+          {heldOperator && (
+            <section
+              className="draft-decision-group draft-decision-group--held"
+              aria-label="Held operator"
+            >
+              <DraftOperatorCard
+                operator={heldOperator}
+                presentation={resolveDraftOperatorPresentation(
+                  state,
+                  operators,
+                  heldOperator,
+                  configuration,
                 )}
-              </button>
-            </div>
+                interactionDetails={
+                  dataset
+                    ? buildLiveRulebookOperatorInteractionDetails(
+                        rulebook,
+                        heldOperator,
+                        dataset,
+                        operators,
+                        state,
+                        configuration,
+                      )
+                    : undefined
+                }
+                currentUpkeep={holdPresentation?.currentUpkeep ?? null}
+                showHold={false}
+                onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
+              />
+              {releaseHold && (
+                <div className="draft-decision-control">
+                  <button
+                    type="button"
+                    className="secondary-button draft-decision-action"
+                    disabled={!releaseHold.available}
+                    title={releaseHold.blockReasonLabel ?? undefined}
+                    onClick={() => onAction(releaseHold.action)}
+                  >
+                    <strong>Release</strong>
+                    {releaseHold.economy.pointDelta !== 0 && (
+                      <span>{pointDeltaLabel(releaseHold.economy)}</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </section>
           )}
-        </section>
-      )}
-      {forfeit && (
-        <section
-          className="draft-decision-group draft-decision-group--forfeit"
-          aria-label="Forfeit"
-        >
-          <ForfeitSurface presentation={forfeit} onForfeit={() => onAction(forfeit.action)} />
-        </section>
+          {forfeit && (
+            <section
+              className="draft-decision-group draft-decision-group--forfeit"
+              aria-label="Forfeit"
+            >
+              <ForfeitSurface presentation={forfeit} onForfeit={() => onAction(forfeit.action)} />
+            </section>
+          )}
+        </div>
       )}
     </div>
   )

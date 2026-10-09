@@ -9,6 +9,7 @@ import {
   draftEconomyValue,
   resolveDraftHoldPresentation,
   resolveDraftOperatorPresentation,
+  resolveDraftSquadPresentation,
   resolveDraftStatusPresentation,
 } from './draftPresentation'
 
@@ -40,7 +41,12 @@ const pool = [
   operator('four', 4),
   operator('five', 5),
   operator('six', 6),
-  operator('extra', 4),
+  operator('seven', 4),
+  operator('eight', 4),
+  operator('nine', 4),
+  operator('ten', 4),
+  operator('eleven', 4),
+  operator('twelve', 4),
 ]
 
 describe('Draft renderer presentation seam', () => {
@@ -105,5 +111,99 @@ describe('Draft renderer presentation seam', () => {
       maximum: 7,
       label: '6+1 / 7',
     })
+  })
+
+  it('maps Draft capacity into the fixed Standard 12-slot geometry', () => {
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: {
+        enabled: true,
+        startingActiveSlots: 6,
+        overflowSlots: 1,
+        maxActiveSlots: 9,
+      },
+    }
+    const state = startDraft(pool, 9, options)
+    const presentation = resolveDraftSquadPresentation(state)
+
+    expect(presentation.permanentCapacity).toBe(6)
+    expect(presentation.maximum).toBe(9)
+    expect(presentation.overflowVisible).toBe(true)
+    expect(presentation.overflowOperatorId).toBeNull()
+    expect(presentation.slots.map((slot) => slot.state)).toEqual([
+      'valid',
+      'valid',
+      'valid',
+      'valid',
+      'valid',
+      'valid',
+      'expandable',
+      'expandable',
+      'expandable',
+      'invalid',
+      'invalid',
+      'invalid',
+    ])
+  })
+
+  it('moves an occupied Overflow operator into normal ordering after expansion', () => {
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: {
+        enabled: true,
+        startingActiveSlots: 6,
+        overflowSlots: 1,
+        maxActiveSlots: 9,
+      },
+    }
+    const base = startDraft(pool, 9, options)
+    const draftedOperatorIds = pool.slice(0, 7).map((item) => item.id)
+    const overflowed = { ...base, draftedOperatorIds }
+
+    expect(resolveDraftSquadPresentation(overflowed).overflowOperatorId).toBe('seven')
+
+    const expanded = { ...overflowed, activeCapacity: 7 }
+    const presentation = resolveDraftSquadPresentation(expanded)
+    expect(presentation.slots[6]).toMatchObject({
+      slotNumber: 7,
+      state: 'valid',
+      operatorId: 'seven',
+    })
+    expect(presentation.overflowOperatorId).toBeNull()
+    expect(presentation.overflowVisible).toBe(true)
+  })
+
+  it('removes Overflow at maximum permanent capacity and reports a plain capacity label', () => {
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: {
+        enabled: true,
+        startingActiveSlots: 6,
+        overflowSlots: 1,
+        maxActiveSlots: 9,
+      },
+    }
+    const state = { ...startDraft(pool, 9, options), activeCapacity: 9 }
+
+    expect(resolveDraftSquadPresentation(state).overflowVisible).toBe(false)
+    expect(resolveDraftStatusPresentation(state, 9).capacity.label).toBe('9 / 9')
+  })
+
+  it('treats forfeited capacity as no longer permanent while leaving the configured maximum visible', () => {
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: {
+        enabled: true,
+        startingActiveSlots: 8,
+        overflowSlots: 1,
+        maxActiveSlots: 12,
+      },
+    }
+    const state = { ...startDraft(pool, 12, options), forfeitedCapacityCount: 2 }
+    const presentation = resolveDraftSquadPresentation(state)
+
+    expect(presentation.permanentCapacity).toBe(6)
+    expect(presentation.maximum).toBe(12)
+    expect(resolveDraftStatusPresentation(state, 12).capacity.label).toBe('6+1 / 12')
   })
 })

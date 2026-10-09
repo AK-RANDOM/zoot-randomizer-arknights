@@ -46,19 +46,68 @@
   padding: 1rem;
 }
 
+.squad-grid .squad-slot {
+  width: 90%;
+  justify-self: center;
+}
+
 .squad-grid .squad-slot,
 .squad-grid .squad-slot .operator-card,
 .squad-grid .slot-config-card,
-.squad-grid .disabled-slot {
+.squad-grid .disabled-slot,
+.squad-grid .slot-locked-card {
   aspect-ratio: 1 / 2;
   min-height: 0;
 }
 
 .squad-grid .squad-slot .operator-card,
 .squad-grid .slot-config-card,
-.squad-grid .disabled-slot {
+.squad-grid .disabled-slot,
+.squad-grid .slot-locked-card {
   width: 100%;
   height: 100%;
+  border-radius: 4px;
+}
+
+.squad-grid .operator-card--portrait {
+  border: 3px solid var(--rarity-color, #66666e);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.05), 0 8px 20px rgba(0,0,0,.28);
+}
+
+.squad-grid .slot-config-card:not(.is-constrained),
+.squad-grid .disabled-slot {
+  border: 3px solid #66666e;
+}
+
+.squad-grid .slot-config-card,
+.squad-grid .disabled-slot {
+  position: relative;
+}
+
+.squad-grid .slot-config-number {
+  position: absolute;
+  z-index: 8;
+  top: 7px;
+  left: 7px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 6px;
+  color: #e8e8eb;
+  background: rgba(7,7,9,.76);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  font-size: .7rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card .slot-config-number {
+  display: none;
 }
 
 .squad-grid .operator-card--portrait .operator-card__art img.is-portrait {

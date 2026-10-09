@@ -1,8 +1,5 @@
-import type {
-  OperatorClass,
-  OperatorDataset,
-  OperatorRarity,
-} from '../../shared/operator'
+import { useMemo } from 'react'
+import type { OperatorClass, OperatorDataset, OperatorRarity } from '../../shared/operator'
 import {
   DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS,
   createDefaultDraftRulebookSelector,
@@ -10,6 +7,7 @@ import {
   type DraftRulebookEligibility,
   type DraftRulebookSelector,
 } from '../../shared/draftRulebook'
+import { OperatorMultiSelector, type OperatorSelectorOption } from './OperatorSelector'
 
 export type DraftRulebookEligibilitySection = 'allOf' | 'anyOf' | 'noneOf'
 
@@ -32,7 +30,23 @@ export function DraftRulebookSelectorEditor({
   onChange,
   onRemove,
 }: DraftRulebookSelectorEditorProps): React.JSX.Element {
-  const catalog = createDraftRulebookSelectorCatalog(dataset)
+  const catalog = useMemo(() => createDraftRulebookSelectorCatalog(dataset), [dataset])
+  const operatorOptions = useMemo<OperatorSelectorOption[]>(() => {
+    const byId = new Map(dataset.operators.map((operator) => [operator.id, operator] as const))
+    return catalog.operators.flatMap((catalogOperator) => {
+      const operator = byId.get(catalogOperator.id)
+      return operator
+        ? [
+            {
+              key: operator.id,
+              label: catalogOperator.label,
+              operator,
+              aliases: [operator.subclass.name],
+            },
+          ]
+        : []
+    })
+  }, [catalog.operators, dataset.operators])
 
   return (
     <div className="rulebook-selector-editor">
@@ -41,32 +55,33 @@ export function DraftRulebookSelectorEditor({
         <select
           disabled={disabled}
           value={selector.type}
-          onChange={(event) => onChange(createDefaultDraftRulebookSelector(
-            event.target.value as DraftRulebookSelector['type'],
-            dataset,
-          ))}
+          onChange={(event) =>
+            onChange(
+              createDefaultDraftRulebookSelector(
+                event.target.value as DraftRulebookSelector['type'],
+                dataset,
+              ),
+            )
+          }
         >
           {DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS.map((option) => (
-            <option key={option.type} value={option.type}>{option.label}</option>
+            <option key={option.type} value={option.type}>
+              {option.label}
+            </option>
           ))}
         </select>
       </label>
 
       {selector.type === 'operators' && (
-        <label className="field rulebook-selector-values">
+        <div className="field rulebook-selector-values">
           <span>Matching operators</span>
-          <select
-            multiple
-            size={Math.min(8, Math.max(3, catalog.operators.length))}
+          <OperatorMultiSelector
+            options={operatorOptions}
+            valueKeys={selector.operatorIds}
             disabled={disabled}
-            value={selector.operatorIds}
-            onChange={(event) => onChange({ type: 'operators', operatorIds: selectedValues(event) })}
-          >
-            {catalog.operators.map((operator) => (
-              <option key={operator.id} value={operator.id}>{operator.label} ({operator.rarity}★)</option>
-            ))}
-          </select>
-        </label>
+            onChange={(operatorIds) => onChange({ type: 'operators', operatorIds })}
+          />
+        </div>
       )}
 
       {selector.type === 'rarities' && (
@@ -77,12 +92,18 @@ export function DraftRulebookSelectorEditor({
             size={6}
             disabled={disabled}
             value={selector.rarities.map(String)}
-            onChange={(event) => onChange({
-              type: 'rarities',
-              rarities: selectedValues(event).map(Number) as OperatorRarity[],
-            })}
+            onChange={(event) =>
+              onChange({
+                type: 'rarities',
+                rarities: selectedValues(event).map(Number) as OperatorRarity[],
+              })
+            }
           >
-            {catalog.rarities.map((rarity) => <option key={rarity} value={rarity}>{rarity}★</option>)}
+            {catalog.rarities.map((rarity) => (
+              <option key={rarity} value={rarity}>
+                {rarity}★
+              </option>
+            ))}
           </select>
         </label>
       )}
@@ -95,13 +116,17 @@ export function DraftRulebookSelectorEditor({
             size={8}
             disabled={disabled}
             value={selector.classes}
-            onChange={(event) => onChange({
-              type: 'classes',
-              classes: selectedValues(event) as OperatorClass[],
-            })}
+            onChange={(event) =>
+              onChange({
+                type: 'classes',
+                classes: selectedValues(event) as OperatorClass[],
+              })
+            }
           >
             {catalog.classes.map((operatorClass) => (
-              <option key={operatorClass.id} value={operatorClass.id}>{operatorClass.label}</option>
+              <option key={operatorClass.id} value={operatorClass.id}>
+                {operatorClass.label}
+              </option>
             ))}
           </select>
         </label>
@@ -115,9 +140,15 @@ export function DraftRulebookSelectorEditor({
             size={8}
             disabled={disabled}
             value={selector.subclassIds}
-            onChange={(event) => onChange({ type: 'subclasses', subclassIds: selectedValues(event) })}
+            onChange={(event) =>
+              onChange({ type: 'subclasses', subclassIds: selectedValues(event) })
+            }
           >
-            {catalog.subclasses.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+            {catalog.subclasses.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
       )}
@@ -132,7 +163,11 @@ export function DraftRulebookSelectorEditor({
             value={selector.factionIds}
             onChange={(event) => onChange({ type: 'factions', factionIds: selectedValues(event) })}
           >
-            {catalog.factions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+            {catalog.factions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
       )}
@@ -147,13 +182,19 @@ export function DraftRulebookSelectorEditor({
             value={selector.raceIds}
             onChange={(event) => onChange({ type: 'races', raceIds: selectedValues(event) })}
           >
-            {catalog.races.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+            {catalog.races.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </label>
       )}
 
       {onRemove && (
-        <button type="button" className="secondary-button" disabled={disabled} onClick={onRemove}>Remove selector</button>
+        <button type="button" className="secondary-button" disabled={disabled} onClick={onRemove}>
+          Remove selector
+        </button>
       )}
     </div>
   )
@@ -177,7 +218,9 @@ export function DraftRulebookEligibilityEditor({
   ): void => {
     onChange({
       ...eligibility,
-      [section]: eligibility[section].map((current, currentIndex) => currentIndex === index ? selector : current),
+      [section]: eligibility[section].map((current, currentIndex) =>
+        currentIndex === index ? selector : current,
+      ),
     })
   }
 
@@ -191,7 +234,10 @@ export function DraftRulebookEligibilityEditor({
   const addSelector = (section: DraftRulebookEligibilitySection): void => {
     onChange({
       ...eligibility,
-      [section]: [...eligibility[section], createDefaultDraftRulebookSelector('operators', dataset)],
+      [section]: [
+        ...eligibility[section],
+        createDefaultDraftRulebookSelector('operators', dataset),
+      ],
     })
   }
 
@@ -206,21 +252,33 @@ export function DraftRulebookEligibilityEditor({
       {sections.map(([section, label, help]) => (
         <section className="rulebook-eligibility-section" key={section}>
           <div className="rulebook-editor-subheading">
-            <div><strong>{label}</strong><small>{help}</small></div>
-            <button type="button" className="secondary-button" disabled={disabled} onClick={() => addSelector(section)}>Add selector</button>
+            <div>
+              <strong>{label}</strong>
+              <small>{help}</small>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={disabled}
+              onClick={() => addSelector(section)}
+            >
+              Add selector
+            </button>
           </div>
           {eligibility[section].length === 0 ? (
             <p className="filter-note">No selectors.</p>
-          ) : eligibility[section].map((selector, index) => (
-            <DraftRulebookSelectorEditor
-              key={`${section}:${index}`}
-              dataset={dataset}
-              selector={selector}
-              disabled={disabled}
-              onChange={(next) => updateSelector(section, index, next)}
-              onRemove={() => removeSelector(section, index)}
-            />
-          ))}
+          ) : (
+            eligibility[section].map((selector, index) => (
+              <DraftRulebookSelectorEditor
+                key={`${section}:${index}`}
+                dataset={dataset}
+                selector={selector}
+                disabled={disabled}
+                onChange={(next) => updateSelector(section, index, next)}
+                onRemove={() => removeSelector(section, index)}
+              />
+            ))
+          )}
         </section>
       ))}
     </div>

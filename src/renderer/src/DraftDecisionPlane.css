@@ -1,0 +1,230 @@
+.draft-decision-plane {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.draft-decision-group {
+  min-width: 0;
+}
+
+.draft-decision-group--offers {
+  flex: 1 1 auto;
+}
+
+.draft-decision-group--held,
+.draft-decision-group--forfeit {
+  flex: 0 0 clamp(150px, 15vw, 185px);
+}
+
+.draft-decision-group__label {
+  margin-bottom: 6px;
+  color: #818187;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.draft-decision-offer-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.draft-decision-group .operator-card {
+  aspect-ratio: 3 / 4;
+}
+
+.draft-decision-control {
+  margin-top: 8px;
+}
+
+.draft-decision-action {
+  display: grid;
+  width: 100%;
+  min-height: 42px;
+  place-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.draft-decision-action strong {
+  color: inherit;
+  font-size: 0.74rem;
+}
+
+.draft-decision-action span {
+  color: #8f8f96;
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.draft-decision-action:disabled span {
+  color: #66666c;
+}
+
+.draft-forfeit-surface {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(207, 73, 79, 0.86);
+  border-radius: 6px;
+  color: #f1d4d6;
+  background:
+    linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)),
+    #171113;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.draft-forfeit-surface:hover:not(:disabled),
+.draft-forfeit-surface:focus-visible {
+  border-color: #f07b82;
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  background:
+    linear-gradient(180deg, rgba(151, 38, 45, 0.4), rgba(52, 17, 21, 0.95)),
+    #1b1114;
+}
+
+.draft-forfeit-surface:disabled {
+  border-color: #3b3639;
+  color: #777278;
+  background: #171719;
+  cursor: not-allowed;
+}
+
+.draft-forfeit-surface__body {
+  display: grid;
+  height: 100%;
+  align-content: end;
+  gap: 6px;
+}
+
+.draft-forfeit-surface__body strong {
+  color: inherit;
+  font-size: 0.98rem;
+}
+
+.draft-forfeit-surface__body span {
+  color: #b99598;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.draft-forfeit-surface:disabled .draft-forfeit-surface__body span {
+  color: #666268;
+}
+
+.draft-decision-economy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  min-width: 34px;
+  min-height: 30px;
+  padding: 2px 8px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: rgba(12, 12, 14, 0.92);
+  font-size: 0.83rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.draft-decision-economy--rebate {
+  color: #79d99a;
+}
+
+.draft-decision-economy--neutral {
+  color: #b7b7bd;
+}
+
+.draft-decision-economy--cost {
+  color: #ff858b;
+}
+
+.draft-forfeit-surface:disabled .draft-decision-economy {
+  color: #707077;
+  border-color: #44444a;
+}
+
+.draft-operator-economy-cluster {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.draft-hold-upkeep {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid #5b4b30;
+  border-radius: 4px;
+  color: #e2bd74;
+  background: rgba(12, 12, 14, 0.92);
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.draft-hold-upkeep--neutral {
+  color: #b7b7bd;
+  border-color: #55555c;
+}
+
+.draft-hold-upkeep--rebate {
+  color: #79d99a;
+  border-color: #4a765b;
+}
+
+@media (max-width: 1050px) {
+  .draft-decision-plane {
+    flex-wrap: wrap;
+  }
+
+  .draft-decision-group--offers {
+    flex-basis: 100%;
+  }
+
+  .draft-decision-group--held,
+  .draft-decision-group--forfeit {
+    flex-basis: min(185px, calc(50% - 7px));
+  }
+}
+
+@media (max-width: 820px) {
+  .draft-decision-plane {
+    flex-direction: column;
+  }
+
+  .draft-decision-group--offers,
+  .draft-decision-group--held,
+  .draft-decision-group--forfeit {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
+  }
+
+  .draft-decision-offer-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .draft-decision-group--held .operator-card,
+  .draft-forfeit-surface {
+    width: min(100%, 330px);
+    margin-inline: auto;
+  }
+
+  .draft-decision-control {
+    width: min(100%, 330px);
+    margin-inline: auto;
+    margin-top: 8px;
+  }
+}

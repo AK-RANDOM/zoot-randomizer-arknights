@@ -1,0 +1,73 @@
+.slot-class-constraint-indicator {
+  position: absolute;
+  z-index: 8;
+  top: 7px;
+  display: flex;
+  width: max-content;
+  max-height: calc(100% - 14px);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+.slot-class-constraint-indicator.is-left { left: 7px; }
+.slot-class-constraint-indicator.is-right { right: 7px; }
+.slot-class-constraint-item {
+  position: relative;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.slot-class-constraint-item .class-icon {
+  width: 34px;
+  height: 34px;
+}
+.slot-class-constraint-item .class-icon img {
+  width: 27px;
+  height: 27px;
+}
+.slot-class-constraint-item.is-subfiltered .class-icon {
+  border-color: #c49138;
+  box-shadow: 0 0 0 1px rgba(240, 198, 109, 0.34), 0 2px 8px rgba(0,0,0,.35);
+}
+.slot-class-constraint-subcount {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  place-items: center;
+  border: 1px solid #8b6a2d;
+  border-radius: 999px;
+  color: #17120a;
+  background: #f0c66d;
+  box-shadow: 0 1px 5px rgba(0,0,0,.45);
+  font-size: .48rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.slot-class-constraint-overflow {
+  display: grid;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 5px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.26);
+  border-radius: 6px;
+  color: #e8e8eb;
+  background: rgba(12,12,14,.86);
+  box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  font-size: .62rem;
+  font-weight: 900;
+}
+
+.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card.is-constrained {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(#17140e, #17140e) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
+}

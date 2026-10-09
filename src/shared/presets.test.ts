@@ -26,9 +26,17 @@ describe('squad presets', () => {
     expect(operation.rarity[3]).toEqual({ min: 3, max: 3 })
     expect(operation.slots.map((slot) => slot.rarities)).toEqual([
       [6],
-      [5], [5], [5],
-      [4], [4], [4], [4], [4],
-      [3], [3], [3],
+      [5],
+      [5],
+      [5],
+      [4],
+      [4],
+      [4],
+      [4],
+      [4],
+      [3],
+      [3],
+      [3],
     ])
 
     const recommended = BUILT_IN_SQUAD_PRESETS[2].configuration
@@ -41,9 +49,17 @@ describe('squad presets', () => {
     }
     expect(recommended.slots.map((slot) => slot.rarities)).toEqual([
       [6],
-      [5], [5], [5], [5], [5],
-      [4], [4], [4], [4],
-      [1, 2, 3], [1, 2, 3],
+      [5],
+      [5],
+      [5],
+      [5],
+      [5],
+      [4],
+      [4],
+      [4],
+      [4],
+      [1, 2, 3],
+      [1, 2, 3],
     ])
   })
 
@@ -64,15 +80,36 @@ describe('squad presets', () => {
 
   it('applies built-in preset slot constraints directly to the active grid', () => {
     const current = createDefaultConstraints()
-    const applied = applySquadConfiguration(
-      current,
-      BUILT_IN_SQUAD_PRESETS[1].configuration,
-    )
+    const applied = applySquadConfiguration(current, BUILT_IN_SQUAD_PRESETS[1].configuration)
 
     expect(applied.slots[0]).toEqual({ rarities: [6], classes: [] })
     expect(applied.slots[1]).toEqual({ rarities: [5], classes: [] })
     expect(applied.slots[4]).toEqual({ rarities: [4], classes: [] })
     expect(applied.slots[9]).toEqual({ rarities: [3], classes: [] })
+  })
+
+  it('round-trips specific operator and mandatory identity slot constraints', () => {
+    const exact = createDefaultConstraints()
+    exact.slots[0] = { rarities: [5], classes: ['Guard'], operatorId: 'char_1001_amiya2' }
+    exact.slots[1] = { rarities: [5], classes: [], mandatoryExclusivityGroup: 'amiya-forms' }
+
+    const saved = createUserPreset(
+      'Specific operators',
+      squadConfigurationFromConstraints(exact),
+      'user:specific',
+    )
+    const applied = applySquadConfiguration(createDefaultConstraints(), saved.configuration)
+
+    expect(applied.slots[0]).toEqual({
+      rarities: [5],
+      classes: ['Guard'],
+      operatorId: 'char_1001_amiya2',
+    })
+    expect(applied.slots[1]).toEqual({
+      rarities: [5],
+      classes: [],
+      mandatoryExclusivityGroup: 'amiya-forms',
+    })
   })
 
   it('round-trips multi-select slot constraints without sharing arrays', () => {

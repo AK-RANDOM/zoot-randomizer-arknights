@@ -1,0 +1,37 @@
+.slot-locked-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 184px;
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid transparent;
+  border-radius: 4px;
+  color: inherit;
+  background:
+    linear-gradient(transparent, transparent) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
+  text-align: inherit;
+  appearance: none;
+}
+
+.slot-locked-card:hover { box-shadow: 0 0 0 1px rgba(255,255,255,.16); }
+.slot-locked-card:focus-visible { outline: 2px solid #f2f2f2; outline-offset: 2px; }
+.slot-locked-card .operator-card { width: 100%; height: 100%; border: 0; border-radius: 1px; }
+.slot-lock-indicator {
+  position: absolute; z-index: 8; top: 7px; right: 7px; display: grid; width: 28px; height: 28px;
+  place-items: center; border: 1px solid rgba(255,255,255,.24); border-radius: 6px;
+  background: rgba(7,7,9,.76); box-shadow: 0 3px 10px rgba(0,0,0,.35); font-size: .72rem; pointer-events: none;
+}
+.slot-locked-card.has-class-indicator .operator-card__class-icon { display: none; }
+.squad-panel > .validation-box { margin-bottom: 14px; }
+.slot-config-card:not(.is-constrained):hover { border-color: #55555c; background: #151518; }
+.slot-config-card.is-constrained { position: relative; align-items: center; justify-content: center; }
+.slot-config-card.is-constrained .slot-config-number { position: absolute; top: 10px; left: 10px; }
+.slot-config-card.is-constrained .slot-config-summary { width: 100%; margin: 0; place-items: center; text-align: center; }
+.danger-button {
+  min-height: 34px; padding: 0 11px; border: 1px solid #8e3f46; border-radius: 4px; color: #ffd9dc;
+  background: #3a171b; font-size: .7rem; font-weight: 800;
+}
+.danger-button:hover:not(:disabled) { border-color: #c95863; background: #552027; }

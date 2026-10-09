@@ -32,14 +32,24 @@ export function cloneSquadConfiguration(configuration: SquadConfiguration): Squa
     rarity: cloneNumericMap<OperatorRarity>(configuration.rarity),
     rarityGroups: cloneNumericMap(configuration.rarityGroups),
     class: cloneNumericMap<OperatorClass>(configuration.class),
-    slots: Array.from({ length: 12 }, (_, index) => ({
-      rarities: [...(configuration.slots[index]?.rarities ?? [])],
-      classes: [...(configuration.slots[index]?.classes ?? [])],
-    })),
+    slots: Array.from({ length: 12 }, (_, index) => {
+      const source = configuration.slots[index]
+      const slot: SlotConstraint = {
+        rarities: [...(source?.rarities ?? [])],
+        classes: [...(source?.classes ?? [])],
+      }
+      if (source?.subclasses !== undefined) slot.subclasses = [...source.subclasses]
+      if (source?.operatorId) slot.operatorId = source.operatorId
+      if (source?.mandatoryExclusivityGroup)
+        slot.mandatoryExclusivityGroup = source.mandatoryExclusivityGroup
+      return slot
+    }),
   }
 }
 
-export function squadConfigurationFromConstraints(constraints: RandomizerConstraints): SquadConfiguration {
+export function squadConfigurationFromConstraints(
+  constraints: RandomizerConstraints,
+): SquadConfiguration {
   return cloneSquadConfiguration(constraints)
 }
 
@@ -58,8 +68,13 @@ export function applySquadConfiguration(
   }
 }
 
-export function squadConfigurationEquals(left: SquadConfiguration, right: SquadConfiguration): boolean {
-  return JSON.stringify(cloneSquadConfiguration(left)) === JSON.stringify(cloneSquadConfiguration(right))
+export function squadConfigurationEquals(
+  left: SquadConfiguration,
+  right: SquadConfiguration,
+): boolean {
+  return (
+    JSON.stringify(cloneSquadConfiguration(left)) === JSON.stringify(cloneSquadConfiguration(right))
+  )
 }
 
 export function createNoConstraintConfiguration(squadSize = 12): SquadConfiguration {
@@ -104,12 +119,7 @@ export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
         4: exact(5),
         3: exact(3),
       },
-      slots: mappedSlots([
-        [6],
-        [5], [5], [5],
-        [4], [4], [4], [4], [4],
-        [3], [3], [3],
-      ]),
+      slots: mappedSlots([[6], [5], [5], [5], [4], [4], [4], [4], [4], [3], [3], [3]]),
     },
   },
   {
@@ -127,12 +137,7 @@ export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
         lte3: exact(2),
       },
       class: classMinimums(1),
-      slots: mappedSlots([
-        [6],
-        [5], [5], [5], [5], [5],
-        [4], [4], [4], [4],
-        [1, 2, 3], [1, 2, 3],
-      ]),
+      slots: mappedSlots([[6], [5], [5], [5], [5], [5], [4], [4], [4], [4], [1, 2, 3], [1, 2, 3]]),
     },
   },
 ]
@@ -142,7 +147,10 @@ export function findBuiltInPreset(id: string): SquadPreset | undefined {
 }
 
 export function isNoConstraintConfiguration(configuration: SquadConfiguration): boolean {
-  return squadConfigurationEquals(configuration, createNoConstraintConfiguration(configuration.squadSize))
+  return squadConfigurationEquals(
+    configuration,
+    createNoConstraintConfiguration(configuration.squadSize),
+  )
 }
 
 export function createUserPreset(

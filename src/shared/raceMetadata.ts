@@ -7,6 +7,10 @@ import {
 
 export const RACE_UNAVAILABLE_ID = 'race:unavailable' as const
 
+export const AMIYA_RACE_ID = 'race:override:amiya-cautus-chimera' as const
+export const AMIYA_RACE_LABEL = 'Cautus/Chimera' as const
+const AMIYA_FORM_IDS = new Set(['char_002_amiya', 'char_1001_amiya2', 'char_1037_amiya3'])
+
 export interface RawHandbookStory {
   storyText?: unknown
 }
@@ -112,6 +116,38 @@ function catalogWithRaceLabels(
   }
 }
 
+export function applyOperatorRaceOverrides(dataset: OperatorDataset): OperatorDataset {
+  const hasAmiya = dataset.operators.some((operator) => AMIYA_FORM_IDS.has(operator.id))
+  if (!hasAmiya) return dataset
+
+  const raceLabels = {
+    ...(dataset.raceLabels ?? {}),
+    [AMIYA_RACE_ID]: AMIYA_RACE_LABEL,
+  }
+  const localizations = dataset.localizations
+    ? (Object.fromEntries(
+        gameLocales.map((locale) => [
+          locale,
+          catalogWithRaceLabels(dataset.localizations?.[locale], {
+            ...(dataset.localizations?.[locale]?.raceLabels ?? {}),
+            [AMIYA_RACE_ID]: AMIYA_RACE_LABEL,
+          }),
+        ]),
+      ) as OperatorDataset['localizations'])
+    : dataset.localizations
+
+  return {
+    ...dataset,
+    raceLabels,
+    localizations,
+    operators: dataset.operators.map((operator) =>
+      AMIYA_FORM_IDS.has(operator.id)
+        ? { ...operator, raceIds: [AMIYA_RACE_ID] }
+        : operator,
+    ),
+  }
+}
+
 /**
  * Adds source-driven stable race IDs and localized race labels to a normalized
  * operator dataset. This is intentionally additive so schema-v6 datasets from
@@ -175,7 +211,7 @@ export function applyRaceMetadata(
     ]),
   ) as OperatorDataset['localizations']
 
-  return {
+  return applyOperatorRaceOverrides({
     ...dataset,
     raceLabels: canonicalRaceLabels,
     localizations,
@@ -183,7 +219,7 @@ export function applyRaceMetadata(
       ...operator,
       raceIds: [raceIdByOperator.get(operator.id) ?? RACE_UNAVAILABLE_ID],
     })),
-  }
+  })
 }
 
 export function operatorRaceIds(operator: { raceIds?: readonly string[] }): readonly string[] {

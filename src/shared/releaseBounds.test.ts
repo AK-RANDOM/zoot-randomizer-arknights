@@ -10,6 +10,7 @@ import {
   releaseRangeIsValid,
   remapReleaseConstraintServer,
 } from './releaseBounds'
+import { releaseYearGroup } from './releaseMetadata'
 
 function operator(
   id: string,
@@ -73,6 +74,12 @@ describe('release group bounds', () => {
       start: '2022-05-01',
       end: '2023-04-30',
     })
+  })
+
+  it("starts CN Year 8 on the Kal'tsit the Esperanta banner boundary", () => {
+    expect(releaseYearGroup('2026-04-30', 'cn')).toBe(7)
+    expect(releaseYearGroup('2026-05-01', 'cn')).toBe(8)
+    expect(releaseYearGroup('2026-05-31', 'cn')).toBe(8)
   })
 
   it('uses the latest known release for the open-ended current group', () => {

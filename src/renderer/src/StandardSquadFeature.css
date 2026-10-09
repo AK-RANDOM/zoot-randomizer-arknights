@@ -74,6 +74,45 @@
   gap: 7px;
 }
 
+.current-constraint-summary {
+  display: grid;
+  gap: 7px;
+  margin: -7px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #2c2c31;
+  border-radius: 5px;
+  background: #111113;
+}
+
+.current-constraint-summary > strong {
+  color: #a7a7ad;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.current-constraint-summary > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.current-constraint-summary span {
+  padding: 4px 7px;
+  border: 1px solid #38383e;
+  border-radius: 999px;
+  color: #d8d8dc;
+  background: #18181b;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.current-constraint-summary p {
+  margin: 0;
+  color: #727279;
+  font-size: 0.68rem;
+}
+
 .squad-size-control {
   margin-bottom: 16px;
   padding: 12px 14px;
@@ -336,9 +375,7 @@
   justify-content: space-between;
   border: 1px dashed #3a3a40;
   color: #b7b7bc;
-  background:
-    linear-gradient(135deg, transparent 49.6%, #202024 50%, transparent 50.4%),
-    #101012;
+  background: linear-gradient(135deg, transparent 49.6%, #202024 50%, transparent 50.4%), #101012;
   text-align: left;
 }
 
@@ -348,9 +385,10 @@
 }
 
 .slot-config-card.is-constrained {
-  border-style: solid;
-  border-color: #9c7129;
-  background: #17140e;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#17140e, #17140e) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
 }
 
 .slot-config-number {
@@ -408,6 +446,11 @@
   font-size: 0.62rem;
 }
 
+.slot-config-specific {
+  color: #d9d9df !important;
+  font-weight: 750;
+}
+
 .slot-constraint-badge {
   position: absolute;
   z-index: 6;
@@ -417,10 +460,16 @@
   max-width: calc(100% - 54px);
   gap: 1px;
   padding: 4px 6px;
-  border: 1px solid rgba(245, 173, 47, 0.7);
+  border: 1px solid transparent;
   border-radius: 3px;
   color: #fff1d1;
-  background: rgba(18, 14, 7, 0.86);
+  background:
+    linear-gradient(rgba(18, 14, 7, 0.9), rgba(18, 14, 7, 0.9)) padding-box,
+    var(
+        --slot-constraint-gradient,
+        linear-gradient(135deg, rgba(118, 118, 128, 0.75), rgba(118, 118, 128, 0.75))
+      )
+      border-box;
   font-size: 0.55rem;
   font-weight: 800;
   line-height: 1.15;
@@ -574,6 +623,49 @@
 .quick-select.is-selected {
   border-color: #7b5b24;
   color: #f5c46a;
+}
+
+.amiya-form-control {
+  display: grid;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #34343a;
+  border-radius: 5px;
+  background: #111113;
+}
+
+.amiya-mode-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: #c8c8cd;
+  font-size: 0.7rem;
+}
+
+.amiya-mode-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amiya-form-select {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 1fr);
+  align-items: center;
+  gap: 9px;
+  color: #8d8d94;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.amiya-form-select select {
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid #3b3b41;
+  border-radius: 4px;
+  color: #efeff1;
+  background: #0e0e10;
 }
 
 .slot-feasibility {

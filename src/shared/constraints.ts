@@ -20,6 +20,12 @@ export interface SlotConstraint {
   rarities: OperatorRarity[]
   /** Empty means any class. */
   classes: OperatorClass[]
+  /** Undefined means any subclass. A defined array is the exact allowed subclass-ID set. */
+  subclasses?: string[]
+  /** Exact stable operator ID. Mutually exclusive with mandatoryExclusivityGroup. */
+  operatorId?: string | null
+  /** Match any operator in this mandatory-exclusive identity group. */
+  mandatoryExclusivityGroup?: string | null
 }
 
 export const rarityGroupDefinitions = {
@@ -28,10 +34,7 @@ export const rarityGroupDefinitions = {
   lte5: { label: '≤5★', rarities: [1, 2, 3, 4, 5] },
   gte4: { label: '≥4★', rarities: [4, 5, 6] },
   gte5: { label: '≥5★', rarities: [5, 6] },
-} as const satisfies Record<
-  string,
-  { label: string; rarities: readonly OperatorRarity[] }
->
+} as const satisfies Record<string, { label: string; rarities: readonly OperatorRarity[] }>
 
 export type RarityGroupKey = keyof typeof rarityGroupDefinitions
 export const rarityGroupKeys = Object.keys(rarityGroupDefinitions) as RarityGroupKey[]
@@ -124,13 +127,15 @@ export function createDefaultConstraints(): RandomizerConstraints {
       maxDate: '',
     },
     acquisition: {
-      limited: Object.fromEntries(
-        limitedAcquisitionGroups.map((group) => [group, true]),
-      ) as Record<LimitedAcquisitionGroup, boolean>,
+      limited: Object.fromEntries(limitedAcquisitionGroups.map((group) => [group, true])) as Record<
+        LimitedAcquisitionGroup,
+        boolean
+      >,
       standard: true,
-      welfare: Object.fromEntries(
-        welfareAcquisitionGroups.map((group) => [group, true]),
-      ) as Record<WelfareAcquisitionGroup, boolean>,
+      welfare: Object.fromEntries(welfareAcquisitionGroups.map((group) => [group, true])) as Record<
+        WelfareAcquisitionGroup,
+        boolean
+      >,
     },
     collaboration: {
       includeNonCollab: true,
@@ -176,14 +181,26 @@ export function setNumericConstraintBound(
 }
 
 export function slotConstraintIsEmpty(constraint: SlotConstraint | undefined): boolean {
-  return !constraint || (constraint.rarities.length === 0 && constraint.classes.length === 0)
+  return (
+    !constraint ||
+    (constraint.rarities.length === 0 &&
+      constraint.classes.length === 0 &&
+      constraint.subclasses === undefined &&
+      !constraint.operatorId &&
+      !constraint.mandatoryExclusivityGroup)
+  )
 }
 
 export function cloneSlotConstraint(constraint: SlotConstraint | undefined): SlotConstraint {
-  return {
+  const clone: SlotConstraint = {
     rarities: [...(constraint?.rarities ?? [])],
     classes: [...(constraint?.classes ?? [])],
   }
+  if (constraint?.subclasses !== undefined) clone.subclasses = [...constraint.subclasses]
+  if (constraint?.operatorId) clone.operatorId = constraint.operatorId
+  if (constraint?.mandatoryExclusivityGroup)
+    clone.mandatoryExclusivityGroup = constraint.mandatoryExclusivityGroup
+  return clone
 }
 
 export function cloneSlotConstraints(slots: readonly SlotConstraint[]): SlotConstraint[] {
@@ -197,15 +214,11 @@ export function normalizedConstraintEntries<T extends string | number>(
   return entries.map((entry) => [entry, resolveNumericConstraint(source[entry])])
 }
 
-export function totalMinimum(
-  entries: readonly (readonly [unknown, NumericConstraint])[],
-): number {
+export function totalMinimum(entries: readonly (readonly [unknown, NumericConstraint])[]): number {
   return entries.reduce((sum, [, constraint]) => sum + constraint.min, 0)
 }
 
-export function totalMaximum(
-  entries: readonly (readonly [unknown, NumericConstraint])[],
-): number {
+export function totalMaximum(entries: readonly (readonly [unknown, NumericConstraint])[]): number {
   return entries.reduce((sum, [, constraint]) => sum + constraint.max, 0)
 }
 
@@ -257,10 +270,7 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
 
   const rarityEntries = normalizedConstraintEntries(operatorRarities, constraints.rarity)
   const classEntries = normalizedConstraintEntries(operatorClasses, constraints.class)
-  const rarityGroupEntries = normalizedConstraintEntries(
-    rarityGroupKeys,
-    constraints.rarityGroups,
-  )
+  const rarityGroupEntries = normalizedConstraintEntries(rarityGroupKeys, constraints.rarityGroups)
 
   for (const [label, constraint] of rarityEntries) {
     validateNumericConstraint(`${label}★`, constraint, errors)
@@ -308,6 +318,28 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
       ) {
         errors.push(`Slot ${index + 1} contains an invalid or duplicate class choice.`)
       }
+      if (
+        slot.subclasses !== undefined &&
+        (slot.subclasses.some((subclassId) =>
+          typeof subclassId !== 'string' || subclassId.trim().length === 0,
+        ) ||
+          new Set(slot.subclasses).size !== slot.subclasses.length)
+      ) {
+        errors.push(`Slot ${index + 1} contains an invalid or duplicate subclass choice.`)
+      }
+      const operatorId = slot.operatorId?.trim() ?? ''
+      const mandatoryGroup = slot.mandatoryExclusivityGroup?.trim() ?? ''
+      if (slot.operatorId != null && operatorId.length === 0) {
+        errors.push(`Slot ${index + 1} contains an invalid operator ID.`)
+      }
+      if (slot.mandatoryExclusivityGroup != null && mandatoryGroup.length === 0) {
+        errors.push(`Slot ${index + 1} contains an invalid mandatory exclusivity group.`)
+      }
+      if (operatorId && mandatoryGroup) {
+        errors.push(
+          `Slot ${index + 1} cannot lock an exact operator and a mandatory exclusivity group at the same time.`,
+        )
+      }
     })
   }
 
@@ -337,7 +369,11 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
   if (constraints.faction.matchMode !== 'main' && constraints.faction.matchMode !== 'any') {
     errors.push('Faction match mode must be main or any affiliation.')
   }
-  if (constraints.era !== 'all' && constraints.era !== 'kernel' && constraints.era !== 'postKernel') {
+  if (
+    constraints.era !== 'all' &&
+    constraints.era !== 'kernel' &&
+    constraints.era !== 'postKernel'
+  ) {
     errors.push('Operator era filter must be all, kernel, or postKernel.')
   }
 

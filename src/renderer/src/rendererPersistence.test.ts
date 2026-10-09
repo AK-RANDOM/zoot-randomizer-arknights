@@ -11,8 +11,12 @@ import {
 
 class MemoryStorage implements StorageLike {
   readonly values = new Map<string, string>()
-  getItem(key: string): string | null { return this.values.get(key) ?? null }
-  setItem(key: string, value: string): void { this.values.set(key, value) }
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null
+  }
+  setItem(key: string, value: string): void {
+    this.values.set(key, value)
+  }
 }
 
 function cloneStandard() {
@@ -28,9 +32,18 @@ describe('renderer persistence', () => {
     storage.setItem('arknights-randomizer:selected-draft-rulebook:v1', imported.identifier.id)
     storage.setItem('arknights-randomizer:dismiss-bound-reset-warning', '1')
     storage.setItem('arknights-randomizer:operator-artwork:v1', 'e1')
-    storage.setItem('arknights-randomizer:race-filter:v1', JSON.stringify({ version: 1, excludedIds: ['race_a'] }))
-    storage.setItem('arknights-randomizer:draft-rulebooks:v1', JSON.stringify({ version: 1, rulebooks: [imported] }))
-    storage.setItem('arknights-randomizer:draft-rulebooks:imported:v1', JSON.stringify([imported.identifier.id]))
+    storage.setItem(
+      'arknights-randomizer:race-filter:v1',
+      JSON.stringify({ version: 1, excludedIds: ['race_a'] }),
+    )
+    storage.setItem(
+      'arknights-randomizer:draft-rulebooks:v1',
+      JSON.stringify({ version: 1, rulebooks: [imported] }),
+    )
+    storage.setItem(
+      'arknights-randomizer:draft-rulebooks:imported:v1',
+      JSON.stringify([imported.identifier.id]),
+    )
 
     const migrated = migrateLegacyRendererPersistence(storage)
     expect(migrated.version).toBe(1)
@@ -48,6 +61,17 @@ describe('renderer persistence', () => {
     expect(JSON.parse(storage.getItem(RENDERER_PERSISTENCE_KEY) ?? '{}')).toEqual(loaded)
   })
 
+  it('defaults Draft action confirmations on and preserves an explicit permanent suppression', () => {
+    const storage = new MemoryStorage()
+    expect(loadRendererPersistence(storage).confirmDraftActions).toBe(true)
+
+    const normalized = normalizeRendererPersistence({
+      ...loadRendererPersistence(storage),
+      confirmDraftActions: false,
+    })
+    expect(normalized.confirmDraftActions).toBe(false)
+  })
+
   it('migrates persisted schema v1 Rulebooks to the current schema', () => {
     const v1 = JSON.parse(JSON.stringify(STANDARD_DRAFT_RULEBOOK)) as Record<string, unknown>
     v1.schemaVersion = 1
@@ -56,11 +80,13 @@ describe('renderer persistence', () => {
 
     const normalized = normalizeRendererPersistence({
       ...loadRendererPersistence(new MemoryStorage()),
-      rulebookLibrary: [{
-        document: v1,
-        origin: 'local',
-        editor: { lastEditedAt: null },
-      }],
+      rulebookLibrary: [
+        {
+          document: v1,
+          origin: 'local',
+          editor: { lastEditedAt: null },
+        },
+      ],
     })
 
     expect(normalized.rulebookLibrary).toHaveLength(1)
@@ -74,11 +100,13 @@ describe('renderer persistence', () => {
     invalid.identifier.name = ''
     const candidate: RendererPersistenceState = {
       ...loadRendererPersistence(new MemoryStorage()),
-      rulebookLibrary: [{
-        document: invalid,
-        origin: 'local',
-        editor: { lastEditedAt: '2026-10-05T00:00:00.000Z' },
-      }],
+      rulebookLibrary: [
+        {
+          document: invalid,
+          origin: 'local',
+          editor: { lastEditedAt: '2026-10-05T00:00:00.000Z' },
+        },
+      ],
     }
 
     const normalized = normalizeRendererPersistence(candidate)
@@ -92,11 +120,13 @@ describe('renderer persistence', () => {
     corrupted.pool = { source: 'rulebook-pool' }
     const normalized = normalizeRendererPersistence({
       ...loadRendererPersistence(new MemoryStorage()),
-      rulebookLibrary: [{
-        document: corrupted,
-        origin: 'local',
-        editor: { lastEditedAt: null },
-      }],
+      rulebookLibrary: [
+        {
+          document: corrupted,
+          origin: 'local',
+          editor: { lastEditedAt: null },
+        },
+      ],
     })
     expect(normalized.rulebookLibrary).toEqual([])
   })
@@ -114,7 +144,9 @@ describe('renderer persistence', () => {
       ],
     })
 
-    expect(normalized.rulebookLibrary.map(({ document, origin }) => [document.identifier.id, origin])).toEqual([
+    expect(
+      normalized.rulebookLibrary.map(({ document, origin }) => [document.identifier.id, origin]),
+    ).toEqual([
       ['local:test', 'local'],
       ['community:test', 'imported'],
     ])

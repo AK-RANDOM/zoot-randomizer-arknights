@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { RandomizerConstraints } from '../../shared/constraints'
 import { operatorClasses, type Operator, type OperatorDataset } from '../../shared/operator'
-import type { PromotionArt } from '../../shared/portraits'
 import {
   applyManualOperatorExclusions,
+  buildGlobalFilterOperatorPool,
   setDisplayedOperatorsExcluded,
   setOperatorExcluded,
   type OperatorPreferences,
 } from '../../shared/operatorPool'
-import { filterHigherLevelEligibleOperators } from '../../shared/randomizer'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
-import { useOperatorArtworkPreference } from './presentationPreferences'
 import './PoolPanel.css'
 
 type PoolStateFilter = 'all' | 'included' | 'excluded'
@@ -19,25 +17,19 @@ type PoolOperatorSort = 'default' | 'alphabetical' | 'releaseDate'
 type SortDirection = 'asc' | 'desc'
 type PoolGroup = readonly [string, readonly Operator[]]
 
-function PoolPortrait({ operator, artwork }: { operator: Operator; artwork: PromotionArt }): React.JSX.Element {
+function PoolAvatar({ operator }: { operator: Operator }): React.JSX.Element {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
     setImageUrl(null)
-    void window.desktop.getOperatorPortrait(operator.id, artwork).then(async (portraitUrl) => {
-      if (!active) return
-      if (portraitUrl) {
-        setImageUrl(portraitUrl)
-        return
-      }
-      const avatarUrl = await window.desktop.getOperatorImage(operator.id)
+    void window.desktop.getOperatorImage(operator.id).then((avatarUrl) => {
       if (active) setImageUrl(avatarUrl)
     })
     return () => {
       active = false
     }
-  }, [artwork, operator.id])
+  }, [operator.id])
 
   return imageUrl ? (
     <img className="pool-avatar" src={imageUrl} alt="" draggable={false} />
@@ -159,7 +151,6 @@ function OperatorEntry({
   classLabel,
   included,
   presentation,
-  artwork,
   onToggle,
 }: {
   operator: Operator
@@ -168,7 +159,6 @@ function OperatorEntry({
   classLabel: string
   included: boolean
   presentation: OperatorPreferences['poolPresentation']
-  artwork: PromotionArt
   onToggle: () => void
 }): React.JSX.Element {
   const stateLabel = included ? 'Included' : 'Excluded'
@@ -182,17 +172,17 @@ function OperatorEntry({
   }
 
   if (presentation === 'imageGrid') {
-    return <button {...commonProps} className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}><PoolPortrait operator={operator} artwork={artwork} /></button>
+    return <button {...commonProps} className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}><PoolAvatar operator={operator} /></button>
   }
   if (presentation === 'compactCard') {
-    return <button {...commonProps} className={`pool-entry pool-entry--compact${included ? '' : ' is-excluded'}`}><PoolPortrait operator={operator} artwork={artwork} /><span className="pool-entry-copy"><strong>{operator.name}</strong></span><span className="pool-entry-status">{stateLabel}</span></button>
+    return <button {...commonProps} className={`pool-entry pool-entry--compact${included ? '' : ' is-excluded'}`}><PoolAvatar operator={operator} /><span className="pool-entry-copy"><strong>{operator.name}</strong></span><span className="pool-entry-status">{stateLabel}</span></button>
   }
   if (presentation === 'simpleList') {
-    return <button {...commonProps} className={`pool-entry pool-entry--list${included ? '' : ' is-excluded'}`}><PoolPortrait operator={operator} artwork={artwork} /><strong>{operator.name}</strong><span className="pool-entry-status">{stateLabel}</span></button>
+    return <button {...commonProps} className={`pool-entry pool-entry--list${included ? '' : ' is-excluded'}`}><PoolAvatar operator={operator} /><strong>{operator.name}</strong><span className="pool-entry-status">{stateLabel}</span></button>
   }
   return (
     <button {...commonProps} className={`pool-entry pool-entry--detailed${included ? '' : ' is-excluded'}`}>
-      <PoolPortrait operator={operator} artwork={artwork} />
+      <PoolAvatar operator={operator} />
       <span className="pool-entry-copy">
         <strong>{operator.name}</strong>
         <small>{operator.rarity}★ · {classLabel} · {operator.subclass.name}</small>
@@ -215,7 +205,6 @@ export default function PoolPanel({
   preferences: OperatorPreferences
   onPreferencesChange: (next: OperatorPreferences) => void
 }): React.JSX.Element {
-  const artwork = useOperatorArtworkPreference()
   const [stateFilter, setStateFilter] = useState<PoolStateFilter>('all')
   const [search, setSearch] = useState('')
   const [groupBy, setGroupBy] = useState<PoolGroupBy>('none')
@@ -224,20 +213,20 @@ export default function PoolPanel({
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set())
   const [reversedGroups, setReversedGroups] = useState<Set<string>>(() => new Set())
 
-  const higherLevelEligible = useMemo(() => filterHigherLevelEligibleOperators(dataset.operators, constraints), [constraints, dataset])
+  const globalFilterEligible = useMemo(() => buildGlobalFilterOperatorPool(dataset.operators, constraints), [constraints, dataset])
   const excludedIds = useMemo(() => new Set(preferences.excludedOperatorIds), [preferences.excludedOperatorIds])
-  const finalPool = useMemo(() => applyManualOperatorExclusions(higherLevelEligible, preferences.excludedOperatorIds), [higherLevelEligible, preferences.excludedOperatorIds])
+  const finalPool = useMemo(() => applyManualOperatorExclusions(globalFilterEligible, preferences.excludedOperatorIds), [globalFilterEligible, preferences.excludedOperatorIds])
 
   const displayed = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
-    return higherLevelEligible.filter((operator) => {
+    return globalFilterEligible.filter((operator) => {
       const excluded = excludedIds.has(operator.id)
       if (stateFilter === 'included' && excluded) return false
       if (stateFilter === 'excluded' && !excluded) return false
       if (query && !operator.name.toLocaleLowerCase().includes(query)) return false
       return true
     })
-  }, [excludedIds, higherLevelEligible, search, stateFilter])
+  }, [excludedIds, globalFilterEligible, search, stateFilter])
 
   const groups = useMemo(() => {
     const map = new Map<string, Operator[]>()
@@ -273,7 +262,7 @@ export default function PoolPanel({
   return (
     <section className="panel pool-panel" aria-labelledby="pool-heading">
       <div className="section-heading">
-        <div><p className="eyebrow">POOL</p><h2 id="pool-heading">Individual operators</h2></div>
+        <div><p className="eyebrow">SETUP • GLOBAL POOL • CURATE</p><h2 id="pool-heading">Curate operators</h2></div>
         <div className="section-actions">
           <button className="secondary-button" type="button" disabled={displayed.length === 0} onClick={() => setDisplayedExcluded(false)}>Add displayed to pool</button>
           <button className="secondary-button" type="button" disabled={displayed.length === 0} onClick={() => setDisplayedExcluded(true)}>Remove displayed from pool</button>
@@ -292,7 +281,7 @@ export default function PoolPanel({
       {groupBy !== 'none' && <div className="pool-group-actions"><button type="button" className="secondary-button" onClick={expandAll}>Expand all</button><button type="button" className="secondary-button" onClick={collapseAll}>Collapse all</button></div>}
 
       <div className="pool-information" role="status">
-        <div className="pool-information-copy"><strong>{finalPool.length} operators eligible</strong><span>· {displayed.length} displayed</span><span>· {higherLevelEligible.length} pass higher-level filters</span></div>
+        <div className="pool-information-copy"><strong>{finalPool.length} operators eligible</strong><span>· {displayed.length} displayed</span><span>· {globalFilterEligible.length} pass Global Filter</span></div>
         {groupBy !== 'none' && <button type="button" className="pool-group-direction-toggle" aria-label={`Group order: ${groupDirection === 'asc' ? 'ascending' : 'descending'}. Toggle group order.`} title={`Group order: ${groupDirection === 'asc' ? 'Ascending' : 'Descending'}`} onClick={toggleGroupDirection}><span aria-hidden="true">{groupDirection === 'asc' ? '↑' : '↓'}</span></button>}
       </div>
 
@@ -307,11 +296,11 @@ export default function PoolPanel({
                 <button type="button" className="pool-group-collapse" aria-expanded={!collapsed} onClick={() => setCollapsedGroups((current) => { const next = new Set(current); if (next.has(label)) next.delete(label); else next.add(label); return next })}><span>{collapsed ? '▸' : '▾'} {label}</span><span>{operators.length}</span></button>
                 <button type="button" className="pool-group-sort-toggle" aria-label={`${label} operator order: ${reversed ? 'reversed' : 'normal'}. Toggle operator order.`} title={`${label}: ${reversed ? 'Reverse' : 'Normal'} operator order`} onClick={() => toggleOneGroupDirection(label)}><span aria-hidden="true">{reversed ? '↓' : '↑'}</span></button>
               </div>}
-              {!collapsed && <div className="pool-entries">{visibleOperators.map((operator) => <OperatorEntry key={operator.id} operator={operator} factionLabel={mainFactionLabel(operator, dataset)} raceLabel={operatorRaceLabel(operator, dataset.raceLabels)} classLabel={dataset.classLabels?.[operator.class] ?? operator.class} included={!excludedIds.has(operator.id)} presentation={preferences.poolPresentation} artwork={artwork} onToggle={() => toggleOperator(operator)} />)}</div>}
+              {!collapsed && <div className="pool-entries">{visibleOperators.map((operator) => <OperatorEntry key={operator.id} operator={operator} factionLabel={mainFactionLabel(operator, dataset)} raceLabel={operatorRaceLabel(operator, dataset.raceLabels)} classLabel={dataset.classLabels?.[operator.class] ?? operator.class} included={!excludedIds.has(operator.id)} presentation={preferences.poolPresentation} onToggle={() => toggleOperator(operator)} />)}</div>}
             </section>
           )
         })}
-        {displayed.length === 0 && <div className="pool-empty">No operators match the current Pool view.</div>}
+        {displayed.length === 0 && <div className="pool-empty">No operators match the current Curate view.</div>}
       </div>
     </section>
   )

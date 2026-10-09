@@ -130,6 +130,23 @@ describe('game localization', () => {
     expect(localized.operators[0].subclass.name).toBe('Lord')
   })
 
+  it('uses canonical English operator names before CN when newer locale strings are missing', () => {
+    const source = dataset()
+    source.operators.push(operator('char_future', 'Future Operator'))
+    source.localizations!.cn!.operatorNames.char_future = '未来干员'
+
+    for (const locale of ['en', 'jp', 'kr', 'tw'] as const) {
+      const localized = localizeOperatorDataset(source, locale)
+      expect(localized.operators.find(({ id }) => id === 'char_future')?.name).toBe(
+        'Future Operator',
+      )
+    }
+    expect(
+      localizeOperatorDataset(source, 'cn').operators.find(({ id }) => id === 'char_future')
+        ?.name,
+    ).toBe('未来干员')
+  })
+
   it('changes presentation without changing canonical operator ordering or identity', () => {
     const source = dataset()
     const localized = localizeOperatorDataset(source, 'jp')

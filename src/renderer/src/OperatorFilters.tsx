@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { RandomizerConstraints } from '../../shared/constraints'
 import { type OperatorClass, type OperatorDataset } from '../../shared/operator'
 import {
   buildFactionTree,
-  buildRaceFilterOptions,
+  buildRaceFilterGroups,
   buildSubclassFilterGroups,
   descendantFactionIds,
   factionNodeState,
@@ -87,24 +87,44 @@ export default function OperatorFilters({
   dataset,
   constraints,
   onChange,
+  afterEra,
 }: {
   dataset: OperatorDataset
   constraints: RandomizerConstraints
   onChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
+  afterEra?: ReactNode
 }): React.JSX.Element {
   const subclassesByClass = useMemo(() => buildSubclassFilterGroups(dataset), [dataset])
-  const races = useMemo(() => buildRaceFilterOptions(dataset), [dataset])
-  const [selectedClass, setSelectedClass] = useState<OperatorClass>('Vanguard')
+  const raceGroups = useMemo(() => buildRaceFilterGroups(dataset), [dataset])
+  const [selectedClass, setSelectedClass] = useState<OperatorClass | null>(null)
+  const subclassFilterRef = useRef<HTMLFieldSetElement>(null)
   const factionTree = useMemo(() => buildFactionTree(dataset), [dataset])
   const factionGroups = useMemo(() => factionTree.filter((node) => node.children.length > 0), [factionTree])
   const standaloneFactions = useMemo(() => factionTree.filter((node) => node.children.length === 0), [factionTree])
   const excludedSubclasses = new Set(constraints.subclass.excludedIds)
   const excludedFactions = new Set(constraints.faction.excludedIds)
   const excludedRaces = new Set(constraints.race?.excludedIds ?? [])
-  const selectedSubclasses = subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? []
+  const selectedSubclasses = selectedClass
+    ? (subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ?? [])
+    : []
   const allSubclassIds = useMemo(() => subclassesByClass.flatMap(({ subclasses }) => subclasses.map(({ id }) => id)), [subclassesByClass])
   const allFactionIds = useMemo(() => [...new Set(factionTree.flatMap(descendantFactionIds))], [factionTree])
-  const allRaceIds = useMemo(() => races.map(({ id }) => id), [races])
+  const allRaceIds = useMemo(() => raceGroups.flatMap(({ races }) => races.map(({ id }) => id)), [raceGroups])
+
+  useEffect(() => {
+    const closeSubclassPanel = (event: Event): void => {
+      const target = event.target
+      if (target instanceof Node && !subclassFilterRef.current?.contains(target)) {
+        setSelectedClass(null)
+      }
+    }
+    document.addEventListener('pointerdown', closeSubclassPanel)
+    document.addEventListener('focusin', closeSubclassPanel)
+    return () => {
+      document.removeEventListener('pointerdown', closeSubclassPanel)
+      document.removeEventListener('focusin', closeSubclassPanel)
+    }
+  }, [])
 
   const setAllSubclassState = (enabled: boolean): void => {
     onChange((current) => ({ ...current, subclass: { excludedIds: enabled ? [] : [...allSubclassIds] } }))
@@ -142,7 +162,9 @@ export default function OperatorFilters({
     }))
   }
 
-  const selectedClassLabel = dataset.classLabels?.[selectedClass] ?? selectedClass
+  const selectedClassLabel = selectedClass
+    ? (dataset.classLabels?.[selectedClass] ?? selectedClass)
+    : null
 
   return (
     <div className="operator-filter-layout">
@@ -157,6 +179,8 @@ export default function OperatorFilters({
         <p className="filter-note">Kernel/Post-Kernel classifies 5★ and 6★ operators using the selected region&apos;s cutoff. 1★–4★ operators remain available in either mode when other filters pass.</p>
       </fieldset>
 
+      {afterEra}
+
       <fieldset className="constraint-group detail-group special-rules-group">
         <legend>Alter Exclusivity</legend>
         <label className="toggle-field">
@@ -165,7 +189,7 @@ export default function OperatorFilters({
         </label>
       </fieldset>
 
-      <fieldset className="constraint-group detail-group operator-filter-subclass-filter">
+      <fieldset ref={subclassFilterRef} className="constraint-group detail-group operator-filter-subclass-filter">
         <legend>Subclass</legend>
         <div className="operator-filter-global-actions"><span>All classes</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllSubclassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllSubclassState(false)}>None</button></div></div>
         <div className="operator-filter-class-selector" role="tablist" aria-label="Subclass parent class">
@@ -175,27 +199,34 @@ export default function OperatorFilters({
             return <button key={operatorClass} type="button" className={`operator-filter-class-tab${selectedClass === operatorClass ? ' is-active' : ''}`} aria-selected={selectedClass === operatorClass} onClick={() => setSelectedClass(operatorClass)}><ClassIcon operatorClass={operatorClass} className="operator-filter-class-icon" /><span>{classLabel}</span><small>{enabledCount}/{subclasses.length}</small></button>
           })}
         </div>
-        <div className="operator-filter-subclass-panel">
-          <div className="operator-filter-subclass-panel-heading"><strong>{selectedClassLabel} subclasses</strong><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setSelectedClassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setSelectedClassState(false)}>None</button></div></div>
-          <div className="operator-filter-subclass-tiles">
-            {selectedSubclasses.map((subclass) => {
-              const enabled = !excludedSubclasses.has(subclass.id)
-              return <button key={subclass.id} type="button" className={`operator-filter-subclass-tile${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => onChange((current) => ({ ...current, subclass: { excludedIds: withExclusion(current.subclass.excludedIds, subclass.id, !enabled) } }))}><SubclassIcon id={subclass.id} className="operator-filter-subclass-icon" /><span>{subclass.name}</span></button>
-            })}
+        {selectedClass && selectedClassLabel && (
+          <div className="operator-filter-subclass-panel">
+            <div className="operator-filter-subclass-panel-heading"><strong>{selectedClassLabel} subclasses</strong><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setSelectedClassState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setSelectedClassState(false)}>None</button></div></div>
+            <div className="operator-filter-subclass-tiles">
+              {selectedSubclasses.map((subclass) => {
+                const enabled = !excludedSubclasses.has(subclass.id)
+                return <button key={subclass.id} type="button" className={`operator-filter-subclass-tile${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => onChange((current) => ({ ...current, subclass: { excludedIds: withExclusion(current.subclass.excludedIds, subclass.id, !enabled) } }))}><SubclassIcon id={subclass.id} className="operator-filter-subclass-icon" /><span>{subclass.name}</span></button>
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </fieldset>
 
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Race</legend>
         <div className="operator-filter-global-actions"><span>All races</span><div className="operator-filter-subclass-actions"><button type="button" className="secondary-button" onClick={() => setAllRaceState(true)}>All</button><button type="button" className="secondary-button" onClick={() => setAllRaceState(false)}>None</button></div></div>
-        <div className="operator-filter-faction-standalone-chips">
-          {races.map((race) => {
-            const enabled = !excludedRaces.has(race.id)
-            return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} onClick={() => toggleRace(race.id, !enabled)}><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
-          })}
-        </div>
-        <p className="filter-note">Race identity is source-driven and stable across display languages. Operators with no Race source data appear under Unavailable.</p>
+        {raceGroups.map((group) => group.races.length > 0 && (
+          <div className="operator-filter-faction-standalone" key={group.key}>
+            <span className="operator-filter-faction-standalone-label">{group.label}</span>
+            <div className="operator-filter-faction-standalone-chips">
+              {group.races.map((race) => {
+                const enabled = !excludedRaces.has(race.id)
+                return <button key={race.id} type="button" className={`operator-filter-faction-chip is-standalone${enabled ? ' is-enabled' : ''}`} aria-pressed={enabled} title={`${race.operatorCount} operator${race.operatorCount === 1 ? '' : 's'}`} onClick={() => toggleRace(race.id, !enabled)}><span aria-hidden="true" /><span>{race.name}</span><FactionStateMark mixed={false} enabled={enabled} /></button>
+              })}
+            </div>
+          </div>
+        ))}
+        <p className="filter-note">Common races have 5+ operators, Rare races have 2–4, and One-off races have 1 in the currently loaded dataset. Stable Race IDs remain the filter identity.</p>
       </fieldset>
 
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">

@@ -1,0 +1,56 @@
+.draft-confirmation-backdrop {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  padding: 24px;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.draft-confirmation-dialog {
+  display: grid;
+  width: min(430px, 100%);
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #4a4a51;
+  border-radius: 8px;
+  background: #151517;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.draft-confirmation-dialog h3,
+.draft-confirmation-dialog p {
+  margin: 0;
+}
+
+.draft-confirmation-dialog h3 {
+  color: #f1f1f2;
+  font-size: 1rem;
+}
+
+.draft-confirmation-dialog p {
+  color: #a0a0a6;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.draft-confirmation-suppress {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #c1c1c6;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.draft-confirmation-suppress input {
+  margin-top: 2px;
+  accent-color: #f5ad2f;
+}
+
+.draft-confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

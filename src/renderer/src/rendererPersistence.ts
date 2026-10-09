@@ -1,10 +1,7 @@
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import { STANDARD_DRAFT_RULEBOOK_ID } from '../../shared/draftRulebook'
 import { migrateDraftRulebookDocument } from '../../shared/draftRulebookPortability'
-import {
-  cloneSquadConfiguration,
-  type StoredSquadPreset,
-} from '../../shared/presets'
+import { cloneSquadConfiguration, type StoredSquadPreset } from '../../shared/presets'
 import {
   createDefaultOperatorPreferences,
   normalizeOperatorPreferences,
@@ -43,6 +40,7 @@ export interface RendererPersistenceState {
   selectedDraftRulebookId: string
   raceExcludedIds: string[]
   operatorArtwork: PromotionArt
+  confirmDraftActions: boolean
   rulebookLibrary: RulebookLibraryEntry[]
 }
 
@@ -76,11 +74,13 @@ function stringList(value: unknown): string[] {
 function isStoredPreset(value: unknown): value is StoredSquadPreset {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<StoredSquadPreset>
-  return typeof candidate.id === 'string' &&
+  return (
+    typeof candidate.id === 'string' &&
     typeof candidate.name === 'string' &&
     candidate.builtIn === false &&
     !!candidate.configuration &&
     typeof candidate.configuration === 'object'
+  )
 }
 
 function normalizeSquadPresets(value: unknown): StoredSquadPreset[] {
@@ -107,20 +107,26 @@ function normalizeSquadPresets(value: unknown): StoredSquadPreset[] {
  */
 function isEditableRulebookDocument(value: unknown): value is DraftRulebook {
   if (!isRecord(value) || !isRecord(value.identifier) || !isRecord(value.generalRules)) return false
-  if (!isRecord(value.pool) || !isRecord(value.overrides) || !Array.isArray(value.interactions)) return false
+  if (!isRecord(value.pool) || !isRecord(value.overrides) || !Array.isArray(value.interactions))
+    return false
 
   const identifier = value.identifier
   if (typeof identifier.id !== 'string' || identifier.id.length === 0) return false
-  if (typeof identifier.name !== 'string' || typeof identifier.description !== 'string') return false
-  if (typeof identifier.createdAt !== 'string' || typeof identifier.revision !== 'string') return false
+  if (typeof identifier.name !== 'string' || typeof identifier.description !== 'string')
+    return false
+  if (typeof identifier.createdAt !== 'string' || typeof identifier.revision !== 'string')
+    return false
 
   if (!isRecord(value.overrides.operatorCosts)) return false
   if (value.pool.source === 'inherit-global') return true
-  if (value.pool.source !== 'global-restrictions' && value.pool.source !== 'rulebook-pool') return false
+  if (value.pool.source !== 'global-restrictions' && value.pool.source !== 'rulebook-pool')
+    return false
   if (!isRecord(value.pool.eligibility)) return false
-  return Array.isArray(value.pool.eligibility.allOf) &&
+  return (
+    Array.isArray(value.pool.eligibility.allOf) &&
     Array.isArray(value.pool.eligibility.anyOf) &&
     Array.isArray(value.pool.eligibility.noneOf)
+  )
 }
 
 function migrateEditableRulebookDocument(value: unknown): DraftRulebook | null {
@@ -147,7 +153,8 @@ function normalizeRulebookEntries(value: unknown): RulebookLibraryEntry[] {
       document,
       origin,
       editor: {
-        lastEditedAt: typeof entry.editor?.lastEditedAt === 'string' ? entry.editor.lastEditedAt : null,
+        lastEditedAt:
+          typeof entry.editor?.lastEditedAt === 'string' ? entry.editor.lastEditedAt : null,
       },
     })
   }
@@ -163,6 +170,7 @@ export function createDefaultRendererPersistenceState(): RendererPersistenceStat
     selectedDraftRulebookId: STANDARD_DRAFT_RULEBOOK_ID,
     raceExcludedIds: [],
     operatorArtwork: 'e2',
+    confirmDraftActions: true,
     rulebookLibrary: [],
   }
 }
@@ -177,18 +185,25 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
     operatorPreferences: normalizeOperatorPreferences(candidate.operatorPreferences),
     squadPresets: normalizeSquadPresets(candidate.squadPresets),
     dismissedWarnings: stringList(candidate.dismissedWarnings),
-    selectedDraftRulebookId: typeof candidate.selectedDraftRulebookId === 'string' && candidate.selectedDraftRulebookId.length > 0
-      ? candidate.selectedDraftRulebookId
-      : STANDARD_DRAFT_RULEBOOK_ID,
+    selectedDraftRulebookId:
+      typeof candidate.selectedDraftRulebookId === 'string' &&
+      candidate.selectedDraftRulebookId.length > 0
+        ? candidate.selectedDraftRulebookId
+        : STANDARD_DRAFT_RULEBOOK_ID,
     raceExcludedIds: stringList(candidate.raceExcludedIds),
     operatorArtwork: candidate.operatorArtwork === 'e1' ? 'e1' : 'e2',
+    confirmDraftActions: candidate.confirmDraftActions !== false,
     rulebookLibrary: normalizeRulebookEntries(candidate.rulebookLibrary),
   }
 }
 
 function parseJson(raw: string | null): unknown {
   if (!raw) return null
-  try { return JSON.parse(raw) as unknown } catch { return null }
+  try {
+    return JSON.parse(raw) as unknown
+  } catch {
+    return null
+  }
 }
 
 function legacySquadPresets(storage: StorageLike): StoredSquadPreset[] {
@@ -204,11 +219,16 @@ function legacyRulebookEntries(storage: StorageLike): RulebookLibraryEntry[] {
   const envelope = parsed as { version?: unknown; rulebooks?: unknown }
   if (envelope.version !== 1 || !Array.isArray(envelope.rulebooks)) return []
   const imported = new Set(stringList(parseJson(storage.getItem(LEGACY_RULEBOOK_IMPORTED_IDS_KEY))))
-  return normalizeRulebookEntries(envelope.rulebooks.map((document) => ({
-    document,
-    origin: isEditableRulebookDocument(document) && imported.has(document.identifier.id) ? 'imported' : 'local',
-    editor: { lastEditedAt: null },
-  })))
+  return normalizeRulebookEntries(
+    envelope.rulebooks.map((document) => ({
+      document,
+      origin:
+        isEditableRulebookDocument(document) && imported.has(document.identifier.id)
+          ? 'imported'
+          : 'local',
+      editor: { lastEditedAt: null },
+    })),
+  )
 }
 
 function legacyRaceExclusions(storage: StorageLike): string[] {
@@ -221,8 +241,9 @@ function legacyRaceExclusions(storage: StorageLike): string[] {
 export function migrateLegacyRendererPersistence(storage: StorageLike): RendererPersistenceState {
   const defaults = createDefaultRendererPersistenceState()
   const rawPreferences = parseJson(storage.getItem(LEGACY_OPERATOR_PREFERENCES_KEY))
-  const dismissedWarnings = [LEGACY_BOUND_WARNING_KEY, LEGACY_PRESET_WARNING_KEY]
-    .filter((key) => storage.getItem(key) === '1')
+  const dismissedWarnings = [LEGACY_BOUND_WARNING_KEY, LEGACY_PRESET_WARNING_KEY].filter(
+    (key) => storage.getItem(key) === '1',
+  )
   const selectedDraftRulebookId = storage.getItem(LEGACY_SELECTED_RULEBOOK_KEY)
   return {
     ...defaults,
@@ -236,10 +257,16 @@ export function migrateLegacyRendererPersistence(storage: StorageLike): Renderer
   }
 }
 
-export function loadRendererPersistence(storage: StorageLike = window.localStorage): RendererPersistenceState {
+export function loadRendererPersistence(
+  storage: StorageLike = window.localStorage,
+): RendererPersistenceState {
   try {
     const raw = parseJson(storage.getItem(RENDERER_PERSISTENCE_KEY))
-    if (raw && typeof raw === 'object' && (raw as { version?: unknown }).version === RENDERER_PERSISTENCE_VERSION) {
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      (raw as { version?: unknown }).version === RENDERER_PERSISTENCE_VERSION
+    ) {
       return normalizeRendererPersistence(raw)
     }
     const migrated = migrateLegacyRendererPersistence(storage)
@@ -313,10 +340,21 @@ export function saveOperatorArtwork(operatorArtwork: PromotionArt): void {
   updateRendererPersistence((state) => ({ ...state, operatorArtwork }))
 }
 
+export function loadDraftActionConfirmations(): boolean {
+  return loadRendererPersistence().confirmDraftActions
+}
+
+export function saveDraftActionConfirmations(confirmDraftActions: boolean): void {
+  updateRendererPersistence((state) => ({ ...state, confirmDraftActions }))
+}
+
 export function loadRulebookLibraryEntries(): RulebookLibraryEntry[] {
   return loadRendererPersistence().rulebookLibrary.map((entry) => cloneJson(entry))
 }
 
 export function saveRulebookLibraryEntries(entries: readonly RulebookLibraryEntry[]): void {
-  updateRendererPersistence((state) => ({ ...state, rulebookLibrary: normalizeRulebookEntries(entries) }))
+  updateRendererPersistence((state) => ({
+    ...state,
+    rulebookLibrary: normalizeRulebookEntries(entries),
+  }))
 }

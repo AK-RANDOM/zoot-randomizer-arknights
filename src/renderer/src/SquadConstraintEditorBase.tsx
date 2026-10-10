@@ -175,6 +175,7 @@ export default function SquadConstraintEditor({
     () => subclassesByClass.flatMap(({ subclasses }) => subclasses.map(({ id }) => id)),
     [subclassesByClass],
   )
+  const operatorLocked = Boolean(draft.operatorId || draft.mandatoryExclusivityGroup)
   const selectedSubclassOptions = selectedClass
     ? (subclassesByClass.find(({ operatorClass }) => operatorClass === selectedClass)?.subclasses ??
       [])
@@ -330,6 +331,11 @@ export default function SquadConstraintEditor({
   }
 
   const handleClassClick = (operatorClass: OperatorClass): void => {
+    if (operatorLocked) {
+      setDraft((current) => ({ ...current, classes: toggleValue(current.classes, operatorClass) }))
+      setSelectedClass(null)
+      return
+    }
     const next = resolveSlotClassClick(draft.classes, selectedClass, operatorClass)
     setDraft((current) => ({ ...current, classes: next.classes }))
     setSelectedClass(next.openClass)
@@ -340,6 +346,7 @@ export default function SquadConstraintEditor({
       setDraft((current) => ({ ...current, operatorId: null, mandatoryExclusivityGroup: null }))
       return
     }
+    setSelectedClass(null)
     if (option.key === `group:${AMIYA_MANDATORY_GROUP}`) {
       setDraft((current) => ({
         ...current,
@@ -448,7 +455,7 @@ export default function SquadConstraintEditor({
           >
             {subclassesByClass.map(({ operatorClass, subclasses }) => {
               const active = draft.classes.includes(operatorClass)
-              const open = selectedClass === operatorClass
+              const open = !operatorLocked && selectedClass === operatorClass
               const availability = classAvailability.get(operatorClass)!
               const disabled = !active && !availability.valid
               const displayClass = classLabels?.[operatorClass] ?? operatorClass
@@ -459,8 +466,11 @@ export default function SquadConstraintEditor({
               const subclassSummary = hasSubclassFilter
                 ? ` · ${enabledSubclassCount} of ${subclasses.length} subclasses active`
                 : ''
-              const actionSummary =
-                open && active
+              const actionSummary = operatorLocked
+                ? active
+                  ? 'Click to deactivate this class.'
+                  : 'Click to activate this class.'
+                : open && active
                   ? 'Click again to deactivate this class.'
                   : active
                     ? 'Click to view subclasses.'
@@ -474,7 +484,7 @@ export default function SquadConstraintEditor({
                     open ? ' is-open' : ''
                   }${!availability.valid ? ' is-unavailable' : ''}`}
                   aria-pressed={active}
-                  aria-expanded={open}
+                  aria-expanded={operatorLocked ? false : open}
                   disabled={disabled}
                   title={
                     availability.reason || `${displayClass}${subclassSummary}. ${actionSummary}`
@@ -495,7 +505,7 @@ export default function SquadConstraintEditor({
               )
             })}
           </div>
-          {selectedClass && selectedClassLabel && (
+          {!operatorLocked && selectedClass && selectedClassLabel && (
             <div
               className="slot-constraint-subclass-selector"
               role="group"

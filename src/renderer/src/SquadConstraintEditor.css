@@ -34,14 +34,16 @@
 .slot-constraint-class-icon-button {
   width: 42px;
   height: 42px;
+  border-color: transparent;
+  background: transparent;
 }
 
 .slot-constraint-class-icon-button .class-icon {
   width: 34px;
   height: 34px;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(8, 8, 9, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .slot-constraint-class-icon-button .class-icon img {
@@ -53,12 +55,32 @@
 .slot-constraint-class-icon-button.is-active,
 .slot-constraint-subclass-icon-button.is-active {
   opacity: 1;
+}
+
+.slot-constraint-class-icon-button.is-active {
+  border-color: transparent;
+  background: transparent;
+}
+
+.slot-constraint-class-icon-button.is-active .class-icon {
+  border-color: rgba(255, 255, 255, 0.62);
+  background: rgba(20, 20, 22, 0.96);
+}
+
+.slot-constraint-subclass-icon-button.is-active {
   border-color: rgba(255, 255, 255, 0.42);
   background: rgba(255, 255, 255, 0.075);
 }
 
 .slot-constraint-class-icon-button.is-open {
+  border-color: transparent;
+}
+
+.slot-constraint-class-icon-button.is-open .class-icon {
   border-color: rgba(240, 198, 109, 0.88);
+  box-shadow:
+    0 0 0 1px rgba(240, 198, 109, 0.28),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 .slot-constraint-class-icon-button.is-unavailable:not(.is-active) {
@@ -104,10 +126,30 @@
   object-fit: contain;
 }
 
-.slot-constraint-subclass-icon-button:hover:not(:disabled),
-.slot-constraint-class-icon-button:hover:not(:disabled) {
+.slot-constraint-subclass-icon-button:hover:not(:disabled) {
   opacity: 1;
   border-color: rgba(255, 255, 255, 0.55);
+}
+
+.slot-constraint-class-icon-button:hover:not(:disabled) {
+  opacity: 1;
+  border-color: transparent;
+}
+
+.slot-constraint-class-icon-button:hover:not(:disabled) .class-icon {
+  border-color: rgba(255, 255, 255, 0.68);
+}
+
+/* Keep Standard Squad cards at their pre-wide-shell footprint. */
+.squad-panel .squad-grid {
+  max-width: 1140px;
+}
+
+/* Class Bounds uses the canonical ClassIcon frame, not a transparent icon shell. */
+.squad-panel .bound-grid--classes .bound-class-icon {
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(8, 8, 9, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
 @media (max-width: 760px) {

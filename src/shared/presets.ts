@@ -119,7 +119,21 @@ export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
         4: exact(5),
         3: exact(3),
       },
-      slots: mappedSlots([[6], [5], [5], [5], [4], [4], [4], [4], [4], [3], [3], [3]]),
+      class: {
+        Vanguard: exact(2),
+        Guard: exact(1),
+        Sniper: exact(1),
+        Caster: exact(2),
+        Defender: exact(2),
+        Medic: exact(2),
+        Supporter: exact(0),
+        Specialist: exact(2),
+      },
+      slots: (() => {
+        const slots = mappedSlots([[5], [6], [4], [4], [5], [4], [4], [5], [4], [3], [3], [3]])
+        slots[0].mandatoryExclusivityGroup = 'amiya-forms'
+        return slots
+      })(),
     },
   },
   {

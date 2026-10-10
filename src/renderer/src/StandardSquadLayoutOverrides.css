@@ -85,6 +85,32 @@
   right: 32px;
 }
 
+.squad-panel > .squad-grid {
+  width: min(100%, 1080px);
+  margin-inline: auto;
+}
+
+.preset-name-dialog {
+  display: grid;
+  gap: 14px;
+}
+
+.preset-name-dialog-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 10px;
+  border: 1px solid #3d3d43;
+  border-radius: 4px;
+  color: #f2f2f2;
+  background: #0e0e10;
+  outline: none;
+}
+
+.preset-name-dialog-input:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 1px rgba(64, 153, 194, 0.25);
+}
+
 @media (max-width: 960px) {
   .squad-panel > .preset-toolbar {
     grid-template-columns: repeat(2, auto) minmax(190px, 1fr);

@@ -147,63 +147,34 @@
   }
 }
 
-/* Standard Squad filter: rarity and aggregate are peer boxes; classes span the row below. */
+/* Standard Squad filter: two peer panels on top, classes full width below. */
 .squad-panel .squad-filter-disclosure[open] {
   overflow: visible;
 }
 
 .squad-panel .squad-bounds-layout {
-  grid-template-columns: 1fr;
-}
-
-.squad-panel .squad-bounds-layout > .squad-bound-group:first-child {
-  position: relative;
-  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: auto auto;
-  column-gap: 14px;
-  padding: 0;
-  border: 0;
+  align-items: start;
 }
 
-.squad-panel .squad-bounds-layout > .squad-bound-group:first-child > legend {
-  position: absolute;
-  z-index: 2;
-  top: -0.45em;
-  left: 12px;
-  padding: 0 7px;
-  background: #151517;
+.squad-panel .squad-bound-group--classes {
+  grid-column: 1 / -1;
 }
 
-.squad-panel .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid:not(.bound-grid--aggregate) {
-  grid-column: 1;
-  grid-row: 1 / span 2;
-  padding: 12px;
-  border: 1px solid #2c2c31;
-  border-radius: 5px;
-}
-
-.squad-panel .squad-bounds-layout > .squad-bound-group:first-child > .aggregate-bound-heading {
-  grid-column: 2;
-  grid-row: 1;
-  margin: 0;
-  padding: 10px 12px 6px;
-  border: 1px solid #2c2c31;
-  border-bottom: 0;
-  border-radius: 5px 5px 0 0;
-}
-
-.squad-panel .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid--aggregate {
-  grid-column: 2;
-  grid-row: 2;
-  padding: 0 12px 12px;
-  border: 1px solid #2c2c31;
-  border-top: 0;
-  border-radius: 0 0 5px 5px;
+.squad-panel .aggregate-bound-note {
+  margin: 0 0 8px;
+  color: #6f6f76;
+  font-size: 0.64rem;
 }
 
 .squad-panel .bound-grid--classes {
   grid-template-columns: repeat(8, minmax(0, 1fr));
+}
+
+/* Class-bound editors overlay upward so they do not push the filter downward. */
+.squad-panel .bound-grid--classes .bound-popover {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 /* Keep class-bound popovers inside the usable panel area. */
@@ -218,25 +189,12 @@
 }
 
 @media (max-width: 720px) {
-  .squad-panel .squad-bounds-layout > .squad-bound-group:first-child {
+  .squad-panel .squad-bounds-layout {
     grid-template-columns: 1fr;
-    row-gap: 14px;
   }
 
-  .squad-panel .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid:not(.bound-grid--aggregate) {
+  .squad-panel .squad-bound-group--classes {
     grid-column: 1;
-    grid-row: 1;
-  }
-
-  .squad-panel .squad-bounds-layout > .squad-bound-group:first-child > .aggregate-bound-heading {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .squad-panel .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid--aggregate {
-    grid-column: 1;
-    grid-row: 3;
-    margin-top: -14px;
   }
 
   .squad-panel .bound-grid--classes {

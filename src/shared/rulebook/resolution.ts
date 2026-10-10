@@ -15,6 +15,8 @@ function cloneJson<T>(value: T): T {
 export function resolveDraftRulebook(rulebook: DraftRulebook): ResolvedDraftRulebook {
   assertValidDraftRulebook(rulebook)
   const configuration = resolveDraftConfiguration({
+    offerSize: rulebook.generalRules.offerSize,
+    maxRounds: rulebook.generalRules.maxRounds,
     actionRules: rulebook.generalRules.actionRules,
     capacityRules: rulebook.generalRules.capacityRules,
     economyRules: {

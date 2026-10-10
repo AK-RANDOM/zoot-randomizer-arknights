@@ -7,7 +7,7 @@ import type {
 import type { DraftPullDistribution } from '../draftDistribution'
 import type { OperatorClass, OperatorRarity } from '../operator'
 
-export const DRAFT_RULEBOOK_SCHEMA_VERSION = 2 as const
+export const DRAFT_RULEBOOK_SCHEMA_VERSION = 3 as const
 
 export interface DraftRulebookIdentifier {
   id: string
@@ -40,6 +40,7 @@ export type DraftRulebookEconomyRules = Omit<Partial<DraftEconomyRules>, 'operat
 
 export interface DraftRulebookGeneralRules {
   offerSize: number
+  maxRounds?: number | null
   actionRules?: PartialDraftActionRules
   capacityRules?: Partial<DraftCapacityRules>
   economyRules?: DraftRulebookEconomyRules

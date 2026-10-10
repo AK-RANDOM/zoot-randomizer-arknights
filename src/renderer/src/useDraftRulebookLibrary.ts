@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { OperatorDataset } from '../../shared/operator'
 import {
+  BUILT_IN_DRAFT_RULEBOOKS,
   STANDARD_DRAFT_RULEBOOK,
   STANDARD_DRAFT_RULEBOOK_ID,
   validateDraftRulebook,
@@ -25,12 +26,12 @@ function cloneRulebook(rulebook: DraftRulebook): DraftRulebook {
   return JSON.parse(JSON.stringify(rulebook)) as DraftRulebook
 }
 
-function builtInEntry(): RulebookLibraryEntry {
-  return {
-    document: cloneRulebook(STANDARD_DRAFT_RULEBOOK),
-    origin: 'built-in',
+function builtInEntries(): RulebookLibraryEntry[] {
+  return BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => ({
+    document: cloneRulebook(rulebook),
+    origin: 'built-in' as const,
     editor: { lastEditedAt: null },
-  }
+  }))
 }
 
 export interface DraftRulebookLibraryController {
@@ -61,11 +62,16 @@ export default function useDraftRulebookLibrary(dataset: OperatorDataset): Draft
 
   useEffect(() => saveDraftRulebookEntries(customEntries), [customEntries])
 
-  const builtIn = useMemo(() => builtInEntry(), [])
-  const entries = useMemo(() => [builtIn, ...customEntries], [builtIn, customEntries])
+  const builtIns = useMemo(() => builtInEntries(), [])
+  const standardBuiltIn = builtIns.find((entry) => entry.document.identifier.id === STANDARD_DRAFT_RULEBOOK_ID) ?? {
+    document: cloneRulebook(STANDARD_DRAFT_RULEBOOK),
+    origin: 'built-in' as const,
+    editor: { lastEditedAt: null },
+  }
+  const entries = useMemo(() => [...builtIns, ...customEntries], [builtIns, customEntries])
   const localEntries = useMemo(() => customEntries.filter((entry) => entry.origin === 'local'), [customEntries])
   const importedEntries = useMemo(() => customEntries.filter((entry) => entry.origin === 'imported'), [customEntries])
-  const selectedEntry = entries.find((entry) => entry.document.identifier.id === selectedId) ?? builtIn
+  const selectedEntry = entries.find((entry) => entry.document.identifier.id === selectedId) ?? standardBuiltIn
   const selected = selectedEntry.document
   const selectedIsBuiltIn = selectedEntry.origin === 'built-in'
   const imported = selectedEntry.origin === 'imported'

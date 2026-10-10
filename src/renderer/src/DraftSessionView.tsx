@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
@@ -30,8 +30,6 @@ export interface DraftSessionViewProps {
   statusMessage?: string | null
   statusError?: string | null
   onStart: () => void
-  onAbandon?: () => void
-  rulebookControl?: ReactNode
   onPick: (operatorId: string) => void
   onAction?: (action: DraftAction) => void
 }
@@ -40,15 +38,15 @@ export default function DraftSessionView({
   operators,
   targetSize,
   ready,
+  distributionLabel,
   rulebook,
+  poolSourceLabel,
   dataset,
   configuration,
   validationErrors = [],
   statusMessage,
   statusError,
   onStart,
-  onAbandon,
-  rulebookControl,
   onPick,
   onAction,
 }: DraftSessionViewProps): React.JSX.Element {
@@ -56,7 +54,10 @@ export default function DraftSessionView({
     () => new Map(operators.map((operator) => [operator.id, operator] as const)),
     [operators],
   )
-  const canStart = ready && validationErrors.length === 0 && operators.length >= 3
+  const canStart =
+    ready &&
+    validationErrors.length === 0 &&
+    operators.length >= rulebook.generalRules.offerSize
   const status = resolveDraftStatusPresentation(state, targetSize)
   const confirmationsEnabled = useDraftActionConfirmationPreference()
   const [sessionConfirmationsSuppressed, setSessionConfirmationsSuppressed] = useState(false)
@@ -129,7 +130,7 @@ export default function DraftSessionView({
         <div className="draft-status-main">
           <div className="draft-status-rulebook">
             <span>Draft Rulebook</span>
-            {rulebookControl ?? <strong id="draft-heading">{rulebook.identifier.name}</strong>}
+            <strong id="draft-heading">{rulebook.identifier.name}</strong>
           </div>
           <div className="draft-status-item">
             <span>Round</span>
@@ -152,26 +153,24 @@ export default function DraftSessionView({
             <strong>{status.capacity.label}</strong>
           </div>
         </div>
-        <div className="draft-status-actions">
-          {state && onAbandon && (
-            <button
-              className="danger-button draft-status-abandon"
-              type="button"
-              onClick={onAbandon}
-            >
-              Abandon Draft
-            </button>
-          )}
-          <button
-            className="randomize-button draft-status-new"
-            type="button"
-            disabled={!canStart}
-            onClick={requestStart}
-          >
-            {state ? 'New Draft' : 'Start Draft'}
-          </button>
-        </div>
+        <button
+          className="randomize-button draft-status-new"
+          type="button"
+          disabled={!canStart}
+          onClick={requestStart}
+        >
+          {state ? 'New Draft' : 'Start Draft'}
+        </button>
       </div>
+      <div className="draft-status-context" aria-label="Draft Rulebook context">
+        <span>Revision {rulebook.identifier.revision}</span>
+        <span>{poolSourceLabel}</span>
+        <span>{distributionLabel}</span>
+        <span>{operators.length} eligible operators</span>
+      </div>
+      {rulebook.identifier.description && (
+        <p className="draft-rulebook-description">{rulebook.identifier.description}</p>
+      )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>
@@ -188,6 +187,12 @@ export default function DraftSessionView({
         </div>
       )}
       {statusMessage && !statusError && <p className="draft-session-note">{statusMessage}</p>}
+      {state && (
+        <p className="draft-session-note">
+          This Draft is tied to its starting pool, target size, and Draft Rulebook. Changing any of
+          them resets the session.
+        </p>
+      )}
       {!state ? (
         <div className="draft-empty-state">
           <strong>
@@ -195,7 +200,7 @@ export default function DraftSessionView({
               ? 'Loading Draft Rulebook data…'
               : validationErrors.length > 0
                 ? 'Rulebook needs attention'
-                : operators.length >= 3
+                : operators.length >= rulebook.generalRules.offerSize
                   ? 'Ready to draft'
                   : 'Not enough eligible operators'}
           </strong>
@@ -204,9 +209,9 @@ export default function DraftSessionView({
               ? 'Draft will be available after the operator dataset finishes loading.'
               : validationErrors.length > 0
                 ? 'Fix the Rulebook in Setup → Draft Rulebooks before starting this draft.'
-                : operators.length >= 3
+                : operators.length >= rulebook.generalRules.offerSize
                   ? 'The selected Draft Rulebook controls the effective pool, economy, actions, and pull distribution.'
-                  : 'A Draft offer requires three distinct eligible operators. Adjust the Rulebook or Global Pool before starting.'}
+                  : `A Draft offer requires ${rulebook.generalRules.offerSize} distinct eligible operators. Adjust the Rulebook or Global Pool before starting.`}
           </p>
         </div>
       ) : state.status === 'complete' ? (

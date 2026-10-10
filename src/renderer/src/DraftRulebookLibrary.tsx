@@ -1,8 +1,7 @@
 import { useRef, type ChangeEvent } from 'react'
 import {
+  BUILT_IN_DRAFT_RULEBOOKS,
   serializeDraftRulebook,
-  STANDARD_DRAFT_RULEBOOK,
-  STANDARD_DRAFT_RULEBOOK_ID,
 } from '../../shared/draftRulebook'
 import {
   MAX_DRAFT_RULEBOOK_FILE_BYTES,
@@ -105,7 +104,11 @@ export default function DraftRulebookLibrary({
           <span>Rulebook</span>
           <select value={library.selectedId} onChange={(event) => library.select(event.target.value)}>
             <optgroup label="Built-in">
-              <option value={STANDARD_DRAFT_RULEBOOK_ID}>{STANDARD_DRAFT_RULEBOOK.identifier.name}</option>
+              {BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => (
+                <option key={rulebook.identifier.id} value={rulebook.identifier.id}>
+                  {rulebook.identifier.name}
+                </option>
+              ))}
             </optgroup>
             {library.importedEntries.length > 0 && (
               <optgroup label="Imported">

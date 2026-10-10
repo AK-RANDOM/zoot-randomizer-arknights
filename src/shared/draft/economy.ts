@@ -71,6 +71,11 @@ export function getDraftHoldUpkeepCostWithConfiguration(
   const upkeep = economy.holdUpkeep
   if (upkeep.mode === 'none') return 0
   if (upkeep.mode === 'static') return upkeep.cost
+  if (upkeep.mode === 'schedule') {
+    const chargeIndex = state.holdUpkeepCharges ?? 0
+    if (chargeIndex < upkeep.costs.length) return upkeep.costs[chargeIndex]
+    return upkeep.repeatLast ? (upkeep.costs.at(-1) ?? 0) : 0
+  }
   return upkeep.baseCost + (state.holdUpkeepCharges ?? 0) * upkeep.escalation
 }
 

@@ -129,7 +129,7 @@ export function getDraftActionAvailability(
   action: DraftAction,
   options: Pick<
     DraftEngineOptions,
-    'configuration' | 'actionRules' | 'capacityRules' | 'economyRules' | 'pullDistribution' | 'interactions'
+    'configuration' | 'offerSize' | 'maxRounds' | 'actionRules' | 'capacityRules' | 'economyRules' | 'pullDistribution' | 'interactions'
   > = {},
   pool?: readonly Operator[],
 ): DraftActionAvailability {

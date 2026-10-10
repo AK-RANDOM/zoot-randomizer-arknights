@@ -90,7 +90,7 @@ describe('renderer persistence', () => {
     })
 
     expect(normalized.rulebookLibrary).toHaveLength(1)
-    expect(normalized.rulebookLibrary[0]?.document.schemaVersion).toBe(2)
+    expect(normalized.rulebookLibrary[0]?.document.schemaVersion).toBe(3)
     expect(normalized.rulebookLibrary[0]?.document.identifier.id).toBe('local:v1')
   })
 

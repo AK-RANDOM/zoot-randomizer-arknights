@@ -15,6 +15,7 @@ export type DraftCompletionReason =
   | 'squad-size-reached'
   | 'pool-exhausted'
   | 'capacity-exhausted'
+  | 'round-limit-reached'
 export type DraftActionType =
   | 'pick'
   | 'forfeit'
@@ -83,6 +84,7 @@ export type DraftHoldUpkeepRules =
   | { mode: 'none' }
   | { mode: 'static'; cost: number }
   | { mode: 'escalating'; baseCost: number; escalation: number }
+  | { mode: 'schedule'; costs: number[]; repeatLast: boolean }
 
 export interface DraftEconomyRules {
   enabled: boolean
@@ -139,6 +141,8 @@ export type PartialDraftActionRules = {
 }
 
 export interface DraftConfigurationInput {
+  offerSize?: number
+  maxRounds?: number | null
   actionRules?: PartialDraftActionRules
   capacityRules?: Partial<DraftCapacityRules>
   economyRules?: Partial<DraftEconomyRules>
@@ -147,6 +151,8 @@ export interface DraftConfigurationInput {
 }
 
 export interface ResolvedDraftConfiguration {
+  offerSize: number
+  maxRounds: number | null
   actionRules: DraftActionRules
   capacityRules: DraftCapacityRules
   economyRules: DraftEconomyRules
@@ -167,6 +173,7 @@ export interface DraftEngineOptions extends DraftConfigurationInput {
 
 export interface DraftState {
   targetSize: number
+  offerSize: number
   poolKey: string
   draftedOperatorIds: string[]
   currentOfferIds: string[]
@@ -183,6 +190,8 @@ export interface DraftState {
   points: number
   economyRulesEnabled: boolean
   pullsSinceSixStar: number
+  generatedCandidateCount: number
+  actualFiveStarGeneratedInFirstTen: boolean
   actionUsage: DraftActionUsageMap
   status: DraftStatus
   completionReason: DraftCompletionReason | null

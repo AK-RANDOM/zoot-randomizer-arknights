@@ -5,6 +5,7 @@ import { draftCompletionMessage } from './draftSessionMessages'
 function state(completionReason: DraftState['completionReason']): DraftState {
   return {
     targetSize: 12,
+    offerSize: 3,
     poolKey: 'pool',
     draftedOperatorIds: ['one', 'two'],
     currentOfferIds: [],
@@ -21,6 +22,8 @@ function state(completionReason: DraftState['completionReason']): DraftState {
     points: 0,
     economyRulesEnabled: false,
     pullsSinceSixStar: 0,
+    generatedCandidateCount: 0,
+    actualFiveStarGeneratedInFirstTen: false,
     actionUsage: {
       pick: { total: 2, round: 0, lastUsedRound: 2 },
       forfeit: { total: 0, round: 0, lastUsedRound: null },
@@ -44,6 +47,9 @@ describe('draftCompletionMessage', () => {
     )
     expect(draftCompletionMessage(state('capacity-exhausted'))).toBe(
       'Draft ended because no further ownership capacity is available. 2 operators drafted.',
+    )
+    expect(draftCompletionMessage(state('round-limit-reached'))).toBe(
+      'Draft ended at the configured round limit. 2 operators drafted.',
     )
   })
 })

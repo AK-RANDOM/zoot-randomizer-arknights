@@ -59,6 +59,50 @@ describe('Draft milestone 1 engine', () => {
     expect(state.draftedOperatorIds).toEqual([])
   })
 
+  it('supports a configured four-card offer size at runtime', () => {
+    const pool = roster(8)
+    let requestedCount = 0
+    const generator: DraftCandidateGenerator = (candidates, count) => {
+      requestedCount = count
+      return candidates.slice(0, count)
+    }
+    const state = startDraft(pool, 5, {
+      configuration: { offerSize: 4 },
+      candidateGenerator: generator,
+    })
+
+    expect(requestedCount).toBe(4)
+    expect(state.offerSize).toBe(4)
+    expect(state.currentOfferIds).toEqual(['char_1', 'char_2', 'char_3', 'char_4'])
+  })
+
+  it('completes after the configured maximum playable round', () => {
+    const pool = roster(12)
+    const options = { random: () => 0, configuration: { maxRounds: 2 } }
+    let state = startDraft(pool, 6, options)
+
+    state = pickDraftOperator(state, pool, state.currentOfferIds[0], options)
+    expect(state.status).toBe('active')
+    expect(state.roundNumber).toBe(2)
+
+    state = pickDraftOperator(state, pool, state.currentOfferIds[0], options)
+    expect(state.status).toBe('complete')
+    expect(state.completionReason).toBe('round-limit-reached')
+    expect(state.completedRounds).toBe(2)
+  })
+
+  it('prefers target completion over the round limit on the final round', () => {
+    const pool = roster(8)
+    const options = { random: () => 0, configuration: { maxRounds: 2 } }
+    let state = startDraft(pool, 2, options)
+    state = pickDraftOperator(state, pool, state.currentOfferIds[0], options)
+    state = pickDraftOperator(state, pool, state.currentOfferIds[0], options)
+
+    expect(state.status).toBe('complete')
+    expect(state.completionReason).toBe('squad-size-reached')
+    expect(state.draftedOperatorIds).toHaveLength(2)
+  })
+
   it('adds only the selected operator and allows unchosen candidates to return', () => {
     const pool = roster(6)
     const initial = startDraft(pool, 4, { random: () => 0 })

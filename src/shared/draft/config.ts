@@ -1,4 +1,5 @@
 import type { DraftPullDistribution, DraftRateUpRule } from '../draftDistribution'
+import { DRAFT_OFFER_SIZE } from './types'
 import type {
   DraftActionRules,
   DraftCapacityRules,
@@ -11,6 +12,8 @@ import type {
   ResolvedDraftConfiguration,
   ResolvedDraftInteraction,
 } from './types'
+
+export const DEFAULT_DRAFT_MAX_ROUNDS: number | null = null
 
 export const DEFAULT_DRAFT_ACTION_RULES: DraftActionRules = {
   hold: {
@@ -72,6 +75,7 @@ function clonePullDistribution(distribution: DraftPullDistribution): DraftPullDi
   if (distribution.type === 'arknights') {
     return {
       type: 'arknights',
+      firstTenActualFiveStarGuarantee: distribution.firstTenActualFiveStarGuarantee,
       rateUps: distribution.rateUps
         ? Object.fromEntries(
             Object.entries(distribution.rateUps).map(([id, rateUp]) => [id, cloneRateUp(rateUp)]),
@@ -117,7 +121,7 @@ function cloneInteractions(interactions: readonly ResolvedDraftInteraction[]): R
 }
 
 function cloneHoldUpkeep(rules: DraftHoldUpkeepRules): DraftHoldUpkeepRules {
-  return { ...rules }
+  return rules.mode === 'schedule' ? { ...rules, costs: [...rules.costs] } : { ...rules }
 }
 
 function mergeActionInputs(
@@ -158,6 +162,8 @@ export function resolveDraftConfiguration(
   const actionRules = input.actionRules ?? {}
   const economyRules = input.economyRules ?? {}
   return {
+    offerSize: input.offerSize ?? DRAFT_OFFER_SIZE,
+    maxRounds: input.maxRounds ?? DEFAULT_DRAFT_MAX_ROUNDS,
     actionRules: {
       hold: { ...DEFAULT_DRAFT_ACTION_RULES.hold, ...actionRules.hold },
       forfeit: { ...DEFAULT_DRAFT_ACTION_RULES.forfeit, ...actionRules.forfeit },
@@ -192,6 +198,8 @@ export function resolveDraftEngineConfiguration(
 ): ResolvedDraftConfiguration {
   const nested = options.configuration ?? {}
   return resolveDraftConfiguration({
+    offerSize: options.offerSize ?? nested.offerSize,
+    maxRounds: options.maxRounds !== undefined ? options.maxRounds : nested.maxRounds,
     actionRules: mergeActionInputs(nested.actionRules, options.actionRules),
     capacityRules:
       nested.capacityRules || options.capacityRules
@@ -222,6 +230,18 @@ function validateHoldUpkeep(rules: DraftHoldUpkeepRules): void {
   if (rules.mode === 'static') {
     if (!Number.isFinite(rules.cost) || rules.cost < 0) {
       throw new Error('Draft static Hold upkeep cost must be a non-negative finite number.')
+    }
+    return
+  }
+  if (rules.mode === 'schedule') {
+    if (rules.costs.length === 0) {
+      throw new Error('Draft scheduled Hold upkeep requires at least one cost.')
+    }
+    if (rules.costs.some((cost) => !Number.isFinite(cost) || cost < 0)) {
+      throw new Error('Draft scheduled Hold upkeep costs must be non-negative finite numbers.')
+    }
+    if (typeof rules.repeatLast !== 'boolean') {
+      throw new Error('Draft scheduled Hold upkeep repeatLast must be boolean.')
     }
     return
   }
@@ -297,6 +317,15 @@ function validateInteractions(interactions: readonly ResolvedDraftInteraction[])
 }
 
 export function validateDraftConfiguration(configuration: ResolvedDraftConfiguration): void {
+  if (!Number.isInteger(configuration.offerSize) || configuration.offerSize < 1) {
+    throw new Error('Draft offer size must be a positive integer.')
+  }
+  if (
+    configuration.maxRounds !== null &&
+    (!Number.isInteger(configuration.maxRounds) || configuration.maxRounds < 1)
+  ) {
+    throw new Error('Draft maximum rounds must be null or a positive integer.')
+  }
   validateLimitedRule('Hold', configuration.actionRules.hold)
   validateLimitedRule('Forfeit', configuration.actionRules.forfeit)
   validateLimitedRule('Reroll', configuration.actionRules.reroll)

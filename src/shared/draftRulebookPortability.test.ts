@@ -74,12 +74,12 @@ describe('Draft Rulebook portability', () => {
 
     expect(result.compatible).toBe(true)
     expect(result.migrated).toBe(false)
-    expect(result.sourceSchemaVersion).toBe(2)
+    expect(result.sourceSchemaVersion).toBe(3)
     expect(result.rulebook?.identifier.id).toBe('community:test')
     expect(result.errors).toEqual([])
   })
 
-  it('migrates schema v1 Rulebooks to v2 without opting into Hold upkeep', () => {
+  it('migrates schema v1 Rulebooks to the current schema without opting into newer rules', () => {
     const v1 = JSON.parse(serializeDraftRulebook(cloneStandard())) as Record<string, unknown>
     v1.schemaVersion = 1
 
@@ -88,7 +88,7 @@ describe('Draft Rulebook portability', () => {
     expect(result.compatible).toBe(true)
     expect(result.migrated).toBe(true)
     expect(result.sourceSchemaVersion).toBe(1)
-    expect(result.rulebook?.schemaVersion).toBe(2)
+    expect(result.rulebook?.schemaVersion).toBe(3)
     expect(result.rulebook?.generalRules.economyRules?.holdUpkeep).toBeUndefined()
   })
 

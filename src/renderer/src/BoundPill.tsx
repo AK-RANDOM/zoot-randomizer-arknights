@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   DEFAULT_NUMERIC_CONSTRAINT,
   resolveNumericConstraint,
@@ -9,6 +9,13 @@ function clamp(value: number): number {
   if (!Number.isFinite(value)) return 0
   return Math.max(0, Math.min(12, Math.trunc(value)))
 }
+
+interface ActiveBoundPopover {
+  token: symbol
+  close: () => void
+}
+
+let activeBoundPopover: ActiveBoundPopover | null = null
 
 export function formatBoundSummary(value: NumericConstraint | undefined): string {
   const resolved = resolveNumericConstraint(value)
@@ -36,10 +43,19 @@ export default function BoundPill({
   const accessibleLabel = labelText ?? (typeof label === 'string' ? label : 'Squad')
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<NumericConstraint>({ ...resolved })
+  const instanceToken = useRef(Symbol('bound-popover')).current
+  const closePopover = useCallback(() => {
+    setOpen(false)
+    if (activeBoundPopover?.token === instanceToken) activeBoundPopover = null
+  }, [instanceToken])
 
   useEffect(() => {
     if (!open) setDraft({ ...resolved })
   }, [open, resolved.min, resolved.max])
+
+  useEffect(() => () => {
+    if (activeBoundPopover?.token === instanceToken) activeBoundPopover = null
+  }, [instanceToken])
 
   const invalid = draft.min > draft.max
 
@@ -53,8 +69,14 @@ export default function BoundPill({
         aria-label={`${accessibleLabel}: ${formatBoundSummary(value)}`}
         aria-expanded={open}
         onClick={() => {
+          if (open) {
+            closePopover()
+            return
+          }
+          activeBoundPopover?.close()
           setDraft({ ...resolved })
-          setOpen((current) => !current)
+          setOpen(true)
+          activeBoundPopover = { token: instanceToken, close: closePopover }
         }}
       >
         {formatBoundSummary(value)}
@@ -104,7 +126,7 @@ export default function BoundPill({
               Reset to Any
             </button>
             <span className="bound-popover-spacer" />
-            <button type="button" className="secondary-button" onClick={() => setOpen(false)}>
+            <button type="button" className="secondary-button" onClick={closePopover}>
               Cancel
             </button>
             <button
@@ -113,7 +135,7 @@ export default function BoundPill({
               disabled={invalid}
               onClick={() => {
                 onSave(draft)
-                setOpen(false)
+                closePopover()
               }}
             >
               Save

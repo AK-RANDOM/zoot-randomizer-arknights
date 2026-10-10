@@ -1,4 +1,9 @@
 import type { DraftRulebook } from '../../shared/draftRulebook'
+import {
+  DRAFT_PRICING_PROFILE_SCHEMA_VERSION,
+  validateDraftPricingProfile,
+  type DraftPricingProfile,
+} from '../../shared/draftPricingProfile'
 import { STANDARD_DRAFT_RULEBOOK_ID } from '../../shared/draftRulebook'
 import { migrateDraftRulebookDocument } from '../../shared/draftRulebookPortability'
 import { cloneSquadConfiguration, type StoredSquadPreset } from '../../shared/presets'
@@ -42,6 +47,7 @@ export interface RendererPersistenceState {
   operatorArtwork: PromotionArt
   confirmDraftActions: boolean
   rulebookLibrary: RulebookLibraryEntry[]
+  pricingProfiles: DraftPricingProfile[]
 }
 
 export interface StorageLike {
@@ -161,6 +167,26 @@ function normalizeRulebookEntries(value: unknown): RulebookLibraryEntry[] {
   return result
 }
 
+function normalizePricingProfiles(value: unknown): DraftPricingProfile[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  const result: DraftPricingProfile[] = []
+  for (const candidate of value) {
+    if (!isRecord(candidate)) continue
+    const profile = cloneJson(candidate) as Partial<DraftPricingProfile>
+    if (profile.schemaVersion !== DRAFT_PRICING_PROFILE_SCHEMA_VERSION) continue
+    if (typeof profile.id !== 'string' || profile.id.length === 0 || seen.has(profile.id)) continue
+    if (typeof profile.name !== 'string' || typeof profile.description !== 'string') continue
+    if (typeof profile.createdAt !== 'string' || typeof profile.revision !== 'string') continue
+    if (!isRecord(profile.operatorCosts)) continue
+    const normalized = profile as DraftPricingProfile
+    if (validateDraftPricingProfile(normalized).length > 0) continue
+    seen.add(normalized.id)
+    result.push(normalized)
+  }
+  return result
+}
+
 export function createDefaultRendererPersistenceState(): RendererPersistenceState {
   return {
     version: RENDERER_PERSISTENCE_VERSION,
@@ -172,6 +198,7 @@ export function createDefaultRendererPersistenceState(): RendererPersistenceStat
     operatorArtwork: 'e2',
     confirmDraftActions: true,
     rulebookLibrary: [],
+    pricingProfiles: [],
   }
 }
 
@@ -194,6 +221,7 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
     operatorArtwork: candidate.operatorArtwork === 'e1' ? 'e1' : 'e2',
     confirmDraftActions: candidate.confirmDraftActions !== false,
     rulebookLibrary: normalizeRulebookEntries(candidate.rulebookLibrary),
+    pricingProfiles: normalizePricingProfiles(candidate.pricingProfiles),
   }
 }
 
@@ -356,5 +384,16 @@ export function saveRulebookLibraryEntries(entries: readonly RulebookLibraryEntr
   updateRendererPersistence((state) => ({
     ...state,
     rulebookLibrary: normalizeRulebookEntries(entries),
+  }))
+}
+
+export function loadDraftPricingProfiles(): DraftPricingProfile[] {
+  return loadRendererPersistence().pricingProfiles.map((profile) => cloneJson(profile))
+}
+
+export function saveDraftPricingProfiles(profiles: readonly DraftPricingProfile[]): void {
+  updateRendererPersistence((state) => ({
+    ...state,
+    pricingProfiles: normalizePricingProfiles(profiles),
   }))
 }

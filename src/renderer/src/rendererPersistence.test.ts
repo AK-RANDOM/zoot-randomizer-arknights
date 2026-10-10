@@ -90,8 +90,38 @@ describe('renderer persistence', () => {
     })
 
     expect(normalized.rulebookLibrary).toHaveLength(1)
-    expect(normalized.rulebookLibrary[0]?.document.schemaVersion).toBe(3)
+    expect(normalized.rulebookLibrary[0]?.document.schemaVersion).toBe(4)
     expect(normalized.rulebookLibrary[0]?.document.identifier.id).toBe('local:v1')
+  })
+
+  it('persists valid custom Draft pricing profiles and rejects invalid entries', () => {
+    const normalized = normalizeRendererPersistence({
+      ...loadRendererPersistence(new MemoryStorage()),
+      pricingProfiles: [
+        {
+          schemaVersion: 1,
+          id: 'local:pricing:test',
+          name: 'Test Pricing',
+          description: 'Custom pricing',
+          createdAt: '2026-10-10T00:00:00.000Z',
+          revision: '1',
+          operatorCosts: { char_a: 7, char_b: 45 },
+        },
+        {
+          schemaVersion: 1,
+          id: 'local:pricing:invalid',
+          name: 'Invalid',
+          description: '',
+          createdAt: '2026-10-10T00:00:00.000Z',
+          revision: '1',
+          operatorCosts: { char_bad: Number.NaN },
+        },
+      ],
+    })
+
+    expect(normalized.pricingProfiles).toHaveLength(1)
+    expect(normalized.pricingProfiles[0]?.id).toBe('local:pricing:test')
+    expect(normalized.pricingProfiles[0]?.operatorCosts.char_b).toBe(45)
   })
 
   it('keeps temporarily invalid Rulebook editor documents', () => {

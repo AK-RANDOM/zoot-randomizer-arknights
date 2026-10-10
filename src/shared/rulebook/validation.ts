@@ -5,10 +5,7 @@ import {
   type DraftRulebook,
   type DraftRulebookValidationResult,
 } from './types'
-import {
-  validateDraftRulebookEligibility,
-  validateDraftRulebookSelector,
-} from './selectors'
+import { validateDraftRulebookEligibility, validateDraftRulebookSelector } from './selectors'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -88,7 +85,11 @@ function validateLimitedAction(
   }
   for (const key of ['perRoundLimit', 'perDraftLimit'] as const) {
     const limit = value[key]
-    if (limit !== undefined && limit !== null && (!Number.isInteger(limit) || (limit as number) < 1)) {
+    if (
+      limit !== undefined &&
+      limit !== null &&
+      (!Number.isInteger(limit) || (limit as number) < 1)
+    ) {
       errors.push(`${path}.${key} must be null or a positive integer.`)
     }
   }
@@ -98,7 +99,11 @@ function validateLimitedAction(
   ) {
     errors.push(`${path}.cooldownRounds must be a non-negative integer.`)
   }
-  if (extraBoolean && value[extraBoolean] !== undefined && typeof value[extraBoolean] !== 'boolean') {
+  if (
+    extraBoolean &&
+    value[extraBoolean] !== undefined &&
+    typeof value[extraBoolean] !== 'boolean'
+  ) {
     errors.push(`${path}.${extraBoolean} must be boolean.`)
   }
 }
@@ -110,10 +115,14 @@ function validateActionRules(value: unknown, errors: string[]): void {
     return
   }
   checkKeys(value, ['hold', 'forfeit', 'reroll', 'slotExpansion'], path, errors)
-  if (value.hold !== undefined) validateLimitedAction(value.hold, `${path}.hold`, errors, 'discardUnheldOffer')
-  if (value.forfeit !== undefined) validateLimitedAction(value.forfeit, `${path}.forfeit`, errors, 'discardOffer')
-  if (value.reroll !== undefined) validateLimitedAction(value.reroll, `${path}.reroll`, errors, 'discardOffer')
-  if (value.slotExpansion !== undefined) validateLimitedAction(value.slotExpansion, `${path}.slotExpansion`, errors)
+  if (value.hold !== undefined)
+    validateLimitedAction(value.hold, `${path}.hold`, errors, 'discardUnheldOffer')
+  if (value.forfeit !== undefined)
+    validateLimitedAction(value.forfeit, `${path}.forfeit`, errors, 'discardOffer')
+  if (value.reroll !== undefined)
+    validateLimitedAction(value.reroll, `${path}.reroll`, errors, 'discardOffer')
+  if (value.slotExpansion !== undefined)
+    validateLimitedAction(value.slotExpansion, `${path}.slotExpansion`, errors)
 }
 
 function validateCapacityRules(value: unknown, errors: string[]): void {
@@ -122,8 +131,14 @@ function validateCapacityRules(value: unknown, errors: string[]): void {
     errors.push(`${path} must be an object.`)
     return
   }
-  checkKeys(value, ['enabled', 'startingActiveSlots', 'overflowSlots', 'maxActiveSlots'], path, errors)
-  if (value.enabled !== undefined && typeof value.enabled !== 'boolean') errors.push(`${path}.enabled must be boolean.`)
+  checkKeys(
+    value,
+    ['enabled', 'startingActiveSlots', 'overflowSlots', 'maxActiveSlots'],
+    path,
+    errors,
+  )
+  if (value.enabled !== undefined && typeof value.enabled !== 'boolean')
+    errors.push(`${path}.enabled must be boolean.`)
   for (const key of ['startingActiveSlots', 'overflowSlots', 'maxActiveSlots'] as const) {
     const count = value[key]
     if (count !== undefined && (!Number.isInteger(count) || (count as number) < 0)) {
@@ -164,9 +179,10 @@ function validateDistribution(value: unknown, errors: string[]): void {
     }
     if (value.rateUps !== undefined) {
       if (!isRecord(value.rateUps)) errors.push(`${path}.rateUps must be an object.`)
-      else for (const [bucketId, rateUp] of Object.entries(value.rateUps)) {
-        validateRateUp(rateUp, `${path}.rateUps.${bucketId}`, errors)
-      }
+      else
+        for (const [bucketId, rateUp] of Object.entries(value.rateUps)) {
+          validateRateUp(rateUp, `${path}.rateUps.${bucketId}`, errors)
+        }
     }
     return
   }
@@ -191,14 +207,16 @@ function validateDistribution(value: unknown, errors: string[]): void {
     }
     checkKeys(bucket, ['id', 'weight', 'rarities', 'rateUp'], bucketPath, errors)
     if (!nonEmptyString(bucket.id)) errors.push(`${bucketPath}.id must be a non-empty string.`)
-    else if (bucketIds.has(bucket.id)) errors.push(`${path}.buckets must use unique IDs; duplicate ${bucket.id}.`)
+    else if (bucketIds.has(bucket.id))
+      errors.push(`${path}.buckets must use unique IDs; duplicate ${bucket.id}.`)
     else bucketIds.add(bucket.id)
     if (!finiteNumber(bucket.weight) || bucket.weight < 0) {
       errors.push(`${bucketPath}.weight must be a non-negative finite number.`)
     }
     if (!Array.isArray(bucket.rarities)) errors.push(`${bucketPath}.rarities must be an array.`)
     else {
-      if (finiteNumber(bucket.weight) && bucket.weight > 0 && bucket.rarities.length > 0) hasPositiveBucket = true
+      if (finiteNumber(bucket.weight) && bucket.weight > 0 && bucket.rarities.length > 0)
+        hasPositiveBucket = true
       for (const rarity of bucket.rarities) {
         if (!operatorRarities.includes(rarity as OperatorRarity)) {
           errors.push(`${bucketPath} contains unsupported rarity ${String(rarity)}.`)
@@ -206,16 +224,20 @@ function validateDistribution(value: unknown, errors: string[]): void {
         }
         const existing = rarityMembership.get(rarity as number)
         if (existing) {
-          errors.push(`${path}: rarity ${String(rarity)} belongs to multiple buckets: ${existing}, ${String(bucket.id)}.`)
+          errors.push(
+            `${path}: rarity ${String(rarity)} belongs to multiple buckets: ${existing}, ${String(bucket.id)}.`,
+          )
         } else rarityMembership.set(rarity as number, String(bucket.id))
       }
     }
     if (bucket.rateUp !== undefined) validateRateUp(bucket.rateUp, `${bucketPath}.rateUp`, errors)
   })
   for (const rarity of operatorRarities) {
-    if (!rarityMembership.has(rarity)) errors.push(`${path}: rarity ${rarity} must belong to exactly one custom bucket.`)
+    if (!rarityMembership.has(rarity))
+      errors.push(`${path}: rarity ${rarity} must belong to exactly one custom bucket.`)
   }
-  if (!hasPositiveBucket) errors.push(`${path} requires at least one non-empty positive-weight bucket.`)
+  if (!hasPositiveBucket)
+    errors.push(`${path} requires at least one non-empty positive-weight bucket.`)
 }
 
 function validateHoldUpkeep(value: unknown, path: string, errors: string[]): void {
@@ -271,12 +293,28 @@ function validateEconomyRules(value: unknown, errors: string[]): void {
   }
   checkKeys(
     value,
-    ['enabled', 'startingPoints', 'rarityCosts', 'forfeitRebate', 'rerollCost', 'holdCost', 'holdUpkeep', 'slotExpansionCost'],
+    [
+      'enabled',
+      'startingPoints',
+      'rarityCosts',
+      'forfeitRebate',
+      'rerollCost',
+      'holdCost',
+      'holdUpkeep',
+      'slotExpansionCost',
+    ],
     path,
     errors,
   )
-  if (value.enabled !== undefined && typeof value.enabled !== 'boolean') errors.push(`${path}.enabled must be boolean.`)
-  for (const key of ['startingPoints', 'forfeitRebate', 'rerollCost', 'holdCost', 'slotExpansionCost'] as const) {
+  if (value.enabled !== undefined && typeof value.enabled !== 'boolean')
+    errors.push(`${path}.enabled must be boolean.`)
+  for (const key of [
+    'startingPoints',
+    'forfeitRebate',
+    'rerollCost',
+    'holdCost',
+    'slotExpansionCost',
+  ] as const) {
     const amount = value[key]
     if (amount !== undefined && (!finiteNumber(amount) || amount < 0)) {
       errors.push(`${path}.${key} must be a non-negative finite number.`)
@@ -287,12 +325,14 @@ function validateEconomyRules(value: unknown, errors: string[]): void {
   }
   if (value.rarityCosts !== undefined) {
     if (!isRecord(value.rarityCosts)) errors.push(`${path}.rarityCosts must be an object.`)
-    else for (const [rarity, cost] of Object.entries(value.rarityCosts)) {
-      if (!operatorRarities.includes(Number(rarity) as OperatorRarity)) {
-        errors.push(`${path}.rarityCosts.${rarity} uses an unsupported rarity.`)
+    else
+      for (const [rarity, cost] of Object.entries(value.rarityCosts)) {
+        if (!operatorRarities.includes(Number(rarity) as OperatorRarity)) {
+          errors.push(`${path}.rarityCosts.${rarity} uses an unsupported rarity.`)
+        }
+        if (!finiteNumber(cost))
+          errors.push(`${path}.rarityCosts.${rarity} must be a finite number.`)
       }
-      if (!finiteNumber(cost)) errors.push(`${path}.rarityCosts.${rarity} must be a finite number.`)
-    }
   }
 }
 
@@ -303,12 +343,27 @@ function validateGeneralRules(value: unknown, errors: string[]): void {
   }
   checkKeys(
     value,
-    ['offerSize', 'maxRounds', 'actionRules', 'capacityRules', 'economyRules', 'pullDistribution'],
+    [
+      'offerSize',
+      'pricingProfileId',
+      'maxRounds',
+      'actionRules',
+      'capacityRules',
+      'economyRules',
+      'pullDistribution',
+    ],
     'rulebook.generalRules',
     errors,
   )
   if (!Number.isInteger(value.offerSize) || (value.offerSize as number) < 1) {
     errors.push('rulebook.generalRules.offerSize must be a positive integer.')
+  }
+  if (
+    value.pricingProfileId !== undefined &&
+    value.pricingProfileId !== null &&
+    !nonEmptyString(value.pricingProfileId)
+  ) {
+    errors.push('rulebook.generalRules.pricingProfileId must be null or a non-empty string.')
   }
   if (
     value.maxRounds !== undefined &&
@@ -328,11 +383,18 @@ function validateIdentifier(value: unknown, errors: string[]): void {
     errors.push('rulebook.identifier must be an object.')
     return
   }
-  checkKeys(value, ['id', 'name', 'description', 'createdAt', 'revision'], 'rulebook.identifier', errors)
+  checkKeys(
+    value,
+    ['id', 'name', 'description', 'createdAt', 'revision'],
+    'rulebook.identifier',
+    errors,
+  )
   for (const key of ['id', 'name', 'revision'] as const) {
-    if (!nonEmptyString(value[key])) errors.push(`rulebook.identifier.${key} must be a non-empty string.`)
+    if (!nonEmptyString(value[key]))
+      errors.push(`rulebook.identifier.${key} must be a non-empty string.`)
   }
-  if (typeof value.description !== 'string') errors.push('rulebook.identifier.description must be a string.')
+  if (typeof value.description !== 'string')
+    errors.push('rulebook.identifier.description must be a string.')
   if (typeof value.createdAt !== 'string') {
     errors.push('rulebook.identifier.createdAt must be a canonical ISO-8601 timestamp.')
   } else {
@@ -373,7 +435,8 @@ function validateInteractions(value: unknown, errors: string[]): void {
       return
     }
     if (!nonEmptyString(interaction.id)) errors.push(`${path}.id must be a non-empty string.`)
-    else if (ids.has(interaction.id)) errors.push(`rulebook.interactions must use unique IDs; duplicate ${interaction.id}.`)
+    else if (ids.has(interaction.id))
+      errors.push(`rulebook.interactions must use unique IDs; duplicate ${interaction.id}.`)
     else ids.add(interaction.id)
 
     if (interaction.type === 'anchor') {
@@ -410,7 +473,12 @@ function validateInteractions(value: unknown, errors: string[]): void {
       return
     }
     if (interaction.type === 'threshold') {
-      checkKeys(interaction, ['id', 'type', 'group', 'threshold', 'modifier', 'anchor'], path, errors)
+      checkKeys(
+        interaction,
+        ['id', 'type', 'group', 'threshold', 'modifier', 'anchor'],
+        path,
+        errors,
+      )
       validateDraftRulebookSelector(interaction.group, `${path}.group`, errors)
       if (!Number.isInteger(interaction.threshold) || (interaction.threshold as number) < 1) {
         errors.push(`${path}.threshold must be a positive integer.`)
@@ -418,7 +486,8 @@ function validateInteractions(value: unknown, errors: string[]): void {
       if (!finiteNumber(interaction.modifier) || interaction.modifier < 0) {
         errors.push(`${path}.modifier must be a non-negative finite number.`)
       }
-      if (interaction.anchor !== undefined) validateDraftRulebookSelector(interaction.anchor, `${path}.anchor`, errors)
+      if (interaction.anchor !== undefined)
+        validateDraftRulebookSelector(interaction.anchor, `${path}.anchor`, errors)
       return
     }
     errors.push(`${path}.type must be anchor, progressive, or threshold.`)

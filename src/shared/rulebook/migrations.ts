@@ -27,16 +27,21 @@ function migrateV2ToV3(document: JsonRecord): JsonRecord {
   return { ...document, schemaVersion: 3 }
 }
 
+function migrateV3ToV4(document: JsonRecord): JsonRecord {
+  return { ...document, schemaVersion: 4 }
+}
+
 /**
  * Keys are source schema versions. Each migration returns the next schema
  * version. Schema v2 added optional Hold-upkeep economy data. Schema v3 adds
  * runtime offer size, optional max rounds, scheduled Hold upkeep, and optional
- * Arknights first-10 guarantee semantics. Older Rulebooks migrate without
- * changing their behavior.
+ * Arknights first-10 guarantee semantics. Schema v4 adds an optional pricing-profile
+ * reference. Older Rulebooks migrate without changing their behavior.
  */
 export const DRAFT_RULEBOOK_MIGRATIONS: Readonly<Record<number, DraftRulebookMigration>> = {
   1: migrateV1ToV2,
   2: migrateV2ToV3,
+  3: migrateV3ToV4,
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -47,11 +52,7 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function issue(
-  code: string,
-  path: string,
-  message: string,
-): DraftRulebookMigrationIssue {
+function issue(code: string, path: string, message: string): DraftRulebookMigrationIssue {
   return { severity: 'error', code, path, message }
 }
 
@@ -71,11 +72,13 @@ export function migrateDraftRulebookDocument(value: unknown): DraftRulebookMigra
       document: value,
       sourceSchemaVersion: typeof rawVersion === 'number' ? rawVersion : null,
       migrated: false,
-      issues: [issue(
-        'invalid-schema-version',
-        'rulebook.schemaVersion',
-        'Draft Rulebook schemaVersion must be a positive integer.',
-      )],
+      issues: [
+        issue(
+          'invalid-schema-version',
+          'rulebook.schemaVersion',
+          'Draft Rulebook schemaVersion must be a positive integer.',
+        ),
+      ],
     }
   }
 
@@ -85,11 +88,13 @@ export function migrateDraftRulebookDocument(value: unknown): DraftRulebookMigra
       document: value,
       sourceSchemaVersion,
       migrated: false,
-      issues: [issue(
-        'newer-schema-version',
-        'rulebook.schemaVersion',
-        `This Draft Rulebook uses newer schema version ${sourceSchemaVersion}; this app supports up to version ${DRAFT_RULEBOOK_SCHEMA_VERSION}.`,
-      )],
+      issues: [
+        issue(
+          'newer-schema-version',
+          'rulebook.schemaVersion',
+          `This Draft Rulebook uses newer schema version ${sourceSchemaVersion}; this app supports up to version ${DRAFT_RULEBOOK_SCHEMA_VERSION}.`,
+        ),
+      ],
     }
   }
 
@@ -101,11 +106,13 @@ export function migrateDraftRulebookDocument(value: unknown): DraftRulebookMigra
   while (version < DRAFT_RULEBOOK_SCHEMA_VERSION) {
     const migration = DRAFT_RULEBOOK_MIGRATIONS[version]
     if (!migration) {
-      issues.push(issue(
-        'unsupported-older-schema',
-        'rulebook.schemaVersion',
-        `Draft Rulebook schema version ${version} cannot be migrated by this app.`,
-      ))
+      issues.push(
+        issue(
+          'unsupported-older-schema',
+          'rulebook.schemaVersion',
+          `Draft Rulebook schema version ${version} cannot be migrated by this app.`,
+        ),
+      )
       break
     }
     document = migration(document)

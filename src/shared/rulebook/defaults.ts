@@ -1,4 +1,5 @@
 import { DRAFT_OFFER_SIZE, type DraftActionRules, type DraftEconomyRules } from '../draft'
+import { SHARED_BALANCE_PRICING_PROFILE_ID } from '../draftPricingProfile'
 import {
   DRAFT_RULEBOOK_SCHEMA_VERSION,
   type DraftRulebook,
@@ -10,14 +11,14 @@ export const DEV_STRICT_DRAFT_RULEBOOK_ID = 'builtin:dev-strict' as const
 export const ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK_ID = 'builtin:arknights-headhunting' as const
 export const DEV_LAX_DRAFT_RULEBOOK_ID = 'builtin:dev-lax' as const
 
-const BALANCE_PRESET_REVISION = '2026.10-m1m2'
+const BALANCE_PRESET_REVISION = '2026.10-m3'
 const SHARED_BALANCE_RARITY_COSTS: DraftEconomyRules['rarityCosts'] = {
   1: -7,
   2: -4,
   3: -3,
   4: 0,
   5: 7,
-  // Temporary rarity-level fallback until the operator pricing profile milestone.
+  // Temporary 6★ fallback until concrete operator-specific prices are authored or imported.
   6: 21,
 }
 const SHARED_HOLD_UPKEEP: DraftEconomyRules['holdUpkeep'] = {
@@ -26,7 +27,10 @@ const SHARED_HOLD_UPKEEP: DraftEconomyRules['holdUpkeep'] = {
   repeatLast: true,
 }
 
-function balanceActionRules(rerollsPerDraft: number, rerollCooldownRounds: number): DraftActionRules {
+function balanceActionRules(
+  rerollsPerDraft: number,
+  rerollCooldownRounds: number,
+): DraftActionRules {
   return {
     hold: {
       enabled: true,
@@ -109,6 +113,7 @@ export const DEV_STRICT_DRAFT_RULEBOOK: DraftRulebook = {
   },
   generalRules: {
     offerSize: 3,
+    pricingProfileId: SHARED_BALANCE_PRICING_PROFILE_ID,
     maxRounds: 15,
     actionRules: balanceActionRules(3, 3),
     capacityRules: {
@@ -145,6 +150,7 @@ export const ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK: DraftRulebook = {
   },
   generalRules: {
     offerSize: 4,
+    pricingProfileId: SHARED_BALANCE_PRICING_PROFILE_ID,
     maxRounds: 15,
     actionRules: balanceActionRules(2, 3),
     capacityRules: {
@@ -175,6 +181,7 @@ export const DEV_LAX_DRAFT_RULEBOOK: DraftRulebook = {
   },
   generalRules: {
     offerSize: 4,
+    pricingProfileId: SHARED_BALANCE_PRICING_PROFILE_ID,
     maxRounds: 15,
     actionRules: balanceActionRules(4, 2),
     capacityRules: {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { STANDARD_DRAFT_CONFIGURATION } from './draft'
+import { SHARED_BALANCE_PRICING_PROFILE_ID } from './draftPricingProfile'
 import {
   ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
   BUILT_IN_DRAFT_RULEBOOKS,
@@ -20,7 +21,7 @@ function cloneStandard(): DraftRulebook {
 
 describe('Draft Rulebook foundation', () => {
   it('represents Standard Draft as a portable built-in Rulebook', () => {
-    expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(3)
+    expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(4)
     expect(validateDraftRulebook(STANDARD_DRAFT_RULEBOOK)).toEqual({ valid: true, errors: [] })
 
     const resolved = resolveDraftRulebook(STANDARD_DRAFT_RULEBOOK)
@@ -33,6 +34,14 @@ describe('Draft Rulebook foundation', () => {
   it('ships valid #58 balance presets with their locked M2 runtime values', () => {
     for (const rulebook of BUILT_IN_DRAFT_RULEBOOKS) {
       expect(validateDraftRulebook(rulebook)).toEqual({ valid: true, errors: [] })
+    }
+
+    for (const rulebook of [
+      DEV_STRICT_DRAFT_RULEBOOK,
+      ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
+      DEV_LAX_DRAFT_RULEBOOK,
+    ]) {
+      expect(rulebook.generalRules.pricingProfileId).toBe(SHARED_BALANCE_PRICING_PROFILE_ID)
     }
 
     const strict = resolveDraftRulebook(DEV_STRICT_DRAFT_RULEBOOK).configuration
@@ -90,7 +99,7 @@ describe('Draft Rulebook foundation', () => {
 
   it('round-trips through the human-readable JSON interchange format', () => {
     const serialized = serializeDraftRulebook(STANDARD_DRAFT_RULEBOOK)
-    expect(serialized).toContain('"schemaVersion": 3')
+    expect(serialized).toContain('"schemaVersion": 4')
     expect(serialized).toContain('"Standard Draft"')
     expect(deserializeDraftRulebook(serialized)).toEqual(STANDARD_DRAFT_RULEBOOK)
   })
@@ -99,7 +108,7 @@ describe('Draft Rulebook foundation', () => {
     const rulebook = cloneStandard()
     rulebook.identifier.revision = '2026.10-balance-2'
 
-    expect(rulebook.schemaVersion).toBe(3)
+    expect(rulebook.schemaVersion).toBe(4)
     expect(validateDraftRulebook(rulebook).valid).toBe(true)
     expect(resolveDraftRulebook(rulebook).revision).toBe('2026.10-balance-2')
   })
@@ -198,8 +207,11 @@ describe('Draft Rulebook foundation', () => {
   })
 
   it('rejects unsupported schema/features and unknown executable-looking fields', () => {
-    const wrongSchema = cloneStandard() as unknown as { schemaVersion: number } & Record<string, unknown>
-    wrongSchema.schemaVersion = 4
+    const wrongSchema = cloneStandard() as unknown as { schemaVersion: number } & Record<
+      string,
+      unknown
+    >
+    wrongSchema.schemaVersion = 5
     expect(validateDraftRulebook(wrongSchema).valid).toBe(false)
 
     const variableOffer = cloneStandard()

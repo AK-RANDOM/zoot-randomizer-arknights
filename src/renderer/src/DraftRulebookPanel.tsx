@@ -8,7 +8,9 @@ import DraftRulebookOverridesEditor, {
   draftRulebookOverrideCount,
 } from './DraftRulebookOverridesEditor'
 import DraftRulebookPoolEditor from './DraftRulebookPoolEditor'
+import DraftPricingProfileEditor from './DraftPricingProfileEditor'
 import useDraftRulebookLibrary from './useDraftRulebookLibrary'
+import useDraftPricingProfiles from './useDraftPricingProfiles'
 import './DraftRulebookPanel.css'
 
 interface DraftRulebookPanelProps {
@@ -21,6 +23,7 @@ export const DRAFT_RULEBOOK_EDITOR_SECTIONS = [
   { id: 'pool', label: 'Pool' },
   { id: 'overrides', label: 'Overrides' },
   { id: 'interactions', label: 'Interactions' },
+  { id: 'pricing', label: 'Pricing' },
 ] as const
 
 export type DraftRulebookEditorSection = (typeof DRAFT_RULEBOOK_EDITOR_SECTIONS)[number]['id']
@@ -29,6 +32,7 @@ export default function DraftRulebookPanel({
   dataset,
 }: DraftRulebookPanelProps): React.JSX.Element {
   const library = useDraftRulebookLibrary(dataset)
+  const pricing = useDraftPricingProfiles()
   const selected = library.selected
   const [activeSection, setActiveSection] = useState<DraftRulebookEditorSection>('identifier')
 
@@ -77,6 +81,16 @@ export default function DraftRulebookPanel({
             dataset={dataset}
             disabled={library.builtIn}
             onChange={library.updateSelected}
+          />
+        )
+      case 'pricing':
+        return (
+          <DraftPricingProfileEditor
+            dataset={dataset}
+            controller={pricing}
+            rulebook={selected}
+            rulebookBuiltIn={library.builtIn}
+            onRulebookChange={library.updateSelected}
           />
         )
     }

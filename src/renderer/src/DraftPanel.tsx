@@ -7,8 +7,13 @@ import {
   type DraftRulebook,
 } from '../../shared/draftRulebook'
 import { resolveDraftRulebookExecution } from '../../shared/draftRulebookExecution'
+import {
+  BUILT_IN_DRAFT_PRICING_PROFILES,
+  type DraftPricingProfile,
+} from '../../shared/draftPricingProfile'
 import DraftSessionView from './DraftSessionView'
 import { loadDraftRulebookEntries } from './draftRulebookStorage'
+import { loadCustomDraftPricingProfiles } from './draftPricingProfileStorage'
 import { loadSelectedDraftRulebookId, saveSelectedDraftRulebookId } from './rendererPersistence'
 import useDraftSession, { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
 
@@ -25,19 +30,24 @@ function ConfiguredRulebookDraft({
   globalPool,
   targetSize,
   ready,
+  pricingProfiles,
 }: {
   rulebook: DraftRulebook
   dataset: OperatorDataset | null
   globalPool: readonly Operator[]
   targetSize: number
   ready: boolean
+  pricingProfiles: readonly DraftPricingProfile[]
 }): React.JSX.Element {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const execution = useMemo(
-    () => (dataset ? resolveDraftRulebookExecution(rulebook, dataset.operators, globalPool) : null),
-    [dataset, globalPool, rulebook],
+    () =>
+      dataset
+        ? resolveDraftRulebookExecution(rulebook, dataset.operators, globalPool, pricingProfiles)
+        : null,
+    [dataset, globalPool, pricingProfiles, rulebook],
   )
   const configuration = execution?.configuration ?? undefined
   const session = useDraftSession({
@@ -78,6 +88,10 @@ export default function DraftPanel({
   ready,
 }: DraftPanelProps): React.JSX.Element {
   const customEntries = useMemo(() => loadDraftRulebookEntries(), [])
+  const pricingProfiles = useMemo(
+    () => [...BUILT_IN_DRAFT_PRICING_PROFILES, ...loadCustomDraftPricingProfiles()],
+    [],
+  )
   const customRulebooks = useMemo(
     () => customEntries.map((entry) => entry.document),
     [customEntries],
@@ -90,7 +104,10 @@ export default function DraftPanel({
     () => customEntries.filter((entry) => entry.origin === 'local'),
     [customEntries],
   )
-  const rulebooks = useMemo(() => [...BUILT_IN_DRAFT_RULEBOOKS, ...customRulebooks], [customRulebooks])
+  const rulebooks = useMemo(
+    () => [...BUILT_IN_DRAFT_RULEBOOKS, ...customRulebooks],
+    [customRulebooks],
+  )
   const [selectedId, setSelectedId] = useState(() => loadSelectedDraftRulebookId())
   const selected =
     rulebooks.find((rulebook) => rulebook.identifier.id === selectedId) ?? STANDARD_DRAFT_RULEBOOK
@@ -157,6 +174,7 @@ export default function DraftPanel({
         globalPool={operators}
         targetSize={targetSize}
         ready={ready}
+        pricingProfiles={pricingProfiles}
       />
     </>
   )

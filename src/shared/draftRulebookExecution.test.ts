@@ -7,6 +7,7 @@ import {
   type DraftRulebook,
 } from './draftRulebook'
 import { resolveDraftRulebookExecution } from './draftRulebookExecution'
+import type { DraftPricingProfile } from './draftPricingProfile'
 
 function cloneStandard(): DraftRulebook {
   return deserializeDraftRulebook(serializeDraftRulebook(STANDARD_DRAFT_RULEBOOK))
@@ -132,12 +133,47 @@ describe('Draft Rulebook execution resolution', () => {
     expect(result.validation.errors.length).toBeGreaterThan(0)
   })
 
+  it('layers pricing-profile base costs below Rulebook operator overrides', () => {
+    const rulebook = cloneStandard()
+    rulebook.generalRules.economyRules = { enabled: true, rarityCosts: { 6: 21 } }
+    rulebook.generalRules.pricingProfileId = 'local:pricing:test'
+    rulebook.overrides.operatorCosts = { char_excluded: 50 }
+    const profile: DraftPricingProfile = {
+      schemaVersion: 1,
+      id: 'local:pricing:test',
+      name: 'Test Pricing',
+      description: '',
+      createdAt: '2026-10-10T00:00:00.000Z',
+      revision: '1',
+      operatorCosts: { char_global: 45, char_excluded: 40 },
+    }
+
+    const result = resolveDraftRulebookExecution(rulebook, dataset, globalPool, [profile])
+    expect(result.valid).toBe(true)
+    expect(result.configuration?.economyRules.operatorCostOverrides).toEqual({
+      char_global: 45,
+      char_excluded: 50,
+    })
+  })
+
+  it('fails explicitly when a referenced pricing profile is unavailable', () => {
+    const rulebook = cloneStandard()
+    rulebook.generalRules.pricingProfileId = 'local:pricing:missing'
+    const result = resolveDraftRulebookExecution(rulebook, dataset, globalPool, [])
+    expect(result.valid).toBe(false)
+    expect(result.configuration).toBeNull()
+    expect(result.validation.errors).toContain(
+      'Pricing profile “local:pricing:missing” is not available.',
+    )
+  })
+
   it('changes its execution identity when portable Rulebook content changes', () => {
     const first = cloneStandard()
     const second = cloneStandard()
     second.generalRules.pullDistribution = { type: 'arknights' }
 
-    expect(resolveDraftRulebookExecution(first, dataset, globalPool).identityKey)
-      .not.toBe(resolveDraftRulebookExecution(second, dataset, globalPool).identityKey)
+    expect(resolveDraftRulebookExecution(first, dataset, globalPool).identityKey).not.toBe(
+      resolveDraftRulebookExecution(second, dataset, globalPool).identityKey,
+    )
   })
 })

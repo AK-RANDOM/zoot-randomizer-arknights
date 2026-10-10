@@ -27,16 +27,21 @@ function migrateV2ToV3(document: JsonRecord): JsonRecord {
   return { ...document, schemaVersion: 3 }
 }
 
+function migrateV3ToV4(document: JsonRecord): JsonRecord {
+  return { ...document, schemaVersion: 4 }
+}
+
 /**
  * Keys are source schema versions. Each migration returns the next schema
  * version. Schema v2 added optional Hold-upkeep economy data. Schema v3 adds
  * runtime offer size, optional max rounds, scheduled Hold upkeep, and optional
- * Arknights first-10 guarantee semantics. Older Rulebooks migrate without
- * changing their behavior.
+ * Arknights first-10 guarantee semantics. Schema v4 adds an optional
+ * pricing-profile reference. Older Rulebooks migrate without changing their behavior.
  */
 export const DRAFT_RULEBOOK_MIGRATIONS: Readonly<Record<number, DraftRulebookMigration>> = {
   1: migrateV1ToV2,
   2: migrateV2ToV3,
+  3: migrateV3ToV4,
 }
 
 function isRecord(value: unknown): value is JsonRecord {

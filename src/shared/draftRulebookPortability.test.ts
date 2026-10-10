@@ -74,7 +74,7 @@ describe('Draft Rulebook portability', () => {
 
     expect(result.compatible).toBe(true)
     expect(result.migrated).toBe(false)
-    expect(result.sourceSchemaVersion).toBe(3)
+    expect(result.sourceSchemaVersion).toBe(4)
     expect(result.rulebook?.identifier.id).toBe('community:test')
     expect(result.errors).toEqual([])
   })
@@ -88,7 +88,7 @@ describe('Draft Rulebook portability', () => {
     expect(result.compatible).toBe(true)
     expect(result.migrated).toBe(true)
     expect(result.sourceSchemaVersion).toBe(1)
-    expect(result.rulebook?.schemaVersion).toBe(3)
+    expect(result.rulebook?.schemaVersion).toBe(4)
     expect(result.rulebook?.generalRules.economyRules?.holdUpkeep).toBeUndefined()
   })
 
@@ -118,7 +118,9 @@ describe('Draft Rulebook portability', () => {
     const result = migrateDraftRulebookDocument(older)
 
     expect(result.migrated).toBe(false)
-    expect(result.issues).toContainEqual(expect.objectContaining({ code: 'invalid-schema-version' }))
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: 'invalid-schema-version' }),
+    )
   })
 
   it('preserves unresolved operator and selector references as compatibility warnings', () => {
@@ -133,13 +135,15 @@ describe('Draft Rulebook portability', () => {
       },
     }
     rulebook.overrides.operatorCosts.char_future = 40
-    rulebook.interactions = [{
-      id: 'future-pair',
-      type: 'anchor',
-      source: { type: 'operators', operatorIds: ['char_known'] },
-      target: { type: 'operators', operatorIds: ['char_future'] },
-      modifier: 5,
-    }]
+    rulebook.interactions = [
+      {
+        id: 'future-pair',
+        type: 'anchor',
+        source: { type: 'operators', operatorIds: ['char_known'] },
+        target: { type: 'operators', operatorIds: ['char_future'] },
+        modifier: 5,
+      },
+    ]
 
     const serialized = serializeDraftRulebook(rulebook)
     const result = analyzeDraftRulebookImport(serialized, dataset)
@@ -164,7 +168,9 @@ describe('Draft Rulebook portability', () => {
 
     expect(result.compatible).toBe(false)
     expect(result.rulebook).toBeNull()
-    expect(result.issues).toContainEqual(expect.objectContaining({ code: 'unsupported-arknights-bucket' }))
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: 'unsupported-arknights-bucket' }),
+    )
   })
 
   it('exposes compatibility inspection separately for editor/tooling use', () => {

@@ -1,4 +1,5 @@
 import type { Operator } from './operator'
+import type { DraftPricingProfile } from './draftPricingProfile'
 import {
   resolveDraftConfiguration,
   validateDraftConfiguration,
@@ -42,8 +43,23 @@ export function resolveDraftRulebookExecution(
   rulebook: DraftRulebook,
   datasetOperators: readonly Operator[],
   globalPool: readonly Operator[],
+  pricingProfiles: readonly DraftPricingProfile[] = [],
 ): DraftRulebookExecutionResolution {
-  const validation = validateDraftRulebook(rulebook)
+  const baseValidation = validateDraftRulebook(rulebook)
+  const pricingProfileId = rulebook.generalRules.pricingProfileId ?? null
+  const pricingProfile = pricingProfileId
+    ? (pricingProfiles.find((profile) => profile.id === pricingProfileId) ?? null)
+    : null
+  const validation =
+    pricingProfileId && !pricingProfile
+      ? {
+          valid: false,
+          errors: [
+            ...baseValidation.errors,
+            `Pricing profile “${pricingProfileId}” is not available.`,
+          ],
+        }
+      : baseValidation
   const serializedRulebook = validation.valid ? serializeDraftRulebook(rulebook) : null
   const invalidIdentityKey = `${rulebook.identifier.id}:${rulebook.identifier.revision}:invalid`
 
@@ -58,7 +74,7 @@ export function resolveDraftRulebookExecution(
     }
   }
 
-  const resolved = resolveDraftRulebook(rulebook)
+  const resolved = resolveDraftRulebook(rulebook, pricingProfile)
   const pool = resolveDraftRulebookPool(rulebook.pool, datasetOperators, globalPool)
   const interactions = resolveDraftRulebookInteractions(rulebook.interactions, datasetOperators)
   const configuration = resolveDraftConfiguration({
@@ -72,7 +88,7 @@ export function resolveDraftRulebookExecution(
     validation,
     pool,
     configuration,
-    identityKey: `${serializedRulebook}${JSON.stringify(interactions)}`,
+    identityKey: `${serializedRulebook}${JSON.stringify(pricingProfile)}${JSON.stringify(interactions)}`,
     poolSourceLabel: draftRulebookPoolSourceLabel(rulebook),
   }
 }

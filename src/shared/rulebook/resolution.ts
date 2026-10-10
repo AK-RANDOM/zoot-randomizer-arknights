@@ -2,6 +2,7 @@ import {
   resolveDraftConfiguration,
   validateDraftConfiguration,
 } from '../draft'
+import type { DraftPricingProfile } from '../draftPricingProfile'
 import type {
   DraftRulebook,
   ResolvedDraftRulebook,
@@ -12,7 +13,10 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-export function resolveDraftRulebook(rulebook: DraftRulebook): ResolvedDraftRulebook {
+export function resolveDraftRulebook(
+  rulebook: DraftRulebook,
+  pricingProfile?: DraftPricingProfile | null,
+): ResolvedDraftRulebook {
   assertValidDraftRulebook(rulebook)
   const configuration = resolveDraftConfiguration({
     offerSize: rulebook.generalRules.offerSize,
@@ -21,7 +25,10 @@ export function resolveDraftRulebook(rulebook: DraftRulebook): ResolvedDraftRule
     capacityRules: rulebook.generalRules.capacityRules,
     economyRules: {
       ...rulebook.generalRules.economyRules,
-      operatorCostOverrides: { ...rulebook.overrides.operatorCosts },
+      operatorCostOverrides: {
+        ...(pricingProfile?.operatorCosts ?? {}),
+        ...rulebook.overrides.operatorCosts,
+      },
     },
     pullDistribution: rulebook.generalRules.pullDistribution,
   })

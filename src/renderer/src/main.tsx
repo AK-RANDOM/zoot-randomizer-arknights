@@ -5,6 +5,7 @@ import './styles.css'
 import './DraftPanel.css'
 import './GlobalPoolFeature.css'
 import './StandardSquadFeature.css'
+import './StandardSquadLayoutOverrides.css'
 import './PresentationPreferences.css'
 import './RendererTheme.css'
 

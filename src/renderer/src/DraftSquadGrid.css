@@ -32,7 +32,7 @@
 
 .draft-squad-layout--with-capacity {
   width: 87.5%;
-  grid-template-columns: minmax(0, 1fr) minmax(0, calc((100% - 54px) / 7));
+  grid-template-columns: minmax(0, 1fr) minmax(0, calc(14.285714% - 7.714px));
 }
 
 .draft-squad-grid {
@@ -179,9 +179,12 @@
 }
 
 .draft-squad-avatar__class-icon {
+  display: grid;
   flex: 0 0 auto;
   width: 18px;
   height: 18px;
+  place-items: center;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 4px;
   background: rgba(7, 7, 9, 0.56);
@@ -192,6 +195,7 @@
 .draft-squad-avatar__class-icon img {
   width: 14px;
   height: 14px;
+  object-fit: contain;
 }
 
 .draft-squad-avatar__name {
@@ -322,7 +326,7 @@
 
   .draft-squad-capacity-column {
     width: 75%;
-    grid-template-columns: repeat(2, calc((100% - 18px) / 3));
+    grid-template-columns: repeat(2, calc(33.333333% - 6px));
     grid-template-rows: 1fr;
     justify-content: center;
     margin-inline: auto;

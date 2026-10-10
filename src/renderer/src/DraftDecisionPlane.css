@@ -1,11 +1,11 @@
 .draft-decision-plane {
-  --draft-play-card-width: clamp(148px, 10vw, 174px);
-  display: flex;
-  width: max-content;
-  max-width: 100%;
+  --draft-play-card-width: auto;
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(var(--draft-strip-count), minmax(0, 1fr));
   align-items: flex-start;
   justify-content: center;
-  gap: clamp(22px, 2.5vw, 34px);
+  gap: 12px;
   margin: 0 auto 12px;
 }
 
@@ -13,24 +13,29 @@
   min-width: 0;
 }
 .draft-decision-group--offers {
-  flex: 0 0 auto;
+  width: 100%;
 }
 .draft-decision-side-rail {
-  display: flex;
-  flex: 0 0 auto;
+  display: grid;
+  min-width: 0;
   align-items: flex-start;
   gap: 12px;
 }
 .draft-decision-offer-grid {
   display: grid;
+  min-width: 0;
   gap: 12px;
   justify-content: center;
   margin-inline: auto;
 }
+.draft-decision-offer-grid > *,
+.draft-decision-side-rail > * {
+  min-width: 0;
+}
 .draft-decision-group .operator-card,
 .draft-forfeit-surface,
 .draft-hold-surface {
-  width: var(--draft-play-card-width);
+  width: 100%;
   aspect-ratio: 1 / 2;
 }
 .draft-decision-group .operator-card--portrait {
@@ -41,7 +46,7 @@
     0 8px 20px rgba(0, 0, 0, 0.28);
 }
 .draft-decision-control {
-  width: var(--draft-play-card-width);
+  width: 100%;
   margin-top: 8px;
 }
 .draft-decision-control--offers {
@@ -111,12 +116,16 @@
   background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
   text-align: left;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 .draft-forfeit-surface:hover:not(:disabled),
 .draft-forfeit-surface:focus-visible {
   border-color: #f07b82;
-  outline: 2px solid #fff;
-  outline-offset: 2px;
+  outline: none;
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 11px 27px rgba(0, 0, 0, 0.38);
   background: linear-gradient(180deg, rgba(151, 38, 45, 0.4), rgba(52, 17, 21, 0.95)), #1b1114;
 }
 .draft-forfeit-surface:disabled {
@@ -241,38 +250,4 @@
 .draft-hold-upkeep--rebate {
   color: #79d99a;
   border-color: #4a765b;
-}
-@media (max-width: 1050px) {
-  .draft-decision-plane {
-    width: 100%;
-    flex-direction: column;
-    align-items: center;
-    gap: 18px;
-  }
-  .draft-decision-side-rail {
-    justify-content: center;
-  }
-}
-@media (max-width: 820px) {
-  .draft-decision-plane {
-    --draft-play-card-width: min(100%, 330px);
-  }
-  .draft-decision-group--offers,
-  .draft-decision-side-rail {
-    width: 100%;
-  }
-  .draft-decision-side-rail {
-    flex-direction: column;
-    align-items: center;
-  }
-  .draft-decision-offer-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .draft-decision-group .operator-card,
-  .draft-forfeit-surface,
-  .draft-hold-surface,
-  .draft-decision-control {
-    width: min(100%, 330px);
-    margin-inline: auto;
-  }
 }

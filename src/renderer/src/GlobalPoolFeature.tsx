@@ -191,7 +191,7 @@ export default function GlobalPoolFeature({
 
       {activeSection === 'filter' && (
         <section className="panel operators-panel" aria-labelledby="operators-heading">
-          <div className="section-heading"><div><p className="eyebrow">SETUP • GLOBAL POOL • GLOBAL FILTER</p><h2 id="operators-heading">Global Filter</h2></div><div className="section-actions"><button className="secondary-button" type="button" onClick={resetFilters}>Reset operator filters</button><button className="secondary-button" type="button" disabled={busy || !dataset} onClick={() => void onCheckUpdates()}>{busy ? 'Working…' : 'Check data updates'}</button></div></div>
+          <div className="section-heading"><div><p className="eyebrow">SETUP • GLOBAL POOL • GLOBAL FILTER</p><h2 id="operators-heading">Global Filter</h2></div><div className="section-actions"><button className="secondary-button" type="button" onClick={resetFilters}>Reset operator filters</button><button className="secondary-button" type="button" disabled={busy || !dataset} onClick={() => void (updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates())}>{busy ? 'Working…' : updateCheck?.updateAvailable ? 'Update data' : 'Check data updates'}</button></div></div>
 
           <fieldset className="constraint-group detail-group release-group">
             <legend>Release</legend>
@@ -205,7 +205,7 @@ export default function GlobalPoolFeature({
           {dataset && <OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateFilters} afterEra={sourceFilters} />}
 
           {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
-          {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available.</span><button type="button" className="secondary-button" disabled={busy} onClick={() => void onInstallUpdate()}>Update data</button></div>}
+          {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available. Use Update data above to install it.</span></div>}
         </section>
       )}
 

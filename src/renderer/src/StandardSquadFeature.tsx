@@ -87,34 +87,6 @@ function classSetSummary(
     .join(' / ')
 }
 
-function subclassOptions(
-  constraint: SlotConstraint,
-  dataset: OperatorDataset | null,
-): Array<{ id: string; name: string }> {
-  if (!constraint.subclasses || constraint.subclasses.length === 0) return []
-  const names = new Map(
-    dataset?.operators.map((operator) => [operator.subclass.id, operator.subclass.name]) ?? [],
-  )
-  return constraint.subclasses.map((id) => ({ id, name: names.get(id) ?? id }))
-}
-
-function subclassSetSummary(constraint: SlotConstraint, dataset: OperatorDataset | null): string | null {
-  const options = subclassOptions(constraint, dataset)
-  return options.length > 0 ? options.map(({ name }) => name).join(' / ') : null
-}
-
-function constraintTargetsAmiya(
-  constraint: SlotConstraint,
-  dataset: OperatorDataset | null,
-): boolean {
-  if (constraint.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) return true
-  if (!constraint.operatorId) return false
-  return (
-    dataset?.operators.find((candidate) => candidate.id === constraint.operatorId)
-      ?.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP
-  )
-}
-
 function amiyaClassSummary(
   constraint: SlotConstraint,
   classLabels?: Readonly<Record<OperatorClass, string>>,
@@ -144,22 +116,6 @@ function specificOperatorSummary(
   return operator.name
 }
 
-function activeSlotConstraintSummary(
-  constraint: SlotConstraint,
-  dataset: OperatorDataset | null,
-): string {
-  const parts: string[] = []
-  if (constraint.rarities.length > 0) parts.push(raritySetSummary(constraint.rarities))
-  if (constraint.classes.length > 0 && !constraintTargetsAmiya(constraint, dataset)) {
-    parts.push(classSetSummary(constraint.classes, dataset?.classLabels))
-  }
-  const subclasses = subclassSetSummary(constraint, dataset)
-  if (subclasses) parts.push(subclasses)
-  const specific = specificOperatorSummary(constraint, dataset)
-  if (specific) parts.push(specific)
-  return parts.join(' · ') || 'Any'
-}
-
 function rarityGradient(rarities: readonly OperatorRarity[]): string | null {
   if (rarities.length === 0) return null
   const sorted = [...new Set(rarities)].sort((left, right) => right - left)
@@ -167,11 +123,6 @@ function rarityGradient(rarities: readonly OperatorRarity[]): string | null {
   return colors.length === 1
     ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})`
     : `linear-gradient(135deg, ${colors.join(', ')})`
-}
-
-function slotConstraintStyle(rarities: readonly OperatorRarity[]): CSSProperties | undefined {
-  const gradient = rarityGradient(rarities)
-  return gradient ? ({ '--slot-constraint-gradient': gradient } as CSSProperties) : undefined
 }
 
 function slotConfigCardStyle(rarities: readonly OperatorRarity[]): CSSProperties | undefined {
@@ -354,7 +305,6 @@ export default function StandardSquadFeature({
     onError(null)
   }
 
-  const constrainedInRange = constraints.slots.slice(0, constraints.squadSize)
   const currentConstraintSummary = useMemo(() => {
     const items: string[] = []
     for (const rarity of [...operatorRarities].reverse()) {
@@ -369,11 +319,8 @@ export default function StandardSquadFeature({
       const summary = numericSummary(dataset?.classLabels?.[operatorClass] ?? operatorClass, constraints.class[operatorClass])
       if (summary) items.push(summary)
     }
-    constrainedInRange.forEach((slot, index) => {
-      if (!slotConstraintIsEmpty(slot)) items.push(`Slot ${index + 1}: ${activeSlotConstraintSummary(slot, dataset)}`)
-    })
     return items
-  }, [constrainedInRange, constraints.class, constraints.rarity, constraints.rarityGroups, dataset])
+  }, [constraints.class, constraints.rarity, constraints.rarityGroups, dataset])
 
   const resetConstraints = (): void => {
     if (!canResetConstraints) return
@@ -553,7 +500,7 @@ export default function StandardSquadFeature({
         <strong>Current constraints</strong>
         {currentConstraintSummary.length > 0
           ? <div>{currentConstraintSummary.map((summary) => <span key={summary}>{summary}</span>)}</div>
-          : <p>No active squad-wide or per-slot constraints.</p>}
+          : <p>No active squad-wide constraints.</p>}
       </div>
       {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
 
@@ -563,7 +510,6 @@ export default function StandardSquadFeature({
         const slotConstraint = constraints.slots[index] ?? createEmptySlotConstraint()
         const constrained = !slotConstraintIsEmpty(slotConstraint)
         const specificSummary = specificOperatorSummary(slotConstraint, dataset)
-        const constraintStyle = slotConstraintStyle(slotConstraint.rarities)
         const indicatorOperators = dataset?.operators ?? finalOperatorPool
         const lockedPresentation = !operator && inRange && constrained && (slotConstraint.operatorId || slotConstraint.mandatoryExclusivityGroup)
           ? lockedSlotPresentation(slotConstraint, finalOperatorPool)
@@ -572,7 +518,7 @@ export default function StandardSquadFeature({
           {!inRange
             ? <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}><span className="slot-config-number">{slot}</span><span>Unavailable</span><small>Squad size {constraints.squadSize}</small></div>
             : operator
-              ? <><OperatorCard operator={operator} />{constrained && <div className="slot-constraint-badge" style={constraintStyle} title="Generated under a slot constraint"><span>{raritySetSummary(slotConstraint.rarities)}</span><span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>{specificSummary && <span>{specificSummary}</span>}</div>}</>
+              ? <OperatorCard operator={operator} />
               : lockedPresentation
                 ? <LockedSlotCard presentation={lockedPresentation} constraint={slotConstraint} operators={indicatorOperators} slot={slot} onClick={() => setEditingSlot(index)} />
                 : <button
@@ -604,13 +550,13 @@ export default function StandardSquadFeature({
           <div className="squad-bounds-layout">
             <fieldset className="constraint-group squad-bound-group">
               <legend>Rarity bounds</legend>
-              <div className="bound-grid">{[...operatorRarities].reverse().map((rarity) => <BoundPill key={rarity} label={`${rarity}★`} value={constraints.rarity[rarity]} disabled={squad.length > 0} onSave={(next) => saveRarityBound(rarity, next)} />)}</div>
+              <div className="bound-grid">{[...operatorRarities].reverse().map((rarity) => <BoundPill key={rarity} label={<span className="bound-rarity-stars" style={{ color: `var(--rarity-${rarity})` }}>{'★'.repeat(rarity)}</span>} labelText={`${rarity}★`} value={constraints.rarity[rarity]} disabled={squad.length > 0} onSave={(next) => saveRarityBound(rarity, next)} />)}</div>
               <div className="aggregate-bound-heading"><span>Aggregate rarity groups</span><small>Counts overlap exact rarity bounds and are solved together.</small></div>
               <div className="bound-grid bound-grid--aggregate">{rarityGroupKeys.map((group) => <BoundPill key={group} label={rarityGroupDefinitions[group].label} value={constraints.rarityGroups[group]} disabled={squad.length > 0} onSave={(next) => saveRarityGroupBound(group, next)} />)}</div>
             </fieldset>
             <fieldset className="constraint-group squad-bound-group">
               <legend>Class bounds</legend>
-              <div className="bound-grid bound-grid--classes">{operatorClasses.map((operatorClass) => <BoundPill key={operatorClass} label={<span className="bound-class-label"><ClassIcon operatorClass={operatorClass} className="filter-class-icon" /><span>{dataset?.classLabels?.[operatorClass] ?? operatorClass}</span></span>} labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass} value={constraints.class[operatorClass]} disabled={squad.length > 0} onSave={(next) => saveClassBound(operatorClass, next)} />)}</div>
+              <div className="bound-grid bound-grid--classes">{operatorClasses.map((operatorClass) => <BoundPill key={operatorClass} label={<ClassIcon operatorClass={operatorClass} className="bound-class-icon" />} labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass} value={constraints.class[operatorClass]} disabled={squad.length > 0} onSave={(next) => saveClassBound(operatorClass, next)} />)}</div>
             </fieldset>
           </div>
         </div>

@@ -29,7 +29,7 @@ body {
 }
 
 .app-shell {
-  width: min(1180px, calc(100% - 40px));
+  width: min(1416px, calc(100% - 40px));
   margin: 0 auto;
   padding: 38px 0 28px;
 }

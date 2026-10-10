@@ -22,6 +22,7 @@ interface DraftPanelProps {
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
+  onActiveDraftChange?: (active: boolean) => void
 }
 
 function ConfiguredRulebookDraft({
@@ -31,6 +32,8 @@ function ConfiguredRulebookDraft({
   targetSize,
   ready,
   pricingProfiles,
+  rulebookControl,
+  onActiveDraftChange,
 }: {
   rulebook: DraftRulebook
   dataset: OperatorDataset | null
@@ -38,6 +41,8 @@ function ConfiguredRulebookDraft({
   targetSize: number
   ready: boolean
   pricingProfiles: readonly DraftPricingProfile[]
+  rulebookControl?: React.ReactNode
+  onActiveDraftChange?: (active: boolean) => void
 }): React.JSX.Element {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +65,11 @@ function ConfiguredRulebookDraft({
     onError: setError,
   })
 
+  useEffect(() => {
+    onActiveDraftChange?.(session.state?.status === 'active')
+    return () => onActiveDraftChange?.(false)
+  }, [onActiveDraftChange, session.state?.status])
+
   return (
     <DraftSessionView
       state={session.state}
@@ -77,6 +87,8 @@ function ConfiguredRulebookDraft({
       onStart={session.start}
       onPick={session.pick}
       onAction={session.act}
+      onAbandon={() => session.reset('Draft abandoned.')}
+      rulebookControl={rulebookControl}
     />
   )
 }
@@ -86,6 +98,7 @@ export default function DraftPanel({
   operators,
   targetSize,
   ready,
+  onActiveDraftChange,
 }: DraftPanelProps): React.JSX.Element {
   const customEntries = useMemo(() => loadDraftRulebookEntries(), [])
   const pricingProfiles = useMemo(
@@ -109,6 +122,7 @@ export default function DraftPanel({
     [customRulebooks],
   )
   const [selectedId, setSelectedId] = useState(() => loadSelectedDraftRulebookId())
+  const [draftActive, setDraftActive] = useState(false)
   const selected =
     rulebooks.find((rulebook) => rulebook.identifier.id === selectedId) ?? STANDARD_DRAFT_RULEBOOK
 
@@ -121,52 +135,54 @@ export default function DraftPanel({
 
   const selectRulebook = (rulebookId: string): void => {
     if (rulebookId === selected.identifier.id) return
+    if (draftActive && !window.confirm('Changing Draft Rulebook will abandon the current Draft. Continue?')) return
     setSelectedId(rulebookId)
     saveSelectedDraftRulebookId(rulebookId)
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
   }
 
+  const rulebookControl = (
+    <select
+      className="draft-rulebook-select"
+      value={selected.identifier.id}
+      aria-label="Draft Rulebook"
+      onChange={(event) => selectRulebook(event.target.value)}
+    >
+      <optgroup label="Built-in">
+        {BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => (
+          <option key={rulebook.identifier.id} value={rulebook.identifier.id}>
+            {rulebook.identifier.name}
+          </option>
+        ))}
+      </optgroup>
+      {importedEntries.length > 0 && (
+        <optgroup label="Imported">
+          {importedEntries.map((entry) => (
+            <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
+              {entry.document.identifier.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {localEntries.length > 0 && (
+        <optgroup label="Local">
+          {localEntries.map((entry) => (
+            <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
+              {entry.document.identifier.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  )
+
+  const handleActiveDraftChange = (active: boolean): void => {
+    setDraftActive(active)
+    onActiveDraftChange?.(active)
+  }
+
   return (
     <>
-      <div className="preset-toolbar">
-        <label className="preset-select">
-          <span>Draft Rulebook</span>
-          <select
-            value={selected.identifier.id}
-            onChange={(event) => selectRulebook(event.target.value)}
-          >
-            <optgroup label="Built-in">
-              {BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => (
-                <option key={rulebook.identifier.id} value={rulebook.identifier.id}>
-                  {rulebook.identifier.name}
-                </option>
-              ))}
-            </optgroup>
-            {importedEntries.length > 0 && (
-              <optgroup label="Imported">
-                {importedEntries.map((entry) => (
-                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
-                    {entry.document.identifier.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {localEntries.length > 0 && (
-              <optgroup label="Local">
-                {localEntries.map((entry) => (
-                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
-                    {entry.document.identifier.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </label>
-        <div className="rulebook-library-summary">
-          <strong>{selected.identifier.name}</strong>
-          <span>Revision {selected.identifier.revision}</span>
-        </div>
-      </div>
       <ConfiguredRulebookDraft
         key={selected.identifier.id}
         rulebook={selected}
@@ -175,6 +191,8 @@ export default function DraftPanel({
         targetSize={targetSize}
         ready={ready}
         pricingProfiles={pricingProfiles}
+        rulebookControl={rulebookControl}
+        onActiveDraftChange={handleActiveDraftChange}
       />
     </>
   )

@@ -49,6 +49,34 @@ function economyClass(value: DraftEconomyValuePresentation): string {
   return `draft-decision-economy draft-decision-economy--${value.tone}`
 }
 
+function DraftActionArtwork({ variant }: { variant: 'hold' | 'forfeit' }): React.JSX.Element {
+  if (variant === 'hold') {
+    return (
+      <svg className="draft-action-artwork" viewBox="0 0 120 180" aria-hidden="true">
+        <path className="draft-action-artwork__wash" d="M22 23h76v134H22z" />
+        <path
+          className="draft-action-artwork__line"
+          d="M42 44h36M42 136h36M48 50v24l12 16 12-16V50M48 130v-24l12-16 12 16v24"
+        />
+        <path className="draft-action-artwork__fill" d="M52 61h16l-8 12zM52 119h16l-8-12z" />
+        <circle className="draft-action-artwork__dot" cx="60" cy="90" r="4" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg className="draft-action-artwork" viewBox="0 0 120 180" aria-hidden="true">
+      <path className="draft-action-artwork__wash" d="M20 23h80v134H20z" />
+      <path
+        className="draft-action-artwork__line"
+        d="M38 42v96M40 48c18-9 30 8 47 0v49c-17 8-29-9-47 0"
+      />
+      <path className="draft-action-artwork__slash" d="M30 132 90 55" />
+      <path className="draft-action-artwork__slash" d="M29 55 91 132" />
+    </svg>
+  )
+}
+
 function ForfeitSurface({
   presentation,
   onForfeit,
@@ -64,6 +92,7 @@ function ForfeitSurface({
       title={presentation.blockReasonLabel ?? undefined}
       onClick={onForfeit}
     >
+      <DraftActionArtwork variant="forfeit" />
       <span
         className={economyClass(presentation.economy)}
         aria-label={pointDeltaLabel(presentation.economy)}
@@ -200,8 +229,11 @@ export default function DraftDecisionPlane({
                 />
               ) : (
                 <div className="draft-hold-surface draft-hold-surface--empty" aria-label="Hold: empty">
-                  <span>Hold</span>
-                  <strong>Empty</strong>
+                  <DraftActionArtwork variant="hold" />
+                  <span className="draft-hold-surface__body">
+                    <span>Hold</span>
+                    <strong>Empty</strong>
+                  </span>
                 </div>
               )}
               {releaseHold && (

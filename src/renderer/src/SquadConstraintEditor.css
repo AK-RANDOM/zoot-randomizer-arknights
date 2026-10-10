@@ -39,6 +39,9 @@
 .slot-constraint-class-icon-button .class-icon {
   width: 34px;
   height: 34px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .slot-constraint-class-icon-button .class-icon img {
@@ -56,7 +59,6 @@
 
 .slot-constraint-class-icon-button.is-open {
   border-color: rgba(240, 198, 109, 0.88);
-  box-shadow: 0 0 0 1px rgba(240, 198, 109, 0.28);
 }
 
 .slot-constraint-class-icon-button.is-unavailable:not(.is-active) {

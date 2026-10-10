@@ -1,7 +1,12 @@
 import type { DraftAction } from '../../shared/draft'
 
 export type DraftConfirmationIntent =
-  | { type: 'draft-action'; action: DraftAction; operatorName?: string }
+  | {
+      type: 'draft-action'
+      action: DraftAction
+      operatorName?: string
+      terminalAfterAction?: boolean
+    }
   | { type: 'new-draft' }
 
 export interface DraftConfirmationCopy {
@@ -22,6 +27,38 @@ export function draftConfirmationCopy(intent: DraftConfirmationIntent): DraftCon
   }
 
   const operatorName = intent.operatorName ?? 'this operator'
+  if (intent.terminalAfterAction) {
+    const actionLabel =
+      intent.action.type === 'pick'
+        ? `Pick ${operatorName}`
+        : intent.action.type === 'hold'
+          ? `Hold ${operatorName}`
+          : intent.action.type === 'forfeit'
+            ? 'Forfeit'
+            : intent.action.type === 'reroll'
+              ? 'Reroll'
+              : intent.action.type === 'release-hold'
+                ? 'Release Hold'
+                : 'Expand capacity'
+    return {
+      title: `${actionLabel} and end the Draft?`,
+      body: 'This action is legal, but afterward no valid moves will remain. The Draft will end immediately.',
+      confirmLabel:
+        intent.action.type === 'release-hold'
+          ? 'Release'
+          : intent.action.type === 'slot-expansion'
+            ? 'Expand'
+            : intent.action.type === 'pick'
+              ? 'Pick'
+              : intent.action.type === 'hold'
+                ? 'Hold'
+                : intent.action.type === 'forfeit'
+                  ? 'Forfeit'
+                  : 'Reroll',
+      suppressionLabel: 'Terminal-action warnings cannot be disabled for this Draft session',
+    }
+  }
+
   switch (intent.action.type) {
     case 'pick':
       return {

@@ -1,10 +1,12 @@
 import type { Operator } from '../operator'
-import { currentDraftOwnershipCapacity } from './capacity'
+import { currentDraftOwnershipCapacity, maxAttainableDraftCapacity } from './capacity'
 import { resolveDraftEngineConfiguration } from './config'
-import { getDraftActionPointDeltaWithConfiguration } from './economy'
+import { draftActionCarriesHoldForward, getDraftActionPointDeltaWithConfiguration } from './economy'
 import type {
   DraftAction,
   DraftActionAvailability,
+  DraftActionPreflight,
+  DraftActionUsageMap,
   DraftActionType,
   DraftEngineOptions,
   DraftLimitedActionRules,
@@ -121,7 +123,7 @@ export function evaluateDraftAction(
 }
 
 /**
- * Compatibility wrapper for the pre-M2 call shape. Economy-enabled callers should
+ * Compatibity wrapper for the pre-M2 call shape. Economy-enabled callers should
  * supply `pool`, or use `evaluateDraftAction` directly.
  */
 export function getDraftActionAvailability(
@@ -141,3 +143,210 @@ export function getDraftActionAvailability(
   }
   return evaluateDraftActionWithConfiguration(state, pool ?? [], action, configuration)
 }
+
+function resetProjectedRoundUsage(usage: DraftActionUsageMap): DraftActionUsageMap {
+  return Object.fromEntries(
+    Object.entries(usage).map(([action, value]) => [action, { ...value, round: 0 }]),
+  ) as DraftActionUsageMap
+}
+
+function recordProjectedAction(state: DraftState, action: DraftActionType): DraftActionUsageMap {
+  const usage = state.actionUsage[action]
+  return {
+    ...state.actionUsage,
+    [action]: {
+      total: usage.total + 1,
+      round: usage.round + 1,
+      lastUsedRound: state.roundNumber,
+    },
+  }
+}
+
+function projectedStateAfterAction(
+  state: DraftState,
+  pool: readonly Operator[],
+  action: DraftAction,
+  configuration: ResolvedDraftConfiguration,
+): DraftState {
+  const points =
+    state.points + getDraftActionPointDeltaWithConfiguration(pool, action, configuration, state)
+  const recordedUsage = recordProjectedAction(state, action.type)
+  const carriesHoldForward = draftActionCarriesHoldForward(state, action)
+  const holdUpkeepCharges = state.holdUpkeepCharges + (carriesHoldForward ? 1 : 0)
+
+  const advanceRound = (next: DraftState): DraftState => ({
+    ...next,
+    roundNumber: state.roundNumber + 1,
+    completedRounds: state.completedRounds + 1,
+    currentOfferIds: [],
+    actionUsage: resetProjectedRoundUsage(recordedUsage),
+  })
+
+  switch (action.type) {
+    case 'pick': {
+      const fromHold = state.heldOperatorId === action.operatorId
+      return advanceRound({
+        ...state,
+        draftedOperatorIds: [...state.draftedOperatorIds, action.operatorId],
+        heldOperatorId: fromHold ? null : state.heldOperatorId,
+        holdUpkeepCharges: fromHold ? 0 : holdUpkeepCharges,
+        points,
+        actionUsage: recordedUsage,
+      })
+    }
+    case 'hold':
+      return advanceRound({
+        ...state,
+        heldOperatorId: action.operatorId,
+        holdUpkeepCharges: 0,
+        points,
+        actionUsage: recordedUsage,
+      })
+    case 'forfeit':
+      return advanceRound({
+        ...state,
+        forfeitedCapacityCount: configuration.capacityRules.enabled
+          ? state.forfeitedCapacityCount + 1
+          : state.forfeitedCapacityCount,
+        holdUpkeepCharges,
+        points,
+        actionUsage: recordedUsage,
+      })
+    case 'release-hold':
+      return {
+        ...state,
+        heldOperatorId: null,
+        holdUpkeepCharges: 0,
+        points,
+        actionUsage: recordedUsage,
+      }
+    case 'reroll':
+      return {
+        ...state,
+        currentOfferIds: [],
+        points,
+        actionUsage: recordedUsage,
+      }
+    case 'slot-expansion':
+      return {
+        ...state,
+        activeCapacity: configuration.capacityRules.enabled
+          ? state.activeCapacity + 1
+          : state.activeCapacity,
+        capacityExpansionCount: state.capacityExpansionCount + 1,
+        points,
+        actionUsage: recordedUsage,
+      }
+  }
+}
+
+function hasAvailableCandidateAction(
+  state: DraftState,
+  pool: readonly Operator[],
+  configuration: ResolvedDraftConfiguration,
+  type: 'pick' | 'hold',
+): boolean {
+  const candidateIds =
+    type === 'pick' && state.heldOperatorId
+      ? [...state.currentOfferIds, state.heldOperatorId]
+      : state.currentOfferIds
+  return candidateIds.some(
+    (operatorId) =>
+      evaluateDraftActionWithConfiguration(state, pool, { type, operatorId }, configuration)
+        .available,
+  )
+}
+
+/**
+ * Canonical progression check for an active Draft state.
+ *
+ * Hold, Reroll, and Release are useful only while there is still a route to a
+ * future ownership-capable state. Once ownership capacity is full and neither
+ * Forfeit nor Expansion is legal, those non-progress actions cannot recover the
+ * Draft and must not keep an otherwise dead session alive.
+ */
+export function hasDraftValidContinuationWithConfiguration(
+  state: DraftState,
+  pool: readonly Operator[],
+  configuration: ResolvedDraftConfiguration,
+): boolean {
+  if (state.status !== 'active') return false
+
+  if (hasAvailableCandidateAction(state, pool, configuration, 'pick')) return true
+  if (
+    evaluateDraftActionWithConfiguration(state, pool, { type: 'forfeit' }, configuration).available
+  ) {
+    return true
+  }
+  if (
+    evaluateDraftActionWithConfiguration(state, pool, { type: 'slot-expansion' }, configuration)
+      .available
+  ) {
+    return true
+  }
+
+  const ownershipFull =
+    configuration.capacityRules.enabled &&
+    state.draftedOperatorIds.length >= currentDraftOwnershipCapacity(state)
+  if (ownershipFull) return false
+
+  if (hasAvailableCandidateAction(state, pool, configuration, 'hold')) return true
+  if (
+    evaluateDraftActionWithConfiguration(state, pool, { type: 'reroll' }, configuration).available
+  ) {
+    return true
+  }
+  if (
+    evaluateDraftActionWithConfiguration(state, pool, { type: 'release-hold' }, configuration)
+      .available
+  ) {
+    return true
+  }
+  return false
+}
+
+export function hasDraftValidContinuation(
+  state: DraftState,
+  pool: readonly Operator[],
+  options: DraftEngineOptions = {},
+): boolean {
+  return hasDraftValidContinuationWithConfiguration(
+    state,
+    pool,
+    resolveDraftEngineConfiguration(options),
+  )
+}
+
+function isGuaranteedNoValidMoveAfterAction(
+  state: DraftState,
+  pool: readonly Operator[],
+  action: DraftAction,
+  configuration: ResolvedDraftConfiguration,
+): boolean {
+  const projected = projectedStateAfterAction(state, pool, action, configuration)
+
+  if (projected.draftedOperatorIds.length >= projected.targetSize) return false
+  if (
+    configuration.maxRounds !== null &&
+    (action.type === 'pick' || action.type === 'hold' || action.type === 'forfeit') &&
+    state.roundNumber >= configuration.maxRounds
+  ) {
+    return false
+  }
+  if (
+    configuration.capacityRules.enabled &&
+    projected.draftedOperatorIds.length >=
+      maxAttainableDraftCapacity(projected, configuration.capacityRules)
+  ) {
+    return false
+  }
+
+  const roundEnding = action.type === 'pick' || action.type === 'hold' || action.type === 'forfeit'
+  if (!roundEnding && action.type !== 'reroll') {
+    return !hasDraftValidContinuationWithConfiguration(projected, pool, configuration)
+  }
+
+  const ownershipFull =
+    configuration.capacityRules.enabled &&
+    projected.draftedOperatorIds.length >= currentDraftOwnershipCapacity(projected)
+  if (!ownershipFull¤É•ÑÕÉ¸™…±Í”((€½¹ÍÐ•áÁ…¹Í¥½¹Ù…¥±…‰±”€ô•Ù…±Õ…Ñ•É…™ÑÑ¥½¹]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€€€ÁÉ½©•Ñ•°(€€€Á½½°°(€€€ìÑåÁ”è€Í±½Ðµ•áÁ…¹Í¥½¸œô°(€€€½¹™¥ÕÉ…Ñ¥½¸°(€€¤¹…Ù…¥±…‰±”(€½¹ÍÐ™½É™•¥ÑÙ…¥±…‰±”€ô•Ù…±Õ…Ñ•É…™ÑÑ¥½¹]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€€€ÁÉ½©•Ñ•°(€€€Á½½°°(€€€ìÑåÁ”è€™½É™•¥Ðœô°(€€€½¹™¥ÕÉ…Ñ¥½¸°(€€¤¹…Ù…¥±…‰±”(€É•ÑÕÉ¸€…•áÁ…¹Í¥½¹Ù…¥±…‰±”€˜˜€…™½É™•¥ÑÙ…¥±…‰±”)ô()•áÁ½ÉÐ™Õ¹Ñ¥½¸•Ù…±Õ…Ñ•É…™ÑÑ¥½¹AÉ•™±¥¡Ñ]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€ÍÑ…Ñ”èÉ…™ÑMÑ…Ñ”°(€Á½½°èÉ•…‘½¹±ä=Á•É…Ñ½Émt°(€…Ñ¥½¸èÉ…™ÑÑ¥½¸°(€½¹™¥ÕÉ…Ñ¥½¸èI•Í½±Ù•‘É…™Ñ½¹™¥ÕÉ…Ñ¥½¸°(¤èÉ…™ÑÑ¥½¹AÉ•™±¥¡Ðì(€½¹ÍÐ…Ù…¥±…‰¥±¥Ñä€ô•Ù…±Õ…Ñ•É…™ÑÑ¥½¹]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸¡ÍÑ…Ñ”°Á½½°°…Ñ¥½¸°½¹™¥ÕÉ…Ñ¥½¸¤(€¥˜€ ……Ù…¥±…‰¥±¥Ñä¹…Ù…¥±…‰±”¤ì(€€€É•ÑÕÉ¸ì(€€€€€€¸¸¹…Ù…¥±…‰¥±¥Ñä°(€€€€€Ñ•Éµ¥¹…±™Ñ•ÉÑ¥½¸è™…±Í”°(€€€€€Ñ•Éµ¥¹…±I•…Í½¸è¹Õ±°°(€€€ô(€ô(€½¹ÍÐÑ•Éµ¥¹…±™Ñ•ÉÑ¥½¸€ô¥ÍÕ…É…¹Ñ••‘9½Y…±¥‘5½Ù•™Ñ•ÉÑ¥½¸¡ÍÑ…Ñ”°Á½½°°…Ñ¥½¸°½¹™¥ÕÉ…Ñ¥½¸¤(€É•ÑÕÉ¸ì(€€€€¸¸¹…Ù…¥±…‰¥±¥Ñä°(€€€Ñ•Éµ¥¹…±™Ñ•ÉÑ¥½¸°(€€€Ñ•Éµ¥¹…±I•…Í½¸èÑ•Éµ¥¹…±™Ñ•ÉÑ¥½¸€ü€¹¼µÙ…±¥µµ½Ù”œ€è¹Õ±°°(€ô)ô()•áÁ½ÉÐ™Õ¹Ñ¥½¸•Ù…±Õ…Ñ•É…™ÑÑ¥½¹AÉ•™±¥¡Ð (€ÍÑ…Ñ”èÉ…™ÑMÑ…Ñ”°(€Á½½°èÉ•…‘½¹±ä=Á•É…Ñ½Émt°(€…Ñ¥½¸èÉ…™ÑÑ¥½¸°(€½ÁÑ¥½¹ÌèÉ…™Ñ¹¥¹•=ÁÑ¥½¹Ì€ôíô°(¤èÉ…™ÑÑ¥½¹AÉ•™±¥¡Ðì(€É•ÑÕÉ¸•Ù…±Õ…Ñ•É…™ÑÑ¥½¹AÉ•™±¥¡Ñ]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€€€ÍÑ…Ñ”°(€€€Á½½°°(€€€…Ñ¥½¸°(€€€É•Í½±Ù•É…™Ñ¹¥¹•½¹™¥ÕÉ…Ñ¥½¸¡½ÁÑ¥½¹Ì¤°(€€¤)ô

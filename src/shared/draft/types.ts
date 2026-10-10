@@ -16,6 +16,7 @@ export type DraftCompletionReason =
   | 'pool-exhausted'
   | 'capacity-exhausted'
   | 'round-limit-reached'
+  | 'no-valid-move'
 export type DraftActionType =
   | 'pick'
   | 'forfeit'
@@ -208,4 +209,9 @@ export type DraftAction =
 export interface DraftActionAvailability {
   available: boolean
   reason: DraftActionBlockReason | null
+}
+
+export interface DraftActionPreflight extends DraftActionAvailability {
+  terminalAfterAction: boolean
+  terminalReason: Extract<DraftCompletionReason, 'no-valid-move'> | null
 }

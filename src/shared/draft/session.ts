@@ -1,5 +1,8 @@
 import type { Operator } from '../operator'
-import { evaluateDraftActionWithConfiguration } from './actions'
+import {
+  evaluateDraftActionWithConfiguration,
+  hasDraftValidContinuationWithConfiguration,
+} from './actions'
 import { maxAttainableDraftCapacity } from './capacity'
 import { resolveDraftEngineConfiguration, validateDraftConfiguration } from './config'
 import {
@@ -56,6 +59,17 @@ function completeState(state: DraftState, reason: DraftCompletionReason): DraftS
   }
 }
 
+function completeIfNoValidMove(
+  state: DraftState,
+  pool: readonly Operator[],
+  configuration: ResolvedDraftConfiguration,
+): DraftState {
+  if (state.status !== 'active') return state
+  return hasDraftValidContinuationWithConfiguration(state, pool, configuration)
+    ? state
+    : completeState(state, 'no-valid-move')
+}
+
 function appendDiscarded(current: readonly string[], additions: readonly string[]): string[] {
   return [...new Set([...current, ...additions])]
 }
@@ -108,15 +122,19 @@ function beginNextRound(
       'pool-exhausted',
     )
   }
-  return {
-    ...nextBase,
-    currentOfferIds: offer.ids,
-    pullsSinceSixStar: offer.pullsSinceSixStar,
-    generatedCandidateCount: offer.generatedCandidateCount,
-    actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
-    status: 'active',
-    completionReason: null,
-  }
+  return completeIfNoValidMove(
+    {
+      ...nextBase,
+      currentOfferIds: offer.ids,
+      pullsSinceSixStar: offer.pullsSinceSixStar,
+      generatedCandidateCount: offer.generatedCandidateCount,
+      actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
+      status: 'active',
+      completionReason: null,
+    },
+    pool,
+    configuration,
+  )
 }
 
 export function startDraft(
@@ -164,13 +182,17 @@ export function startDraft(
 
   const offer = generateDraftOffer(pool, base, options, configuration)
   return offer
-    ? {
-        ...base,
-        currentOfferIds: offer.ids,
-        pullsSinceSixStar: offer.pullsSinceSixStar,
-        generatedCandidateCount: offer.generatedCandidateCount,
-        actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
-      }
+    ? completeIfNoValidMove(
+        {
+          ...base,
+          currentOfferIds: offer.ids,
+          pullsSinceSixStar: offer.pullsSinceSixStar,
+          generatedCandidateCount: offer.generatedCandidateCount,
+          actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
+        },
+        pool,
+        configuration,
+      )
     : completeState(base, 'pool-exhausted')
 }
 
@@ -243,13 +265,17 @@ export function applyDraftAction(
       )
     }
     case 'release-hold':
-      return {
-        ...state,
-        heldOperatorId: null,
-        holdUpkeepCharges: 0,
-        points,
-        actionUsage,
-      }
+      return completeIfNoValidMove(
+        {
+          ...state,
+          heldOperatorId: null,
+          holdUpkeepCharges: 0,
+          points,
+          actionUsage,
+        },
+        pool,
+        configuration,
+      )
     case 'forfeit': {
       const discarded = actionRules.forfeit.discardOffer
         ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds)
@@ -283,25 +309,33 @@ export function applyDraftAction(
       }
       const offer = generateDraftOffer(pool, next, options, configuration)
       return offer
-        ? {
-            ...next,
-            currentOfferIds: offer.ids,
-            pullsSinceSixStar: offer.pullsSinceSixStar,
-            generatedCandidateCount: offer.generatedCandidateCount,
-            actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
-          }
+        ? completeIfNoValidMove(
+            {
+              ...next,
+              currentOfferIds: offer.ids,
+              pullsSinceSixStar: offer.pullsSinceSixStar,
+              generatedCandidateCount: offer.generatedCandidateCount,
+              actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
+            },
+            pool,
+            configuration,
+          )
         : completeState(next, 'pool-exhausted')
     }
     case 'slot-expansion':
-      return {
-        ...state,
-        activeCapacity: capacityRules.enabled
-          ? state.activeCapacity + 1
-          : state.activeCapacity,
-        capacityExpansionCount: state.capacityExpansionCount + 1,
-        points,
-        actionUsage,
-      }
+      return completeIfNoValidMove(
+        {
+          ...state,
+          activeCapacity: capacityRules.enabled
+            ? state.activeCapacity + 1
+            : state.activeCapacity,
+          capacityExpansionCount: state.capacityExpansionCount + 1,
+          points,
+          actionUsage,
+        },
+        pool,
+        configuration,
+      )
   }
 }
 

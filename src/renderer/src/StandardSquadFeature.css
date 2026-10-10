@@ -171,6 +171,10 @@
   position: relative;
 }
 
+.squad-bound-group--classes {
+  grid-column: 1 / -1;
+}
+
 .bound-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -178,7 +182,7 @@
 }
 
 .bound-grid--classes {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
 .bound-grid--aggregate {
@@ -269,6 +273,13 @@
   width: 100%;
   max-width: 88px;
 }
+
+/* Keep the Class Bounds editor above its Any/value pill so opening it never extends the filter downward. */
+.bound-grid--classes .bound-popover {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 
 .bound-pill {
   min-width: 76px;
@@ -362,6 +373,13 @@
 
 .text-button:hover {
   color: #f5ad2f;
+}
+
+.aggregate-bound-note {
+  margin: 0 0 7px;
+  color: #6f6f76;
+  font-size: 0.64rem;
+  line-height: 1.35;
 }
 
 .aggregate-bound-heading {
@@ -759,6 +777,18 @@
   justify-content: flex-end;
 }
 
+/* Keep Standard Squad cards at their pre-wide-shell footprint. */
+.squad-panel .squad-grid {
+  max-width: 1140px;
+}
+
+/* Class Bounds uses the canonical ClassIcon frame. */
+.squad-panel .bound-grid--classes .bound-class-icon {
+  border: 1px solid rgba(255, 255, 255, 0.46);
+  background: rgba(8, 8, 9, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 @media (max-width: 900px) {
   .preset-toolbar {
     align-items: stretch;
@@ -769,8 +799,8 @@
     justify-content: flex-start;
   }
 
-  .squad-bounds-layout {
-    grid-template-columns: 1fr;
+  .bound-grid--classes {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 
   .criteria-chip-grid {
@@ -794,6 +824,10 @@
     justify-content: flex-start;
   }
 
+  .squad-bounds-layout {
+    grid-template-columns: 1fr;
+  }
+
   .bound-grid,
   .bound-grid--aggregate {
     grid-template-columns: 1fr;
@@ -812,5 +846,72 @@
   .slot-editor-backdrop,
   .confirmation-backdrop {
     padding: 12px;
+  }
+}
+/* Current Standard markup keeps aggregate bounds inside the rarity fieldset.
+   Present those children as two true half-width visual panels without changing behavior. */
+@media (min-width: 641px) {
+  .squad-bounds-layout > .squad-bound-group:first-child {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    gap: 0 14px;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .squad-bounds-layout > .squad-bound-group:first-child > legend {
+    display: none;
+  }
+
+  .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid:not(.bound-grid--aggregate) {
+    position: relative;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    padding: 16px 12px 12px;
+    border: 1px solid #2c2c31;
+    border-radius: 5px;
+    background: #111113;
+  }
+
+  .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid:not(.bound-grid--aggregate)::before {
+    content: 'Rarity bounds';
+    position: absolute;
+    top: -0.55em;
+    left: 12px;
+    padding: 0 7px;
+    color: #85858b;
+    background: #151517;
+    font-size: 0.72rem;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  .squad-bounds-layout > .squad-bound-group:first-child > .aggregate-bound-heading {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+    padding: 9px 12px 5px;
+    border: 1px solid #2c2c31;
+    border-bottom: 0;
+    border-radius: 5px 5px 0 0;
+    background: #111113;
+  }
+
+  .squad-bounds-layout > .squad-bound-group:first-child > .bound-grid--aggregate {
+    grid-column: 2;
+    grid-row: 2;
+    padding: 4px 12px 12px;
+    border: 1px solid #2c2c31;
+    border-top: 0;
+    border-radius: 0 0 5px 5px;
+    background: #111113;
+  }
+
+  .squad-bounds-layout > .squad-bound-group:last-child {
+    grid-column: 1 / -1;
   }
 }

@@ -38,6 +38,10 @@
   user-select: none;
 }
 
+.squad-filter-disclosure[open] {
+  overflow: visible;
+}
+
 .squad-filter-disclosure[open] > summary {
   border-bottom: 1px solid var(--line, rgba(255, 255, 255, 0.12));
 }

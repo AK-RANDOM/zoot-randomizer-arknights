@@ -32,13 +32,18 @@
 }
 
 .slot-constraint-class-icon-button {
-  width: 42px;
+  width: auto;
+  min-width: 42px;
   height: 42px;
+  padding: 3px 9px 3px 3px;
 }
 
 .slot-constraint-class-icon-button .class-icon {
-  width: 34px;
+  display: inline-flex;
+  width: auto;
   height: 34px;
+  align-items: center;
+  gap: 6px;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -48,6 +53,14 @@
   width: 28px;
   height: 28px;
   object-fit: contain;
+}
+
+.slot-constraint-class-icon-button .class-icon::after {
+  content: attr(title);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .slot-constraint-class-icon-button.is-active,
@@ -182,4 +195,21 @@
     right: 0;
     left: auto;
   }
+}
+
+.slot-editor-actions .danger-button {
+  border-color: #c95863;
+  color: #ffd9dc;
+  background: #3a171b;
+  font-size: 0;
+}
+
+.slot-editor-actions .danger-button::after {
+  content: 'Reset';
+  font-size: 0.7rem;
+}
+
+.slot-editor-actions .danger-button:hover:not(:disabled) {
+  border-color: #e36c76;
+  background: #552027;
 }

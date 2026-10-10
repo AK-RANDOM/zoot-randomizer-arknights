@@ -108,7 +108,7 @@ export default function DraftDecisionPlane({
     ? remainingLimitLabel(configuration.actionRules.reroll, state.actionUsage.reroll)
     : null
   const offerGridStyle = {
-    gridTemplateColumns: `repeat(${Math.max(1, offeredOperators.length)}, minmax(0, 1fr))`,
+    gridTemplateColumns: `repeat(${Math.max(1, offeredOperators.length)}, var(--draft-play-card-width))`,
   } satisfies CSSProperties
 
   return (

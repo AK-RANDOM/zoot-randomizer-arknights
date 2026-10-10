@@ -26,6 +26,7 @@ interface OperatorCardProps {
   variant?: 'standard' | 'draft-compact'
   topRightAdornment?: ReactNode
   overlay?: ReactNode
+  animationKey?: string | number
 }
 
 export default function OperatorCard({
@@ -34,6 +35,7 @@ export default function OperatorCard({
   variant = 'standard',
   topRightAdornment,
   overlay,
+  animationKey = 0,
 }: OperatorCardProps): React.JSX.Element {
   const artworkPreference = useOperatorArtworkPreference()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -127,7 +129,7 @@ export default function OperatorCard({
         )}
         {imageUrl ? (
           <img
-            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}`}
+            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}`}
             className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
             src={imageUrl}
             alt=""

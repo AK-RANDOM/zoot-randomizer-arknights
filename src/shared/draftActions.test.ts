@@ -17,7 +17,10 @@ function operator(id: string): Operator {
     subclass: { id: 'lord', name: 'Lord' },
     faction: { main: 'rhodes', affiliations: ['rhodes'] },
     availableOn: { cn: true, global: true },
-    release: { cn: { date: '2024-01-01', yearGroup: 5 }, global: { date: '2024-01-01', yearGroup: 5 } },
+    release: {
+      cn: { date: '2024-01-01', yearGroup: 5 },
+      global: { date: '2024-01-01', yearGroup: 5 },
+    },
     acquisition: { family: 'standard', group: null },
     collaboration: null,
     alterGroup: null,
@@ -47,7 +50,9 @@ describe('Draft advanced execution mechanics', () => {
     expect(currentDraftOwnershipCapacity(state)).toBe(12)
     expect(getDraftActionAvailability(state, { type: 'reroll' }).reason).toBe('action-disabled')
     expect(getDraftActionAvailability(state, { type: 'forfeit' }).reason).toBe('action-disabled')
-    expect(getDraftActionAvailability(state, { type: 'slot-expansion' }).reason).toBe('action-disabled')
+    expect(getDraftActionAvailability(state, { type: 'slot-expansion' }).reason).toBe(
+      'action-disabled',
+    )
   })
 
   it('uses 6 active + 1 overflow as the initial advanced ownership capacity', () => {
@@ -74,16 +79,29 @@ describe('Draft advanced execution mechanics', () => {
     expect(expanded.currentOfferIds).toEqual(initial.currentOfferIds)
     expect(expanded.activeCapacity).toBe(7)
     expect(currentDraftOwnershipCapacity(expanded)).toBe(8)
-    expect(getDraftActionAvailability(expanded, { type: 'slot-expansion' }, advancedOptions).reason).toBe('per-round-limit')
+    expect(
+      getDraftActionAvailability(expanded, { type: 'slot-expansion' }, advancedOptions).reason,
+    ).toBe('per-round-limit')
   })
 
   it('holds one operator, can release it without ending the round, and returns it to the pool', () => {
     const pool = roster(18)
     const initial = startDraft(pool, 12, advancedOptions)
-    let state = applyDraftAction(initial, pool, { type: 'hold', operatorId: 'char_2' }, advancedOptions)
+    let state = applyDraftAction(
+      initial,
+      pool,
+      { type: 'hold', operatorId: 'char_2' },
+      advancedOptions,
+    )
     expect(state.heldOperatorId).toBe('char_2')
     expect(state.roundNumber).toBe(2)
-    expect(getDraftActionAvailability(state, { type: 'hold', operatorId: state.currentOfferIds[0] }, advancedOptions).reason).toBe('hold-slot-occupied')
+    expect(
+      getDraftActionAvailability(
+        state,
+        { type: 'hold', operatorId: state.currentOfferIds[0] },
+        advancedOptions,
+      ).reason,
+    ).toBe('hold-slot-occupied')
     const round = state.roundNumber
     state = applyDraftAction(state, pool, { type: 'release-hold' }, advancedOptions)
     expect(state.heldOperatorId).toBeNull()
@@ -94,7 +112,12 @@ describe('Draft advanced execution mechanics', () => {
   it('commits a held operator through Pick as the round-consuming resolution', () => {
     const pool = roster(18)
     let state = startDraft(pool, 12, advancedOptions)
-    state = applyDraftAction(state, pool, { type: 'hold', operatorId: state.currentOfferIds[1] }, advancedOptions)
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'hold', operatorId: state.currentOfferIds[1] },
+      advancedOptions,
+    )
     const held = state.heldOperatorId!
     const beforeRound = state.roundNumber
     state = applyDraftAction(state, pool, { type: 'pick', operatorId: held }, advancedOptions)
@@ -117,13 +140,37 @@ describe('Draft advanced execution mechanics', () => {
     const pool = roster(24)
     let state = startDraft(pool, 12, advancedOptions)
     for (let i = 0; i < 7; i += 1) {
-      state = applyDraftAction(state, pool, { type: 'pick', operatorId: state.currentOfferIds[0] }, advancedOptions)
+      state = applyDraftAction(
+        state,
+        pool,
+        { type: 'pick', operatorId: state.currentOfferIds[0] },
+        advancedOptions,
+      )
     }
     expect(currentDraftOwnershipCapacity(state)).toBe(7)
-    expect(getDraftActionAvailability(state, { type: 'pick', operatorId: state.currentOfferIds[0] }, advancedOptions).reason).toBe('capacity-full')
-    expect(getDraftActionAvailability(state, { type: 'forfeit' }, advancedOptions).reason).toBe('capacity-forfeit-unavailable')
+    expect(state.status).toBe('active')
+    expect(state.currentOfferIds).toHaveLength(3)
+    expect(
+      getDraftActionAvailability(
+        state,
+        { type: 'pick', operatorId: state.currentOfferIds[0] },
+        advancedOptions,
+      ).reason,
+    ).toBe('capacity-full')
+    expect(getDraftActionAvailability(state, { type: 'forfeit' }, advancedOptions).reason).toBe(
+      'capacity-forfeit-unavailable',
+    )
+    expect(
+      getDraftActionAvailability(state, { type: 'slot-expansion' }, advancedOptions).available,
+    ).toBe(true)
     state = applyDraftAction(state, pool, { type: 'slot-expansion' }, advancedOptions)
-    expect(getDraftActionAvailability(state, { type: 'pick', operatorId: state.currentOfferIds[0] }, advancedOptions).available).toBe(true)
+    expect(
+      getDraftActionAvailability(
+        state,
+        { type: 'pick', operatorId: state.currentOfferIds[0] },
+        advancedOptions,
+      ).available,
+    ).toBe(true)
   })
 
   it('resets per-round counters after a round-ending action while preserving totals', () => {
@@ -146,10 +193,17 @@ describe('Draft advanced execution mechanics', () => {
     }
     let state = startDraft(pool, 8, options)
     state = applyDraftAction(state, pool, { type: 'reroll' }, options)
-    expect(getDraftActionAvailability(state, { type: 'reroll' }, options).reason).toBe('per-draft-limit')
+    expect(getDraftActionAvailability(state, { type: 'reroll' }, options).reason).toBe(
+      'per-draft-limit',
+    )
     state = applyDraftAction(state, pool, { type: 'forfeit' }, options)
     expect(getDraftActionAvailability(state, { type: 'forfeit' }, options).reason).toBe('cooldown')
-    state = applyDraftAction(state, pool, { type: 'pick', operatorId: state.currentOfferIds[0] }, options)
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      options,
+    )
     expect(getDraftActionAvailability(state, { type: 'forfeit' }, options).available).toBe(true)
   })
 })

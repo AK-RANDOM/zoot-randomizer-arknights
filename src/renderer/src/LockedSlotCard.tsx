@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import OperatorCard from './OperatorCard'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import { slotConstraintFrameStyle } from './SlotConstraintFrame'
@@ -81,8 +82,21 @@ export default function LockedSlotCard({
   slot: number
   onClick: () => void
 }): React.JSX.Element {
+  const [animationKey, setAnimationKey] = useState(0)
   const showClassIndicator =
     presentation.classes.length > 1 || (constraint.subclasses?.length ?? 0) > 0
+
+  useEffect(() => {
+    const replayOnRandomize = (event: MouseEvent): void => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (!target.closest('.squad-panel .randomize-button')) return
+      setAnimationKey((current) => current + 1)
+    }
+    document.addEventListener('click', replayOnRandomize)
+    return () => document.removeEventListener('click', replayOnRandomize)
+  }, [])
+
   return (
     <button
       type="button"
@@ -92,8 +106,7 @@ export default function LockedSlotCard({
       aria-label={`Configure squad slot ${slot}, locked to ${presentation.operator.name}`}
       onClick={onClick}
     >
-      <OperatorCard operator={presentation.operator} />
-      <span className="slot-lock-indicator" title="Specific operator locked" aria-hidden="true">🔒</span>
+      <OperatorCard operator={presentation.operator} animationKey={animationKey} />
       {showClassIndicator && (
         <SlotClassConstraintIndicator
           constraint={constraint}

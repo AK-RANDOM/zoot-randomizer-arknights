@@ -144,37 +144,35 @@
   overflow: hidden;
   white-space: nowrap;
 }
-
 .operator-card--portrait .operator-card__caption strong {
   display: block;
   min-width: 0;
   overflow: visible;
   text-overflow: clip;
 }
-
 .operator-card--portrait .operator-card__name-text {
   display: inline-block;
   min-width: max-content;
 }
-
-.operator-card--portrait .operator-card__name-viewport.is-overflowing .operator-card__name-text {
-  animation: operator-name-scroll 5.5s ease-in-out infinite alternate;
+.operator-card:hover .operator-card__name-viewport.is-overflowing .operator-card__name-text,
+.operator-card:focus-within .operator-card__name-viewport.is-overflowing .operator-card__name-text {
+  animation: operator-name-scroll 2.75s ease-in-out infinite alternate;
 }
-
 @keyframes operator-name-scroll {
   0%,
   18% {
     transform: translateX(0);
   }
-
   82%,
   100% {
     transform: translateX(calc(-1 * var(--operator-name-overflow, 0px)));
   }
 }
-
 @media (prefers-reduced-motion: reduce) {
-  .operator-card--portrait .operator-card__name-viewport.is-overflowing .operator-card__name-text {
+  .operator-card:hover .operator-card__name-viewport.is-overflowing .operator-card__name-text,
+  .operator-card:focus-within
+    .operator-card__name-viewport.is-overflowing
+    .operator-card__name-text {
     animation: none;
     transform: none;
   }

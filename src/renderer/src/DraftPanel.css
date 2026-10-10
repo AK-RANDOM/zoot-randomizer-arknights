@@ -94,10 +94,33 @@
   color: #f5ad2f;
 }
 
-.draft-status-new {
+.draft-status-actions {
+  display: flex;
   flex: 0 0 auto;
   align-self: center;
+  gap: 8px;
+}
+.draft-status-new,
+.draft-status-abandon {
   white-space: nowrap;
+}
+.draft-rulebook-select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 30px 0 9px;
+  border: 1px solid #3b3b41;
+  border-radius: 4px;
+  color: #f5ad2f;
+  background: #171719;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+.draft-rulebook-select:hover,
+.draft-rulebook-select:focus-visible {
+  border-color: #5b5b62;
+  outline: none;
+  background: #1d1d20;
 }
 
 .draft-status-context {
@@ -277,6 +300,7 @@
   display: flex;
   width: 100%;
   height: 100%;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -362,7 +386,12 @@
     border-bottom: 0;
   }
 
-  .draft-status-new {
+  .draft-status-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  .draft-status-new,
+  .draft-status-abandon {
     width: 100%;
   }
 

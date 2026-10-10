@@ -187,7 +187,8 @@ function resolveDraftCapacityPresentation(state: DraftState): DraftCapacityPrese
       ? Math.max(0, Math.min(state.overflowCapacity, maximum - effectivePermanent))
       : 0
   const ownership = Math.min(maximum, effectivePermanent + overflow)
-  const capacityCore = overflow > 0 ? `${effectivePermanent}+${overflow}` : String(effectivePermanent)
+  const capacityCore =
+    overflow > 0 ? `${effectivePermanent}+${overflow}` : String(effectivePermanent)
 
   return {
     effectivePermanent,
@@ -205,22 +206,16 @@ export function resolveDraftSquadPresentation(state: DraftState): DraftSquadPres
   const overflowCapacity = Math.min(capacity.overflow, Math.max(0, maximum - permanentCapacity))
   const overflowVisible = overflowCapacity > 0 && permanentCapacity < maximum
   const overflowOperatorId = overflowVisible
-    ? state.draftedOperatorIds[permanentCapacity] ?? null
+    ? (state.draftedOperatorIds[permanentCapacity] ?? null)
     : null
 
-  const slots = Array.from({ length: DRAFT_STANDARD_SLOT_COUNT }, (_, index) => {
+  const slots = Array.from({ length: permanentCapacity }, (_, index) => {
     const slotNumber = index + 1
-    const slotState: DraftSquadSlotState =
-      slotNumber <= permanentCapacity
-        ? 'valid'
-        : slotNumber <= maximum
-          ? 'expandable'
-          : 'invalid'
+    const slotState: DraftSquadSlotState = 'valid'
     return {
       slotNumber,
       state: slotState,
-      operatorId:
-        slotState === 'valid' ? (state.draftedOperatorIds[index] ?? null) : null,
+      operatorId: state.draftedOperatorIds[index] ?? null,
     }
   })
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { DraftConfigurationInput } from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import {
@@ -25,12 +25,14 @@ function ConfiguredRulebookDraft({
   globalPool,
   targetSize,
   ready,
+  rulebookControl,
 }: {
   rulebook: DraftRulebook
   dataset: OperatorDataset | null
   globalPool: readonly Operator[]
   targetSize: number
   ready: boolean
+  rulebookControl?: ReactNode
 }): React.JSX.Element {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +67,8 @@ function ConfiguredRulebookDraft({
       statusMessage={message}
       statusError={error}
       onStart={session.start}
+      onAbandon={() => session.reset('Draft abandoned.')}
+      rulebookControl={rulebookControl}
       onPick={session.pick}
       onAction={session.act}
     />
@@ -109,53 +113,48 @@ export default function DraftPanel({
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
   }
 
+  const rulebookControl = (
+    <select
+      className="draft-rulebook-select"
+      aria-label="Draft Rulebook"
+      value={selected.identifier.id}
+      onChange={(event) => selectRulebook(event.target.value)}
+    >
+      <optgroup label="Built-in">
+        <option value={STANDARD_DRAFT_RULEBOOK_ID}>
+          {STANDARD_DRAFT_RULEBOOK.identifier.name}
+        </option>
+      </optgroup>
+      {importedEntries.length > 0 && (
+        <optgroup label="Imported">
+          {importedEntries.map((entry) => (
+            <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
+              {entry.document.identifier.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+      {localEntries.length > 0 && (
+        <optgroup label="Local">
+          {localEntries.map((entry) => (
+            <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
+              {entry.document.identifier.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  )
+
   return (
-    <>
-      <div className="preset-toolbar">
-        <label className="preset-select">
-          <span>Draft Rulebook</span>
-          <select
-            value={selected.identifier.id}
-            onChange={(event) => selectRulebook(event.target.value)}
-          >
-            <optgroup label="Built-in">
-              <option value={STANDARD_DRAFT_RULEBOOK_ID}>
-                {STANDARD_DRAFT_RULEBOOK.identifier.name}
-              </option>
-            </optgroup>
-            {importedEntries.length > 0 && (
-              <optgroup label="Imported">
-                {importedEntries.map((entry) => (
-                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
-                    {entry.document.identifier.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {localEntries.length > 0 && (
-              <optgroup label="Local">
-                {localEntries.map((entry) => (
-                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
-                    {entry.document.identifier.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-        </label>
-        <div className="rulebook-library-summary">
-          <strong>{selected.identifier.name}</strong>
-          <span>Revision {selected.identifier.revision}</span>
-        </div>
-      </div>
-      <ConfiguredRulebookDraft
-        key={selected.identifier.id}
-        rulebook={selected}
-        dataset={dataset}
-        globalPool={operators}
-        targetSize={targetSize}
-        ready={ready}
-      />
-    </>
+    <ConfiguredRulebookDraft
+      key={selected.identifier.id}
+      rulebook={selected}
+      dataset={dataset}
+      globalPool={operators}
+      targetSize={targetSize}
+      ready={ready}
+      rulebookControl={rulebookControl}
+    />
   )
 }

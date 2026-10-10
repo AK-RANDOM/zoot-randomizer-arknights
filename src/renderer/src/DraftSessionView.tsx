@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
@@ -30,6 +30,8 @@ export interface DraftSessionViewProps {
   statusMessage?: string | null
   statusError?: string | null
   onStart: () => void
+  onAbandon?: () => void
+  rulebookControl?: ReactNode
   onPick: (operatorId: string) => void
   onAction?: (action: DraftAction) => void
 }
@@ -45,6 +47,8 @@ export default function DraftSessionView({
   statusMessage,
   statusError,
   onStart,
+  onAbandon,
+  rulebookControl,
   onPick,
   onAction,
 }: DraftSessionViewProps): React.JSX.Element {
@@ -125,7 +129,7 @@ export default function DraftSessionView({
         <div className="draft-status-main">
           <div className="draft-status-rulebook">
             <span>Draft Rulebook</span>
-            <strong id="draft-heading">{rulebook.identifier.name}</strong>
+            {rulebookControl ?? <strong id="draft-heading">{rulebook.identifier.name}</strong>}
           </div>
           <div className="draft-status-item">
             <span>Round</span>
@@ -148,14 +152,25 @@ export default function DraftSessionView({
             <strong>{status.capacity.label}</strong>
           </div>
         </div>
-        <button
-          className="randomize-button draft-status-new"
-          type="button"
-          disabled={!canStart}
-          onClick={requestStart}
-        >
-          {state ? 'New Draft' : 'Start Draft'}
-        </button>
+        <div className="draft-status-actions">
+          {state && onAbandon && (
+            <button
+              className="danger-button draft-status-abandon"
+              type="button"
+              onClick={onAbandon}
+            >
+              Abandon Draft
+            </button>
+          )}
+          <button
+            className="randomize-button draft-status-new"
+            type="button"
+            disabled={!canStart}
+            onClick={requestStart}
+          >
+            {state ? 'New Draft' : 'Start Draft'}
+          </button>
+        </div>
       </div>
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">

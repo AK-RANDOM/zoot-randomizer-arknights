@@ -178,7 +178,7 @@
 }
 
 .bound-grid--classes {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .bound-grid--aggregate {
@@ -227,6 +227,47 @@
   width: 22px;
   height: 22px;
   filter: brightness(0) saturate(100%);
+}
+
+.bound-rarity-stars {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  white-space: nowrap;
+}
+
+.bound-grid--classes .bound-control {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 5px;
+  min-height: 72px;
+  padding: 7px 5px;
+}
+
+.bound-grid--classes .bound-label {
+  display: grid;
+  width: 100%;
+  place-items: center;
+  overflow: visible;
+}
+
+.bound-grid--classes .bound-class-icon {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.bound-grid--classes .bound-class-icon img {
+  width: 28px;
+  height: 28px;
+}
+
+.bound-grid--classes .bound-pill {
+  min-width: 68px;
+  width: 100%;
+  max-width: 88px;
 }
 
 .bound-pill {
@@ -754,9 +795,12 @@
   }
 
   .bound-grid,
-  .bound-grid--classes,
   .bound-grid--aggregate {
     grid-template-columns: 1fr;
+  }
+
+  .bound-grid--classes {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .bound-popover {

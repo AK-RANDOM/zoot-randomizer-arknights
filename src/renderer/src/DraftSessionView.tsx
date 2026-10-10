@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   evaluateDraftActionPreflight,
   type DraftAction,
@@ -38,6 +38,8 @@ export interface DraftSessionViewProps {
   onStart: () => void
   onPick: (operatorId: string) => void
   onAction?: (action: DraftAction) => void
+  onAbandon?: () => void
+  rulebookControl?: ReactNode
 }
 export default function DraftSessionView({
   state,
@@ -55,6 +57,8 @@ export default function DraftSessionView({
   onStart,
   onPick,
   onAction,
+  onAbandon,
+  rulebookControl,
 }: DraftSessionViewProps): React.JSX.Element {
   const operatorById = useMemo(
     () => new Map(operators.map((operator) => [operator.id, operator] as const)),
@@ -65,6 +69,7 @@ export default function DraftSessionView({
     validationErrors.length === 0 &&
     operators.length >= rulebook.generalRules.offerSize
   const status = resolveDraftStatusPresentation(state, targetSize)
+  const draftOngoing = state?.status === 'active'
   const confirmationsEnabled = useDraftActionConfirmationPreference()
   const [sessionConfirmationsSuppressed, setSessionConfirmationsSuppressed] = useState(false)
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingDraftConfirmation | null>(
@@ -141,8 +146,8 @@ export default function DraftSessionView({
       <div className="draft-status-shell">
         <div className="draft-status-main">
           <div className="draft-status-rulebook">
-            <span>Draft Rulebook</span>
-            <strong id="draft-heading">{rulebook.identifier.name}</strong>
+            <span id="draft-heading">Draft Rulebook</span>
+            {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
           </div>
           <div className="draft-status-item">
             <span>Round</span>
@@ -166,12 +171,12 @@ export default function DraftSessionView({
           </div>
         </div>
         <button
-          className="randomize-button draft-status-new"
+          className={draftOngoing ? 'danger-button draft-status-abandon' : 'randomize-button draft-status-new'}
           type="button"
-          disabled={!canStart}
-          onClick={requestStart}
+          disabled={draftOngoing ? false : !canStart}
+          onClick={draftOngoing ? onAbandon : requestStart}
         >
-          {state ? 'New Draft' : 'Start Draft'}
+          {draftOngoing ? 'Abandon' : 'Start Draft'}
         </button>
       </div>
       <div className="draft-status-context" aria-label="Draft Rulebook context">

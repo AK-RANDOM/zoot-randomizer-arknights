@@ -551,10 +551,13 @@ export default function StandardSquadFeature({
             <fieldset className="constraint-group squad-bound-group">
               <legend>Rarity bounds</legend>
               <div className="bound-grid">{[...operatorRarities].reverse().map((rarity) => <BoundPill key={rarity} label={<span className="bound-rarity-stars" style={{ color: `var(--rarity-${rarity})` }}>{'★'.repeat(rarity)}</span>} labelText={`${rarity}★`} value={constraints.rarity[rarity]} disabled={squad.length > 0} onSave={(next) => saveRarityBound(rarity, next)} />)}</div>
-              <div className="aggregate-bound-heading"><span>Aggregate rarity groups</span><small>Counts overlap exact rarity bounds and are solved together.</small></div>
-              <div className="bound-grid bound-grid--aggregate">{rarityGroupKeys.map((group) => <BoundPill key={group} label={rarityGroupDefinitions[group].label} value={constraints.rarityGroups[group]} disabled={squad.length > 0} onSave={(next) => saveRarityGroupBound(group, next)} />)}</div>
             </fieldset>
             <fieldset className="constraint-group squad-bound-group">
+              <legend>Aggregate rarity group</legend>
+              <p className="aggregate-bound-note">Counts overlap exact rarity bounds and are solved together.</p>
+              <div className="bound-grid bound-grid--aggregate">{rarityGroupKeys.map((group) => <BoundPill key={group} label={rarityGroupDefinitions[group].label} value={constraints.rarityGroups[group]} disabled={squad.length > 0} onSave={(next) => saveRarityGroupBound(group, next)} />)}</div>
+            </fieldset>
+            <fieldset className="constraint-group squad-bound-group squad-bound-group--classes">
               <legend>Class bounds</legend>
               <div className="bound-grid bound-grid--classes">{operatorClasses.map((operatorClass) => <BoundPill key={operatorClass} label={<ClassIcon operatorClass={operatorClass} className="bound-class-icon" />} labelText={dataset?.classLabels?.[operatorClass] ?? operatorClass} value={constraints.class[operatorClass]} disabled={squad.length > 0} onSave={(next) => saveClassBound(operatorClass, next)} />)}</div>
             </fieldset>

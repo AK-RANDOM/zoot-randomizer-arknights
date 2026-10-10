@@ -93,7 +93,9 @@ export default function DraftOperatorCard({
               title={presentation.hold.blockReasonLabel ?? undefined}
               onClick={onHold}
             >
-              Hold ({presentation.hold.economy.amount})
+              {presentation.hold.economy.pointDelta === 0
+                ? 'Hold'
+                : `Hold (${presentation.hold.economy.amount})`}
             </button>
           )}
         </div>

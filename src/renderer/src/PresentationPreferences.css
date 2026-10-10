@@ -95,9 +95,6 @@
   right: 10px;
   bottom: 10px;
   left: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
   gap: 3px;
 }
 
@@ -114,7 +111,6 @@
 }
 
 .operator-card--portrait .operator-card__rarity {
-  order: -1;
   color: var(--rarity-color);
   font-size: 0.66rem;
   letter-spacing: -0.055em;

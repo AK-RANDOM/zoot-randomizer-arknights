@@ -1,5 +1,7 @@
 :root {
-  --app-accent: #f5ad2f;
+  --app-accent: #4099C2;
+  --app-accent-hover: #65b5d8;
+  --app-accent-light: #78c4e5;
   --rarity-6: #f28c28;
   --rarity-5: #f0d547;
   --rarity-4: #a66ddd;
@@ -124,7 +126,6 @@
   margin-top: 1rem;
 }
 
-
 /* Canonical Standard slot badge geometry: selected class icon, constraint class icon, and slot number. */
 .squad-grid .slot-class-constraint-indicator { top: 8px; max-height: calc(100% - 16px); }
 .squad-grid .slot-class-constraint-indicator.is-left { left: 8px; }
@@ -133,3 +134,149 @@
 .squad-grid .slot-class-constraint-item .class-icon { width: 30px; height: 30px; }
 .squad-grid .slot-class-constraint-item .class-icon img { width: 23px; height: 23px; }
 .squad-grid .slot-class-constraint-overflow { min-width: 30px; height: 30px; }
+
+/* Global app accent. Keep rarity, economy, validation, and destructive colors independent. */
+body {
+  background:
+    radial-gradient(circle at 92% 0%, rgba(64, 153, 194, 0.12), transparent 30rem),
+    linear-gradient(180deg, #111113, #09090a);
+}
+
+.eyebrow,
+.squad-mode-tabs button.is-active,
+.draft-status-rulebook strong,
+.draft-rulebook-select,
+.tree-toggle:hover,
+.operator-card__interaction-list li strong,
+.squad-size-heading strong,
+.text-button:hover {
+  color: var(--app-accent);
+}
+
+.randomize-button,
+.update-banner button,
+.main-tabs button.is-active,
+.criteria-chip.is-selected,
+.draft-operator-action--pick,
+.draft-candidate__action {
+  border-color: var(--app-accent);
+  background: var(--app-accent);
+}
+
+.randomize-button:hover:not(:disabled),
+.update-banner button:hover:not(:disabled) {
+  background: var(--app-accent-hover);
+}
+
+.field input:focus,
+.field select:focus,
+.compact-number input:focus {
+  border-color: var(--app-accent);
+  box-shadow: 0 0 0 1px rgba(64, 153, 194, 0.25);
+}
+
+.toggle-field input,
+.source-check input,
+.option-toggle input,
+.artwork-download-status progress,
+.draft-confirmation-suppress input,
+.squad-size-slider-row input[type='range'],
+.confirmation-checkbox input {
+  accent-color: var(--app-accent);
+}
+
+.squad-slot > .slot-constraint-badge {
+  background: var(--app-accent);
+}
+
+.slot-config-card.is-constrained {
+  border-color: rgba(64, 153, 194, 0.5);
+  background: linear-gradient(180deg, rgba(64, 153, 194, 0.07), transparent 52%), #111113;
+}
+
+.artwork-choice.is-selected {
+  border-color: var(--app-accent);
+  background: rgba(64, 153, 194, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(64, 153, 194, 0.18);
+}
+
+.artwork-choice.is-selected .artwork-choice__mark {
+  border-color: var(--app-accent);
+}
+
+.draft-hold-panel {
+  border-color: #33464f;
+  background: rgba(64, 153, 194, 0.06);
+}
+
+.draft-operator-action--pick {
+  border-color: rgba(64, 153, 194, 0.9);
+  background: rgba(64, 153, 194, 0.96);
+}
+
+.draft-candidate__action {
+  border-color: rgba(64, 153, 194, 0.7);
+  background: rgba(64, 153, 194, 0.94);
+}
+
+.operator-card__interaction-indicator {
+  border-color: rgba(64, 153, 194, 0.85);
+  background: rgba(64, 153, 194, 0.96);
+}
+
+.bound-pill:hover:not(:disabled),
+.criteria-chip:hover:not(:disabled) {
+  border-color: var(--app-accent);
+}
+
+.quick-select.is-selected {
+  border-color: #327897;
+  color: var(--app-accent-light);
+}
+
+.slot-config-card:hover {
+  border-color: #337d9e;
+}
+
+.slot-constraint-badge {
+  color: #d9f2ff;
+}
+
+.draft-squad-expand {
+  border-color: var(--app-accent);
+  color: #d9f2ff;
+  background:
+    radial-gradient(circle, rgba(64, 153, 194, 0.42) 1.2px, transparent 1.4px) 0 0 / 9px 9px,
+    linear-gradient(180deg, rgba(64, 153, 194, 0.18), rgba(64, 153, 194, 0.08)),
+    #17171a;
+  box-shadow: inset 0 0 0 1px rgba(64, 153, 194, 0.12);
+}
+
+.draft-squad-expand:hover:not(:disabled),
+.draft-squad-expand:focus-visible {
+  border-color: var(--app-accent-light);
+  background:
+    radial-gradient(circle, rgba(120, 196, 229, 0.56) 1.2px, transparent 1.4px) 0 0 / 9px 9px,
+    linear-gradient(180deg, rgba(64, 153, 194, 0.26), rgba(64, 153, 194, 0.12)),
+    #1d1d21;
+  box-shadow:
+    inset 0 0 0 1px rgba(64, 153, 194, 0.2),
+    0 0 0 1px rgba(64, 153, 194, 0.16);
+}
+
+.draft-squad-expand__icon {
+  color: var(--app-accent);
+}
+
+.draft-squad-expand:disabled {
+  color: #6f777c;
+  border-color: #46545b;
+  background:
+    radial-gradient(circle, rgba(82, 105, 116, 0.24) 1.1px, transparent 1.3px) 0 0 / 9px 9px,
+    #121214;
+  box-shadow: none;
+}
+
+.draft-squad-expand:disabled .draft-squad-expand__icon {
+  color: #65747b;
+}

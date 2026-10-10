@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 const featureSource = readFileSync(new URL('./StandardSquadFeature.tsx', import.meta.url), 'utf8')
 const featureStyles = readFileSync(new URL('./StandardSquadFeature.css', import.meta.url), 'utf8')
+const constraintStyles = readFileSync(new URL('./SquadConstraintEditor.css', import.meta.url), 'utf8')
 const boundPillSource = readFileSync(new URL('./BoundPill.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad bounds layout structure', () => {
@@ -21,6 +22,15 @@ describe('Standard Squad bounds layout structure', () => {
   it('does not restore the obsolete nested-rarity first-child override', () => {
     expect(featureStyles).not.toContain('.squad-bounds-layout > .squad-bound-group:first-child')
     expect(featureStyles).toContain('.squad-bound-group--classes {\n  grid-column: 1 / -1;')
+  })
+
+  it('keeps slot constraint class icons frameless so the button owns the only border', () => {
+    expect(constraintStyles).toContain(
+      '.slot-constraint-class-icon-button .class-icon {\n  width: 34px;\n  height: 34px;\n  border: 0;\n  background: transparent;\n  box-shadow: none;'
+    )
+    expect(constraintStyles).not.toContain(
+      '.slot-constraint-class-icon-button.is-open {\n  border-color: rgba(240, 198, 109, 0.88);\n  box-shadow:'
+    )
   })
 
   it('closes the previously active bound popover before opening another', () => {

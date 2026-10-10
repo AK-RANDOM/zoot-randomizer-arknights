@@ -205,7 +205,6 @@ export default function GlobalPoolFeature({
           {dataset && <OperatorFilters dataset={dataset} constraints={constraints} onChange={mutateFilters} afterEra={sourceFilters} />}
 
           {dataset && !validation.valid && validation.errors.length > 0 && <ValidationBox errors={validation.errors} />}
-          {updateCheck?.updateAvailable && <div className="update-box"><span>New operator data is available. Use Update data above to install it.</span></div>}
         </section>
       )}
 

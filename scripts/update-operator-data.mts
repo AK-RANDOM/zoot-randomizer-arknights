@@ -34,7 +34,7 @@ const downloadImages = process.argv.includes('--download-images')
 const downloadImagesOnly = process.argv.includes('--download-images-only')
 const force = process.argv.includes('--force')
 
-const authenticatedFetch: typeof fetch = (input, init = {}) => {
+const authenticatedFetch: typeof fetch = (input, init) => {
   const token = process.env.GITHUB_TOKEN
   const url =
     typeof input === 'string'
@@ -42,7 +42,7 @@ const authenticatedFetch: typeof fetch = (input, init = {}) => {
       : input instanceof URL
         ? input.href
         : input.url
-  const headers = new Headers(init.headers)
+  const headers = new Headers(init?.headers)
   if (token && url.startsWith('https://api.github.com/')) {
     headers.set('Authorization', `Bearer ${token}`)
   }

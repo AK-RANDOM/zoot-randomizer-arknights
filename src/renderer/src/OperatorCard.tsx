@@ -216,6 +216,9 @@ export default function OperatorCard({
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
+        <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
+          {'★'.repeat(operator.rarity)}
+        </span>
         <div
           ref={nameViewportRef}
           className={`operator-card__name-viewport${nameOverflow > 0 ? ' is-overflowing' : ''}`}
@@ -227,9 +230,6 @@ export default function OperatorCard({
             </span>
           </strong>
         </div>
-        <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
-          {'★'.repeat(operator.rarity)}
-        </span>
       </div>
     </article>
   )

@@ -74,6 +74,16 @@ function beginNextRound(
   }
 
   if (
+    configuration.maxRounds !== null &&
+    state.roundNumber >= configuration.maxRounds
+  ) {
+    return completeState(
+      { ...state, completedRounds: state.completedRounds + 1 },
+      'round-limit-reached',
+    )
+  }
+
+  if (
     configuration.capacityRules.enabled &&
     state.draftedOperatorIds.length >=
       maxAttainableDraftCapacity(state, configuration.capacityRules)
@@ -102,6 +112,8 @@ function beginNextRound(
     ...nextBase,
     currentOfferIds: offer.ids,
     pullsSinceSixStar: offer.pullsSinceSixStar,
+    generatedCandidateCount: offer.generatedCandidateCount,
+    actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
     status: 'active',
     completionReason: null,
   }
@@ -126,6 +138,7 @@ export function startDraft(
 
   const base: DraftState = {
     targetSize,
+    offerSize: configuration.offerSize,
     poolKey: createDraftPoolKey(pool, targetSize),
     draftedOperatorIds: [],
     currentOfferIds: [],
@@ -142,6 +155,8 @@ export function startDraft(
     points: economy.enabled ? economy.startingPoints : 0,
     economyRulesEnabled: economy.enabled,
     pullsSinceSixStar: 0,
+    generatedCandidateCount: 0,
+    actualFiveStarGeneratedInFirstTen: false,
     actionUsage: emptyUsage(),
     status: 'active',
     completionReason: null,
@@ -149,7 +164,13 @@ export function startDraft(
 
   const offer = generateDraftOffer(pool, base, options, configuration)
   return offer
-    ? { ...base, currentOfferIds: offer.ids, pullsSinceSixStar: offer.pullsSinceSixStar }
+    ? {
+        ...base,
+        currentOfferIds: offer.ids,
+        pullsSinceSixStar: offer.pullsSinceSixStar,
+        generatedCandidateCount: offer.generatedCandidateCount,
+        actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
+      }
     : completeState(base, 'pool-exhausted')
 }
 
@@ -266,6 +287,8 @@ export function applyDraftAction(
             ...next,
             currentOfferIds: offer.ids,
             pullsSinceSixStar: offer.pullsSinceSixStar,
+            generatedCandidateCount: offer.generatedCandidateCount,
+            actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
           }
         : completeState(next, 'pool-exhausted')
     }

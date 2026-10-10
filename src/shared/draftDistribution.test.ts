@@ -43,6 +43,37 @@ describe('Draft pull distributions', () => {
     expect(pityPull.state.pullsSinceSixStar).toBe(0)
   })
 
+  it('forces an actual 5-star on the tenth Arknights candidate when the guarantee is enabled', () => {
+    const candidates = [operator('mapped-one-star', 1), operator('actual-five-star', 5)]
+    const distribution: DraftPullDistribution = {
+      type: 'arknights',
+      firstTenActualFiveStarGuarantee: true,
+    }
+
+    const first = pullDraftCandidate(
+      candidates,
+      distribution,
+      { pullsSinceSixStar: 0, generatedCandidateCount: 0 },
+      sequence([0, 0]),
+    )
+    expect(first.operator.id).toBe('mapped-one-star')
+    expect(first.state.actualFiveStarGeneratedInFirstTen).toBe(false)
+
+    const tenth = pullDraftCandidate(
+      candidates,
+      distribution,
+      {
+        pullsSinceSixStar: 9,
+        generatedCandidateCount: 9,
+        actualFiveStarGeneratedInFirstTen: false,
+      },
+      () => 0,
+    )
+    expect(tenth.operator.id).toBe('actual-five-star')
+    expect(tenth.state.generatedCandidateCount).toBe(10)
+    expect(tenth.state.actualFiveStarGeneratedInFirstTen).toBe(true)
+  })
+
   it('redistributes custom weight away from empty eligible buckets', () => {
     const distribution: DraftPullDistribution = {
       type: 'custom',
@@ -115,6 +146,40 @@ describe('Draft pull distributions', () => {
     const generated = generateDraftDistributionCandidates(candidates, 3, { type: 'arknights' }, { pullsSinceSixStar: 0 }, () => 0)
     expect(new Set(generated.operators.map(operator => operator.id)).size).toBe(3)
     expect(generated.state.pullsSinceSixStar).toBe(3)
+  })
+
+  it('counts four-card rerolls toward the first-ten guarantee history', () => {
+    const pool = [
+      ...Array.from({ length: 14 }, (_, index) => operator(`four${index}`, 4)),
+      operator('guaranteed-five', 5),
+    ]
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      configuration: {
+        offerSize: 4,
+        pullDistribution: {
+          type: 'arknights',
+          firstTenActualFiveStarGuarantee: true,
+        },
+        actionRules: { reroll: { enabled: true, discardOffer: false } },
+      },
+    }
+    let state = startDraft(pool, 6, options)
+    expect(state.generatedCandidateCount).toBe(4)
+    expect(state.actualFiveStarGeneratedInFirstTen).toBe(false)
+
+    state = applyDraftAction(state, pool, { type: 'reroll' }, options)
+    expect(state.generatedCandidateCount).toBe(8)
+
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      options,
+    )
+    expect(state.generatedCandidateCount).toBe(12)
+    expect(state.currentOfferIds).toContain('guaranteed-five')
+    expect(state.actualFiveStarGeneratedInFirstTen).toBe(true)
   })
 
   it('counts rerolled displayed candidates as pulls', () => {

@@ -16,11 +16,17 @@ export interface DraftProbabilityBucket {
 
 export type DraftPullDistribution =
   | { type: 'equal' }
-  | { type: 'arknights'; rateUps?: Record<DraftProbabilityBucketId, DraftRateUpRule> }
+  | {
+      type: 'arknights'
+      rateUps?: Record<DraftProbabilityBucketId, DraftRateUpRule>
+      firstTenActualFiveStarGuarantee?: boolean
+    }
   | { type: 'custom'; buckets: DraftProbabilityBucket[] }
 
 export interface DraftPullState {
   pullsSinceSixStar: number
+  generatedCandidateCount?: number
+  actualFiveStarGeneratedInFirstTen?: boolean
 }
 
 export interface DraftPullResult {
@@ -162,8 +168,23 @@ export function pullDraftCandidate(
     throw new Error('Cannot pull a Draft candidate from an empty pool.')
   }
 
+  const generatedCandidateCount = state.generatedCandidateCount ?? 0
+  const actualFiveStarGeneratedInFirstTen =
+    state.actualFiveStarGeneratedInFirstTen ?? false
+  const forceActualFiveStar =
+    distribution.type === 'arknights' &&
+    distribution.firstTenActualFiveStarGuarantee === true &&
+    generatedCandidateCount === 9 &&
+    !actualFiveStarGeneratedInFirstTen
+
+  const guaranteedActualFiveStars = forceActualFiveStar
+    ? candidates.filter((candidate) => candidate.rarity === 5)
+    : []
+
   let operator: Operator
-  if (distribution.type === 'equal') {
+  if (guaranteedActualFiveStars.length > 0 && distribution.type === 'arknights') {
+    operator = chooseWithinBucket(guaranteedActualFiveStars, distribution.rateUps?.['5'], random)
+  } else if (distribution.type === 'equal') {
     operator = candidates[randomIndex(random, candidates.length)]
   } else {
     const buckets =
@@ -195,9 +216,16 @@ export function pullDraftCandidate(
     operator = chooseWithinBucket(selected.candidates, selected.rateUp, random)
   }
 
+  const nextGeneratedCandidateCount = generatedCandidateCount + 1
   return {
     operator,
-    state: { pullsSinceSixStar: operator.rarity === 6 ? 0 : state.pullsSinceSixStar + 1 },
+    state: {
+      pullsSinceSixStar: operator.rarity === 6 ? 0 : state.pullsSinceSixStar + 1,
+      generatedCandidateCount: nextGeneratedCandidateCount,
+      actualFiveStarGeneratedInFirstTen:
+        actualFiveStarGeneratedInFirstTen ||
+        (generatedCandidateCount < 10 && operator.rarity === 5),
+    },
   }
 }
 

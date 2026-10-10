@@ -7,7 +7,6 @@ import type {
   DraftState,
   ResolvedDraftConfiguration,
 } from './types'
-import { DRAFT_OFFER_SIZE } from './types'
 
 function randomOffset(random: DraftRandomSource, range: number): number {
   const value = random()
@@ -40,11 +39,10 @@ export function generateEqualOpportunityCandidates(
 function validateGeneratedOffer(
   offer: readonly Operator[],
   candidates: readonly Operator[],
+  offerSize: number,
 ): void {
-  if (offer.length !== DRAFT_OFFER_SIZE) {
-    throw new Error(
-      `Draft candidate generator must return exactly ${DRAFT_OFFER_SIZE} operators.`,
-    )
+  if (offer.length !== offerSize) {
+    throw new Error(`Draft candidate generator must return exactly ${offerSize} operators.`)
   }
   const eligibleIds = new Set(candidates.map((operator) => operator.id))
   const seen = new Set<string>()
@@ -59,44 +57,63 @@ function validateGeneratedOffer(
   }
 }
 
+export interface GeneratedDraftOffer {
+  ids: string[]
+  pullsSinceSixStar: number
+  generatedCandidateCount: number
+  actualFiveStarGeneratedInFirstTen: boolean
+}
+
 export function generateDraftOffer(
   pool: readonly Operator[],
   state: DraftState,
   options: DraftEngineOptions,
   configuration: ResolvedDraftConfiguration,
-): { ids: string[]; pullsSinceSixStar: number } | null {
+): GeneratedDraftOffer | null {
   const candidates = availableDraftOperators(pool, state)
-  if (candidates.length < DRAFT_OFFER_SIZE) return null
+  const offerSize = configuration.offerSize
+  if (candidates.length < offerSize) return null
 
   const random = options.random ?? Math.random
   if (options.candidateGenerator) {
-    const offer = options.candidateGenerator(candidates, DRAFT_OFFER_SIZE, random)
-    validateGeneratedOffer(offer, candidates)
+    const offer = options.candidateGenerator(candidates, offerSize, random)
+    validateGeneratedOffer(offer, candidates, offerSize)
     return {
       ids: offer.map((operator) => operator.id),
       pullsSinceSixStar: state.pullsSinceSixStar,
+      generatedCandidateCount: state.generatedCandidateCount,
+      actualFiveStarGeneratedInFirstTen: state.actualFiveStarGeneratedInFirstTen,
     }
   }
 
   if (configuration.pullDistribution.type === 'equal') {
-    const offer = generateEqualOpportunityCandidates(candidates, DRAFT_OFFER_SIZE, random)
-    validateGeneratedOffer(offer, candidates)
+    const offer = generateEqualOpportunityCandidates(candidates, offerSize, random)
+    validateGeneratedOffer(offer, candidates, offerSize)
     return {
       ids: offer.map((operator) => operator.id),
       pullsSinceSixStar: state.pullsSinceSixStar,
+      generatedCandidateCount: state.generatedCandidateCount,
+      actualFiveStarGeneratedInFirstTen: state.actualFiveStarGeneratedInFirstTen,
     }
   }
 
   const generated = generateDraftDistributionCandidates(
     candidates,
-    DRAFT_OFFER_SIZE,
+    offerSize,
     configuration.pullDistribution,
-    { pullsSinceSixStar: state.pullsSinceSixStar },
+    {
+      pullsSinceSixStar: state.pullsSinceSixStar,
+      generatedCandidateCount: state.generatedCandidateCount,
+      actualFiveStarGeneratedInFirstTen: state.actualFiveStarGeneratedInFirstTen,
+    },
     random,
   )
-  validateGeneratedOffer(generated.operators, candidates)
+  validateGeneratedOffer(generated.operators, candidates, offerSize)
   return {
     ids: generated.operators.map((operator) => operator.id),
     pullsSinceSixStar: generated.state.pullsSinceSixStar,
+    generatedCandidateCount: generated.state.generatedCandidateCount ?? state.generatedCandidateCount,
+    actualFiveStarGeneratedInFirstTen:
+      generated.state.actualFiveStarGeneratedInFirstTen ?? state.actualFiveStarGeneratedInFirstTen,
   }
 }

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { STANDARD_DRAFT_CONFIGURATION } from './draft'
 import {
+  ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
+  BUILT_IN_DRAFT_RULEBOOKS,
+  DEV_LAX_DRAFT_RULEBOOK,
+  DEV_STRICT_DRAFT_RULEBOOK,
   DRAFT_RULEBOOK_SCHEMA_VERSION,
   STANDARD_DRAFT_RULEBOOK,
   deserializeDraftRulebook,
@@ -16,7 +20,7 @@ function cloneStandard(): DraftRulebook {
 
 describe('Draft Rulebook foundation', () => {
   it('represents Standard Draft as a portable built-in Rulebook', () => {
-    expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(2)
+    expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(3)
     expect(validateDraftRulebook(STANDARD_DRAFT_RULEBOOK)).toEqual({ valid: true, errors: [] })
 
     const resolved = resolveDraftRulebook(STANDARD_DRAFT_RULEBOOK)
@@ -26,9 +30,67 @@ describe('Draft Rulebook foundation', () => {
     expect(resolved.interactions).toEqual([])
   })
 
+  it('ships valid #58 balance presets with their locked M2 runtime values', () => {
+    for (const rulebook of BUILT_IN_DRAFT_RULEBOOKS) {
+      expect(validateDraftRulebook(rulebook)).toEqual({ valid: true, errors: [] })
+    }
+
+    const strict = resolveDraftRulebook(DEV_STRICT_DRAFT_RULEBOOK).configuration
+    expect(strict).toMatchObject({
+      offerSize: 3,
+      maxRounds: 15,
+      capacityRules: { enabled: true, startingActiveSlots: 7, overflowSlots: 1 },
+      economyRules: { enabled: true, startingPoints: 45, forfeitRebate: 4 },
+      actionRules: { reroll: { perDraftLimit: 3, cooldownRounds: 3 } },
+    })
+    expect(strict.economyRules.rarityCosts[5]).toBe(7)
+    expect(strict.economyRules.holdUpkeep).toEqual({
+      mode: 'schedule',
+      costs: [2, 2, 3, 5, 6],
+      repeatLast: true,
+    })
+    expect(strict.pullDistribution).toMatchObject({
+      type: 'custom',
+      buckets: [
+        { id: '3', weight: 20, rarities: [1, 2, 3] },
+        { id: '4', weight: 45, rarities: [4] },
+        { id: '5', weight: 25, rarities: [5] },
+        { id: '6', weight: 10, rarities: [6] },
+      ],
+    })
+
+    const arknights = resolveDraftRulebook(ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK).configuration
+    expect(arknights).toMatchObject({
+      offerSize: 4,
+      maxRounds: 15,
+      capacityRules: { enabled: true, startingActiveSlots: 8, overflowSlots: 1 },
+      economyRules: { enabled: true, startingPoints: 55, forfeitRebate: 4 },
+      actionRules: { reroll: { perDraftLimit: 2, cooldownRounds: 3 } },
+      pullDistribution: { type: 'arknights', firstTenActualFiveStarGuarantee: true },
+    })
+
+    const lax = resolveDraftRulebook(DEV_LAX_DRAFT_RULEBOOK).configuration
+    expect(lax).toMatchObject({
+      offerSize: 4,
+      maxRounds: 15,
+      capacityRules: { enabled: true, startingActiveSlots: 8, overflowSlots: 1 },
+      economyRules: { enabled: true, startingPoints: 70, forfeitRebate: 4 },
+      actionRules: { reroll: { perDraftLimit: 4, cooldownRounds: 2 } },
+    })
+    expect(lax.pullDistribution).toMatchObject({
+      type: 'custom',
+      buckets: [
+        { id: '3', weight: 15, rarities: [1, 2, 3] },
+        { id: '4', weight: 40, rarities: [4] },
+        { id: '5', weight: 30, rarities: [5] },
+        { id: '6', weight: 15, rarities: [6] },
+      ],
+    })
+  })
+
   it('round-trips through the human-readable JSON interchange format', () => {
     const serialized = serializeDraftRulebook(STANDARD_DRAFT_RULEBOOK)
-    expect(serialized).toContain('"schemaVersion": 2')
+    expect(serialized).toContain('"schemaVersion": 3')
     expect(serialized).toContain('"Standard Draft"')
     expect(deserializeDraftRulebook(serialized)).toEqual(STANDARD_DRAFT_RULEBOOK)
   })
@@ -37,7 +99,7 @@ describe('Draft Rulebook foundation', () => {
     const rulebook = cloneStandard()
     rulebook.identifier.revision = '2026.10-balance-2'
 
-    expect(rulebook.schemaVersion).toBe(2)
+    expect(rulebook.schemaVersion).toBe(3)
     expect(validateDraftRulebook(rulebook).valid).toBe(true)
     expect(resolveDraftRulebook(rulebook).revision).toBe('2026.10-balance-2')
   })
@@ -73,7 +135,7 @@ describe('Draft Rulebook foundation', () => {
     expect(resolved.configuration.pullDistribution).toEqual({ type: 'arknights' })
   })
 
-  it('resolves static and escalating Hold upkeep as portable economy rules', () => {
+  it('resolves static, escalating, and scheduled Hold upkeep as portable economy rules', () => {
     const rulebook = cloneStandard()
     rulebook.generalRules.economyRules = {
       enabled: true,
@@ -94,6 +156,18 @@ describe('Draft Rulebook foundation', () => {
       mode: 'escalating',
       baseCost: 2,
       escalation: 1,
+    })
+
+    rulebook.generalRules.economyRules.holdUpkeep = {
+      mode: 'schedule',
+      costs: [2, 2, 3, 5, 6],
+      repeatLast: true,
+    }
+    expect(validateDraftRulebook(rulebook).valid).toBe(true)
+    expect(resolveDraftRulebook(rulebook).configuration.economyRules.holdUpkeep).toEqual({
+      mode: 'schedule',
+      costs: [2, 2, 3, 5, 6],
+      repeatLast: true,
     })
   })
 
@@ -125,12 +199,17 @@ describe('Draft Rulebook foundation', () => {
 
   it('rejects unsupported schema/features and unknown executable-looking fields', () => {
     const wrongSchema = cloneStandard() as unknown as { schemaVersion: number } & Record<string, unknown>
-    wrongSchema.schemaVersion = 3
+    wrongSchema.schemaVersion = 4
     expect(validateDraftRulebook(wrongSchema).valid).toBe(false)
 
-    const unsupportedOffer = cloneStandard()
-    unsupportedOffer.generalRules.offerSize = 4
-    expect(validateDraftRulebook(unsupportedOffer).errors.join(' ')).toContain('not supported')
+    const variableOffer = cloneStandard()
+    variableOffer.generalRules.offerSize = 4
+    variableOffer.generalRules.maxRounds = 15
+    expect(validateDraftRulebook(variableOffer)).toEqual({ valid: true, errors: [] })
+    expect(resolveDraftRulebook(variableOffer).configuration).toMatchObject({
+      offerSize: 4,
+      maxRounds: 15,
+    })
 
     const withScript = cloneStandard() as DraftRulebook & { script?: string }
     withScript.script = 'doSomething()'

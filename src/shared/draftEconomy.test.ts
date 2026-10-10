@@ -168,6 +168,21 @@ describe('Draft point economy', () => {
     expect(getDraftHoldUpkeepCost(state, priced)).toBe(6)
   })
 
+  it('uses an exact scheduled Hold upkeep curve and repeats its final value', () => {
+    const priced: DraftEngineOptions = {
+      economyRules: {
+        enabled: true,
+        holdUpkeep: { mode: 'schedule', costs: [2, 2, 3, 5, 6], repeatLast: true },
+      },
+    }
+    const base = startDraft(pool, 6, { random: () => 0 })
+    const costs = [0, 1, 2, 3, 4, 5, 8].map((holdUpkeepCharges) =>
+      getDraftHoldUpkeepCost({ ...base, heldOperatorId: 'one', holdUpkeepCharges }, priced),
+    )
+
+    expect(costs).toEqual([2, 2, 3, 5, 6, 6, 6])
+  })
+
   it('blocks a round-ending action that cannot fund due Hold upkeep but allows release', () => {
     const priced: DraftEngineOptions = {
       random: () => 0,

@@ -143,7 +143,10 @@ export default function DraftRulebookDistributionEditor({
     const next = { ...(distribution.rateUps ?? {}) }
     if (rateUp) next[bucketId] = rateUp
     else delete next[bucketId]
-    onChange({ type: 'arknights', rateUps: Object.keys(next).length > 0 ? next : undefined })
+    onChange({
+      ...distribution,
+      rateUps: Object.keys(next).length > 0 ? next : undefined,
+    })
   }
 
   const updateBucket = (
@@ -218,6 +221,20 @@ export default function DraftRulebookDistributionEditor({
             Fixed 40 / 50 / 8 / 2 buckets with Arknights-style 6★ pity. Each generated candidate
             advances pity, including rerolls.
           </p>
+          <label className="rulebook-toggle">
+            <input
+              type="checkbox"
+              disabled={disabled}
+              checked={distribution.firstTenActualFiveStarGuarantee === true}
+              onChange={(event) =>
+                onChange({
+                  ...distribution,
+                  firstTenActualFiveStarGuarantee: event.target.checked,
+                })
+              }
+            />
+            <span>Guarantee at least one actual 5★ among the first 10 generated candidates</span>
+          </label>
           {Object.entries(ARKNIGHTS_BUCKET_RATES).map(([bucketId, rate]) => {
             const options = operatorOptions(
               dataset,

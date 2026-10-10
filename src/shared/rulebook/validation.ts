@@ -1,8 +1,4 @@
-import {
-  DRAFT_OFFER_SIZE,
-  resolveDraftConfiguration,
-  validateDraftConfiguration,
-} from '../draft'
+import { resolveDraftConfiguration, validateDraftConfiguration } from '../draft'
 import { operatorRarities, type OperatorRarity } from '../operator'
 import {
   DRAFT_RULEBOOK_SCHEMA_VERSION,
@@ -159,7 +155,13 @@ function validateDistribution(value: unknown, errors: string[]): void {
     return
   }
   if (value.type === 'arknights') {
-    checkKeys(value, ['type', 'rateUps'], path, errors)
+    checkKeys(value, ['type', 'rateUps', 'firstTenActualFiveStarGuarantee'], path, errors)
+    if (
+      value.firstTenActualFiveStarGuarantee !== undefined &&
+      typeof value.firstTenActualFiveStarGuarantee !== 'boolean'
+    ) {
+      errors.push(`${path}.firstTenActualFiveStarGuarantee must be boolean.`)
+    }
     if (value.rateUps !== undefined) {
       if (!isRecord(value.rateUps)) errors.push(`${path}.rateUps must be an object.`)
       else for (const [bucketId, rateUp] of Object.entries(value.rateUps)) {
@@ -242,7 +244,23 @@ function validateHoldUpkeep(value: unknown, path: string, errors: string[]): voi
     }
     return
   }
-  errors.push(`${path}.mode must be none, static, or escalating.`)
+  if (value.mode === 'schedule') {
+    checkKeys(value, ['mode', 'costs', 'repeatLast'], path, errors)
+    if (!Array.isArray(value.costs) || value.costs.length === 0) {
+      errors.push(`${path}.costs must be a non-empty array.`)
+    } else {
+      value.costs.forEach((cost, index) => {
+        if (!finiteNumber(cost) || cost < 0) {
+          errors.push(`${path}.costs[${index}] must be a non-negative finite number.`)
+        }
+      })
+    }
+    if (typeof value.repeatLast !== 'boolean') {
+      errors.push(`${path}.repeatLast must be boolean.`)
+    }
+    return
+  }
+  errors.push(`${path}.mode must be none, static, escalating, or schedule.`)
 }
 
 function validateEconomyRules(value: unknown, errors: string[]): void {
@@ -285,16 +303,19 @@ function validateGeneralRules(value: unknown, errors: string[]): void {
   }
   checkKeys(
     value,
-    ['offerSize', 'actionRules', 'capacityRules', 'economyRules', 'pullDistribution'],
+    ['offerSize', 'maxRounds', 'actionRules', 'capacityRules', 'economyRules', 'pullDistribution'],
     'rulebook.generalRules',
     errors,
   )
   if (!Number.isInteger(value.offerSize) || (value.offerSize as number) < 1) {
     errors.push('rulebook.generalRules.offerSize must be a positive integer.')
-  } else if (value.offerSize !== DRAFT_OFFER_SIZE) {
-    errors.push(
-      `rulebook.generalRules.offerSize ${String(value.offerSize)} is not supported by this app; expected ${DRAFT_OFFER_SIZE}.`,
-    )
+  }
+  if (
+    value.maxRounds !== undefined &&
+    value.maxRounds !== null &&
+    (!Number.isInteger(value.maxRounds) || (value.maxRounds as number) < 1)
+  ) {
+    errors.push('rulebook.generalRules.maxRounds must be null or a positive integer.')
   }
   if (value.actionRules !== undefined) validateActionRules(value.actionRules, errors)
   if (value.capacityRules !== undefined) validateCapacityRules(value.capacityRules, errors)
@@ -428,6 +449,8 @@ export function validateDraftRulebook(value: unknown): DraftRulebookValidationRe
     try {
       validateDraftConfiguration(
         resolveDraftConfiguration({
+          offerSize: rulebook.generalRules.offerSize,
+          maxRounds: rulebook.generalRules.maxRounds,
           actionRules: rulebook.generalRules.actionRules,
           capacityRules: rulebook.generalRules.capacityRules,
           economyRules: {

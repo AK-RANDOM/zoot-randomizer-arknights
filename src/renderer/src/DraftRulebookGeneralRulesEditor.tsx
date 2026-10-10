@@ -72,6 +72,8 @@ export default function DraftRulebookGeneralRulesEditor({
   onChange: (mutate: (draft: DraftRulebook) => void) => void
 }): React.JSX.Element {
   const preview = useMemo(() => resolveDraftConfiguration({
+    offerSize: rulebook.generalRules.offerSize,
+    maxRounds: rulebook.generalRules.maxRounds,
     actionRules: rulebook.generalRules.actionRules,
     capacityRules: rulebook.generalRules.capacityRules,
     economyRules: {
@@ -132,17 +134,49 @@ export default function DraftRulebookGeneralRulesEditor({
         ? current.cost
         : current.mode === 'escalating'
           ? current.baseCost
-          : 0
+          : current.mode === 'schedule'
+            ? (current.costs[0] ?? 0)
+            : 0
       updateEconomy({ holdUpkeep: { mode: 'static', cost } })
+      return
+    }
+    if (mode === 'schedule') {
+      const costs = current.mode === 'schedule'
+        ? current.costs
+        : current.mode === 'static'
+          ? [current.cost]
+          : current.mode === 'escalating'
+            ? [current.baseCost]
+            : [0]
+      updateEconomy({ holdUpkeep: { mode: 'schedule', costs, repeatLast: true } })
       return
     }
     const baseCost = current.mode === 'escalating'
       ? current.baseCost
       : current.mode === 'static'
         ? current.cost
-        : 0
+        : current.mode === 'schedule'
+          ? (current.costs[0] ?? 0)
+          : 0
     const escalation = current.mode === 'escalating' ? current.escalation : 0
     updateEconomy({ holdUpkeep: { mode: 'escalating', baseCost, escalation } })
+  }
+
+  const setScheduledHoldCosts = (value: string): void => {
+    if (economy.holdUpkeep.mode !== 'schedule') return
+    const costs = value
+      .split(',')
+      .map((part) => part.trim())
+      .filter((part) => part.length > 0)
+      .map(Number)
+      .filter((cost) => Number.isFinite(cost) && cost >= 0)
+    updateEconomy({
+      holdUpkeep: {
+        mode: 'schedule',
+        costs,
+        repeatLast: economy.holdUpkeep.repeatLast,
+      },
+    })
   }
 
   const setRerollMode = (mode: RerollMode): void => {
@@ -158,10 +192,36 @@ export default function DraftRulebookGeneralRulesEditor({
     <>
       <fieldset className="constraint-group rulebook-editor-section">
         <legend>General Rules</legend>
-        <div className="rulebook-inline-fields">
+        <div className="rulebook-inline-fields rulebook-inline-fields--three">
           <label className="field">
             <span>Choices per offer</span>
-            <input type="number" value={rulebook.generalRules.offerSize} readOnly />
+            <input
+              type="number"
+              min={1}
+              disabled={disabled}
+              value={rulebook.generalRules.offerSize}
+              onChange={(event) =>
+                onChange((draft) => {
+                  draft.generalRules.offerSize = Math.max(1, Number(event.target.value) || 1)
+                })
+              }
+            />
+          </label>
+          <label className="field">
+            <span>Maximum rounds</span>
+            <input
+              type="number"
+              min={1}
+              placeholder="Unlimited"
+              disabled={disabled}
+              value={rulebook.generalRules.maxRounds ?? ''}
+              onChange={(event) =>
+                onChange((draft) => {
+                  const value = event.target.value.trim()
+                  draft.generalRules.maxRounds = value === '' ? null : Math.max(1, Number(value) || 1)
+                })
+              }
+            />
           </label>
           <label className="field">
             <span>Starting points</span>
@@ -192,6 +252,7 @@ export default function DraftRulebookGeneralRulesEditor({
               <option value="none">None</option>
               <option value="static">Static</option>
               <option value="escalating">Escalating</option>
+              <option value="schedule">Schedule</option>
             </select>
           </label>
           {economy.holdUpkeep.mode === 'static' && (
@@ -217,6 +278,32 @@ export default function DraftRulebookGeneralRulesEditor({
                   baseCost: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.baseCost : 0,
                   escalation: Math.max(0, Number(event.target.value) || 0),
                 } })} />
+              </label>
+            </>
+          )}
+          {economy.holdUpkeep.mode === 'schedule' && (
+            <>
+              <label className="field">
+                <span>Upkeep schedule</span>
+                <input
+                  disabled={disabled}
+                  value={economy.holdUpkeep.costs.join(', ')}
+                  onChange={(event) => setScheduledHoldCosts(event.target.value)}
+                  placeholder="2, 2, 3, 5, 6"
+                />
+              </label>
+              <label className="rulebook-toggle">
+                <input
+                  type="checkbox"
+                  disabled={disabled}
+                  checked={economy.holdUpkeep.repeatLast}
+                  onChange={(event) => updateEconomy({ holdUpkeep: {
+                    mode: 'schedule',
+                    costs: economy.holdUpkeep.mode === 'schedule' ? economy.holdUpkeep.costs : [0],
+                    repeatLast: event.target.checked,
+                  } })}
+                />
+                <span>Repeat final upkeep value</span>
               </label>
             </>
           )}

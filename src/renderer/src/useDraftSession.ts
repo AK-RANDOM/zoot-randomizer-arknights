@@ -36,14 +36,19 @@ export interface DraftSessionController {
   reset: (message?: string) => void
 }
 
-const RESET_MESSAGE =
-  'Draft reset because the squad size, eligible pool, or Draft Rulebook changed.'
+const RESET_MESSAGE = 'Draft reset because the squad size, eligible pool, or Draft Rulebook changed.'
 
-function actionMessage(action: DraftAction, after: DraftState, pool: readonly Operator[]): string {
+function actionMessage(
+  action: DraftAction,
+  after: DraftState,
+  pool: readonly Operator[],
+): string {
   if (after.status === 'complete') return draftCompletionMessage(after)
   switch (action.type) {
-    case 'pick':
-      return ''
+    case 'pick': {
+      const operator = pool.find((candidate) => candidate.id === action.operatorId)
+      return `${operator?.name ?? 'Operator'} drafted. ${after.draftedOperatorIds.length} / ${after.targetSize} selected.`
+    }
     case 'hold': {
       const operator = pool.find((candidate) => candidate.id === action.operatorId)
       return `${operator?.name ?? 'Operator'} moved to Hold. Round ${after.roundNumber} is ready.`
@@ -84,15 +89,12 @@ export default function useDraftSession({
     [poolKey, resolvedConfiguration, sessionKey],
   )
 
-  const reset = useCallback(
-    (message = RESET_MESSAGE): void => {
-      setState(null)
-      setActiveIdentity(null)
-      onError(null)
-      onMessage(message)
-    },
-    [onError, onMessage],
-  )
+  const reset = useCallback((message = RESET_MESSAGE): void => {
+    setState(null)
+    setActiveIdentity(null)
+    onError(null)
+    onMessage(message)
+  }, [onError, onMessage])
 
   useEffect(() => {
     if (!state || activeIdentity === identity) return
@@ -112,38 +114,36 @@ export default function useDraftSession({
       const next = startDraft(pool, targetSize, engineOptions)
       setState(next)
       setActiveIdentity(identity)
-      onMessage(next.status === 'complete' ? draftCompletionMessage(next) : '')
+      onMessage(
+        next.status === 'complete'
+          ? draftCompletionMessage(next)
+          : `Draft started. Pick 1 of ${next.offerSize} for a target roster of ${next.targetSize}.`,
+      )
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : String(reason))
     }
   }, [engineOptions, identity, onError, onMessage, pool, ready, targetSize])
 
-  const act = useCallback(
-    (action: DraftAction): void => {
-      if (!state) return
-      if (activeIdentity !== identity || state.poolKey !== poolKey) {
-        reset()
-        return
-      }
+  const act = useCallback((action: DraftAction): void => {
+    if (!state) return
+    if (activeIdentity !== identity || state.poolKey !== poolKey) {
+      reset()
+      return
+    }
 
-      onError(null)
-      try {
-        const next = applyDraftAction(state, pool, action, engineOptions)
-        setState(next)
-        onMessage(actionMessage(action, next, pool))
-      } catch (reason) {
-        onError(reason instanceof Error ? reason.message : String(reason))
-      }
-    },
-    [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state],
-  )
+    onError(null)
+    try {
+      const next = applyDraftAction(state, pool, action, engineOptions)
+      setState(next)
+      onMessage(actionMessage(action, next, pool))
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : String(reason))
+    }
+  }, [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state])
 
-  const pick = useCallback(
-    (operatorId: string): void => {
-      act({ type: 'pick', operatorId })
-    },
-    [act],
-  )
+  const pick = useCallback((operatorId: string): void => {
+    act({ type: 'pick', operatorId })
+  }, [act])
 
   return {
     state,

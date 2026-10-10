@@ -5,6 +5,7 @@ import GlobalPoolFeature from './GlobalPoolFeature'
 import OptionsPanel from './OptionsPanel'
 import StandardSquadFeature from './StandardSquadFeature'
 import useOperatorDataset from './useOperatorDataset'
+import { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
 import { createDefaultConstraints, type RandomizerConstraints } from '../../shared/constraints'
 import type { GameLocale, Operator, ReleaseServer } from '../../shared/operator'
 import {
@@ -43,6 +44,7 @@ export default function App(): React.JSX.Element {
   const [squadMode, setSquadMode] = useState<SquadMode>('standard')
   const [setupMode, setSetupMode] = useState<SetupMode>('global-pool')
   const [poolRevision, setPoolRevision] = useState(0)
+  const [draftActive, setDraftActive] = useState(false)
 
   useEffect(() => { saveOperatorPreferences(operatorPreferences) }, [operatorPreferences])
 
@@ -85,6 +87,24 @@ export default function App(): React.JSX.Element {
   const setGameLocale = (gameLocale: GameLocale): void => setOperatorPreferences((current) => ({ ...current, gameLocale }))
   const setPoolPresentation = (poolPresentation: PoolPresentationMode): void => setOperatorPreferences((current) => ({ ...current, poolPresentation }))
 
+  const confirmDraftExit = (): boolean => {
+    if (!draftActive) return true
+    if (!window.confirm('A Draft round is currently in progress. Leaving this page will abandon the Draft. Continue?')) return false
+    window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
+    setDraftActive(false)
+    return true
+  }
+  const selectMainTab = (tab: AppTab): void => {
+    if (tab === activeTab) return
+    if (activeTab === 'squads' && squadMode === 'draft' && !confirmDraftExit()) return
+    setActiveTab(tab)
+  }
+  const selectSquadMode = (mode: SquadMode): void => {
+    if (mode === squadMode) return
+    if (squadMode === 'draft' && !confirmDraftExit()) return
+    setSquadMode(mode)
+  }
+
   return (
     <main className="app-shell">
       <header className="hero">
@@ -98,14 +118,14 @@ export default function App(): React.JSX.Element {
 
       <nav className="main-tabs" aria-label="Randomizer configuration">
         {([['squads', 'Get Squad'], ['setup', 'Setup'], ['options', 'Options']] as const).map(([tab, label]) => (
-          <button key={tab} type="button" className={activeTab === tab ? 'is-active' : ''} aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)}>{label}</button>
+          <button key={tab} type="button" className={activeTab === tab ? 'is-active' : ''} aria-selected={activeTab === tab} onClick={() => selectMainTab(tab)}>{label}</button>
         ))}
       </nav>
 
       {activeTab === 'squads' && (
         <nav className="squad-mode-tabs" aria-label="Squad construction mode">
           {([['standard', 'Standard'], ['draft', 'Drafts']] as const).map(([mode, label]) => (
-            <button key={mode} type="button" className={squadMode === mode ? 'is-active' : ''} aria-selected={squadMode === mode} onClick={() => setSquadMode(mode)}>{label}</button>
+            <button key={mode} type="button" className={squadMode === mode ? 'is-active' : ''} aria-selected={squadMode === mode} onClick={() => selectSquadMode(mode)}>{label}</button>
           ))}
         </nav>
       )}
@@ -136,6 +156,7 @@ export default function App(): React.JSX.Element {
           operators={finalOperatorPool}
           targetSize={constraints.squadSize}
           ready={data.dataset !== null}
+          onActiveDraftChange={setDraftActive}
         />
       )}
 

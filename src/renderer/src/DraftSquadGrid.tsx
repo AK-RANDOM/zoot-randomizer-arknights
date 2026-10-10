@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator } from '../../shared/operator'
+import ClassIcon from './ClassIcon'
+import { FactionIcon } from './FilterAssetIcon'
 import {
   resolveDraftActionPresentation,
   resolveDraftSquadPresentation,
@@ -47,6 +49,9 @@ function DraftRosterAvatar({
       title={operator.name}
       aria-label={overflow ? `${operator.name} in Overflow` : operator.name}
     >
+      {operator.faction.main && (
+        <FactionIcon id={operator.faction.main} className="draft-squad-avatar__faction-logo" />
+      )}
       {imageUrl ? (
         <img src={imageUrl} alt="" draggable={false} />
       ) : (
@@ -54,7 +59,10 @@ function DraftRosterAvatar({
           {operator.name.slice(0, 1)}
         </span>
       )}
-      <span className="draft-squad-avatar__name">{operator.name}</span>
+      <span className="draft-squad-avatar__identity">
+        <ClassIcon operatorClass={operator.class} className="draft-squad-avatar__class-icon" />
+        <span className="draft-squad-avatar__name">{operator.name}</span>
+      </span>
     </div>
   )
 }
@@ -117,11 +125,11 @@ export default function DraftSquadGrid({
     <section className="draft-selected-squad" aria-labelledby="draft-selected-squad-heading">
       <div className="draft-roster-heading">
         <div>
-          <strong id="draft-selected-squad-heading">Selected Squad</strong>
+          <strong id="draft-selected-squad-heading">Current Draft</strong>
+          <span className="draft-roster-heading__capacity">
+            {squad.permanentCapacity} permanent / {squad.maximum} max
+          </span>
         </div>
-        <span>
-          {squad.permanentCapacity} permanent / {squad.maximum} max
-        </span>
       </div>
 
       <div

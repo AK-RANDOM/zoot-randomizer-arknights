@@ -1,6 +1,8 @@
 import type { ComponentProps } from 'react'
-import SquadConstraintEditorBase from './SquadConstraintEditorBase'
+import SquadConstraintEditorBase, { resolveSlotClassClick } from './SquadConstraintEditorBase'
 import { SlotConstraintReservationProvider } from './SlotConstraintReservationContext'
+
+export { resolveSlotClassClick }
 
 type SquadConstraintEditorProps = ComponentProps<typeof SquadConstraintEditorBase>
 

@@ -554,7 +554,6 @@ export default function StandardSquadFeature({
             </fieldset>
             <fieldset className="constraint-group squad-bound-group">
               <legend>Aggregate rarity group</legend>
-              <p className="aggregate-bound-note">Counts overlap exact rarity bounds and are solved together.</p>
               <div className="bound-grid bound-grid--aggregate">{rarityGroupKeys.map((group) => <BoundPill key={group} label={rarityGroupDefinitions[group].label} value={constraints.rarityGroups[group]} disabled={squad.length > 0} onSave={(next) => saveRarityGroupBound(group, next)} />)}</div>
             </fieldset>
             <fieldset className="constraint-group squad-bound-group squad-bound-group--classes">

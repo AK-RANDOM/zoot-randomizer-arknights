@@ -13,10 +13,9 @@ describe('Global Pool data update control', () => {
     )
   })
 
-  it('does not render a second install button in the bottom update status', () => {
+  it('does not render a bottom data update status area', () => {
     expect(source.match(/onInstallUpdate\(\)/g)).toHaveLength(1)
-    expect(source).toContain(
-      'New operator data is available. Use Update data above to install it.',
-    )
+    expect(source).not.toContain('className="update-box"')
+    expect(source).not.toContain('New operator data is available.')
   })
 })

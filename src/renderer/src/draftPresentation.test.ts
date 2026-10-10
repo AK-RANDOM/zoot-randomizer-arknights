@@ -113,7 +113,7 @@ describe('Draft renderer presentation seam', () => {
     })
   })
 
-  it('maps Draft capacity into the currently active permanent-slot geometry', () => {
+  it('maps Draft capacity into the fixed Standard 12-slot geometry', () => {
     const options: DraftEngineOptions = {
       random: () => 0,
       capacityRules: {
@@ -130,7 +130,6 @@ describe('Draft renderer presentation seam', () => {
     expect(presentation.maximum).toBe(9)
     expect(presentation.overflowVisible).toBe(true)
     expect(presentation.overflowOperatorId).toBeNull()
-    expect(presentation.slots).toHaveLength(6)
     expect(presentation.slots.map((slot) => slot.state)).toEqual([
       'valid',
       'valid',
@@ -138,6 +137,12 @@ describe('Draft renderer presentation seam', () => {
       'valid',
       'valid',
       'valid',
+      'expandable',
+      'expandable',
+      'expandable',
+      'invalid',
+      'invalid',
+      'invalid',
     ])
   })
 

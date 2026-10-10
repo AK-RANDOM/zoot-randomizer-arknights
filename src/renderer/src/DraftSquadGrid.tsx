@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator } from '../../shared/operator'
-import ClassIcon from './ClassIcon'
 import {
   resolveDraftActionPresentation,
   resolveDraftSquadPresentation,
@@ -55,13 +54,7 @@ function DraftRosterAvatar({
           {operator.name.slice(0, 1)}
         </span>
       )}
-      <span className="draft-squad-avatar__identity">
-        <ClassIcon operatorClass={operator.class} />
-        <strong>{operator.name}</strong>
-      </span>
-      <span className="draft-squad-avatar__rarity" aria-label={`${operator.rarity} star`}>
-        {'★'.repeat(operator.rarity)}
-      </span>
+      <span className="draft-squad-avatar__name">{operator.name}</span>
     </div>
   )
 }
@@ -134,15 +127,7 @@ export default function DraftSquadGrid({
       <div
         className={`draft-squad-layout${showContextualColumn ? ' draft-squad-layout--with-capacity' : ''}`}
       >
-        <div
-          className="draft-squad-grid"
-          aria-label="Selected squad slots"
-          style={
-            {
-              '--draft-squad-columns': Math.max(1, Math.min(6, Math.ceil(squad.slots.length / 2))),
-            } as CSSProperties
-          }
-        >
+        <div className="draft-squad-grid" aria-label="Selected squad slots">
           {squad.slots.map((slot) => {
             const operator = slot.operatorId ? (operatorById.get(slot.operatorId) ?? null) : null
             return (

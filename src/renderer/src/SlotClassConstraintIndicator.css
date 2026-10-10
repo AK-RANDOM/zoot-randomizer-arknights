@@ -1,7 +1,7 @@
 .slot-class-constraint-indicator {
   position: absolute;
   z-index: 8;
-  top: 7px;
+  top: 8px;
   display: flex;
   width: max-content;
   max-height: calc(100% - 14px);
@@ -10,23 +10,23 @@
   gap: 4px;
   pointer-events: none;
 }
-.slot-class-constraint-indicator.is-left { left: 7px; }
-.slot-class-constraint-indicator.is-right { right: 7px; }
+.slot-class-constraint-indicator.is-left { left: 8px; }
+.slot-class-constraint-indicator.is-right { right: 8px; }
 .slot-class-constraint-item {
   position: relative;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   place-items: center;
   flex: 0 0 auto;
 }
 .slot-class-constraint-item .class-icon {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
 }
 .slot-class-constraint-item .class-icon img {
-  width: 27px;
-  height: 27px;
+  width: 23px;
+  height: 23px;
 }
 .slot-class-constraint-item.is-subfiltered .class-icon {
   border-color: #c49138;

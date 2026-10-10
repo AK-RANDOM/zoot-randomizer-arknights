@@ -33,7 +33,7 @@ function state(completionReason: DraftState['completionReason']): DraftState {
       'slot-expansion': { total: 0, round: 0, lastUsedRound: null },
     },
     status: 'complete',
-    completionReason',
+    completionReason,
   }
 }
 
@@ -44,7 +44,7 @@ describe('draftCompletionMessage', () => {
     )
     expect(draftCompletionMessage(state('pool-exhausted'))).toBe(
       'Draft ended because fewer than 3 eligible undrafted operators remain. 2 operators drafted.',
-   )
+    )
     expect(draftCompletionMessage(state('capacity-exhausted'))).toBe(
       'Draft ended because no further ownership capacity is available. 2 operators drafted.',
     )

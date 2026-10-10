@@ -107,7 +107,6 @@ export function evaluateDraftActionWithConfiguration(
   return { available: true, reason: null }
 }
 
-/** Canonical pool-aware preflight used by both UI callers and execution. */
 export function evaluateDraftAction(
   state: DraftState,
   pool: readonly Operator[],
@@ -122,10 +121,6 @@ export function evaluateDraftAction(
   )
 }
 
-/**
- * Compatibity wrapper for the pre-M2 call shape. Economy-enabled callers should
- * supply `pool`, or use `evaluateDraftAction` directly.
- */
 export function getDraftActionAvailability(
   state: DraftState,
   action: DraftAction,
@@ -173,7 +168,6 @@ function projectedStateAfterAction(
   const recordedUsage = recordProjectedAction(state, action.type)
   const carriesHoldForward = draftActionCarriesHoldForward(state, action)
   const holdUpkeepCharges = state.holdUpkeepCharges + (carriesHoldForward ? 1 : 0)
-
   const advanceRound = (next: DraftState): DraftState => ({
     ...next,
     roundNumber: state.roundNumber + 1,
@@ -213,26 +207,13 @@ function projectedStateAfterAction(
         actionUsage: recordedUsage,
       })
     case 'release-hold':
-      return {
-        ...state,
-        heldOperatorId: null,
-        holdUpkeepCharges: 0,
-        points,
-        actionUsage: recordedUsage,
-      }
+      return { ...state, heldOperatorId: null, holdUpkeepCharges: 0, points, actionUsage: recordedUsage }
     case 'reroll':
-      return {
-        ...state,
-        currentOfferIds: [],
-        points,
-        actionUsage: recordedUsage,
-      }
+      return { ...state, currentOfferIds: [], points, actionUsage: recordedUsage }
     case 'slot-expansion':
       return {
         ...state,
-        activeCapacity: configuration.capacityRules.enabled
-          ? state.activeCapacity + 1
-          : state.activeCapacity,
+        activeCapacity: configuration.capacityRules.enabled ? state.activeCapacity + 1 : state.activeCapacity,
         capacityExpansionCount: state.capacityExpansionCount + 1,
         points,
         actionUsage: recordedUsage,
@@ -252,56 +233,27 @@ function hasAvailableCandidateAction(
       : state.currentOfferIds
   return candidateIds.some(
     (operatorId) =>
-      evaluateDraftActionWithConfiguration(state, pool, { type, operatorId }, configuration)
-        .available,
+      evaluateDraftActionWithConfiguration(state, pool, { type, operatorId }, configuration).available,
   )
 }
 
-/**
- * Canonical progression check for an active Draft state.
- *
- * Hold, Reroll, and Release are useful only while there is still a route to a
- * future ownership-capable state. Once ownership capacity is full and neither
- * Forfeit nor Expansion is legal, those non-progress actions cannot recover the
- * Draft and must not keep an otherwise dead session alive.
- */
 export function hasDraftValidContinuationWithConfiguration(
   state: DraftState,
   pool: readonly Operator[],
   configuration: ResolvedDraftConfiguration,
 ): boolean {
   if (state.status !== 'active') return false
-
   if (hasAvailableCandidateAction(state, pool, configuration, 'pick')) return true
-  if (
-    evaluateDraftActionWithConfiguration(state, pool, { type: 'forfeit' }, configuration).available
-  ) {
-    return true
-  }
-  if (
-    evaluateDraftActionWithConfiguration(state, pool, { type: 'slot-expansion' }, configuration)
-      .available
-  ) {
-    return true
-  }
+  if (evaluateDraftActionWithConfiguration(state, pool, { type: 'forfeit' }, configuration).available) return true
+  if (evaluateDraftActionWithConfiguration(state, pool, { type: 'slot-expansion' }, configuration).available) return true
 
   const ownershipFull =
     configuration.capacityRules.enabled &&
     state.draftedOperatorIds.length >= currentDraftOwnershipCapacity(state)
   if (ownershipFull) return false
-
   if (hasAvailableCandidateAction(state, pool, configuration, 'hold')) return true
-  if (
-    evaluateDraftActionWithConfiguration(state, pool, { type: 'reroll' }, configuration).available
-  ) {
-    return true
-  }
-  if (
-    evaluateDraftActionWithConfiguration(state, pool, { type: 'release-hold' }, configuration)
-      .available
-  ) {
-    return true
-  }
+  if (evaluateDraftActionWithConfiguration(state, pool, { type: 'reroll' }, configuration).available) return true
+  if (evaluateDraftActionWithConfiguration(state, pool, { type: 'release-hold' }, configuration).available) return true
   return false
 }
 
@@ -324,22 +276,16 @@ function isGuaranteedNoValidMoveAfterAction(
   configuration: ResolvedDraftConfiguration,
 ): boolean {
   const projected = projectedStateAfterAction(state, pool, action, configuration)
-
   if (projected.draftedOperatorIds.length >= projected.targetSize) return false
   if (
     configuration.maxRounds !== null &&
     (action.type === 'pick' || action.type === 'hold' || action.type === 'forfeit') &&
     state.roundNumber >= configuration.maxRounds
-  ) {
-    return false
-  }
+  ) return false
   if (
     configuration.capacityRules.enabled &&
-    projected.draftedOperatorIds.length >=
-      maxAttainableDraftCapacity(projected, configuration.capacityRules)
-  ) {
-    return false
-  }
+    projected.draftedOperatorIds.length >= maxAttainableDraftCapacity(projected, configuration.capacityRules)
+  ) return false
 
   const roundEnding = action.type === 'pick' || action.type === 'hold' || action.type === 'forfeit'
   if (!roundEnding && action.type !== 'reroll') {
@@ -349,4 +295,51 @@ function isGuaranteedNoValidMoveAfterAction(
   const ownershipFull =
     configuration.capacityRules.enabled &&
     projected.draftedOperatorIds.length >= currentDraftOwnershipCapacity(projected)
-  if (!ownershipFull¤É•ÑÕÉ¸™…±Í”((€½¹ÍĞ•áÁ…¹Í¥½¹Ù…¥±…‰±”€ô•Ù…±Õ…Ñ•É…™ÑÑ¥½¹]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€€€ÁÉ½©•Ñ•°(€€€Á½½°°(€€€ìÑåÁ”è€Í±½Ğµ•áÁ…¹Í¥½¸œô°(€€€½¹™¥ÕÉ…Ñ¥½¸°(€€¤¹…Ù…¥±…‰±”(€½¹ÍĞ™½É™•¥ÑÙ…¥±…‰±”€ô•Ù…±Õ…Ñ•É…™ÑÑ¥½¹]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€€€ÁÉ½©•Ñ•°(€€€Á½½°°(€€€ìÑåÁ”è€™½É™•¥Ğœô°(€€€½¹™¥ÕÉ…Ñ¥½¸°(€€¤¹…Ù…¥±…‰±”(€É•ÑÕÉ¸€…•áÁ…¹Í¥½¹Ù…¥±…‰±”€˜˜€…™½É™•¥ÑÙ…¥±…‰±”)ô()•áÁ½ÉĞ™Õ¹Ñ¥½¸•Ù…±Õ…Ñ•É…™ÑÑ¥½¹AÉ•™±¥¡Ñ]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€ÍÑ…Ñ”èÉ…™ÑMÑ…Ñ”°(€Á½½°èÉ•…‘½¹±ä=Á•É…Ñ½Émt°(€…Ñ¥½¸èÉ…™ÑÑ¥½¸°(€½¹™¥ÕÉ…Ñ¥½¸èI•Í½±Ù•‘É…™Ñ½¹™¥ÕÉ…Ñ¥½¸°(¤èÉ…™ÑÑ¥½¹AÉ•™±¥¡Ğì(€½¹ÍĞ…Ù…¥±…‰¥±¥Ñä€ô•Ù…±Õ…Ñ•É…™ÑÑ¥½¹]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸¡ÍÑ…Ñ”°Á½½°°…Ñ¥½¸°½¹™¥ÕÉ…Ñ¥½¸¤(€¥˜€ ……Ù…¥±…‰¥±¥Ñä¹…Ù…¥±…‰±”¤ì(€€€É•ÑÕÉ¸ì(€€€€€€¸¸¹…Ù…¥±…‰¥±¥Ñä°(€€€€€Ñ•Éµ¥¹…±™Ñ•ÉÑ¥½¸è™…±Í”°(€€€€€Ñ•Éµ¥¹…±I•…Í½¸è¹Õ±°°(€€€ô(€ô(€½¹ÍĞÑ•Éµ¥¹…±™Ñ•ÉÑ¥½¸€ô¥ÍÕ…É…¹Ñ••‘9½Y…±¥‘5½Ù•™Ñ•ÉÑ¥½¸¡ÍÑ…Ñ”°Á½½°°…Ñ¥½¸°½¹™¥ÕÉ…Ñ¥½¸¤(€É•ÑÕÉ¸ì(€€€€¸¸¹…Ù…¥±…‰¥±¥Ñä°(€€€Ñ•Éµ¥¹…±™Ñ•ÉÑ¥½¸°(€€€Ñ•Éµ¥¹…±I•…Í½¸èÑ•Éµ¥¹…±™Ñ•ÉÑ¥½¸€ü€¹¼µÙ…±¥µµ½Ù”œ€è¹Õ±°°(€ô)ô()•áÁ½ÉĞ™Õ¹Ñ¥½¸•Ù…±Õ…Ñ•É…™ÑÑ¥½¹AÉ•™±¥¡Ğ (€ÍÑ…Ñ”èÉ…™ÑMÑ…Ñ”°(€Á½½°èÉ•…‘½¹±ä=Á•É…Ñ½Émt°(€…Ñ¥½¸èÉ…™ÑÑ¥½¸°(€½ÁÑ¥½¹ÌèÉ…™Ñ¹¥¹•=ÁÑ¥½¹Ì€ôíô°(¤èÉ…™ÑÑ¥½¹AÉ•™±¥¡Ğì(€É•ÑÕÉ¸•Ù…±Õ…Ñ•É…™ÑÑ¥½¹AÉ•™±¥¡Ñ]¥Ñ¡½¹™¥ÕÉ…Ñ¥½¸ (€€€ÍÑ…Ñ”°(€€€Á½½°°(€€€…Ñ¥½¸°(€€€É•Í½±Ù•É…™Ñ¹¥¹•½¹™¥ÕÉ…Ñ¥½¸¡½ÁÑ¥½¹Ì¤°(€€¤)ô
+  if (!ownershipFull) return false
+
+  const canForfeit = evaluateDraftActionWithConfiguration(
+    projected,
+    pool,
+    { type: 'forfeit' },
+    configuration,
+  ).available
+  const canExpand = evaluateDraftActionWithConfiguration(
+    projected,
+    pool,
+    { type: 'slot-expansion' },
+    configuration,
+  ).available
+  return !canForfeit && !canExpand
+}
+
+export function evaluateDraftActionPreflightWithConfiguration(
+  state: DraftState,
+  pool: readonly Operator[],
+  action: DraftAction,
+  configuration: ResolvedDraftConfiguration,
+): DraftActionPreflight {
+  const availability = evaluateDraftActionWithConfiguration(state, pool, action, configuration)
+  if (!availability.available) {
+    return { ...availability, terminalAfterAction: false, terminalReason: null }
+  }
+  const terminalAfterAction = isGuaranteedNoValidMoveAfterAction(state, pool, action, configuration)
+  return {
+    ...availability,
+    terminalAfterAction,
+    terminalReason: terminalAfterAction ? 'no-valid-move' : null,
+  }
+}
+
+export function evaluateDraftActionPreflight(
+  state: DraftState,
+  pool: readonly Operator[],
+  action: DraftAction,
+  options: DraftEngineOptions = {},
+): DraftActionPreflight {
+  return evaluateDraftActionPreflightWithConfiguration(
+    state,
+    pool,
+    action,
+    resolveDraftEngineConfiguration(options),
+  )
+}

@@ -107,6 +107,8 @@ export interface OperatorDatasetSources {
   gamedataTwHandbookCommit?: string | null
   resourcesCommit: string | null
   releaseMetadataCommit: string | null
+  /** Optional source stamp for the per-operator CN first-seen fallback map. */
+  releaseVersionCommit?: string | null
 }
 
 export interface GameStringCatalog {

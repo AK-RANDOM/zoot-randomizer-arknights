@@ -42,10 +42,8 @@ const RESET_MESSAGE =
 function actionMessage(action: DraftAction, after: DraftState, pool: readonly Operator[]): string {
   if (after.status === 'complete') return draftCompletionMessage(after)
   switch (action.type) {
-    case 'pick': {
-      const operator = pool.find((candidate) => candidate.id === action.operatorId)
-      return `${operator?.name ?? 'Operator'} drafted. ${after.draftedOperatorIds.length} / ${after.targetSize} selected.`
-    }
+    case 'pick':
+      return ''
     case 'hold': {
       const operator = pool.find((candidate) => candidate.id === action.operatorId)
       return `${operator?.name ?? 'Operator'} moved to Hold. Round ${after.roundNumber} is ready.`

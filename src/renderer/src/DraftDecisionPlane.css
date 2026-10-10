@@ -28,7 +28,8 @@
   margin-inline: auto;
 }
 .draft-decision-group .operator-card,
-.draft-forfeit-surface {
+.draft-forfeit-surface,
+.draft-hold-surface {
   width: var(--draft-play-card-width);
   aspect-ratio: 1 / 2;
 }
@@ -42,6 +43,31 @@
 .draft-decision-control {
   width: var(--draft-play-card-width);
   margin-top: 8px;
+}
+.draft-decision-control--offers {
+  width: 100%;
+}
+
+.draft-hold-surface {
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  padding: 14px;
+  border: 1px dashed #55555e;
+  border-radius: 6px;
+  color: #8f8f96;
+  background: #151518;
+  text-align: center;
+}
+.draft-hold-surface span {
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.draft-hold-surface strong {
+  color: #d8d8dc;
+  font-size: 0.92rem;
 }
 .draft-decision-action {
   display: grid;
@@ -189,6 +215,7 @@
   }
   .draft-decision-group .operator-card,
   .draft-forfeit-surface,
+  .draft-hold-surface,
   .draft-decision-control {
     width: min(100%, 330px);
     margin-inline: auto;

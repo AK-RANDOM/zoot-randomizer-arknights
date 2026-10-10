@@ -166,37 +166,44 @@ export default function DraftDecisionPlane({
           </div>
         )}
       </section>
-      {(heldOperator || forfeit) && (
+      {(configuration.actionRules.hold.enabled || forfeit) && (
         <div className="draft-decision-side-rail">
-          {heldOperator && (
+          {configuration.actionRules.hold.enabled && (
             <section
               className="draft-decision-group draft-decision-group--held"
               aria-label="Held operator"
             >
-              <DraftOperatorCard
-                operator={heldOperator}
-                presentation={resolveDraftOperatorPresentation(
-                  state,
-                  operators,
-                  heldOperator,
-                  configuration,
-                )}
-                interactionDetails={
-                  dataset
-                    ? buildLiveRulebookOperatorInteractionDetails(
-                        rulebook,
-                        heldOperator,
-                        dataset,
-                        operators,
-                        state,
-                        configuration,
-                      )
-                    : undefined
-                }
-                currentUpkeep={holdPresentation?.currentUpkeep ?? null}
-                showHold={false}
-                onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
-              />
+              {heldOperator ? (
+                <DraftOperatorCard
+                  operator={heldOperator}
+                  presentation={resolveDraftOperatorPresentation(
+                    state,
+                    operators,
+                    heldOperator,
+                    configuration,
+                  )}
+                  interactionDetails={
+                    dataset
+                      ? buildLiveRulebookOperatorInteractionDetails(
+                          rulebook,
+                          heldOperator,
+                          dataset,
+                          operators,
+                          state,
+                          configuration,
+                        )
+                      : undefined
+                  }
+                  currentUpkeep={holdPresentation?.currentUpkeep ?? null}
+                  showHold={false}
+                  onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
+                />
+              ) : (
+                <div className="draft-hold-surface draft-hold-surface--empty" aria-label="Hold: empty">
+                  <span>Hold</span>
+                  <strong>Empty</strong>
+                </div>
+              )}
               {releaseHold && (
                 <div className="draft-decision-control">
                   <button

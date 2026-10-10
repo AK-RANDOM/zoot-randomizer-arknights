@@ -88,12 +88,12 @@ export default function DraftOperatorCard({
           {showHold && presentation.hold && onHold && (
             <button
               type="button"
-              className="draft-operator-action draft-operator-action--hold"
+              className={`draft-operator-action draft-operator-action--hold draft-operator-action--hold-${presentation.hold.economy.tone}`}
               disabled={!presentation.hold.available}
               title={presentation.hold.blockReasonLabel ?? undefined}
               onClick={onHold}
             >
-              Hold
+              Hold ({presentation.hold.economy.amount})
             </button>
           )}
         </div>

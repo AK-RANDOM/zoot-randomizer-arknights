@@ -1,27 +1,26 @@
 /* Standard Squad top-level control placement refinements. */
 .squad-panel {
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content max-content;
+  column-gap: 8px;
 }
 
-.squad-panel > .section-heading {
-  min-height: 0;
-  margin: 0;
+.squad-panel > .section-heading,
+.squad-panel > .section-heading > .section-actions {
+  display: contents;
 }
 
 .squad-panel > .section-heading > div:first-child {
   display: none;
 }
 
-.squad-panel > .section-heading > .section-actions {
-  display: contents;
-}
-
 .squad-panel > .preset-toolbar {
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   grid-template-columns: auto auto minmax(250px, 1fr) auto auto auto;
   align-items: end;
   justify-content: stretch;
-  padding-right: 154px;
 }
 
 .squad-panel > .preset-toolbar > .preset-select {
@@ -58,31 +57,38 @@
   grid-row: 1;
 }
 
-.squad-panel > .section-heading .randomize-button,
+.squad-panel > .section-heading .secondary-button,
+.squad-panel > .section-heading .randomize-button {
+  grid-row: 1;
+  align-self: center;
+  white-space: nowrap;
+}
+
 .squad-panel > .section-heading .secondary-button {
-  position: absolute;
-  z-index: 4;
-  top: 32px;
+  grid-column: 2;
 }
 
 .squad-panel > .section-heading .randomize-button {
-  right: 32px;
-}
-
-.squad-panel > .section-heading .secondary-button {
-  right: 154px;
+  grid-column: 3;
 }
 
 .squad-panel > .current-constraint-summary {
-  position: relative;
-  padding-right: 160px;
+  grid-column: 1 / 3;
+  grid-row: 2;
+  margin-top: 0;
 }
 
 .squad-panel > .section-heading .danger-button {
-  position: absolute;
-  z-index: 4;
-  top: 111px;
-  right: 32px;
+  grid-column: 3;
+  grid-row: 2;
+  align-self: start;
+  white-space: nowrap;
+}
+
+.squad-panel > .validation-box,
+.squad-panel > .squad-grid,
+.squad-panel > .squad-filter-disclosure {
+  grid-column: 1 / -1;
 }
 
 .squad-panel > .squad-grid {
@@ -112,10 +118,14 @@
 }
 
 @media (max-width: 960px) {
+  .squad-panel {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
   .squad-panel > .preset-toolbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
     grid-template-columns: repeat(2, auto) minmax(190px, 1fr);
-    padding-right: 0;
-    padding-top: 58px;
   }
 
   .squad-panel > .preset-toolbar > .preset-select {
@@ -131,12 +141,57 @@
   .squad-panel > .preset-toolbar > .preset-actions > button:nth-child(4) { grid-column: 2; }
   .squad-panel > .preset-toolbar > .preset-actions > button:nth-child(5) { grid-column: 3; }
 
-  .squad-panel > .section-heading .randomize-button,
   .squad-panel > .section-heading .secondary-button {
-    top: 32px;
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .squad-panel > .section-heading .randomize-button {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .squad-panel > .current-constraint-summary {
+    grid-column: 1;
+    grid-row: 3;
   }
 
   .squad-panel > .section-heading .danger-button {
-    top: 169px;
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 680px) {
+  .squad-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .squad-panel > .preset-toolbar {
+    grid-column: 1;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .squad-panel > .preset-toolbar > .preset-select,
+  .squad-panel > .preset-toolbar > .preset-actions > button:nth-child(n) {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+  }
+
+  .squad-panel > .preset-toolbar > .preset-actions > button:nth-child(n + 3) {
+    margin-top: 0;
+  }
+
+  .squad-panel > .section-heading .secondary-button,
+  .squad-panel > .section-heading .randomize-button,
+  .squad-panel > .current-constraint-summary,
+  .squad-panel > .section-heading .danger-button {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    justify-self: stretch;
   }
 }

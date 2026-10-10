@@ -13,18 +13,25 @@ describe('Standard Squad layout refinements', () => {
     expect(indicatorCss).toContain('width: 23px')
   })
 
-  it('moves preset and randomize controls while hiding the redundant Standard heading', () => {
-    expect(layoutCss).toContain('.squad-panel > .section-heading > div:first-child')
-    expect(layoutCss).toContain('display: none')
+  it('moves preset and run controls with grid placement instead of absolute positioning', () => {
+    expect(layoutCss).toContain('.squad-panel > .preset-toolbar')
     expect(layoutCss).toContain('.preset-actions > button:nth-child(1)')
     expect(layoutCss).toContain('.preset-actions > button:nth-child(2)')
     expect(layoutCss).toContain('.section-heading .randomize-button')
+    expect(layoutCss).toContain('.section-heading .secondary-button')
+    expect(layoutCss).not.toContain('position: absolute')
     expect(mainSource).toContain("import './StandardSquadLayoutOverrides.css'")
   })
 
-  it('places the reset control alongside the current constraint summary', () => {
-    expect(layoutCss).toContain('.current-constraint-summary')
+  it('places Reset Constraints on the same grid row as Current constraints', () => {
+    expect(layoutCss).toContain('.squad-panel > .current-constraint-summary')
     expect(layoutCss).toContain('.section-heading .danger-button')
-    expect(layoutCss).toContain('top: 111px')
+    expect(layoutCss).toContain('grid-row: 2')
+  })
+
+  it('centers the Standard 6x2 grid', () => {
+    expect(layoutCss).toContain('.squad-panel > .squad-grid')
+    expect(layoutCss).toContain('width: min(100%, 1080px)')
+    expect(layoutCss).toContain('margin-inline: auto')
   })
 })

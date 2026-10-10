@@ -33,7 +33,26 @@ const factionIconDir = join(outputDir, 'faction-icons')
 const downloadImages = process.argv.includes('--download-images')
 const downloadImagesOnly = process.argv.includes('--download-images-only')
 const force = process.argv.includes('--force')
-const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer-data-updater' } as const
+
+const authenticatedFetch: typeof fetch = (input, init = {}) => {
+  const token = process.env.GITHUB_TOKEN
+  const url =
+    typeof input === 'string'
+      ? input
+      : input instanceof URL
+        ? input.href
+        : input.url
+  const headers = new Headers(init.headers)
+  if (token && url.startsWith('https://api.github.com/')) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+  return fetch(input, { ...init, headers })
+}
+
+const PIPELINE_FETCH_OPTIONS = {
+  userAgent: 'arknights-randomizer-data-updater',
+  fetchImpl: authenticatedFetch,
+} as const
 
 async function currentDatasetState(): Promise<{
   schemaVersion: unknown

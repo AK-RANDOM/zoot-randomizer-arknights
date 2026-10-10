@@ -2,6 +2,9 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - build/raw-windows-current-main
 
 permissions:
   contents: read
@@ -16,7 +19,10 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npm run data:update
+      - name: Refresh bundled operator data
+        run: npm run data:update
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
       - run: npm run data:validate
       - run: npm run typecheck
       - run: npm run lint

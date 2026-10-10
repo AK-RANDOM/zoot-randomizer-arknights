@@ -1,6 +1,12 @@
-import { resolveDraftConfiguration, validateDraftConfiguration } from '../draft'
+import {
+  resolveDraftConfiguration,
+  validateDraftConfiguration,
+} from '../draft'
 import type { DraftPricingProfile } from '../draftPricingProfile'
-import type { DraftRulebook, ResolvedDraftRulebook } from './types'
+import type {
+  DraftRulebook,
+  ResolvedDraftRulebook,
+} from './types'
 import { assertValidDraftRulebook } from './validation'
 
 function cloneJson<T>(value: T): T {

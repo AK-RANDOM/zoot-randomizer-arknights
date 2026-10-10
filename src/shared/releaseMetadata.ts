@@ -1,5 +1,11 @@
 import type { ReleaseServer } from './operator'
 
+export const RELEASE_VERSION_UPSTREAM = {
+  repository: 'ArknightsAssets/releasever',
+  path: 'releasever.json',
+  url: 'https://raw.githubusercontent.com/ArknightsAssets/releasever/master/releasever.json',
+} as const
+
 export const RELEASE_METADATA_UPSTREAM = {
   repository: 'nadering/arknights-toolbox',
   infoPath: 'src/data/operator/generated/operator-release-info-map.generated.ts',
@@ -274,10 +280,41 @@ export function buildReleaseCategoryMap(
   )
 }
 
+function cnDateFromReleaseVersion(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const match = /^(\d{2})-(\d{2})-(\d{2})(?:-|$)/.exec(value)
+  if (!match) return null
+
+  const date = `20${match[1]}-${match[2]}-${match[3]}`
+  const parsed = new Date(`${date}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return null
+  return date
+}
+
+export function buildCnFirstSeenDateMap(source: string): Record<string, string> {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(source)
+  } catch {
+    throw new Error('Release-version metadata payload is malformed.')
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Release-version metadata payload is malformed.')
+  }
+
+  const result: Record<string, string> = {}
+  for (const [operatorId, value] of Object.entries(parsed as Record<string, unknown>)) {
+    const date = cnDateFromReleaseVersion(value)
+    if (date) result[operatorId] = date
+  }
+  return result
+}
+
 export function buildReleaseDateMap(
   infoSource: string,
   candidateSource: string,
   eventSource: string,
+  releaseVersionSource?: string,
 ): Record<string, OperatorReleaseDates> {
   const info = releaseInfoMap(infoSource)
   const candidates = generatedLiteral(
@@ -347,6 +384,15 @@ export function buildReleaseDateMap(
         cnFallbacks.get(operatorId) ??
         null,
       global: override?.global ?? activity?.global ?? eventDate?.global ?? null,
+    }
+  }
+
+  if (releaseVersionSource) {
+    for (const [operatorId, cnDate] of Object.entries(
+      buildCnFirstSeenDateMap(releaseVersionSource),
+    )) {
+      const current = result[operatorId] ?? { cn: null, global: null }
+      if (!current.cn) result[operatorId] = { ...current, cn: cnDate }
     }
   }
 

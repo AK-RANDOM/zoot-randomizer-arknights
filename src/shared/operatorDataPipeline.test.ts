@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { UPSTREAM } from './operatorData'
+import { RELEASE_VERSION_UPSTREAM } from './releaseMetadata'
 import { fetchLatestOperatorDatasetSources } from './operatorDataPipeline'
 
 describe('fetchLatestOperatorDatasetSources', () => {
@@ -8,6 +9,7 @@ describe('fetchLatestOperatorDatasetSources', () => {
       [UPSTREAM.gamedataRepo, 'gamedata-head'],
       [UPSTREAM.resourcesRepo, 'resources-head'],
       [UPSTREAM.releaseRepo, 'release-head'],
+      [RELEASE_VERSION_UPSTREAM.repository, 'release-version-head'],
     ])
     const fetchImpl = vi.fn(async (input: string | URL | Request) => {
       const url = String(input)
@@ -21,7 +23,7 @@ describe('fetchLatestOperatorDatasetSources', () => {
 
     const sources = await fetchLatestOperatorDatasetSources({ fetchImpl })
 
-    expect(fetchImpl).toHaveBeenCalledTimes(3)
+    expect(fetchImpl).toHaveBeenCalledTimes(4)
     expect(sources).toEqual({
       gamedataCnCommit: 'gamedata-head',
       gamedataEnCommit: 'gamedata-head',
@@ -35,6 +37,7 @@ describe('fetchLatestOperatorDatasetSources', () => {
       gamedataTwHandbookCommit: 'gamedata-head',
       resourcesCommit: 'resources-head',
       releaseMetadataCommit: 'release-head',
+      releaseVersionCommit: 'release-version-head',
     })
   })
 })

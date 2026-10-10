@@ -4,7 +4,6 @@ import {
   UPSTREAM,
   classLabelsFromMainText,
   createReleaseCategoryMap,
-  createReleaseDateMap,
   factionLabelsFromHandbook,
   factionLabelsFromHandbooks,
   gameDataExcelPath,
@@ -20,10 +19,12 @@ import {
   type RawUniEquipData,
 } from './operatorData.ts'
 import { applyRaceMetadata, type RawHandbookInfoTable } from './raceMetadata.ts'
+import { buildReleaseDateMap, RELEASE_VERSION_UPSTREAM } from './releaseMetadata.ts'
 
 const GAMEDATA_BRANCH = 'master'
 const RESOURCES_BRANCH = 'main'
 const RELEASE_BRANCH = 'main'
+const RELEASE_VERSION_BRANCH = 'master'
 
 function githubRawUrl(repository: string, revision: string, path: string): string {
   return `https://raw.githubusercontent.com/${repository}/${revision}/${path}`
@@ -97,11 +98,13 @@ async function latestBranchCommit(
 export async function fetchLatestOperatorDatasetSources(
   options: OperatorDataFetchOptions = {},
 ): Promise<OperatorDatasetSources> {
-  const [gamedataCommit, resourcesCommit, releaseMetadataCommit] = await Promise.all([
-    latestBranchCommit(UPSTREAM.gamedataRepo, GAMEDATA_BRANCH, options),
-    latestBranchCommit(UPSTREAM.resourcesRepo, RESOURCES_BRANCH, options),
-    latestBranchCommit(UPSTREAM.releaseRepo, RELEASE_BRANCH, options),
-  ])
+  const [gamedataCommit, resourcesCommit, releaseMetadataCommit, releaseVersionCommit] =
+    await Promise.all([
+      latestBranchCommit(UPSTREAM.gamedataRepo, GAMEDATA_BRANCH, options),
+      latestBranchCommit(UPSTREAM.resourcesRepo, RESOURCES_BRANCH, options),
+      latestBranchCommit(UPSTREAM.releaseRepo, RELEASE_BRANCH, options),
+      latestBranchCommit(RELEASE_VERSION_UPSTREAM.repository, RELEASE_VERSION_BRANCH, options),
+    ])
 
   return {
     gamedataCnCommit: gamedataCommit,
@@ -116,6 +119,7 @@ export async function fetchLatestOperatorDatasetSources(
     gamedataTwHandbookCommit: gamedataCommit,
     resourcesCommit,
     releaseMetadataCommit,
+    releaseVersionCommit,
   }
 }
 
@@ -135,7 +139,8 @@ export function operatorDatasetSourcesEqual(
     left.gamedataKrHandbookCommit === right.gamedataKrHandbookCommit &&
     left.gamedataTwHandbookCommit === right.gamedataTwHandbookCommit &&
     left.resourcesCommit === right.resourcesCommit &&
-    left.releaseMetadataCommit === right.releaseMetadataCommit
+    left.releaseMetadataCommit === right.releaseMetadataCommit &&
+    (left.releaseVersionCommit ?? null) === (right.releaseVersionCommit ?? null)
   )
 }
 
@@ -164,9 +169,7 @@ export function alignAvailabilityWithReleaseMetadata(dataset: OperatorDataset): 
         availableOn: { cn: cnAvailable, global: globalAvailable },
         release: {
           cn: cnAvailable ? operator.release.cn : { date: null, yearGroup: null },
-          global: globalAvailable
-            ? operator.release.global
-            : { date: null, yearGroup: null },
+          global: globalAvailable ? operator.release.global : { date: null, yearGroup: null },
         },
       },
     ]
@@ -182,6 +185,7 @@ export async function fetchAndBuildOperatorDataset(
 ): Promise<{ dataset: OperatorDataset; validation: OperatorDatasetValidation }> {
   const gamedataRevision = sources.gamedataCnCommit ?? GAMEDATA_BRANCH
   const releaseRevision = sources.releaseMetadataCommit ?? RELEASE_BRANCH
+  const releaseVersionRevision = sources.releaseVersionCommit ?? RELEASE_VERSION_BRANCH
 
   const localeEntries = await Promise.all(
     GAME_DATA_LOCALES.map(async (locale) => {
@@ -220,6 +224,7 @@ export async function fetchAndBuildOperatorDataset(
     releaseInfoSource,
     releaseCandidateSource,
     releaseEventSource,
+    releaseVersionSource,
   ] = await Promise.all([
     fetchJson<RawCharacterMetaTable>(
       githubRawUrl(UPSTREAM.gamedataRepo, gamedataRevision, UPSTREAM.cnCharMetaPath),
@@ -249,6 +254,14 @@ export async function fetchAndBuildOperatorDataset(
       githubRawUrl(UPSTREAM.releaseRepo, releaseRevision, UPSTREAM.releaseEventPath),
       options,
     ),
+    fetchText(
+      githubRawUrl(
+        RELEASE_VERSION_UPSTREAM.repository,
+        releaseVersionRevision,
+        RELEASE_VERSION_UPSTREAM.path,
+      ),
+      options,
+    ),
   ])
 
   const localizedCharacterTables = Object.fromEntries(
@@ -273,10 +286,11 @@ export async function fetchAndBuildOperatorDataset(
     GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].handbookInfo]),
   )
 
-  const releaseDates = createReleaseDateMap(
+  const releaseDates = buildReleaseDateMap(
     releaseInfoSource,
     releaseCandidateSource,
     releaseEventSource,
+    releaseVersionSource,
   )
   const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
   const dataset = alignAvailabilityWithReleaseMetadata(

@@ -175,26 +175,26 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .draft-squad-avatar__class-icon {
-  display: grid;
+  display: block;
   flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 4px;
-  background: rgba(7, 7, 9, 0.56);
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(4px);
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .draft-squad-avatar__class-icon img {
-  width: 11px;
-  height: 11px;
+  display: block;
+  width: 10px;
+  height: 10px;
   object-fit: contain;
 }
 

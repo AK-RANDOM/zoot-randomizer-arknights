@@ -123,13 +123,8 @@
   color: inherit;
   font-size: 0.98rem;
 }
-.draft-forfeit-surface__body span {
-  color: #b99598;
-  font-size: 0.68rem;
-  line-height: 1.4;
-}
-.draft-forfeit-surface:disabled .draft-forfeit-surface__body span {
-  color: #666268;
+.draft-forfeit-surface__body > span {
+  display: none;
 }
 .draft-decision-economy {
   position: absolute;

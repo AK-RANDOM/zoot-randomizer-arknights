@@ -136,15 +136,32 @@ export default function DraftDecisionPlane({
   const rerollLimit = reroll
     ? remainingLimitLabel(configuration.actionRules.reroll, state.actionUsage.reroll)
     : null
+  const sideCardCount = (configuration.actionRules.hold.enabled ? 1 : 0) + (forfeit ? 1 : 0)
+  const offerCardCount = Math.max(1, offeredOperators.length)
+  const stripCardCount = offerCardCount + sideCardCount
+  const stripGap = 12
+  const stripMaxWidth = stripCardCount * 174 + Math.max(0, stripCardCount - 1) * stripGap
+  const planeStyle = {
+    '--draft-strip-count': stripCardCount,
+    maxWidth: `${stripMaxWidth}px`,
+  } as CSSProperties
+  const offersGroupStyle = { gridColumn: `span ${offerCardCount}` } satisfies CSSProperties
   const offerGridStyle = {
-    gridTemplateColumns: `repeat(${Math.max(1, offeredOperators.length)}, var(--draft-play-card-width))`,
+    gridTemplateColumns: `repeat(${offerCardCount}, minmax(0, 1fr))`,
   } satisfies CSSProperties
+  const sideRailStyle = sideCardCount > 0
+    ? ({
+        gridColumn: `span ${sideCardCount}`,
+        gridTemplateColumns: `repeat(${sideCardCount}, minmax(0, 1fr))`,
+      } satisfies CSSProperties)
+    : undefined
 
   return (
-    <div className="draft-decision-plane" aria-label="Current Draft decision">
+    <div className="draft-decision-plane" style={planeStyle} aria-label="Current Draft decision">
       <section
         className="draft-decision-group draft-decision-group--offers"
         aria-label="Current offers"
+        style={offersGroupStyle}
       >
         <div className="draft-decision-offer-grid" style={offerGridStyle}>
           {offeredOperators.map((operator) => {
@@ -196,7 +213,7 @@ export default function DraftDecisionPlane({
         )}
       </section>
       {(configuration.actionRules.hold.enabled || forfeit) && (
-        <div className="draft-decision-side-rail">
+        <div className="draft-decision-side-rail" style={sideRailStyle}>
           {configuration.actionRules.hold.enabled && (
             <section
               className="draft-decision-group draft-decision-group--held"

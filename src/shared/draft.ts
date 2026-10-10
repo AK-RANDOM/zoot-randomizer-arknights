@@ -27,5 +27,10 @@ export {
   getDraftInteractionCostModifierWithConfiguration,
 } from './draft/interactions'
 export { generateEqualOpportunityCandidates } from './draft/offers'
-export { evaluateDraftAction, getDraftActionAvailability } from './draft/actions'
+export {
+  evaluateDraftAction,
+  evaluateDraftActionPreflight,
+  getDraftActionAvailability,
+  hasDraftValidContinuation,
+} from './draft/actions'
 export { applyDraftAction, pickDraftOperator, startDraft } from './draft/session'

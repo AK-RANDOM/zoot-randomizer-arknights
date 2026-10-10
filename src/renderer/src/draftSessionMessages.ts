@@ -12,6 +12,8 @@ export function draftCompletionMessage(state: DraftState): string {
       return `Draft ended at the configured round limit. ${drafted}`
     case 'capacity-exhausted':
       return `Draft ended because no further ownership capacity is available. ${drafted}`
+    case 'no-valid-move':
+      return `Draft ended — no valid moves remain. ${drafted}`
     default:
       return `Draft ended. ${drafted}`
   }

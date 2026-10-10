@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react'
-import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
+import {
+  evaluateDraftActionPreflight,
+  type DraftAction,
+  type DraftState,
+  type ResolvedDraftConfiguration,
+} from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import DraftDecisionPlane from './DraftDecisionPlane'
@@ -14,6 +19,7 @@ import { useDraftActionConfirmationPreference } from './draftConfirmationPrefere
 interface PendingDraftConfirmation {
   intent: DraftConfirmationIntent
   execute: () => void
+  mandatory: boolean
 }
 
 export interface DraftSessionViewProps {
@@ -67,7 +73,12 @@ export default function DraftSessionView({
   const [suppressPendingSession, setSuppressPendingSession] = useState(false)
 
   const requestAction = (action: DraftAction, execute: () => void): void => {
-    if (!confirmationsEnabled || sessionConfirmationsSuppressed) {
+    const preflight =
+      state && configuration
+        ? evaluateDraftActionPreflight(state, operators, action, { configuration })
+        : null
+    const mandatory = preflight?.terminalAfterAction === true
+    if (!mandatory && (!confirmationsEnabled || sessionConfirmationsSuppressed)) {
       execute()
       return
     }
@@ -77,8 +88,9 @@ export default function DraftSessionView({
         : undefined
     setSuppressPendingSession(false)
     setPendingConfirmation({
-      intent: { type: 'draft-action', action, operatorName },
+      intent: { type: 'draft-action', action, operatorName, terminalAfterAction: mandatory },
       execute,
+      mandatory,
     })
   }
 
@@ -103,7 +115,7 @@ export default function DraftSessionView({
       return
     }
     setSuppressPendingSession(false)
-    setPendingConfirmation({ intent: { type: 'new-draft' }, execute: onStart })
+    setPendingConfirmation({ intent: { type: 'new-draft' }, execute: onStart, mandatory: false })
   }
 
   const cancelPendingConfirmation = (): void => {
@@ -113,11 +125,11 @@ export default function DraftSessionView({
 
   const confirmPendingAction = (): void => {
     if (!pendingConfirmation) return
-    const { intent, execute } = pendingConfirmation
+    const { intent, execute, mandatory } = pendingConfirmation
     setPendingConfirmation(null)
-    if (intent.type === 'new-draft') {
+    if (!mandatory && intent.type === 'new-draft') {
       setSessionConfirmationsSuppressed(suppressPendingSession)
-    } else if (suppressPendingSession) {
+    } else if (!mandatory && suppressPendingSession) {
       setSessionConfirmationsSuppressed(true)
     }
     setSuppressPendingSession(false)
@@ -262,6 +274,7 @@ export default function DraftSessionView({
           copy={draftConfirmationCopy(pendingConfirmation.intent)}
           suppressSession={suppressPendingSession}
           onSuppressSessionChange={setSuppressPendingSession}
+          allowSuppression={!pendingConfirmation.mandatory}
           onCancel={cancelPendingConfirmation}
           onConfirm={confirmPendingAction}
         />

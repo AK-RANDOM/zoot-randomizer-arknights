@@ -48,4 +48,20 @@ describe('Draft action confirmation copy', () => {
       suppressionLabel: 'Skip Draft confirmations in the new session',
     })
   })
+
+  it('uses an explicit non-suppressible warning copy for known terminal actions', () => {
+    expect(
+      draftConfirmationCopy({
+        type: 'draft-action',
+        action: { type: 'pick', operatorId: 'char_001' },
+        operatorName: 'Exusiai',
+        terminalAfterAction: true,
+      }),
+    ).toEqual({
+      title: 'Pick Exusiai and end the Draft?',
+      body: 'This action is legal, but afterward no valid moves will remain. The Draft will end immediately.',
+      confirmLabel: 'Pick',
+      suppressionLabel: 'Terminal-action warnings cannot be disabled for this Draft session',
+    })
+  })
 })

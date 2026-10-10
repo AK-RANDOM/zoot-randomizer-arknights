@@ -3,6 +3,8 @@ import type { Operator } from './operator'
 import {
   applyDraftAction,
   currentDraftOwnershipCapacity,
+  evaluateDraftActionPreflight,
+  hasDraftValidContinuation,
   getDraftActionAvailability,
   startDraft,
   type DraftEngineOptions,
@@ -205,5 +207,91 @@ describe('Draft advanced execution mechanics', () => {
       options,
     )
     expect(getDraftActionAvailability(state, { type: 'forfeit' }, options).available).toBe(true)
+  })
+
+  it('ends with no-valid-move when occupied Overflow cannot be recovered', () => {
+    const pool = roster(12)
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: {
+        enabled: true,
+        startingActiveSlots: 1,
+        overflowSlots: 1,
+        maxActiveSlots: 3,
+      },
+      actionRules: {
+        hold: { enabled: true },
+        forfeit: { enabled: true },
+        reroll: { enabled: true },
+        slotExpansion: { enabled: true },
+      },
+      economyRules: {
+        enabled: true,
+        startingPoints: 0,
+        rarityCosts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+        slotExpansionCost: 2,
+      },
+    }
+
+    let state = startDraft(pool, 3, options)
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      options,
+    )
+
+    const terminalPick = { type: 'pick', operatorId: state.currentOfferIds[0] } as const
+    expect(evaluateDraftActionPreflight(state, pool, terminalPick, options)).toMatchObject({
+      available: true,
+      terminalAfterAction: true,
+      terminalReason: 'no-valid-move',
+    })
+
+    state = applyDraftAction(state, pool, terminalPick, options)
+    expect(state.status).toBe('complete')
+    expect(state.completionReason).toBe('no-valid-move')
+    expect(state.draftedOperatorIds).toHaveLength(2)
+    expect(state.points).toBe(0)
+    expect(hasDraftValidContinuation(state, pool, options)).toBe(false)
+  })
+
+  it('does not flag occupied Overflow as terminal while Expansion is affordable', () => {
+    const pool = roster(12)
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: {
+        enabled: true,
+        startingActiveSlots: 1,
+        overflowSlots: 1,
+        maxActiveSlots: 3,
+      },
+      actionRules: {
+        forfeit: { enabled: true },
+        slotExpansion: { enabled: true },
+      },
+      economyRules: {
+        enabled: true,
+        startingPoints: 2,
+        rarityCosts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+        slotExpansionCost: 2,
+      },
+    }
+
+    let state = startDraft(pool, 3, options)
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[0] },
+      options,
+    )
+    const pick = { type: 'pick', operatorId: state.currentOfferIds[0] } as const
+    expect(evaluateDraftActionPreflight(state, pool, pick, options).terminalAfterAction).toBe(false)
+
+    state = applyDraftAction(state, pool, pick, options)
+    expect(state.status).toBe('active')
+    expect(
+      getDraftActionAvailability(state, { type: 'slot-expansion' }, options, pool).available,
+    ).toBe(true)
   })
 })

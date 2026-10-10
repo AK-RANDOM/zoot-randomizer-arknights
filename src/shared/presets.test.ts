@@ -24,20 +24,31 @@ describe('squad presets', () => {
     expect(operation.rarity[5]).toEqual({ min: 3, max: 3 })
     expect(operation.rarity[4]).toEqual({ min: 5, max: 5 })
     expect(operation.rarity[3]).toEqual({ min: 3, max: 3 })
+    expect(operation.class).toEqual({
+      Vanguard: { min: 2, max: 2 },
+      Guard: { min: 1, max: 1 },
+      Sniper: { min: 1, max: 1 },
+      Caster: { min: 2, max: 2 },
+      Defender: { min: 2, max: 2 },
+      Medic: { min: 2, max: 2 },
+      Supporter: { min: 0, max: 0 },
+      Specialist: { min: 2, max: 2 },
+    })
     expect(operation.slots.map((slot) => slot.rarities)).toEqual([
+      [5],
       [6],
+      [4],
+      [4],
       [5],
+      [4],
+      [4],
       [5],
-      [5],
-      [4],
-      [4],
-      [4],
-      [4],
       [4],
       [3],
       [3],
       [3],
     ])
+    expect(operation.slots[0].mandatoryExclusivityGroup).toBe('amiya-forms')
 
     const recommended = BUILT_IN_SQUAD_PRESETS[2].configuration
     expect(recommended.rarity[6]).toEqual({ min: 1, max: 1 })
@@ -82,9 +93,13 @@ describe('squad presets', () => {
     const current = createDefaultConstraints()
     const applied = applySquadConfiguration(current, BUILT_IN_SQUAD_PRESETS[1].configuration)
 
-    expect(applied.slots[0]).toEqual({ rarities: [6], classes: [] })
-    expect(applied.slots[1]).toEqual({ rarities: [5], classes: [] })
-    expect(applied.slots[4]).toEqual({ rarities: [4], classes: [] })
+    expect(applied.slots[0]).toEqual({
+      rarities: [5],
+      classes: [],
+      mandatoryExclusivityGroup: 'amiya-forms',
+    })
+    expect(applied.slots[1]).toEqual({ rarities: [6], classes: [] })
+    expect(applied.slots[4]).toEqual({ rarities: [5], classes: [] })
     expect(applied.slots[9]).toEqual({ rarities: [3], classes: [] })
   })
 

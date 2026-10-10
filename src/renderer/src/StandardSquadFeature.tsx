@@ -5,6 +5,7 @@ import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
 import OperatorCard from './OperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
+import TextInputDialog from './TextInputDialog'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -217,6 +218,9 @@ export default function StandardSquadFeature({
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:none')
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null)
   const [dontShowAgain, setDontShowAgain] = useState(false)
+  const [presetNameDialog, setPresetNameDialog] = useState<
+    { mode: 'save' | 'duplicate' | 'rename'; initialValue: string } | null
+  >(null)
   const lastResetRevision = useRef(resetRevision)
 
   useEffect(() => { saveUserSquadPresets(userPresets) }, [userPresets])
@@ -406,12 +410,7 @@ export default function StandardSquadFeature({
     } else apply()
   }
   const saveAsPreset = (): void => {
-    const name = window.prompt('Name this squad preset:')
-    if (!name?.trim()) return
-    const preset = createUserPreset(name, currentSquadConfiguration)
-    setUserPresets((current) => [...current, preset])
-    setSelectedPresetId(preset.id)
-    onMessage(`Saved squad preset “${preset.name}”.`)
+    setPresetNameDialog({ mode: 'save', initialValue: '' })
   }
   const updateSelectedPreset = (): void => {
     if (!selectedPreset || selectedPreset.builtIn) return
@@ -424,19 +423,32 @@ export default function StandardSquadFeature({
   }
   const renameSelectedPreset = (): void => {
     if (!selectedPreset || selectedPreset.builtIn) return
-    const name = window.prompt('Rename squad preset:', selectedPreset.name)
-    if (!name?.trim()) return
-    setUserPresets((current) => current.map((preset) =>
-      preset.id === selectedPreset.id ? { ...preset, name: name.trim() } : preset,
-    ))
+    setPresetNameDialog({ mode: 'rename', initialValue: selectedPreset.name })
   }
   const duplicateSelectedPreset = (): void => {
     if (!selectedPreset) return
-    const name = window.prompt('Name the duplicated preset:', `${selectedPreset.name} copy`)
-    if (!name?.trim()) return
-    const duplicate = createUserPreset(name, currentSquadConfiguration)
-    setUserPresets((current) => [...current, duplicate])
-    setSelectedPresetId(duplicate.id)
+    setPresetNameDialog({ mode: 'duplicate', initialValue: `${selectedPreset.name} copy` })
+  }
+  const confirmPresetName = (name: string): void => {
+    const action = presetNameDialog
+    if (!action) return
+    setPresetNameDialog(null)
+    if (action.mode === 'rename') {
+      if (!selectedPreset || selectedPreset.builtIn) return
+      setUserPresets((current) => current.map((preset) =>
+        preset.id === selectedPreset.id ? { ...preset, name } : preset,
+      ))
+      onMessage(`Renamed squad preset to “${name}”.`)
+      return
+    }
+    const preset = createUserPreset(name, currentSquadConfiguration)
+    setUserPresets((current) => [...current, preset])
+    setSelectedPresetId(preset.id)
+    onMessage(
+      action.mode === 'duplicate'
+        ? `Duplicated squad preset as “${preset.name}”.`
+        : `Saved squad preset “${preset.name}”.`,
+    )
   }
   const deleteSelectedPreset = (): void => {
     if (!selectedPreset || selectedPreset.builtIn || !window.confirm(`Delete squad preset “${selectedPreset.name}”?`)) return
@@ -565,6 +577,7 @@ export default function StandardSquadFeature({
       </details>
     </section>
     {editingSlot !== null && dataset && squad.length === 0 && editingSlot < constraints.squadSize && <SquadConstraintEditor slotIndex={editingSlot} value={constraints.slots[editingSlot] ?? createEmptySlotConstraint()} resetValue={selectedPreset?.configuration.slots[editingSlot] ?? createEmptySlotConstraint()} constraints={constraints} operators={finalOperatorPool} classLabels={dataset.classLabels} onApply={(value) => saveSlotConstraint(editingSlot, value)} onClose={() => setEditingSlot(null)} />}
+    {presetNameDialog && <TextInputDialog title={presetNameDialog.mode === 'save' ? 'Save squad preset' : presetNameDialog.mode === 'duplicate' ? 'Duplicate squad preset' : 'Rename squad preset'} initialValue={presetNameDialog.initialValue} confirmLabel={presetNameDialog.mode === 'save' ? 'Save' : presetNameDialog.mode === 'duplicate' ? 'Duplicate' : 'Rename'} onCancel={() => setPresetNameDialog(null)} onConfirm={confirmPresetName} />}
     {pendingConfirmation && <ConfirmationDialog confirmation={pendingConfirmation} dontShowAgain={dontShowAgain} setDontShowAgain={setDontShowAgain} onCancel={() => { setPendingConfirmation(null); setDontShowAgain(false) }} onConfirm={confirmPending} />}
   </>
 }

@@ -89,11 +89,17 @@ function ExpandControl({
       title={presentation.blockReasonLabel ?? undefined}
       onClick={onExpand}
     >
+      <span
+        className={`draft-operator-price draft-operator-price--${presentation.economy.tone} draft-squad-expand__price`}
+        aria-label={economyLabel}
+        title={economyLabel}
+      >
+        {presentation.economy.amount}
+      </span>
       <span className="draft-squad-expand__icon" aria-hidden="true">
         +
       </span>
       <strong>Expand</strong>
-      <span>{economyLabel}</span>
     </button>
   )
 }

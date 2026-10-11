@@ -272,6 +272,7 @@
 }
 
 .draft-squad-expand {
+  position: relative;
   grid-row: 2;
   display: grid;
   place-content: center;
@@ -307,7 +308,7 @@
 
 .draft-squad-expand__icon {
   color: #f5ad2f;
-  font-size: 1.2rem;
+  font-size: 2rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -320,8 +321,11 @@
   font-size: 0.68rem;
 }
 
-.draft-squad-expand > span:last-child {
-  font-size: 0.56rem;
+.draft-squad-expand__price {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 8px;
 }
 
 @media (max-width: 820px) {

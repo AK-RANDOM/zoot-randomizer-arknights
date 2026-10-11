@@ -31,18 +31,16 @@ export interface DraftSessionController {
   configuration: ResolvedDraftConfiguration
   distributionLabel: string
   start: () => void
+  finalize: () => void
   act: (action: DraftAction) => void
   pick: (operatorId: string) => void
   reset: (message?: string) => void
 }
 
-const RESET_MESSAGE = 'Draft reset because the squad size, eligible pool, or Draft Rulebook changed.'
+const RESET_MESSAGE =
+  'Draft reset because the squad size, eligible pool, or Draft Rulebook changed.'
 
-function actionMessage(
-  action: DraftAction,
-  after: DraftState,
-  pool: readonly Operator[],
-): string {
+function actionMessage(action: DraftAction, after: DraftState, pool: readonly Operator[]): string {
   if (after.status === 'complete') return draftCompletionMessage(after)
   switch (action.type) {
     case 'pick': {
@@ -89,12 +87,15 @@ export default function useDraftSession({
     [poolKey, resolvedConfiguration, sessionKey],
   )
 
-  const reset = useCallback((message = RESET_MESSAGE): void => {
-    setState(null)
-    setActiveIdentity(null)
-    onError(null)
-    onMessage(message)
-  }, [onError, onMessage])
+  const reset = useCallback(
+    (message = RESET_MESSAGE): void => {
+      setState(null)
+      setActiveIdentity(null)
+      onError(null)
+      onMessage(message)
+    },
+    [onError, onMessage],
+  )
 
   useEffect(() => {
     if (!state || activeIdentity === identity) return
@@ -124,32 +125,54 @@ export default function useDraftSession({
     }
   }, [engineOptions, identity, onError, onMessage, pool, ready, targetSize])
 
-  const act = useCallback((action: DraftAction): void => {
-    if (!state) return
-    if (activeIdentity !== identity || state.poolKey !== poolKey) {
-      reset()
-      return
-    }
-
+  const finalize = useCallback((): void => {
+    if (!state || state.status !== 'active') return
     onError(null)
-    try {
-      const next = applyDraftAction(state, pool, action, engineOptions)
-      setState(next)
-      onMessage(actionMessage(action, next, pool))
-    } catch (reason) {
-      onError(reason instanceof Error ? reason.message : String(reason))
+    const next: DraftState = {
+      ...state,
+      currentOfferIds: [],
+      heldOperatorId: null,
+      holdUpkeepCharges: 0,
+      status: 'complete',
+      completionReason: 'finalized',
     }
-  }, [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state])
+    setState(next)
+    onMessage(draftCompletionMessage(next))
+  }, [onError, onMessage, state])
 
-  const pick = useCallback((operatorId: string): void => {
-    act({ type: 'pick', operatorId })
-  }, [act])
+  const act = useCallback(
+    (action: DraftAction): void => {
+      if (!state) return
+      if (activeIdentity !== identity || state.poolKey !== poolKey) {
+        reset()
+        return
+      }
+
+      onError(null)
+      try {
+        const next = applyDraftAction(state, pool, action, engineOptions)
+        setState(next)
+        onMessage(actionMessage(action, next, pool))
+      } catch (reason) {
+        onError(reason instanceof Error ? reason.message : String(reason))
+      }
+    },
+    [activeIdentity, engineOptions, identity, onError, onMessage, pool, poolKey, reset, state],
+  )
+
+  const pick = useCallback(
+    (operatorId: string): void => {
+      act({ type: 'pick', operatorId })
+    },
+    [act],
+  )
 
   return {
     state,
     configuration: resolvedConfiguration,
     distributionLabel: draftPullDistributionLabel(resolvedConfiguration.pullDistribution),
     start,
+    finalize,
     act,
     pick,
     reset,

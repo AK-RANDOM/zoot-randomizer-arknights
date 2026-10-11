@@ -52,12 +52,12 @@ export function getDraftOperatorCostForState(
   )
 }
 
+/** Returns whether this action advances a Held operator through a paid upkeep carry. */
 export function draftActionCarriesHoldForward(
   state: DraftHoldEconomyState,
   action: DraftAction,
 ): boolean {
   if (!state.heldOperatorId) return false
-  if (action.type === 'forfeit') return true
   return action.type === 'pick' && action.operatorId !== state.heldOperatorId
 }
 
@@ -83,10 +83,7 @@ export function getDraftHoldUpkeepCost(
   state: DraftHoldEconomyState,
   options: Pick<DraftEngineOptions, 'configuration' | 'economyRules'> = {},
 ): number {
-  return getDraftHoldUpkeepCostWithConfiguration(
-    state,
-    resolveDraftEngineConfiguration(options),
-  )
+  return getDraftHoldUpkeepCostWithConfiguration(state, resolveDraftEngineConfiguration(options))
 }
 
 export function getDraftActionPointDeltaWithConfiguration(
@@ -102,11 +99,9 @@ export function getDraftActionPointDeltaWithConfiguration(
   switch (action.type) {
     case 'pick': {
       const operator = draftOperatorById(pool, action.operatorId)
-      delta = -(
-        state
-          ? getDraftOperatorCostForStateWithConfiguration(operator, state, configuration)
-          : getDraftOperatorCostWithConfiguration(operator, configuration)
-      )
+      delta = -(state
+        ? getDraftOperatorCostForStateWithConfiguration(operator, state, configuration)
+        : getDraftOperatorCostWithConfiguration(operator, configuration))
       break
     }
     case 'forfeit':

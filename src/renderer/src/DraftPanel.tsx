@@ -44,7 +44,7 @@ function ConfiguredRulebookDraft({
   rulebookControl?: React.ReactNode
   onActiveDraftChange?: (active: boolean) => void
 }): React.JSX.Element {
-  const [message, setMessage] = useState<string | null>(null)
+  const [, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const execution = useMemo(
@@ -76,18 +76,15 @@ function ConfiguredRulebookDraft({
       operators={execution?.pool ?? []}
       targetSize={targetSize}
       ready={ready && dataset !== null}
-      distributionLabel={session.distributionLabel}
       rulebook={rulebook}
-      poolSourceLabel={execution?.poolSourceLabel ?? 'Resolving…'}
       dataset={dataset ?? undefined}
       configuration={configuration}
       validationErrors={execution?.validation.errors ?? []}
-      statusMessage={message}
       statusError={error}
       onStart={session.start}
       onPick={session.pick}
       onAction={session.act}
-      onAbandon={() => session.reset('Draft abandoned.')}
+      onFinalize={session.finalize}
       rulebookControl={rulebookControl}
     />
   )
@@ -135,7 +132,11 @@ export default function DraftPanel({
 
   const selectRulebook = (rulebookId: string): void => {
     if (rulebookId === selected.identifier.id) return
-    if (draftActive && !window.confirm('Changing Draft Rulebook will abandon the current Draft. Continue?')) return
+    if (
+      draftActive &&
+      !window.confirm('Changing Draft Rulebook will abandon the current Draft. Continue?')
+    )
+      return
     setSelectedId(rulebookId)
     saveSelectedDraftRulebookId(rulebookId)
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))

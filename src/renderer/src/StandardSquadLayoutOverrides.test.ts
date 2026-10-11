@@ -1,8 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const layoutCss = readFileSync(new URL('./StandardSquadLayoutOverrides.css', import.meta.url), 'utf8')
-const indicatorCss = readFileSync(new URL('./SlotClassConstraintIndicator.css', import.meta.url), 'utf8')
+const layoutCss = readFileSync(
+  new URL('./StandardSquadLayoutOverrides.css', import.meta.url),
+  'utf8',
+)
+const indicatorCss = readFileSync(
+  new URL('./SlotClassConstraintIndicator.css', import.meta.url),
+  'utf8',
+)
+const featureSource = readFileSync(new URL('./StandardSquadFeature.tsx', import.meta.url), 'utf8')
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
@@ -13,20 +20,37 @@ describe('Standard Squad layout refinements', () => {
     expect(indicatorCss).toContain('width: 23px')
   })
 
-  it('moves preset and run controls with grid placement instead of absolute positioning', () => {
-    expect(layoutCss).toContain('.squad-panel > .preset-toolbar')
-    expect(layoutCss).toContain('.preset-actions > button:nth-child(1)')
-    expect(layoutCss).toContain('.preset-actions > button:nth-child(2)')
-    expect(layoutCss).toContain('.section-heading .randomize-button')
-    expect(layoutCss).toContain('.section-heading .secondary-button')
-    expect(layoutCss).not.toContain('position: absolute')
+  it('keeps preset and run controls together inside the preset toolbar', () => {
+    const toolbarStart = featureSource.indexOf('<div className="preset-toolbar">')
+    const toolbarEnd = featureSource.indexOf(
+      '<div className="current-constraint-summary"',
+      toolbarStart,
+    )
+    const toolbarSource = featureSource.slice(toolbarStart, toolbarEnd)
+
+    expect(toolbarStart).toBeGreaterThanOrEqual(0)
+    expect(toolbarSource).toContain('<span className="preset-toolbar-label">Preset</span>')
+    expect(toolbarSource).toContain('Save as preset…')
+    expect(toolbarSource).toContain('Clear Squad')
+    expect(toolbarSource).toContain('Randomize')
+    expect(toolbarSource).toContain('disabled={squad.length === 0}')
+    expect(featureSource).not.toContain('Randomize Again')
+    expect(layoutCss).toContain('.preset-toolbar .preset-actions-spacer')
+    expect(layoutCss).not.toContain('.section-heading .randomize-button')
     expect(mainSource).toContain("import './StandardSquadLayoutOverrides.css'")
   })
 
-  it('places Reset Constraints on the same grid row as Current constraints', () => {
-    expect(layoutCss).toContain('.squad-panel > .current-constraint-summary')
-    expect(layoutCss).toContain('.section-heading .danger-button')
-    expect(layoutCss).toContain('grid-row: 2')
+  it('keeps Reset Constraints inside the Current constraints box and always rendered', () => {
+    const summaryStart = featureSource.indexOf('<div className="current-constraint-summary"')
+    const summaryEnd = featureSource.indexOf('{dataset && !validation.valid', summaryStart)
+    const summarySource = featureSource.slice(summaryStart, summaryEnd)
+
+    expect(summaryStart).toBeGreaterThanOrEqual(0)
+    expect(summaryEnd).toBeGreaterThan(summaryStart)
+    expect(summarySource).toContain('Reset Constraints')
+    expect(summarySource).toContain('disabled={!canResetConstraints}')
+    expect(layoutCss).toContain('.current-constraint-summary .danger-button')
+    expect(layoutCss).not.toContain('.section-heading .danger-button')
   })
 
   it('centers the Standard 6x2 grid', () => {

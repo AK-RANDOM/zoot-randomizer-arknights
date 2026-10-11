@@ -159,6 +159,8 @@
   height: calc(100% - 60px);
   object-fit: contain;
   object-position: center;
+  transform: scale(0.75);
+  transform-origin: center;
   opacity: 0.76;
   pointer-events: none;
   user-select: none;

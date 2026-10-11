@@ -27,18 +27,15 @@ export interface DraftSessionViewProps {
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
-  distributionLabel: string
   rulebook: DraftRulebook
-  poolSourceLabel: string
   dataset?: OperatorDataset
   configuration?: ResolvedDraftConfiguration
   validationErrors?: readonly string[]
-  statusMessage?: string | null
   statusError?: string | null
   onStart: () => void
   onPick: (operatorId: string) => void
   onAction?: (action: DraftAction) => void
-  onAbandon?: () => void
+  onFinalize?: () => void
   rulebookControl?: ReactNode
 }
 export default function DraftSessionView({
@@ -46,18 +43,15 @@ export default function DraftSessionView({
   operators,
   targetSize,
   ready,
-  distributionLabel,
   rulebook,
-  poolSourceLabel,
   dataset,
   configuration,
   validationErrors = [],
-  statusMessage,
   statusError,
   onStart,
   onPick,
   onAction,
-  onAbandon,
+  onFinalize,
   rulebookControl,
 }: DraftSessionViewProps): React.JSX.Element {
   const operatorById = useMemo(
@@ -65,9 +59,7 @@ export default function DraftSessionView({
     [operators],
   )
   const canStart =
-    ready &&
-    validationErrors.length === 0 &&
-    operators.length >= rulebook.generalRules.offerSize
+    ready && validationErrors.length === 0 && operators.length >= rulebook.generalRules.offerSize
   const status = resolveDraftStatusPresentation(state, targetSize)
   const draftOngoing = state?.status === 'active'
   const confirmationsEnabled = useDraftActionConfirmationPreference()
@@ -123,6 +115,20 @@ export default function DraftSessionView({
     setPendingConfirmation({ intent: { type: 'new-draft' }, execute: onStart, mandatory: false })
   }
 
+  const requestFinalize = (): void => {
+    if (!onFinalize || !draftOngoing) return
+    if (!confirmationsEnabled || sessionConfirmationsSuppressed) {
+      onFinalize()
+      return
+    }
+    setSuppressPendingSession(false)
+    setPendingConfirmation({
+      intent: { type: 'finalize-draft' },
+      execute: onFinalize,
+      mandatory: false,
+    })
+  }
+
   const cancelPendingConfirmation = (): void => {
     setPendingConfirmation(null)
     setSuppressPendingSession(false)
@@ -171,23 +177,14 @@ export default function DraftSessionView({
           </div>
         </div>
         <button
-          className={draftOngoing ? 'danger-button draft-status-abandon' : 'randomize-button draft-status-new'}
+          className="randomize-button draft-status-new"
           type="button"
-          disabled={draftOngoing ? false : !canStart}
-          onClick={draftOngoing ? onAbandon : requestStart}
+          disabled={draftOngoing ? !onFinalize : !canStart}
+          onClick={draftOngoing ? requestFinalize : requestStart}
         >
-          {draftOngoing ? 'Abandon' : 'Start Draft'}
+          {draftOngoing ? 'Finalize' : 'Start Draft'}
         </button>
       </div>
-      <div className="draft-status-context" aria-label="Draft Rulebook context">
-        <span>Revision {rulebook.identifier.revision}</span>
-        <span>{poolSourceLabel}</span>
-        <span>{distributionLabel}</span>
-        <span>{operators.length} eligible operators</span>
-      </div>
-      {rulebook.identifier.description && (
-        <p className="draft-rulebook-description">{rulebook.identifier.description}</p>
-      )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>
@@ -202,13 +199,6 @@ export default function DraftSessionView({
         <div className="validation-box" role="alert">
           <strong>{statusError}</strong>
         </div>
-      )}
-      {statusMessage && !statusError && <p className="draft-session-note">{statusMessage}</p>}
-      {state && (
-        <p className="draft-session-note">
-          This Draft is tied to its starting pool, target size, and Draft Rulebook. Changing any of
-          them resets the session.
-        </p>
       )}
       {!state ? (
         <div className="draft-empty-state">

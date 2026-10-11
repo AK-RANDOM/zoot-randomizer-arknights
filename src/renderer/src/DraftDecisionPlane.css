@@ -17,6 +17,7 @@
 }
 .draft-decision-side-rail {
   display: grid;
+  margin-left: 8px;
   min-width: 0;
   align-items: flex-start;
   gap: 12px;
@@ -61,9 +62,7 @@
   border: 1px dashed #55555e;
   border-radius: 6px;
   color: #8f8f96;
-  background:
-    linear-gradient(180deg, rgba(75, 85, 105, 0.12), rgba(21, 21, 24, 0.95)),
-    #151518;
+  background: linear-gradient(180deg, rgba(75, 85, 105, 0.12), rgba(21, 21, 24, 0.95)), #151518;
   text-align: center;
 }
 .draft-hold-surface__body {
@@ -116,7 +115,10 @@
   background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
   text-align: left;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
 }
 .draft-forfeit-surface:hover:not(:disabled),
 .draft-forfeit-surface:focus-visible {

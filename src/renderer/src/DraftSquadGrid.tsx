@@ -10,11 +10,45 @@ import {
 } from './draftPresentation'
 import './DraftSquadGrid.css'
 
+const openSlotIconUrl = new URL('./assets/draft/open-slot-icon.png', import.meta.url).href
+const overflowSlotIconUrl = new URL('./assets/draft/overflow-slot-icon.png', import.meta.url).href
+const lockedSlotIconUrl = new URL('./assets/draft/locked-slot-icon.png', import.meta.url).href
+
 interface DraftSquadGridProps {
   state: DraftState
   operators: readonly Operator[]
   configuration: ResolvedDraftConfiguration
   onAction: (action: DraftAction) => void
+}
+
+function DraftEmptySlotFrame({
+  slotNumber,
+  variant,
+}: {
+  slotNumber: number
+  variant: 'valid' | 'expandable' | 'invalid'
+}): React.JSX.Element {
+  const title =
+    variant === 'valid' ? 'Open' : variant === 'expandable' ? 'Locked' : 'Unavailable'
+  const iconUrl = variant === 'valid' ? openSlotIconUrl : lockedSlotIconUrl
+
+  return (
+    <div className={`draft-squad-slot__frame draft-squad-slot__frame--${variant}`}>
+      <span className="draft-squad-slot__number">{slotNumber}</span>
+      <img className="draft-squad-slot__icon" src={iconUrl} alt="" aria-hidden="true" />
+      <strong>{title}</strong>
+    </div>
+  )
+}
+
+function EmptyOverflowFrame(): React.JSX.Element {
+  return (
+    <div className="draft-squad-overflow__empty">
+      <img className="draft-squad-overflow__icon" src={overflowSlotIconUrl} alt="" aria-hidden="true" />
+      <strong>Empty</strong>
+      <span>Temporary slot</span>
+    </div>
+  )
 }
 
 function DraftRosterAvatar({
@@ -161,16 +195,7 @@ export default function DraftSquadGrid({
                 {operator ? (
                   <DraftRosterAvatar operator={operator} />
                 ) : (
-                  <div className={`draft-squad-slot__frame draft-squad-slot__frame--${slot.state}`}>
-                    <span className="draft-squad-slot__number">{slot.slotNumber}</span>
-                    <strong>
-                      {slot.state === 'valid'
-                        ? 'Open'
-                        : slot.state === 'expandable'
-                          ? 'Locked'
-                          : 'Unavailable'}
-                    </strong>
-                  </div>
+                  <DraftEmptySlotFrame slotNumber={slot.slotNumber} variant={slot.state} />
                 )}
               </div>
             )
@@ -190,10 +215,7 @@ export default function DraftSquadGrid({
                 {overflowOperator ? (
                   <DraftRosterAvatar operator={overflowOperator} overflow />
                 ) : (
-                  <div className="draft-squad-overflow__empty">
-                    <strong>Empty</strong>
-                    <span>Temporary slot</span>
-                  </div>
+                  <EmptyOverflowFrame />
                 )}
               </div>
             )}

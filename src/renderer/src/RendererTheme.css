@@ -339,3 +339,15 @@ body {
   top: 11px;
   left: 11px;
 }
+
+/* Shared locked-capacity artwork: Draft locked slots and Standard unavailable slots use the same asset. */
+.squad-grid .disabled-slot::before {
+  width: 40px;
+  max-width: 44%;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  content: '';
+  background: url('./assets/draft/locked-slot-icon.png') center / contain no-repeat;
+  opacity: 0.42;
+  pointer-events: none;
+}

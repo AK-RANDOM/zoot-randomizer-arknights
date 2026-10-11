@@ -28,7 +28,7 @@ describe('Standard and Draft UI follow-up', () => {
     const session = read('./DraftSessionView.tsx')
     const app = read('./App.tsx')
     expect(panel).toContain('className="draft-rulebook-select"')
-    expect(session).toContain("draftOngoing ? 'Abandon' : 'Start Draft'")
+    expect(session).toContain("draftOngoing ? 'Finalize' : 'Start Draft'")
     expect(app).toContain('Leaving this page will abandon the Draft')
     expect(app).toContain('DRAFT_SESSION_RESET_EVENT')
   })

@@ -313,9 +313,44 @@ body {
   color: #65747b;
 }
 
+/* Follow-up card/filter polish. */
+.operator-card--portrait .operator-card__faction-logo {
+  inset: -20% 0 auto;
+  height: 120%;
+  object-position: center;
+}
+
+.squad-panel .bound-grid--classes .bound-class-icon {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.squad-panel .bound-grid--classes .bound-class-icon img {
+  filter: brightness(0) saturate(100%) invert(100%) contrast(140%)
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
+}
+
 /* The slot wrapper supplies the same 3px frame as a finalized operator card. */
 .squad-grid .slot-locked-card .operator-card--portrait {
-  border 0;
+  border: 0;
   border-radius: 1px;
   box-shadow: none;
+}
+
+.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left {
+  top: 11px;
+  left: 11px;
+}
+
+/* Shared locked-capacity artwork: Draft locked slots and Standard unavailable slots use the same asset. */
+.squad-grid .disabled-slot::before {
+  width: 40px;
+  max-width: 44%;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  content: '';
+  background: url('./assets/draft/locked-slot-icon.png') center / contain no-repeat;
+  opacity: 0.42;
+  pointer-events: none;
 }

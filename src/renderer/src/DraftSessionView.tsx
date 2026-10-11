@@ -13,8 +13,101 @@ import OperatorCard from './OperatorCard'
 import DraftSquadGrid from './DraftSquadGrid'
 import { resolveDraftStatusPresentation } from './draftPresentation'
 import { draftCompletionMessage } from './draftSessionMessages'
+import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
+
+function DraftHistoryTable({
+  state,
+  operatorById,
+}: {
+  state: DraftState
+  operatorById: ReadonlyMap<string, Operator>
+}): React.JSX.Element {
+  const rounds = buildDraftHistoryRounds(state.history)
+
+  return (
+    <section className="draft-history" aria-labelledby="draft-history-heading">
+      <div className="draft-history__heading">
+        <div>
+          <span className="eyebrow">Completed Run</span>
+          <strong id="draft-history-heading">Draft History</strong>
+        </div>
+        <span>{rounds.length} rounds</span>
+      </div>
+      <div className="draft-history__table-shell">
+        <table className="draft-history__table">
+          <thead>
+            <tr>
+              <th scope="col">Round</th>
+              <th scope="col">Offers</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rounds.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="draft-history__empty">
+                  No draft events were recorded.
+                </td>
+              </tr>
+            ) : (
+              rounds.map((round) => (
+                <tr key={round.roundNumber}>
+                  <th scope="row">{round.roundNumber}</th>
+                  <td>
+                    <div className="draft-history__stack">
+                      {round.offers.map((offer, offerIndex) => (
+                        <div
+                          className="draft-history__entry"
+                          key={`${round.roundNumber}-offer-${offerIndex}`}
+                        >
+                          <strong>
+                            Offer {offerIndex + 1}
+                            {offer.source === 'reroll' ? ' · Reroll' : ''}
+                          </strong>
+                          <span>
+                            {offer.operatorIds
+                              .map((operatorId) => operatorById.get(operatorId)?.name ?? operatorId)
+                              .join(' · ')}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="draft-history__stack">
+                      {round.actions.length === 0 ? (
+                        <span className="draft-history__muted">
+                          Finalized without a round action
+                        </span>
+                      ) : (
+                        round.actions.map((action, actionIndex) => {
+                          const operatorName = action.operatorId
+                            ? (operatorById.get(action.operatorId)?.name ?? action.operatorId)
+                            : null
+                          return (
+                            <div
+                              className="draft-history__entry"
+                              key={`${round.roundNumber}-action-${actionIndex}`}
+                            >
+                              <strong>{draftHistoryActionLabel(action.action)}</strong>
+                              {operatorName && <span>{operatorName}</span>}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
 
 interface PendingDraftConfirmation {
   intent: DraftConfirmationIntent
@@ -263,6 +356,9 @@ export default function DraftSessionView({
           configuration={configuration}
           onAction={requestEngineAction}
         />
+      )}
+      {state?.status === 'complete' && (
+        <DraftHistoryTable state={state} operatorById={operatorById} />
       )}
       {pendingConfirmation && (
         <DraftConfirmationDialog

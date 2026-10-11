@@ -26,9 +26,8 @@ describe('Draft execution polish', () => {
   it('uses a compact pill identity on Current Draft avatars', () => {
     const css = read('./DraftSquadGrid.css')
     expect(css).toContain('border-radius: 999px;')
-    expect(css).toContain('width: auto;')
-    expect(css).toContain('height: 0.58rem;')
-    expect(css).toContain('height: 100%;')
+    expect(css).toContain('width: 8px;')
+    expect(css).toContain('height: 8px;')
     expect(css).toContain('background: rgba(7, 7, 9, 0.72);')
   })
 
@@ -41,6 +40,18 @@ describe('Draft execution polish', () => {
     expect(session).toContain("completionReason: 'finalized'")
     expect(session).toContain("status: 'complete'")
     expect(draftConfirmationCopy({ type: 'finalize-draft' }).confirmLabel).toBe('Finalize')
+  })
+
+  it('shows Draft History only after completion and keeps locked frames at one 3px layer', () => {
+    const view = read('./DraftSessionView.tsx')
+    const lockedCss = read('./LockedSlotCard.css')
+    const themeCss = read('./RendererTheme.css')
+
+    expect(view).toContain("state?.status === 'complete'")
+    expect(view).toContain('<DraftHistoryTable state={state} operatorById={operatorById} />')
+    expect(lockedCss).toContain('padding: 3px;')
+    expect(themeCss).toContain('.squad-grid .slot-locked-card .operator-card--portrait {')
+    expect(themeCss).toContain('border: 0;')
   })
 
   it('removes verbose Rulebook/session detail from the execution view', () => {

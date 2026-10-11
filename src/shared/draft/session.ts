@@ -5,10 +5,7 @@ import {
 } from './actions'
 import { maxAttainableDraftCapacity } from './capacity'
 import { resolveDraftEngineConfiguration, validateDraftConfiguration } from './config'
-import {
-  draftActionCarriesHoldForward,
-  getDraftActionPointDeltaWithConfiguration,
-} from './economy'
+import { draftActionCarriesHoldForward, getDraftActionPointDeltaWithConfiguration } from './economy'
 import { generateDraftOffer } from './offers'
 import { assertDraftPoolIdentity, createDraftPoolKey } from './pool'
 import type {
@@ -17,6 +14,7 @@ import type {
   DraftActionUsageMap,
   DraftCompletionReason,
   DraftEngineOptions,
+  DraftHistoryEvent,
   DraftState,
   ResolvedDraftConfiguration,
 } from './types'
@@ -48,6 +46,39 @@ function recordAction(state: DraftState, action: DraftActionType): DraftActionUs
       lastUsedRound: state.roundNumber,
     },
   }
+}
+
+function historyOperatorId(state: DraftState, action: DraftAction): string | null {
+  switch (action.type) {
+    case 'pick':
+    case 'hold':
+      return action.operatorId
+    case 'release-hold':
+      return state.heldOperatorId
+    default:
+      return null
+  }
+}
+
+function recordHistoryAction(state: DraftState, action: DraftAction): DraftHistoryEvent[] {
+  return [
+    ...state.history,
+    {
+      type: 'action',
+      roundNumber: state.roundNumber,
+      action: action.type,
+      operatorId: historyOperatorId(state, action),
+    },
+  ]
+}
+
+function recordHistoryOffer(
+  history: readonly DraftHistoryEvent[],
+  roundNumber: number,
+  operatorIds: readonly string[],
+  source: Extract<DraftHistoryEvent, { type: 'offer' }>['source'],
+): DraftHistoryEvent[] {
+  return [...history, { type: 'offer', roundNumber, operatorIds: [...operatorIds], source }]
 }
 
 function completeState(state: DraftState, reason: DraftCompletionReason): DraftState {
@@ -87,10 +118,7 @@ function beginNextRound(
     )
   }
 
-  if (
-    configuration.maxRounds !== null &&
-    state.roundNumber >= configuration.maxRounds
-  ) {
+  if (configuration.maxRounds !== null && state.roundNumber >= configuration.maxRounds) {
     return completeState(
       { ...state, completedRounds: state.completedRounds + 1 },
       'round-limit-reached',
@@ -117,15 +145,13 @@ function beginNextRound(
   }
   const offer = generateDraftOffer(pool, nextBase, options, configuration)
   if (!offer) {
-    return completeState(
-      { ...nextBase, roundNumber: state.roundNumber },
-      'pool-exhausted',
-    )
+    return completeState({ ...nextBase, roundNumber: state.roundNumber }, 'pool-exhausted')
   }
   return completeIfNoValidMove(
     {
       ...nextBase,
       currentOfferIds: offer.ids,
+      history: recordHistoryOffer(nextBase.history, nextBase.roundNumber, offer.ids, 'round-start'),
       pullsSinceSixStar: offer.pullsSinceSixStar,
       generatedCandidateCount: offer.generatedCandidateCount,
       actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
@@ -176,6 +202,7 @@ export function startDraft(
     generatedCandidateCount: 0,
     actualFiveStarGeneratedInFirstTen: false,
     actionUsage: emptyUsage(),
+    history: [],
     status: 'active',
     completionReason: null,
   }
@@ -186,6 +213,7 @@ export function startDraft(
         {
           ...base,
           currentOfferIds: offer.ids,
+          history: recordHistoryOffer(base.history, base.roundNumber, offer.ids, 'initial'),
           pullsSinceSixStar: offer.pullsSinceSixStar,
           generatedCandidateCount: offer.generatedCandidateCount,
           actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
@@ -206,17 +234,13 @@ export function applyDraftAction(
   const configuration = resolveDraftEngineConfiguration(options)
   validateDraftConfiguration(configuration)
 
-  const availability = evaluateDraftActionWithConfiguration(
-    state,
-    pool,
-    action,
-    configuration,
-  )
+  const availability = evaluateDraftActionWithConfiguration(state, pool, action, configuration)
   if (!availability.available) {
     throw new Error(`Draft action ${action.type} is unavailable: ${availability.reason}.`)
   }
 
   const actionUsage = recordAction(state, action.type)
+  const history = recordHistoryAction(state, action)
   const points =
     state.points + getDraftActionPointDeltaWithConfiguration(pool, action, configuration, state)
   const carriesHoldForward = draftActionCarriesHoldForward(state, action)
@@ -237,6 +261,7 @@ export function applyDraftAction(
           holdUpkeepCharges: fromHold ? 0 : retainedHoldUpkeepCharges,
           points,
           actionUsage,
+          history,
         },
         pool,
         options,
@@ -258,6 +283,7 @@ export function applyDraftAction(
           discardedOperatorIds: discarded,
           points,
           actionUsage,
+          history,
         },
         pool,
         options,
@@ -272,6 +298,7 @@ export function applyDraftAction(
           holdUpkeepCharges: 0,
           points,
           actionUsage,
+          history,
         },
         pool,
         configuration,
@@ -290,6 +317,7 @@ export function applyDraftAction(
           holdUpkeepCharges: retainedHoldUpkeepCharges,
           points,
           actionUsage,
+          history,
         },
         pool,
         options,
@@ -305,6 +333,7 @@ export function applyDraftAction(
         discardedOperatorIds: discarded,
         points,
         actionUsage,
+        history,
         currentOfferIds: [],
       }
       const offer = generateDraftOffer(pool, next, options, configuration)
@@ -313,6 +342,7 @@ export function applyDraftAction(
             {
               ...next,
               currentOfferIds: offer.ids,
+              history: recordHistoryOffer(next.history, next.roundNumber, offer.ids, 'reroll'),
               pullsSinceSixStar: offer.pullsSinceSixStar,
               generatedCandidateCount: offer.generatedCandidateCount,
               actualFiveStarGeneratedInFirstTen: offer.actualFiveStarGeneratedInFirstTen,
@@ -326,12 +356,11 @@ export function applyDraftAction(
       return completeIfNoValidMove(
         {
           ...state,
-          activeCapacity: capacityRules.enabled
-            ? state.activeCapacity + 1
-            : state.activeCapacity,
+          activeCapacity: capacityRules.enabled ? state.activeCapacity + 1 : state.activeCapacity,
           capacityExpansionCount: state.capacityExpansionCount + 1,
           points,
           actionUsage,
+          history,
         },
         pool,
         configuration,

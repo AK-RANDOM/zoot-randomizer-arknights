@@ -20,6 +20,20 @@ export type DraftCompletionReason =
   | 'finalized'
 export type DraftActionType =
   'pick' | 'forfeit' | 'hold' | 'release-hold' | 'reroll' | 'slot-expansion'
+export type DraftHistoryEvent =
+  | {
+      type: 'offer'
+      roundNumber: number
+      operatorIds: string[]
+      source: 'initial' | 'round-start' | 'reroll'
+    }
+  | {
+      type: 'action'
+      roundNumber: number
+      action: DraftActionType
+      operatorId: string | null
+    }
+
 export type DraftActionBlockReason =
   | 'draft-complete'
   | 'action-disabled'
@@ -190,6 +204,7 @@ export interface DraftState {
   generatedCandidateCount: number
   actualFiveStarGeneratedInFirstTen: boolean
   actionUsage: DraftActionUsageMap
+  history: DraftHistoryEvent[]
   status: DraftStatus
   completionReason: DraftCompletionReason | null
 }

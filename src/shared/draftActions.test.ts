@@ -64,6 +64,51 @@ describe('Draft advanced execution mechanics', () => {
     expect(currentDraftOwnershipCapacity(state)).toBe(7)
   })
 
+  it('records offers and actions chronologically for end-of-draft history', () => {
+    const pool = roster(15)
+    let state = startDraft(pool, 12, advancedOptions)
+
+    expect(state.history).toEqual([
+      {
+        type: 'offer',
+        roundNumber: 1,
+        operatorIds: ['char_1', 'char_2', 'char_3'],
+        source: 'initial',
+      },
+    ])
+
+    state = applyDraftAction(state, pool, { type: 'reroll' }, advancedOptions)
+    state = applyDraftAction(
+      state,
+      pool,
+      { type: 'pick', operatorId: state.currentOfferIds[1] },
+      advancedOptions,
+    )
+
+    expect(state.history).toEqual([
+      {
+        type: 'offer',
+        roundNumber: 1,
+        operatorIds: ['char_1', 'char_2', 'char_3'],
+        source: 'initial',
+      },
+      { type: 'action', roundNumber: 1, action: 'reroll', operatorId: null },
+      {
+        type: 'offer',
+        roundNumber: 1,
+        operatorIds: ['char_4', 'char_5', 'char_6'],
+        source: 'reroll',
+      },
+      { type: 'action', roundNumber: 1, action: 'pick', operatorId: 'char_5' },
+      {
+        type: 'offer',
+        roundNumber: 2,
+        operatorIds: ['char_4', 'char_6', 'char_7'],
+        source: 'round-start',
+      },
+    ])
+  })
+
   it('rerolls without resolving the round and applies discard semantics', () => {
     const pool = roster(15)
     const initial = startDraft(pool, 12, advancedOptions)

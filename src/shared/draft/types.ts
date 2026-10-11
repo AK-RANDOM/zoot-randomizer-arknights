@@ -17,13 +17,9 @@ export type DraftCompletionReason =
   | 'capacity-exhausted'
   | 'round-limit-reached'
   | 'no-valid-move'
+  | 'finalized'
 export type DraftActionType =
-  | 'pick'
-  | 'forfeit'
-  | 'hold'
-  | 'release-hold'
-  | 'reroll'
-  | 'slot-expansion'
+  'pick' | 'forfeit' | 'hold' | 'release-hold' | 'reroll' | 'slot-expansion'
 export type DraftActionBlockReason =
   | 'draft-complete'
   | 'action-disabled'

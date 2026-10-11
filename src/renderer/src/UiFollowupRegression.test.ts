@@ -32,4 +32,22 @@ describe('Standard and Draft UI follow-up', () => {
     expect(app).toContain('Leaving this page will abandon the Draft')
     expect(app).toContain('DRAFT_SESSION_RESET_EVENT')
   })
+
+  it('keeps Standard squad icon framing and randomize animation consistent', () => {
+    const theme = read('./RendererTheme.css')
+    const card = read('./OperatorCard.tsx')
+    expect(theme).toContain('inset: -20% 0 auto;')
+    expect(theme).toContain('height: 120%;')
+    expect(theme).toContain('.squad-panel .bound-grid--classes .bound-class-icon {')
+    expect(theme).toContain('border-color: transparent;')
+    expect(theme).toContain('background: transparent;')
+    expect(theme).toContain('.squad-grid .slot-locked-card .operator-card--portrait')
+    expect(theme).toContain(
+      '.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left',
+    )
+    expect(theme).toContain('top: 11px;')
+    expect(theme).toContain('left: 11px;')
+    expect(card).toContain('setRandomizeReplayKey((current) => current + 1)')
+    expect(card).toContain("target.closest('.squad-panel .randomize-button')")
+  })
 })

@@ -40,6 +40,8 @@ export default function OperatorCard({
   const artworkPreference = useOperatorArtworkPreference()
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [usingPortrait, setUsingPortrait] = useState(false)
+  const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
+  const cardRef = useRef<HTMLElement | null>(null)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
   const nameViewportRef = useRef<HTMLDivElement | null>(null)
   const nameTextRef = useRef<HTMLSpanElement | null>(null)
@@ -101,6 +103,18 @@ export default function OperatorCard({
     }
   }, [artworkPreference, operator.id])
 
+  useEffect(() => {
+    const replayOnRandomize = (event: MouseEvent): void => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (!target.closest('.squad-panel .randomize-button')) return
+      if (!cardRef.current?.closest('.squad-panel')) return
+      setRandomizeReplayKey((current) => current + 1)
+    }
+    document.addEventListener('click', replayOnRandomize)
+    return () => document.removeEventListener('click', replayOnRandomize)
+  }, [])
+
   const hasInteractions = (interactionDetails?.interactions.length ?? 0) > 0
   const showInteractionTooltip = (): void => {
     const indicator = interactionIndicatorRef.current
@@ -118,6 +132,7 @@ export default function OperatorCard({
 
   return (
     <article
+      ref={cardRef}
       className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
@@ -129,7 +144,7 @@ export default function OperatorCard({
         )}
         {imageUrl ? (
           <img
-            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}`}
+            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
             className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
             src={imageUrl}
             alt=""

@@ -26,8 +26,9 @@ describe('Draft execution polish', () => {
   it('uses a compact pill identity on Current Draft avatars', () => {
     const css = read('./DraftSquadGrid.css')
     expect(css).toContain('border-radius: 999px;')
-    expect(css).toContain('width: 8px;')
-    expect(css).toContain('height: 8px;')
+    expect(css).toContain('width: auto;')
+    expect(css).toContain('height: 0.58rem;')
+    expect(css).toContain('height: 100%;')
     expect(css).toContain('background: rgba(7, 7, 9, 0.72);')
   })
 

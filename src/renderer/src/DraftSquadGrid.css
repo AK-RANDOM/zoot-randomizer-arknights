@@ -176,7 +176,7 @@
   max-width: calc(100% - 10px);
   min-width: 0;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   padding: 2px 5px;
   border-radius: 999px;
   background: rgba(7, 7, 9, 0.72);
@@ -185,8 +185,9 @@
 .draft-squad-avatar__class-icon {
   display: block;
   flex: 0 0 auto;
-  width: 8px;
-  height: 8px;
+  width: auto;
+  height: 0.58rem;
+  aspect-ratio: 1 / 1;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -197,8 +198,8 @@
 
 .draft-squad-avatar__class-icon img {
   display: block;
-  width: 8px;
-  height: 8px;
+  width: auto;
+  height: 100%;
   object-fit: contain;
 }
 

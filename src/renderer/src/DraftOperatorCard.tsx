@@ -1,6 +1,7 @@
 import type { Operator } from '../../shared/operator'
 import OperatorCard, { type OperatorCardInteractionDetails } from './OperatorCard'
 import type {
+  DraftActionPresentation,
   DraftEconomyValuePresentation,
   DraftOperatorPresentation,
 } from './draftPresentation'
@@ -13,6 +14,8 @@ interface DraftOperatorCardProps {
   showHold?: boolean
   onPick: () => void
   onHold?: () => void
+  releasePresentation?: DraftActionPresentation | null
+  onRelease?: () => void
 }
 
 function priceLabel(presentation: DraftOperatorPresentation): string | null {
@@ -41,6 +44,8 @@ export default function DraftOperatorCard({
   showHold = true,
   onPick,
   onHold,
+  releasePresentation = null,
+  onRelease,
 }: DraftOperatorCardProps): React.JSX.Element {
   const priceAriaLabel = priceLabel(presentation)
 
@@ -96,6 +101,17 @@ export default function DraftOperatorCard({
               {presentation.hold.economy.pointDelta === 0
                 ? 'Hold'
                 : `Hold (${presentation.hold.economy.amount})`}
+            </button>
+          )}
+          {releasePresentation && onRelease && (
+            <button
+              type="button"
+              className="draft-operator-action draft-operator-action--release"
+              disabled={!releasePresentation.available}
+              title={releasePresentation.blockReasonLabel ?? undefined}
+              onClick={onRelease}
+            >
+              Release
             </button>
           )}
         </div>

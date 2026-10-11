@@ -8,6 +8,7 @@ export type DraftConfirmationIntent =
       terminalAfterAction?: boolean
     }
   | { type: 'new-draft' }
+  | { type: 'finalize-draft' }
 
 export interface DraftConfirmationCopy {
   title: string
@@ -23,6 +24,15 @@ export function draftConfirmationCopy(intent: DraftConfirmationIntent): DraftCon
       body: 'The current Draft session will be replaced with a fresh first offer.',
       confirmLabel: 'New Draft',
       suppressionLabel: 'Skip Draft confirmations in the new session',
+    }
+  }
+
+  if (intent.type === 'finalize-draft') {
+    return {
+      title: 'Finalize this Draft?',
+      body: 'This ends the Draft immediately and keeps the currently selected squad as the final result.',
+      confirmLabel: 'Finalize',
+      suppressionLabel: 'Skip remaining confirmations for this Draft session',
     }
   }
 

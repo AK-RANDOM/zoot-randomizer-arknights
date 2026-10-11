@@ -149,12 +149,13 @@ export default function DraftDecisionPlane({
   const offerGridStyle = {
     gridTemplateColumns: `repeat(${offerCardCount}, minmax(0, 1fr))`,
   } satisfies CSSProperties
-  const sideRailStyle = sideCardCount > 0
-    ? ({
-        gridColumn: `span ${sideCardCount}`,
-        gridTemplateColumns: `repeat(${sideCardCount}, minmax(0, 1fr))`,
-      } satisfies CSSProperties)
-    : undefined
+  const sideRailStyle =
+    sideCardCount > 0
+      ? ({
+          gridColumn: `span ${sideCardCount}`,
+          gridTemplateColumns: `repeat(${sideCardCount}, minmax(0, 1fr))`,
+        } satisfies CSSProperties)
+      : undefined
 
   return (
     <div className="draft-decision-plane" style={planeStyle} aria-label="Current Draft decision">
@@ -243,30 +244,19 @@ export default function DraftDecisionPlane({
                   currentUpkeep={holdPresentation?.currentUpkeep ?? null}
                   showHold={false}
                   onPick={() => onAction({ type: 'pick', operatorId: heldOperator.id })}
+                  releasePresentation={releaseHold}
+                  onRelease={releaseHold ? () => onAction(releaseHold.action) : undefined}
                 />
               ) : (
-                <div className="draft-hold-surface draft-hold-surface--empty" aria-label="Hold: empty">
+                <div
+                  className="draft-hold-surface draft-hold-surface--empty"
+                  aria-label="Hold: empty"
+                >
                   <DraftActionArtwork variant="hold" />
                   <span className="draft-hold-surface__body">
                     <span>Hold</span>
                     <strong>Empty</strong>
                   </span>
-                </div>
-              )}
-              {releaseHold && (
-                <div className="draft-decision-control">
-                  <button
-                    type="button"
-                    className="secondary-button draft-decision-action"
-                    disabled={!releaseHold.available}
-                    title={releaseHold.blockReasonLabel ?? undefined}
-                    onClick={() => onAction(releaseHold.action)}
-                  >
-                    <strong>Release</strong>
-                    {releaseHold.economy.pointDelta !== 0 && (
-                      <span>{pointDeltaLabel(releaseHold.economy)}</span>
-                    )}
-                  </button>
                 </div>
               )}
             </section>

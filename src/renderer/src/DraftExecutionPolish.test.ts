@@ -50,7 +50,7 @@ describe('Draft execution polish', () => {
 
     expect(view).toContain("state?.status === 'complete'")
     expect(view).toContain('<DraftHistoryTable state={state} operatorById={operatorById} />')
-    expect(lockedCss).toContain('padding: 3px;')
+    expect(lockedCss).toContain('padding: 0;')
     expect(themeCss).toContain('.squad-grid .slot-locked-card .operator-card--portrait {')
     expect(themeCss).toContain('border: 0;')
   })

@@ -101,8 +101,8 @@
 }
 
 .draft-squad-slot__icon {
-  width: 38px;
-  max-width: 58%;
+  width: 75%;
+  max-width: 75%;
   margin-inline: auto;
   opacity: 0.68;
   object-fit: contain;
@@ -289,8 +289,8 @@
 }
 
 .draft-squad-overflow__icon {
-  width: 44px;
-  max-width: 64%;
+  width: 75%;
+  max-width: 75%;
   margin: 0 auto 2px;
   opacity: 0.48;
   object-fit: contain;

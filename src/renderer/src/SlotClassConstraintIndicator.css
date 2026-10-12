@@ -10,8 +10,12 @@
   gap: 4px;
   pointer-events: none;
 }
-.slot-class-constraint-indicator.is-left { left: 7px; }
-.slot-class-constraint-indicator.is-right { right: 7px; }
+.slot-class-constraint-indicator.is-left {
+  left: 7px;
+}
+.slot-class-constraint-indicator.is-right {
+  right: 7px;
+}
 .slot-class-constraint-item {
   position: relative;
   display: grid;
@@ -22,7 +26,9 @@
 }
 .slot-class-constraint-item.is-subfiltered .class-icon {
   border-color: #c49138;
-  box-shadow: 0 0 0 1px rgba(240, 198, 109, 0.34), 0 2px 8px rgba(0,0,0,.35);
+  box-shadow:
+    0 0 0 1px rgba(240, 198, 109, 0.34),
+    0 2px 8px rgba(0, 0, 0, 0.35);
 }
 .slot-class-constraint-subcount {
   position: absolute;
@@ -37,8 +43,8 @@
   border-radius: 999px;
   color: #17120a;
   background: #f0c66d;
-  box-shadow: 0 1px 5px rgba(0,0,0,.45);
-  font-size: .48rem;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  font-size: 0.48rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -48,12 +54,12 @@
   height: 34px;
   padding: 0 5px;
   place-items: center;
-  border: 1px solid rgba(255,255,255,.26);
+  border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 6px;
   color: #e8e8eb;
-  background: rgba(12,12,14,.86);
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  font-size: .62rem;
+  background: rgba(12, 12, 14, 0.86);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  font-size: 0.62rem;
   font-weight: 900;
 }
 

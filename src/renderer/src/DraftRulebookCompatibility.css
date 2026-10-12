@@ -1,0 +1,3 @@
+.rulebook-rulebook-compat > .rulebook-editor-section:last-child {
+  display: none;
+}

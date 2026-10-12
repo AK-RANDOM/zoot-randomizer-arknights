@@ -1,0 +1,42 @@
+/* Empty Standard slots mirror the finalized operator-card composition. */
+.random-operator-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  color: inherit;
+  text-align: inherit;
+}
+
+.random-operator-card__art {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #19191c 0 50%, #141416 50% 100%);
+}
+
+.random-operator-card__caption {
+  z-index: 2;
+}
+
+.random-operator-card__rarity {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  letter-spacing: 0;
+}
+
+.random-operator-card__star {
+  display: inline-block;
+  margin-right: -0.16em;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 1.2px #000000;
+  text-shadow:
+    -1px -1px 0 #000000,
+    1px -1px 0 #000000,
+    -1px 1px 0 #000000,
+    1px 1px 0 #000000,
+    0 2px 3px rgba(0, 0, 0, 0.9);
+}
+
+.random-operator-card__star:last-child {
+  margin-right: 0;
+}

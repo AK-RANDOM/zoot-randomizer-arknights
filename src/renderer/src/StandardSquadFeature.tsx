@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
 import OperatorCard from './OperatorCard'
+import RandomOperatorCard from './RandomOperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
@@ -50,8 +51,6 @@ import {
 const slots = Array.from({ length: 12 }, (_, index) => index + 1)
 const BOUND_WARNING_KEY = 'arknights-randomizer:dismiss-bound-reset-warning'
 const PRESET_WARNING_KEY = 'arknights-randomizer:dismiss-preset-replace-warning'
-const AMIYA_MANDATORY_GROUP = 'amiya-forms'
-const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']
 
 interface PendingConfirmation {
   title: string
@@ -59,81 +58,6 @@ interface PendingConfirmation {
   confirmLabel: string
   preferenceKey: string
   apply: () => void
-}
-
-function sameValues<T>(left: readonly T[], right: readonly T[]): boolean {
-  return left.length === right.length && left.every((value) => right.includes(value))
-}
-
-function raritySetSummary(rarities: readonly OperatorRarity[]): string {
-  if (rarities.length === 0) return 'Any rarity'
-  for (const group of rarityGroupKeys) {
-    const definition = rarityGroupDefinitions[group]
-    if (sameValues(rarities, definition.rarities)) return definition.label
-  }
-  return [...rarities]
-    .sort((left, right) => left - right)
-    .map((rarity) => `${rarity}★`)
-    .join(' / ')
-}
-
-function classSetSummary(
-  classes: readonly OperatorClass[],
-  classLabels?: Readonly<Record<OperatorClass, string>>,
-): string {
-  if (classes.length === 0) return 'Any class'
-  return operatorClasses
-    .filter((operatorClass) => classes.includes(operatorClass))
-    .map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass)
-    .join(' / ')
-}
-
-function amiyaClassSummary(
-  constraint: SlotConstraint,
-  classLabels?: Readonly<Record<OperatorClass, string>>,
-): string {
-  const classes =
-    constraint.classes.length > 0
-      ? AMIYA_CLASS_ORDER.filter((operatorClass) => constraint.classes.includes(operatorClass))
-      : AMIYA_CLASS_ORDER
-  return classes.map((operatorClass) => classLabels?.[operatorClass] ?? operatorClass).join(' / ')
-}
-
-function specificOperatorSummary(
-  constraint: SlotConstraint,
-  dataset: OperatorDataset | null,
-): string | null {
-  if (constraint.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) {
-    return `Amiya — ${amiyaClassSummary(constraint, dataset?.classLabels)}`
-  }
-  if (constraint.mandatoryExclusivityGroup)
-    return `Any form — ${constraint.mandatoryExclusivityGroup}`
-  if (!constraint.operatorId) return null
-  const operator = dataset?.operators.find((candidate) => candidate.id === constraint.operatorId)
-  if (!operator) return constraint.operatorId
-  if (operator.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) {
-    return `Amiya — ${dataset?.classLabels?.[operator.class] ?? operator.class}`
-  }
-  return operator.name
-}
-
-function rarityGradient(rarities: readonly OperatorRarity[]): string | null {
-  if (rarities.length === 0) return null
-  const sorted = [...new Set(rarities)].sort((left, right) => right - left)
-  const colors = sorted.map((rarity) => `var(--rarity-${rarity})`)
-  return colors.length === 1
-    ? `linear-gradient(135deg, ${colors[0]}, ${colors[0]})`
-    : `linear-gradient(135deg, ${colors.join(', ')})`
-}
-
-function slotConfigCardStyle(rarities: readonly OperatorRarity[]): CSSProperties | undefined {
-  const gradient = rarityGradient(rarities)
-  if (!gradient) return undefined
-  return {
-    '--slot-constraint-gradient': gradient,
-    border: '3px solid transparent',
-    background: `linear-gradient(#17140e, #17140e) padding-box, ${gradient} border-box`,
-  } as CSSProperties
 }
 
 function numericSummary(label: string, constraint: NumericConstraint | undefined): string | null {
@@ -645,7 +569,6 @@ export default function StandardSquadFeature({
             const inRange = index < constraints.squadSize
             const slotConstraint = constraints.slots[index] ?? createEmptySlotConstraint()
             const constrained = !slotConstraintIsEmpty(slotConstraint)
-            const specificSummary = specificOperatorSummary(slotConstraint, dataset)
             const indicatorOperators = dataset?.operators ?? finalOperatorPool
             const lockedPresentation =
               !operator &&
@@ -673,55 +596,14 @@ export default function StandardSquadFeature({
                     onModify={() => setEditingSlot(index)}
                     onReset={() => resetSlotConstraint(index)}
                   />
-                ) : constrained ? (
-                  <div
-                    className="slot-config-card is-constrained standard-slot-action-card"
-                    style={slotConfigCardStyle(slotConstraint.rarities)}
-                    aria-label={`Squad slot ${slot} constraint`}
-                  >
-                    <span className="slot-config-number">{slot}</span>
-                    <span className="slot-config-summary">
-                      <strong>{raritySetSummary(slotConstraint.rarities)}</strong>
-                      <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
-                      {specificSummary && (
-                        <span className="slot-config-specific">{specificSummary}</span>
-                      )}
-                    </span>
-                    <div
-                      className="standard-slot-actions-overlay"
-                      aria-label={`Actions for squad slot ${slot}`}
-                    >
-                      <div className="draft-operator-actions">
-                        <button
-                          type="button"
-                          className="draft-operator-action draft-operator-action--pick"
-                          onClick={() => setEditingSlot(index)}
-                        >
-                          Modify
-                        </button>
-                        <button
-                          type="button"
-                          className="draft-operator-action draft-operator-action--hold-cost"
-                          onClick={() => resetSlotConstraint(index)}
-                        >
-                          Reset
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 ) : (
-                  <button
-                    type="button"
-                    className="slot-config-card"
-                    aria-label={`Configure squad slot ${slot}`}
-                    onClick={() => setEditingSlot(index)}
-                  >
-                    <span className="slot-config-number">{slot}</span>
-                    <span className="slot-config-any">
-                      <strong>Any</strong>
-                      <span>Click to configure</span>
-                    </span>
-                  </button>
+                  <RandomOperatorCard
+                    slot={slot}
+                    constraint={slotConstraint}
+                    constrained={constrained}
+                    onModify={() => setEditingSlot(index)}
+                    onReset={() => resetSlotConstraint(index)}
+                  />
                 )}
                 {inRange && constrained && !operator && !lockedPresentation && (
                   <SlotClassConstraintIndicator

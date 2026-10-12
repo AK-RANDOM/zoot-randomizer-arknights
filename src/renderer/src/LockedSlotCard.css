@@ -68,6 +68,11 @@
   background: #552027;
 }
 
+.preset-toolbar .danger-button,
+.current-constraint-summary .danger-button {
+  font-size: inherit;
+}
+
 /* The Standard slot wrapper owns the Draft-style lift so the locked portrait,
    frame, and class indicators move together instead of the nested card moving twice. */
 .slot-locked-card:hover .operator-card,

@@ -1,3 +1,6 @@
-.rulebook-rulebook-compat > .rulebook-editor-section:last-child {
+/* The legacy General Rules editor still owns Pull Distribution in its backend shape.
+ * Hide only the section that actually contains that editor when it is composed inside
+ * the new Rulebook surface; do not depend on fieldset order. */
+.rulebook-rulebook-compat > .rulebook-editor-section:has(.rulebook-distribution-editor) {
   display: none;
 }

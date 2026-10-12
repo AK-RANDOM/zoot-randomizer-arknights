@@ -67,3 +67,52 @@
   border-color: #c95863;
   background: #552027;
 }
+
+/* The Standard slot wrapper owns the Draft-style lift so the locked portrait,
+   frame, and class indicators move together instead of the nested card moving twice. */
+.slot-locked-card:hover .operator-card,
+.slot-locked-card:focus-within .operator-card {
+  transform: none;
+}
+
+/* Constrained Standard slots mirror Draft card interaction: lift the complete
+   slot (including external class indicators), then reveal the same dim/blur
+   action plane used by Draft operator cards. */
+.squad-slot:has(> .slot-config-card.is-constrained),
+.squad-slot:has(> .slot-locked-card) {
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.squad-slot:has(> .slot-config-card.is-constrained):hover,
+.squad-slot:has(> .slot-config-card.is-constrained):focus-within,
+.squad-slot:has(> .slot-locked-card):hover,
+.squad-slot:has(> .slot-locked-card):focus-within {
+  z-index: 3;
+  transform: translateY(-2px);
+}
+
+.squad-slot:has(> .slot-config-card.is-constrained):hover > .slot-config-card,
+.squad-slot:has(> .slot-config-card.is-constrained):focus-within > .slot-config-card,
+.squad-slot:has(> .slot-locked-card):hover > .slot-locked-card,
+.squad-slot:has(> .slot-locked-card):focus-within > .slot-locked-card {
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 11px 27px rgba(0, 0, 0, 0.38);
+}
+
+.standard-slot-actions-overlay {
+  position: absolute;
+  z-index: 9;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.standard-slot-action-card:hover .standard-slot-actions-overlay,
+.standard-slot-action-card:focus-within .standard-slot-actions-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}

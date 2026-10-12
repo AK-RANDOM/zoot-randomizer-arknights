@@ -84,7 +84,11 @@ export const RELEASE_DATE_OVERRIDES: Record<
   string,
   Partial<Record<ReleaseServer, string | null>>
 > = {
-  // Critical Phase Transition starts on 2026-05-01 CN; upstream candidates can surface the pre-banner commit date.
+  // Critical Phase Transition / Episode 17 starts on 2026-05-01 CN; upstream candidates can surface the pre-event commit date.
+  char_4227_gallus: { cn: '2026-05-01' }, // GALLUS²
+  char_4225_tanya: { cn: '2026-05-01' }, // Crackborne
+  char_4226_veen: { cn: '2026-05-01' }, // Viy
+  char_4228_closur: { cn: '2026-05-01' }, // Closure
   char_1052_kalts2: { cn: '2026-05-01' }, // Kal'tsit·Esperanta
   char_456_ash: { cn: '2021-03-09', global: '2021-08-18' },
   char_222_bpipe: { global: '2020-09-10' },

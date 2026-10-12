@@ -328,6 +328,17 @@ export default function StandardSquadFeature({
     markCustom()
     onError(null)
   }
+  const resetSlotConstraint = (slotIndex: number): void => {
+    onConstraintsChange((current) => {
+      const nextSlots = current.slots.map(cloneSlotConstraint)
+      nextSlots[slotIndex] = createEmptySlotConstraint()
+      return { ...current, slots: nextSlots }
+    })
+    setEditingSlot((current) => (current === slotIndex ? null : current))
+    markCustom()
+    onError(null)
+    onMessage(`Squad slot ${slotIndex + 1} constraint reset.`)
+  }
 
   const currentConstraintSummary = useMemo(() => {
     const items: string[] = []
@@ -659,31 +670,57 @@ export default function StandardSquadFeature({
                     constraint={slotConstraint}
                     operators={indicatorOperators}
                     slot={slot}
-                    onClick={() => setEditingSlot(index)}
+                    onModify={() => setEditingSlot(index)}
+                    onReset={() => resetSlotConstraint(index)}
                   />
+                ) : constrained ? (
+                  <div
+                    className="slot-config-card is-constrained standard-slot-action-card"
+                    style={slotConfigCardStyle(slotConstraint.rarities)}
+                    aria-label={`Squad slot ${slot} constraint`}
+                  >
+                    <span className="slot-config-number">{slot}</span>
+                    <span className="slot-config-summary">
+                      <strong>{raritySetSummary(slotConstraint.rarities)}</strong>
+                      <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
+                      {specificSummary && (
+                        <span className="slot-config-specific">{specificSummary}</span>
+                      )}
+                    </span>
+                    <div
+                      className="standard-slot-actions-overlay"
+                      aria-label={`Actions for squad slot ${slot}`}
+                    >
+                      <div className="draft-operator-actions">
+                        <button
+                          type="button"
+                          className="draft-operator-action draft-operator-action--pick"
+                          onClick={() => setEditingSlot(index)}
+                        >
+                          Modify
+                        </button>
+                        <button
+                          type="button"
+                          className="draft-operator-action draft-operator-action--hold-cost"
+                          onClick={() => resetSlotConstraint(index)}
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <button
                     type="button"
-                    className={`slot-config-card${constrained ? ' is-constrained' : ''}`}
-                    style={slotConfigCardStyle(slotConstraint.rarities)}
+                    className="slot-config-card"
                     aria-label={`Configure squad slot ${slot}`}
                     onClick={() => setEditingSlot(index)}
                   >
                     <span className="slot-config-number">{slot}</span>
-                    {constrained ? (
-                      <span className="slot-config-summary">
-                        <strong>{raritySetSummary(slotConstraint.rarities)}</strong>
-                        <span>{classSetSummary(slotConstraint.classes, dataset?.classLabels)}</span>
-                        {specificSummary && (
-                          <span className="slot-config-specific">{specificSummary}</span>
-                        )}
-                      </span>
-                    ) : (
-                      <span className="slot-config-any">
-                        <strong>Any</strong>
-                        <span>Click to configure</span>
-                      </span>
-                    )}
+                    <span className="slot-config-any">
+                      <strong>Any</strong>
+                      <span>Click to configure</span>
+                    </span>
                   </button>
                 )}
                 {inRange && constrained && !operator && !lockedPresentation && (

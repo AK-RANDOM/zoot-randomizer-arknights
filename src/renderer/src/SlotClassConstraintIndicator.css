@@ -63,6 +63,19 @@
   font-weight: 900;
 }
 
+/* Empty constrained slots wrap the same 3px frame as generated/locked cards.
+   Offset the external indicator by that frame so its first icon lands on the
+   exact same 7px inner anchor used by OperatorCard and Amiya's locked stack. */
+.squad-slot > .slot-class-constraint-indicator {
+  top: 10px;
+}
+.squad-slot > .slot-class-constraint-indicator.is-left {
+  left: 10px;
+}
+.squad-slot > .slot-class-constraint-indicator.is-right {
+  right: 10px;
+}
+
 .squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card.is-constrained {
   border: 3px solid transparent;
   background:

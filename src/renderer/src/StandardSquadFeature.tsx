@@ -600,7 +600,7 @@ export default function StandardSquadFeature({
               disabled={squad.length === 0}
               onClick={clearSquad}
             >
-              Clear Squad
+              Clear
             </button>
             <button
               className="randomize-button"
@@ -632,7 +632,7 @@ export default function StandardSquadFeature({
             disabled={!canResetConstraints}
             onClick={resetConstraints}
           >
-            Reset Constraints
+            Reset
           </button>
         </div>
         {dataset && !validation.valid && validation.errors.length > 0 && (

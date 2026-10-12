@@ -221,9 +221,13 @@ body {
   background: var(--app-accent);
 }
 
+/* Constrained slots always keep a neutral interior. Constraint state only colors
+   the border/badges; !important also overrides rarity-specific inline backgrounds. */
 .slot-config-card.is-constrained {
   border-color: rgba(64, 153, 194, 0.5);
-  background: linear-gradient(180deg, rgba(64, 153, 194, 0.07), transparent 52%), #111113;
+  background:
+    linear-gradient(#111113, #111113) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box !important;
 }
 
 .artwork-choice.is-selected {

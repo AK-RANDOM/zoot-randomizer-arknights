@@ -19,28 +19,34 @@
 .slot-class-constraint-item {
   position: relative;
   display: block;
+  width: max-content;
+  height: max-content;
   flex: 0 0 auto;
+  line-height: 0;
 }
 .slot-class-constraint-item.is-subfiltered .class-icon {
-  border-color: #c49138;
+  border-color: var(--app-accent);
   box-shadow:
-    0 0 0 1px rgba(240, 198, 109, 0.34),
+    0 0 0 1px color-mix(in srgb, var(--app-accent) 34%, transparent),
     0 2px 8px rgba(0, 0, 0, 0.35);
 }
 .slot-class-constraint-subcount {
   position: absolute;
-  right: -4px;
+  left: -4px;
   bottom: -4px;
+  z-index: 1;
   display: grid;
   min-width: 15px;
   height: 15px;
   padding: 0 3px;
   place-items: center;
-  border: 1px solid #8b6a2d;
+  border: 1px solid var(--app-accent);
   border-radius: 999px;
-  color: #17120a;
-  background: #f0c66d;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+  color: #071014;
+  background: var(--app-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--app-accent) 24%, transparent),
+    0 1px 5px rgba(0, 0, 0, 0.45);
   font-size: 0.48rem;
   font-weight: 900;
   line-height: 1;

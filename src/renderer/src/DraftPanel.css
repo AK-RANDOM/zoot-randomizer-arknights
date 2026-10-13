@@ -434,7 +434,7 @@
 }
 
 .draft-history {
-  margin: 0 0 20px;
+  margin: 28px 0 20px;
   border: 1px solid #303036;
   border-radius: 6px;
   background: #101012;
@@ -507,7 +507,38 @@
 
 .draft-history__entry {
   display: grid;
-  gap: 2px;
+  gap: 5px;
+}
+
+.draft-history__operator-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.draft-history__operator-icon {
+  flex: 0 0 42px;
+}
+
+.draft-history__entry--action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.draft-history__table th:last-child,
+.draft-history__table td:last-child {
+  text-align: right;
+}
+
+.draft-history__table td:last-child .draft-history__stack {
+  justify-items: end;
+}
+
+.draft-history__missing-operator {
+  color: #9b9ba2;
+  font-size: 0.68rem;
 }
 
 .draft-history__entry strong {

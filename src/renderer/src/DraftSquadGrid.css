@@ -196,18 +196,22 @@
   max-width: calc(100% - 10px);
   min-width: 0;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   padding: 2px 5px;
   border-radius: 999px;
   background: rgba(7, 7, 9, 0.72);
+  font-size: 0.68rem;
 }
 
-.draft-squad-avatar__class-icon {
+.draft-squad-avatar__identity .draft-squad-avatar__class-icon {
   display: block;
-  flex: 0 0 auto;
-  width: auto;
-  height: 0.58rem;
-  aspect-ratio: 1 / 1;
+  flex: 0 0 1em;
+  width: 1em;
+  height: 1em;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 0;
   overflow: visible;
   border: 0;
   border-radius: 0;
@@ -216,10 +220,10 @@
   backdrop-filter: none;
 }
 
-.draft-squad-avatar__class-icon img {
+.draft-squad-avatar__identity .draft-squad-avatar__class-icon img {
   display: block;
-  width: auto;
-  height: 100%;
+  width: 1em;
+  height: 1em;
   object-fit: contain;
 }
 
@@ -227,7 +231,7 @@
   min-width: 0;
   overflow: hidden;
   color: #ffffff;
-  font-size: 0.58rem;
+  font-size: inherit;
   font-weight: 900;
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -250,7 +254,7 @@
 .draft-squad-overflow {
   position: relative;
   grid-row: 1;
-  padding: 22px 6px 6px;
+  padding: 6px;
   border: 2px solid #5a5a64;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0)), #151518;
 }
@@ -282,7 +286,7 @@
   display: grid;
   height: 100%;
   place-content: center;
-  gap: 3px;
+  gap: 4px;
   padding: 8px;
   color: #707078;
   text-align: center;
@@ -301,11 +305,8 @@
 
 .draft-squad-overflow__empty strong {
   color: #a6a6ad;
-  font-size: 0.68rem;
-}
-
-.draft-squad-overflow__empty span {
-  font-size: 0.57rem;
+  font-size: 0.66rem;
+  font-weight: 850;
 }
 
 .draft-squad-expand {
@@ -341,17 +342,13 @@
 
 .draft-squad-expand__icon {
   color: #f5ad2f;
-  font-size: 2rem;
+  font-size: 2.8rem;
   font-weight: 900;
   line-height: 1;
 }
 
 .draft-squad-expand:disabled .draft-squad-expand__icon {
   color: #75694f;
-}
-
-.draft-squad-expand strong {
-  font-size: 0.68rem;
 }
 
 .draft-squad-expand__price {

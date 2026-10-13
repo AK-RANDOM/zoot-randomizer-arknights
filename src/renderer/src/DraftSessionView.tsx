@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   evaluateDraftActionPreflight,
   type DraftAction,
@@ -12,10 +12,44 @@ import DraftConfirmationDialog from './DraftConfirmationDialog'
 import OperatorCard from './OperatorCard'
 import DraftSquadGrid from './DraftSquadGrid'
 import { resolveDraftStatusPresentation } from './draftPresentation'
-import { draftCompletionMessage } from './draftSessionMessages'
 import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
+
+function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    setImageUrl(null)
+    void window.desktop
+      .getOperatorImage(operator.id)
+      .then((url) => {
+        if (active) setImageUrl(url)
+      })
+      .catch(() => {
+        if (active) setImageUrl(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [operator.id])
+
+  return (
+    <span
+      className="release-representative draft-history__operator-icon"
+      data-rarity={operator.rarity}
+      title={`${operator.name} — ${operator.rarity}★`}
+      aria-label={`${operator.name}, ${operator.rarity} star`}
+    >
+      {imageUrl ? (
+        <img src={imageUrl} alt="" draggable={false} />
+      ) : (
+        <span aria-hidden="true">{operator.name.slice(0, 1)}</span>
+      )}
+    </span>
+  )
+}
 
 function DraftHistoryTable({
   state,
@@ -66,11 +100,18 @@ function DraftHistoryTable({
                             Offer {offerIndex + 1}
                             {offer.source === 'reroll' ? ' · Reroll' : ''}
                           </strong>
-                          <span>
-                            {offer.operatorIds
-                              .map((operatorId) => operatorById.get(operatorId)?.name ?? operatorId)
-                              .join(' · ')}
-                          </span>
+                          <div className="draft-history__operator-list">
+                            {offer.operatorIds.map((operatorId) => {
+                              const operator = operatorById.get(operatorId)
+                              return operator ? (
+                                <DraftHistoryOperatorIcon key={operatorId} operator={operator} />
+                              ) : (
+                                <span className="draft-history__missing-operator" key={operatorId}>
+                                  {operatorId}
+                                </span>
+                              )
+                            })}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -83,16 +124,24 @@ function DraftHistoryTable({
                         </span>
                       ) : (
                         round.actions.map((action, actionIndex) => {
-                          const operatorName = action.operatorId
-                            ? (operatorById.get(action.operatorId)?.name ?? action.operatorId)
+                          const operator = action.operatorId
+                            ? (operatorById.get(action.operatorId) ?? null)
                             : null
                           return (
                             <div
-                              className="draft-history__entry"
+                              className="draft-history__entry draft-history__entry--action"
                               key={`${round.roundNumber}-action-${actionIndex}`}
                             >
                               <strong>{draftHistoryActionLabel(action.action)}</strong>
-                              {operatorName && <span>{operatorName}</span>}
+                              {operator ? (
+                                <DraftHistoryOperatorIcon operator={operator} />
+                              ) : (
+                                action.operatorId && (
+                                  <span className="draft-history__missing-operator">
+                                    {action.operatorId}
+                                  </span>
+                                )
+                              )}
                             </div>
                           )
                         })
@@ -314,12 +363,7 @@ export default function DraftSessionView({
                   : `A Draft offer requires ${rulebook.generalRules.offerSize} distinct eligible operators. Adjust the Rulebook or Global Pool before starting.`}
           </p>
         </div>
-      ) : state.status === 'complete' ? (
-        <div className="draft-complete" role="status">
-          <strong>{draftCompletionMessage(state)}</strong>
-          <span>Start a new draft to generate a fresh first offer.</span>
-        </div>
-      ) : configuration && onAction ? (
+      ) : state.status === 'complete' ? null : configuration && onAction ? (
         <DraftDecisionPlane
           state={state}
           operators={operators}

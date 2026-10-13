@@ -23,8 +23,9 @@
     0 8px 20px rgba(0, 0, 0, 0.24);
 }
 
-/* Selected Standard operator cards get a deliberately subtle flat rarity wash behind the artwork. */
-.squad-grid .operator-card--portrait::before {
+/* Selected Standard and Draft offer operator cards share the same subtle rarity wash behind the artwork. */
+.squad-grid .operator-card--portrait::before,
+.draft-decision-offer-grid .operator-card--portrait::before {
   position: absolute;
   z-index: 0;
   inset: 0;

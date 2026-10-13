@@ -46,6 +46,9 @@ describe('Standard Squad layout refinements', () => {
   })
 
   it('keeps all Standard marker positions on the selected-operator reference', () => {
+    expect(sharedCss).toContain(
+      '.operator-card--portrait .operator-card__class-icon {\n  top: 8px;\n  left: 8px;',
+    )
     expect(randomCss).toContain('.random-operator-card > .slot-config-number')
     expect(randomCss).toContain('.squad-grid .disabled-slot > .slot-config-number')
     expect(randomCss).toContain('top: 8px')
@@ -60,6 +63,9 @@ describe('Standard Squad layout refinements', () => {
     expect(indicatorCss).toContain('right: -4px')
     expect(indicatorCss).not.toContain('left: -4px')
     expect(indicatorCss).not.toContain('.slot-class-constraint-item.is-subfiltered .class-icon')
+    expect(themeCss).not.toContain(
+      '.squad-grid .operator-card--portrait .operator-card__class-icon',
+    )
   })
 
   it('keeps Random Operator, constrained, and Unavailable captions on one reference inset', () => {

@@ -41,6 +41,8 @@
 /* Keep colored rarity stars in normal inline text flow so their baseline and
    spacing match the selected operator card's continuous star run. */
 .random-operator-card__star {
+  position: relative;
+  top: -1px;
   display: inline;
 }
 

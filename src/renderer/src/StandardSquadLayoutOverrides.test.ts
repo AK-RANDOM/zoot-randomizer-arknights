@@ -31,7 +31,7 @@ describe('Standard Squad layout refinements', () => {
     expect(toolbarStart).toBeGreaterThanOrEqual(0)
     expect(toolbarSource).toContain('<span className="preset-toolbar-label">Preset</span>')
     expect(toolbarSource).toContain('Save as preset…')
-    expect(toolbarSource).toContain('Clear Squad')
+    expect(toolbarSource).toContain('Clear')
     expect(toolbarSource).toContain('Randomize')
     expect(toolbarSource).toContain('disabled={squad.length === 0}')
     expect(featureSource).not.toContain('Randomize Again')
@@ -40,14 +40,14 @@ describe('Standard Squad layout refinements', () => {
     expect(mainSource).toContain("import './StandardSquadLayoutOverrides.css'")
   })
 
-  it('keeps Reset Constraints inside the Current constraints box and always rendered', () => {
+  it('keeps Reset inside the Current constraints box and always rendered', () => {
     const summaryStart = featureSource.indexOf('<div className="current-constraint-summary"')
     const summaryEnd = featureSource.indexOf('{dataset && !validation.valid', summaryStart)
     const summarySource = featureSource.slice(summaryStart, summaryEnd)
 
     expect(summaryStart).toBeGreaterThanOrEqual(0)
     expect(summaryEnd).toBeGreaterThan(summaryStart)
-    expect(summarySource).toContain('Reset Constraints')
+    expect(summarySource).toContain('Reset')
     expect(summarySource).toContain('disabled={!canResetConstraints}')
     expect(layoutCss).toContain('.current-constraint-summary .danger-button')
     expect(layoutCss).not.toContain('.section-heading .danger-button')

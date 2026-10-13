@@ -26,6 +26,14 @@
   line-height: 1.12;
 }
 
+/* Constrained placeholders use a 3px frame while portrait operator cards use 1px.
+   Pull the caption 2px back toward the frame so its visible outer anchor stays identical. */
+.random-operator-card.is-constrained .random-operator-card__caption {
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+}
+
 .random-operator-card__rarity {
   display: flex;
   align-items: center;
@@ -54,6 +62,7 @@
 /* Unavailable Standard capacity uses the same unfilled-card composition, but the
    destructive palette is shared with Draft's Forfeit surface. */
 .squad-grid .disabled-slot {
+  position: relative;
   overflow: hidden;
   padding: 0;
   border-color: rgba(207, 73, 79, 0.86);

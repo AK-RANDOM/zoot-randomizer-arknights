@@ -1,7 +1,7 @@
 .slot-class-constraint-indicator {
   position: absolute;
   z-index: 8;
-  top: 8px;
+  top: 9px;
   display: flex;
   width: max-content;
   max-height: calc(100% - 14px);
@@ -10,33 +10,19 @@
   gap: 4px;
   pointer-events: none;
 }
-.slot-class-constraint-indicator.is-left { left: 8px; }
-.slot-class-constraint-indicator.is-right { right: 8px; }
+.slot-class-constraint-indicator.is-left { left: 9px; }
+.slot-class-constraint-indicator.is-right { right: 9px; }
 .slot-class-constraint-item {
   position: relative;
   display: block;
-  width: max-content;
-  height: max-content;
-  flex: 0 0 auto;
-  line-height: 0;
-}
-.slot-class-constraint-item .class-icon {
   width: 30px;
   height: 30px;
-}
-.slot-class-constraint-item .class-icon img {
-  width: 23px;
-  height: 23px;
-}
-.slot-class-constraint-item.is-subfiltered .class-icon {
-  border-color: var(--app-accent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--app-accent) 34%, transparent),
-    0 2px 8px rgba(0, 0, 0, 0.35);
+  flex: 0 0 30px;
+  line-height: 0;
 }
 .slot-class-constraint-subcount {
   position: absolute;
-  left: -4px;
+  right: -4px;
   bottom: -4px;
   z-index: 1;
   display: grid;
@@ -70,15 +56,16 @@
   font-weight: 900;
 }
 
-/* Keep empty constrained-slot indicators on the same 8px anchor as portrait cards. */
+/* External constraint stacks sit 9px from the squad-slot edge so their visible
+   box matches an operator icon at 8px inside the portrait card's 1px border. */
 .squad-slot > .slot-class-constraint-indicator {
-  top: 8px;
+  top: 9px;
 }
 .squad-slot > .slot-class-constraint-indicator.is-left {
-  left: 8px;
+  left: 9px;
 }
 .squad-slot > .slot-class-constraint-indicator.is-right {
-  right: 8px;
+  right: 9px;
 }
 
 .squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card.is-constrained {
@@ -86,4 +73,9 @@
   background:
     linear-gradient(#17140e, #17140e) padding-box,
     var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
+}
+
+/* A class constraint replaces, rather than overlaps, the numbered marker. */
+.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card .slot-config-number {
+  visibility: hidden;
 }

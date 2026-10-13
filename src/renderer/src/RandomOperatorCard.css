@@ -13,6 +13,19 @@
   background: linear-gradient(135deg, #19191c 0 50%, #141416 50% 100%);
 }
 
+.random-operator-card > .slot-config-number,
+.squad-grid .disabled-slot > .slot-config-number {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  left: 8px;
+  color: #ffffff;
+  font-size: 0.61rem;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
 .random-operator-card__caption {
   z-index: 2;
   right: 10px;

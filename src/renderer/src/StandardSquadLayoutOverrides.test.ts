@@ -10,14 +10,48 @@ const indicatorCss = readFileSync(
   'utf8',
 )
 const featureSource = readFileSync(new URL('./StandardSquadFeature.tsx', import.meta.url), 'utf8')
+const lockedSource = readFileSync(new URL('./LockedSlotCard.tsx', import.meta.url), 'utf8')
+const sharedCss = readFileSync(new URL('./PresentationPreferences.css', import.meta.url), 'utf8')
+const randomCss = readFileSync(new URL('./RandomOperatorCard.css', import.meta.url), 'utf8')
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
-  it('aligns pre-random class indicators with portrait operator-card class icons', () => {
-    expect(indicatorCss).toContain('top: 8px')
-    expect(indicatorCss).toContain('.slot-class-constraint-indicator.is-left { left: 8px; }')
+  it('uses one exact visual shell for operator icons, slot numbers, and constraints', () => {
+    expect(sharedCss).toContain('.operator-card--portrait .operator-card__class-icon,')
+    expect(sharedCss).toContain('.random-operator-card > .slot-config-number,')
+    expect(sharedCss).toContain('.slot-class-constraint-item .class-icon {')
+    expect(sharedCss).toContain('width: 30px')
+    expect(sharedCss).toContain('height: 30px')
+    expect(sharedCss).toContain('padding: 0')
+    expect(sharedCss).toContain('border: 1px solid rgba(255, 255, 255, 0.24)')
+    expect(sharedCss).toContain('border-radius: 6px')
+    expect(sharedCss).toContain('background: rgba(7, 7, 9, 0.58)')
+    expect(sharedCss).toContain('box-shadow: 0 2px 9px rgba(0, 0, 0, 0.26)')
+    expect(sharedCss).toContain('backdrop-filter: blur(5px)')
+    expect(sharedCss).toContain('.operator-card--portrait .operator-card__class-icon img,')
+    expect(sharedCss).toContain('.slot-class-constraint-item .class-icon img {')
+    expect(sharedCss).toContain('width: 23px')
+    expect(sharedCss).toContain('height: 23px')
+  })
+
+  it('keeps constraint stacks physically aligned and subclass badges out of layout flow', () => {
+    expect(indicatorCss).toContain('top: 9px')
+    expect(indicatorCss).toContain('.slot-class-constraint-indicator.is-left { left: 9px; }')
     expect(indicatorCss).toContain('width: 30px')
-    expect(indicatorCss).toContain('width: 23px')
+    expect(indicatorCss).toContain('height: 30px')
+    expect(indicatorCss).toContain('flex: 0 0 30px')
+    expect(indicatorCss).toContain('right: -4px')
+    expect(indicatorCss).not.toContain('left: -4px')
+    expect(indicatorCss).not.toContain('.slot-class-constraint-item.is-subfiltered .class-icon')
+    expect(randomCss).toContain('.random-operator-card > .slot-config-number')
+    expect(randomCss).toContain('top: 8px')
+    expect(randomCss).toContain('left: 8px')
+  })
+
+  it('uses the same vertical class indicator component for general constraints and Amiya', () => {
+    expect(featureSource).toContain('<SlotClassConstraintIndicator')
+    expect(lockedSource).toContain('<SlotClassConstraintIndicator')
+    expect(lockedSource).toContain("const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']")
   })
 
   it('keeps preset and run controls together inside the preset toolbar', () => {

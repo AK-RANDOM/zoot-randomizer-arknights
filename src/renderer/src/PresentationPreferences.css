@@ -23,6 +23,16 @@
     0 8px 20px rgba(0, 0, 0, 0.24);
 }
 
+/* Selected Standard operator cards get a deliberately subtle flat rarity wash. */
+.squad-grid .operator-card--portrait::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  content: '';
+  background: color-mix(in srgb, var(--rarity-color) 4%, transparent);
+  pointer-events: none;
+}
+
 .operator-card--portrait::after {
   position: absolute;
   z-index: 1;

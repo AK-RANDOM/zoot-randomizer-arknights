@@ -13,14 +13,15 @@ const featureSource = readFileSync(new URL('./StandardSquadFeature.tsx', import.
 const lockedSource = readFileSync(new URL('./LockedSlotCard.tsx', import.meta.url), 'utf8')
 const sharedCss = readFileSync(new URL('./PresentationPreferences.css', import.meta.url), 'utf8')
 const randomCss = readFileSync(new URL('./RandomOperatorCard.css', import.meta.url), 'utf8')
+const operatorCss = readFileSync(new URL('./OperatorCard.css', import.meta.url), 'utf8')
 const lockedCss = readFileSync(new URL('./LockedSlotCard.css', import.meta.url), 'utf8')
 const themeCss = readFileSync(new URL('./RendererTheme.css', import.meta.url), 'utf8')
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
-  it('adds only a flat 4% rarity wash to selected Standard operator cards', () => {
+  it('adds only a flat 8% rarity wash to selected Standard operator cards', () => {
     expect(sharedCss).toContain('.squad-grid .operator-card--portrait::before {')
-    expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 4%, transparent)')
+    expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 8%, transparent)')
     expect(sharedCss).not.toContain('.random-operator-card::before')
     expect(sharedCss).not.toContain('.disabled-slot::before')
   })
@@ -86,6 +87,15 @@ describe('Standard Squad layout refinements', () => {
     expect(randomCss).not.toContain('display: flex')
     expect(randomCss).not.toContain('margin-right: -0.055em')
     expect(randomCss).not.toContain('-webkit-text-stroke: 1.2px')
+    expect(operatorCss).toContain(
+      '.operator-card--portrait .operator-card__name-viewport,\n.random-operator-card .operator-card__name-viewport {',
+    )
+    expect(operatorCss).toContain(
+      '.operator-card--portrait .operator-card__caption strong,\n.random-operator-card .operator-card__caption strong {',
+    )
+    expect(operatorCss).toContain(
+      '.operator-card--portrait .operator-card__name-text,\n.random-operator-card .operator-card__name-text {',
+    )
   })
 
   it('removes late overrides that previously split Standard marker geometry', () => {

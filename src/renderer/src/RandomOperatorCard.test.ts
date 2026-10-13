@@ -32,12 +32,15 @@ describe('buildOverlappedRarityStars', () => {
 
 describe('Standard placeholder card alignment', () => {
   const css = readFileSync(new URL('./RandomOperatorCard.css', import.meta.url), 'utf8')
+  const sharedCss = readFileSync(new URL('./PresentationPreferences.css', import.meta.url), 'utf8')
 
   it('uses the same caption inset for constrained and unconstrained placeholders', () => {
     expect(css).toContain('.random-operator-card__caption {')
-    expect(css).toContain('right: 10px')
-    expect(css).toContain('bottom: 10px')
-    expect(css).toContain('left: 10px')
+    expect(sharedCss).toContain('.operator-card--portrait .operator-card__caption,')
+    expect(sharedCss).toContain('.random-operator-card__caption,')
+    expect(sharedCss).toContain('right: 10px')
+    expect(sharedCss).toContain('bottom: 10px')
+    expect(sharedCss).toContain('left: 10px')
     expect(css).not.toContain('.random-operator-card.is-constrained .random-operator-card__caption')
   })
 

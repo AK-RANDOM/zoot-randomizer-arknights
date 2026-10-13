@@ -19,9 +19,14 @@ const themeCss = readFileSync(new URL('./RendererTheme.css', import.meta.url), '
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
-  it('adds only a flat 8% rarity wash to selected Standard operator cards', () => {
-    expect(sharedCss).toContain('.squad-grid .operator-card--portrait::before {')
+  it('shares the flat 8% rarity wash between selected Standard and Draft offer cards', () => {
+    expect(sharedCss).toContain('.squad-grid .operator-card--portrait::before,')
+    expect(sharedCss).toContain('.draft-decision-offer-grid .operator-card--portrait::before {')
     expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 8%, transparent)')
+    expect(sharedCss).toContain('z-index: 0')
+    expect(sharedCss).toContain(
+      '.operator-card--portrait .operator-card__art {\n  z-index: 1;\n  background: transparent;',
+    )
     expect(sharedCss).not.toContain('.random-operator-card::before')
     expect(sharedCss).not.toContain('.disabled-slot::before')
   })

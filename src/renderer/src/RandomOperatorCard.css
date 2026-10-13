@@ -15,18 +15,28 @@
 
 .random-operator-card__caption {
   z-index: 2;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  gap: 3px;
+}
+
+.random-operator-card__caption strong {
+  font-size: clamp(0.72rem, 1.2vw, 0.94rem);
+  line-height: 1.12;
 }
 
 .random-operator-card__rarity {
   display: flex;
   align-items: center;
   width: max-content;
+  font-size: 0.66rem;
   letter-spacing: 0;
 }
 
 .random-operator-card__star {
   display: inline-block;
-  margin-right: -0.16em;
+  margin-right: -0.055em;
   paint-order: stroke fill;
   -webkit-text-stroke: 1.2px #000000;
   text-shadow:
@@ -60,13 +70,13 @@
 .squad-grid .disabled-slot > span:not(.slot-config-number) {
   position: absolute;
   z-index: 2;
-  right: 8px;
-  bottom: 7px;
-  left: 8px;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
   color: #ffffff;
-  font-size: 0.86rem;
+  font-size: clamp(0.72rem, 1.2vw, 0.94rem);
   font-weight: 900;
-  line-height: 1.08;
+  line-height: 1.12;
   paint-order: stroke fill;
   -webkit-text-stroke: 1.2px #000000;
   text-shadow:

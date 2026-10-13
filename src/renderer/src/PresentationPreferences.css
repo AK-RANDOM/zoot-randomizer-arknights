@@ -29,7 +29,7 @@
   z-index: 2;
   inset: 0;
   content: '';
-  background: color-mix(in srgb, var(--rarity-color) 4%, transparent);
+  background: color-mix(in srgb, var(--rarity-color) 8%, transparent);
   pointer-events: none;
 }
 

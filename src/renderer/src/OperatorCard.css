@@ -139,18 +139,21 @@
   top: 45px;
 }
 
-.operator-card--portrait .operator-card__name-viewport {
+.operator-card--portrait .operator-card__name-viewport,
+.random-operator-card .operator-card__name-viewport {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
 }
-.operator-card--portrait .operator-card__caption strong {
+.operator-card--portrait .operator-card__caption strong,
+.random-operator-card .operator-card__caption strong {
   display: block;
   min-width: 0;
   overflow: visible;
   text-overflow: clip;
 }
-.operator-card--portrait .operator-card__name-text {
+.operator-card--portrait .operator-card__name-text,
+.random-operator-card .operator-card__name-text {
   display: inline-block;
   min-width: max-content;
 }

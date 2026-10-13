@@ -18,6 +18,13 @@ const themeCss = readFileSync(new URL('./RendererTheme.css', import.meta.url), '
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
+  it('adds only a flat 4% rarity wash to selected Standard operator cards', () => {
+    expect(sharedCss).toContain('.squad-grid .operator-card--portrait::before {')
+    expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 4%, transparent)')
+    expect(sharedCss).not.toContain('.random-operator-card::before')
+    expect(sharedCss).not.toContain('.disabled-slot::before')
+  })
+
   it('uses one exact visual shell for operator icons, slot numbers, and constraints', () => {
     expect(sharedCss).toContain('.operator-card--portrait .operator-card__class-icon,')
     expect(sharedCss).toContain('.random-operator-card > .slot-config-number,')

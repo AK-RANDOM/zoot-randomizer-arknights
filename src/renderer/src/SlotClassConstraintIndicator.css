@@ -1,7 +1,7 @@
 .slot-class-constraint-indicator {
   position: absolute;
   z-index: 8;
-  top: 7px;
+  top: 8px;
   display: flex;
   width: max-content;
   max-height: calc(100% - 14px);
@@ -10,12 +10,8 @@
   gap: 4px;
   pointer-events: none;
 }
-.slot-class-constraint-indicator.is-left {
-  left: 7px;
-}
-.slot-class-constraint-indicator.is-right {
-  right: 7px;
-}
+.slot-class-constraint-indicator.is-left { left: 8px; }
+.slot-class-constraint-indicator.is-right { right: 8px; }
 .slot-class-constraint-item {
   position: relative;
   display: block;
@@ -23,6 +19,14 @@
   height: max-content;
   flex: 0 0 auto;
   line-height: 0;
+}
+.slot-class-constraint-item .class-icon {
+  width: 30px;
+  height: 30px;
+}
+.slot-class-constraint-item .class-icon img {
+  width: 23px;
+  height: 23px;
 }
 .slot-class-constraint-item.is-subfiltered .class-icon {
   border-color: var(--app-accent);
@@ -53,8 +57,8 @@
 }
 .slot-class-constraint-overflow {
   display: grid;
-  min-width: 34px;
-  height: 34px;
+  min-width: 30px;
+  height: 30px;
   padding: 0 5px;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.26);
@@ -66,17 +70,15 @@
   font-weight: 900;
 }
 
-/* Empty constrained slots wrap the same 3px frame as generated/locked cards.
-   Offset the external indicator by that frame so its first icon lands on the
-   exact same 7px inner anchor used by OperatorCard and Amiya's locked stack. */
+/* Keep empty constrained-slot indicators on the same 8px anchor as portrait cards. */
 .squad-slot > .slot-class-constraint-indicator {
-  top: 10px;
+  top: 8px;
 }
 .squad-slot > .slot-class-constraint-indicator.is-left {
-  left: 10px;
+  left: 8px;
 }
 .squad-slot > .slot-class-constraint-indicator.is-right {
-  right: 10px;
+  right: 8px;
 }
 
 .squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card.is-constrained {

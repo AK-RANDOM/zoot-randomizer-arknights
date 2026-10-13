@@ -62,4 +62,11 @@ describe('Draft execution polish', () => {
     expect(view).not.toContain('This Draft is tied to its starting pool')
     expect(view).not.toContain('Draft Rulebook context')
   })
+
+  it('keeps Draft target size independent from Standard squad constraints', () => {
+    const app = read('./App.tsx')
+    expect(app).toContain('const DEFAULT_DRAFT_TARGET_SIZE = 12')
+    expect(app).toContain('targetSize={DEFAULT_DRAFT_TARGET_SIZE}')
+    expect(app).not.toContain('targetSize={constraints.squadSize}')
+  })
 })

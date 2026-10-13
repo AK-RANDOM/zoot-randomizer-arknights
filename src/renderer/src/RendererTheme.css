@@ -115,31 +115,6 @@
   position: relative;
 }
 
-.squad-grid .slot-config-number {
-  position: absolute;
-  z-index: 8;
-  top: 8px;
-  left: 8px;
-  display: grid;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  place-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  border-radius: 6px;
-  color: #e8e8eb;
-  background: rgba(7, 7, 9, 0.76);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  font-size: 0.61rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  line-height: 1;
-}
-
-.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card .slot-config-number {
-  display: none;
-}
-
 .squad-grid .operator-card--portrait .operator-card__art img.is-portrait {
   object-fit: cover;
   object-position: top center;
@@ -148,23 +123,6 @@
 /* Keep a normal panel gap between Release and the Kernel/Alter filter stack. */
 .operators-panel > .release-group + .operator-filter-layout {
   margin-top: 1rem;
-}
-
-/* Canonical Standard slot badge positioning. Class icon size and visual styling
-   intentionally inherit the same shared .class-icon rules as generated cards. */
-.squad-grid .slot-class-constraint-indicator {
-  top: 8px;
-  max-height: calc(100% - 16px);
-}
-.squad-grid .slot-class-constraint-indicator.is-left {
-  left: 8px;
-}
-.squad-grid .slot-class-constraint-indicator.is-right {
-  right: 8px;
-}
-.squad-grid .slot-class-constraint-overflow {
-  min-width: 34px;
-  height: 34px;
 }
 
 /* Global app accent. Keep rarity, economy, validation, and destructive colors independent. */
@@ -332,11 +290,6 @@ body {
   border: 0;
   border-radius: 1px;
   box-shadow: none;
-}
-
-.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left {
-  top: 11px;
-  left: 11px;
 }
 
 /* Shared locked-capacity artwork: Draft locked slots and Standard unavailable slots use the same asset. */

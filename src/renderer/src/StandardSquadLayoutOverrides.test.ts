@@ -13,13 +13,17 @@ const featureSource = readFileSync(new URL('./StandardSquadFeature.tsx', import.
 const lockedSource = readFileSync(new URL('./LockedSlotCard.tsx', import.meta.url), 'utf8')
 const sharedCss = readFileSync(new URL('./PresentationPreferences.css', import.meta.url), 'utf8')
 const randomCss = readFileSync(new URL('./RandomOperatorCard.css', import.meta.url), 'utf8')
+const lockedCss = readFileSync(new URL('./LockedSlotCard.css', import.meta.url), 'utf8')
+const themeCss = readFileSync(new URL('./RendererTheme.css', import.meta.url), 'utf8')
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
   it('uses one exact visual shell for operator icons, slot numbers, and constraints', () => {
     expect(sharedCss).toContain('.operator-card--portrait .operator-card__class-icon,')
     expect(sharedCss).toContain('.random-operator-card > .slot-config-number,')
-    expect(sharedCss).toContain('.slot-class-constraint-item .class-icon {')
+    expect(sharedCss).toContain('.squad-grid .disabled-slot > .slot-config-number,')
+    expect(sharedCss).toContain('.slot-class-constraint-item .class-icon,')
+    expect(sharedCss).toContain('.slot-class-constraint-overflow {')
     expect(sharedCss).toContain('width: 30px')
     expect(sharedCss).toContain('height: 30px')
     expect(sharedCss).toContain('padding: 0')
@@ -34,18 +38,44 @@ describe('Standard Squad layout refinements', () => {
     expect(sharedCss).toContain('height: 23px')
   })
 
-  it('keeps constraint stacks physically aligned and subclass badges out of layout flow', () => {
-    expect(indicatorCss).toContain('top: 9px')
-    expect(indicatorCss).toContain('.slot-class-constraint-indicator.is-left { left: 9px; }')
+  it('keeps all Standard marker positions on the selected-operator reference', () => {
+    expect(randomCss).toContain('.random-operator-card > .slot-config-number')
+    expect(randomCss).toContain('.squad-grid .disabled-slot > .slot-config-number')
+    expect(randomCss).toContain('top: 8px')
+    expect(randomCss).toContain('left: 8px')
+    expect(indicatorCss).toContain('top: 8px')
+    expect(indicatorCss).toContain('.slot-class-constraint-indicator.is-left { left: 8px; }')
+    expect(indicatorCss).toContain('.squad-slot > .slot-class-constraint-indicator {\n  top: 11px;')
+    expect(indicatorCss).toContain('.squad-slot > .slot-class-constraint-indicator.is-left {\n  left: 11px;')
     expect(indicatorCss).toContain('width: 30px')
     expect(indicatorCss).toContain('height: 30px')
     expect(indicatorCss).toContain('flex: 0 0 30px')
     expect(indicatorCss).toContain('right: -4px')
     expect(indicatorCss).not.toContain('left: -4px')
     expect(indicatorCss).not.toContain('.slot-class-constraint-item.is-subfiltered .class-icon')
-    expect(randomCss).toContain('.random-operator-card > .slot-config-number')
-    expect(randomCss).toContain('top: 8px')
-    expect(randomCss).toContain('left: 8px')
+  })
+
+  it('keeps Random Operator, constrained, and Unavailable captions on one reference inset', () => {
+    expect(sharedCss).toContain('right: 10px')
+    expect(sharedCss).toContain('bottom: 10px')
+    expect(sharedCss).toContain('left: 10px')
+    expect(randomCss).toContain('.random-operator-card__caption {')
+    expect(randomCss).toContain('right: 10px')
+    expect(randomCss).toContain('bottom: 10px')
+    expect(randomCss).toContain('left: 10px')
+    expect(randomCss).not.toContain('.random-operator-card.is-constrained .random-operator-card__caption')
+    expect(randomCss).toContain('.squad-grid .disabled-slot > span:not(.slot-config-number)')
+    expect(sharedCss).toContain('.random-operator-card__caption strong,')
+    expect(sharedCss).toContain('.random-operator-card__rarity,')
+    expect(sharedCss).toContain('.squad-grid .disabled-slot > span:not(.slot-config-number) {')
+    expect(randomCss).not.toContain('-webkit-text-stroke: 1.2px')
+  })
+
+  it('removes late overrides that previously split Standard marker geometry', () => {
+    expect(themeCss).not.toContain('.squad-grid .slot-config-number {')
+    expect(themeCss).not.toContain('.squad-grid .slot-class-constraint-indicator {')
+    expect(themeCss).not.toContain('.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left {')
+    expect(lockedCss).not.toContain('.slot-config-card.is-constrained .slot-config-number {')
   })
 
   it('uses the same vertical class indicator component for general constraints and Amiya', () => {

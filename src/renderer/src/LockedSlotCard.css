@@ -42,11 +42,6 @@
   align-items: center;
   justify-content: center;
 }
-.slot-config-card.is-constrained .slot-config-number {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-}
 .slot-config-card.is-constrained .slot-config-summary {
   width: 100%;
   margin: 0;

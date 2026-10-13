@@ -77,7 +77,9 @@
    Empty-slot numbers and class constraints share this exact shell. */
 .operator-card--portrait .operator-card__class-icon,
 .random-operator-card > .slot-config-number,
-.slot-class-constraint-item .class-icon {
+.squad-grid .disabled-slot > .slot-config-number,
+.slot-class-constraint-item .class-icon,
+.slot-class-constraint-overflow {
   display: grid;
   width: 30px;
   height: 30px;
@@ -110,7 +112,10 @@
 }
 
 .operator-card--portrait .operator-card__caption strong,
-.operator-card--portrait .operator-card__rarity {
+.operator-card--portrait .operator-card__rarity,
+.random-operator-card__caption strong,
+.random-operator-card__rarity,
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
   -webkit-text-stroke: 0;
   paint-order: normal;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.92);

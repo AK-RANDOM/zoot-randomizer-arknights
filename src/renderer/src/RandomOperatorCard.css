@@ -39,14 +39,6 @@
   line-height: 1.12;
 }
 
-/* Constrained placeholders use a 3px frame while portrait operator cards use 1px.
-   Pull the caption 2px back toward the frame so its visible outer anchor stays identical. */
-.random-operator-card.is-constrained .random-operator-card__caption {
-  right: 8px;
-  bottom: 8px;
-  left: 8px;
-}
-
 .random-operator-card__rarity {
   display: flex;
   align-items: center;
@@ -58,14 +50,6 @@
 .random-operator-card__star {
   display: inline-block;
   margin-right: -0.055em;
-  paint-order: stroke fill;
-  -webkit-text-stroke: 1.2px #000000;
-  text-shadow:
-    -1px -1px 0 #000000,
-    1px -1px 0 #000000,
-    -1px 1px 0 #000000,
-    1px 1px 0 #000000,
-    0 2px 3px rgba(0, 0, 0, 0.9);
 }
 
 .random-operator-card__star:last-child {
@@ -99,12 +83,4 @@
   font-size: clamp(0.72rem, 1.2vw, 0.94rem);
   font-weight: 900;
   line-height: 1.12;
-  paint-order: stroke fill;
-  -webkit-text-stroke: 1.2px #000000;
-  text-shadow:
-    -1px -1px 0 #000000,
-    1px -1px 0 #000000,
-    -1px 1px 0 #000000,
-    1px 1px 0 #000000,
-    0 2px 3px rgba(0, 0, 0, 0.9);
 }

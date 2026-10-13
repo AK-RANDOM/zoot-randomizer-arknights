@@ -58,6 +58,7 @@ describe('Standard and Draft UI follow-up', () => {
 
   it('keeps Standard squad icon framing and randomize animation consistent', () => {
     const theme = read('./RendererTheme.css')
+    const indicator = read('./SlotClassConstraintIndicator.css')
     const card = read('./OperatorCard.tsx')
     expect(theme).toContain('inset: -20% 0 auto;')
     expect(theme).toContain('height: 120%;')
@@ -65,11 +66,14 @@ describe('Standard and Draft UI follow-up', () => {
     expect(theme).toContain('border-color: transparent;')
     expect(theme).toContain('background: transparent;')
     expect(theme).toContain('.squad-grid .slot-locked-card .operator-card--portrait')
-    expect(theme).toContain(
+    expect(theme).not.toContain(
       '.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left',
     )
-    expect(theme).toContain('top: 11px;')
-    expect(theme).toContain('left: 11px;')
+    expect(indicator).toContain('.slot-class-constraint-indicator.is-left { left: 8px; }')
+    expect(indicator).toContain('.squad-slot > .slot-class-constraint-indicator {\n  top: 11px;')
+    expect(indicator).toContain(
+      '.squad-slot > .slot-class-constraint-indicator.is-left {\n  left: 11px;',
+    )
     expect(card).toContain('setRandomizeReplayKey((current) => current + 1)')
     expect(card).toContain("target.closest('.squad-panel .randomize-button')")
   })

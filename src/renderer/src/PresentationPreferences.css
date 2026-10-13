@@ -113,11 +113,16 @@
   height: 23px;
 }
 
-.operator-card--portrait .operator-card__caption {
-  z-index: 3;
+.operator-card--portrait .operator-card__caption,
+.random-operator-card__caption,
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
   right: 10px;
   bottom: 10px;
   left: 10px;
+}
+
+.operator-card--portrait .operator-card__caption {
+  z-index: 3;
   gap: 3px;
 }
 
@@ -131,8 +136,11 @@
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.92);
 }
 
-.operator-card--portrait .operator-card__caption strong {
+.operator-card--portrait .operator-card__caption strong,
+.random-operator-card__caption strong,
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
   font-size: clamp(0.72rem, 1.2vw, 0.94rem);
+  font-weight: 900;
   line-height: 1.12;
 }
 

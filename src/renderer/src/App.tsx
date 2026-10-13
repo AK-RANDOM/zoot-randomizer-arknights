@@ -19,6 +19,7 @@ import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPref
 import { loadRaceExclusions } from './rendererPersistence'
 
 const INVALID_RELEASE_RANGE_MESSAGE = 'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
+const DEFAULT_DRAFT_TARGET_SIZE = 12
 
 type AppTab = 'squads' | 'setup' | 'options'
 type SquadMode = 'standard' | 'draft'
@@ -154,7 +155,7 @@ export default function App(): React.JSX.Element {
         <DraftPanel
           dataset={data.dataset}
           operators={finalOperatorPool}
-          targetSize={constraints.squadSize}
+          targetSize={DEFAULT_DRAFT_TARGET_SIZE}
           ready={data.dataset !== null}
           onActiveDraftChange={setDraftActive}
         />

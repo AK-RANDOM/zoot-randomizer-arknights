@@ -28,32 +28,20 @@
 
 .random-operator-card__caption {
   z-index: 2;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
   gap: 3px;
 }
 
-.random-operator-card__caption strong {
-  font-size: clamp(0.72rem, 1.2vw, 0.94rem);
-  line-height: 1.12;
-}
-
 .random-operator-card__rarity {
-  display: flex;
-  align-items: center;
   width: max-content;
   font-size: 0.66rem;
-  letter-spacing: 0;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
 }
 
+/* Keep colored rarity stars in normal inline text flow so their baseline and
+   spacing match the selected operator card's continuous star run. */
 .random-operator-card__star {
-  display: inline-block;
-  margin-right: -0.055em;
-}
-
-.random-operator-card__star:last-child {
-  margin-right: 0;
+  display: inline;
 }
 
 /* Unavailable Standard capacity uses the same unfilled-card composition, but the
@@ -76,11 +64,5 @@
 .squad-grid .disabled-slot > span:not(.slot-config-number) {
   position: absolute;
   z-index: 2;
-  right: 10px;
-  bottom: 10px;
-  left: 10px;
   color: #ffffff;
-  font-size: clamp(0.72rem, 1.2vw, 0.94rem);
-  font-weight: 900;
-  line-height: 1.12;
 }

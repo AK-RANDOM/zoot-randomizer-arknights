@@ -26,9 +26,11 @@ describe('Draft execution polish', () => {
   it('uses a compact pill identity on Current Draft avatars', () => {
     const css = read('./DraftSquadGrid.css')
     expect(css).toContain('border-radius: 999px;')
-    expect(css).toContain('width: auto;')
-    expect(css).toContain('height: 0.58rem;')
-    expect(css).toContain('height: 100%;')
+    expect(css).toContain('font-size: 0.68rem;')
+    expect(css).toContain('width: 1em;')
+    expect(css).toContain('height: 1em;')
+    expect(css).toContain('padding: 0;')
+    expect(css).toContain('background: transparent;')
     expect(css).toContain('background: rgba(7, 7, 9, 0.72);')
   })
 
@@ -61,6 +63,36 @@ describe('Draft execution polish', () => {
     expect(view).not.toContain('draft-session-note')
     expect(view).not.toContain('This Draft is tied to its starting pool')
     expect(view).not.toContain('Draft Rulebook context')
+  })
+
+  it('polishes the finalized Draft summary and history presentation', () => {
+    const view = read('./DraftSessionView.tsx')
+    const grid = read('./DraftSquadGrid.tsx')
+    const panelCss = read('./DraftPanel.css')
+
+    expect(view).not.toContain('draftCompletionMessage')
+    expect(view).not.toContain('className="draft-complete"')
+    expect(view).toContain('release-representative draft-history__operator-icon')
+    expect(view).toContain('draft-history__entry draft-history__entry--action')
+    expect(grid).toContain("finalized ? 'Finalized Draft' : 'Current Draft'")
+    expect(panelCss).toContain('margin: 28px 0 20px;')
+    expect(panelCss).toContain('justify-content: flex-end;')
+    expect(panelCss).toContain('text-align: right;')
+  })
+
+  it('simplifies Draft capacity cards and fixes the open-slot artwork path', () => {
+    const grid = read('./DraftSquadGrid.tsx')
+    const css = read('./DraftSquadGrid.css')
+
+    expect(grid).toContain('open-slot-icon.png')
+    expect(grid).toContain("variant === 'valid' ? openSlotIconUrl : lockedSlotIconUrl")
+    expect(grid).toContain('event.currentTarget.src = overflowSlotIconUrl')
+    expect(grid).toContain('<strong>Overflow</strong>')
+    expect(grid).not.toContain('<strong>Empty</strong>')
+    expect(grid).not.toContain('Temporary slot')
+    expect(grid).not.toContain('<strong>Expand</strong>')
+    expect(grid).toContain('aria-label={`Expand capacity, ${economyLabel}`}')
+    expect(css).toContain('font-size: 2.8rem;')
   })
 
   it('keeps Draft target size independent from Standard squad constraints', () => {

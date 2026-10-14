@@ -19,14 +19,13 @@ const themeCss = readFileSync(new URL('./RendererTheme.css', import.meta.url), '
 const mainSource = readFileSync(new URL('./main.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad layout refinements', () => {
-  it('shares the flat 8% rarity wash between selected Standard and Draft offer cards', () => {
-    expect(sharedCss).toContain('.squad-grid .operator-card--portrait::before,')
-    expect(sharedCss).toContain('.draft-decision-offer-grid .operator-card--portrait::before {')
-    expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 8%, transparent)')
-    expect(sharedCss).toContain('z-index: 0')
+  it('keeps the 8% rarity wash behind selected Standard and Draft operator artwork', () => {
+    expect(sharedCss).toContain('.squad-grid .operator-card--portrait .operator-card__art,')
     expect(sharedCss).toContain(
-      '.operator-card--portrait .operator-card__art {\n  z-index: 1;\n  background: transparent;',
+      '.draft-decision-offer-grid .operator-card--portrait .operator-card__art {',
     )
+    expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 8%, #171719)')
+    expect(sharedCss).not.toContain('.operator-card--portrait::before')
     expect(sharedCss).not.toContain('.random-operator-card::before')
     expect(sharedCss).not.toContain('.disabled-slot::before')
   })
@@ -88,7 +87,7 @@ describe('Standard Squad layout refinements', () => {
     expect(sharedCss).toContain('line-height: 1.12')
     expect(randomCss).not.toContain('.random-operator-card.is-constrained .random-operator-card__caption')
     expect(randomCss).toContain('letter-spacing: -0.055em')
-    expect(randomCss).toContain('.random-operator-card__star {\n  position: relative;\n  top: -1px;\n  display: inline;')
+    expect(randomCss).toContain('.random-operator-card__star {\n  display: inline;')
     expect(randomCss).not.toContain('display: flex')
     expect(randomCss).not.toContain('margin-right: -0.055em')
     expect(randomCss).not.toContain('-webkit-text-stroke: 1.2px')

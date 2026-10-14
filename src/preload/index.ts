@@ -22,6 +22,13 @@ const desktopApi: DesktopApi = {
   getPortraitSyncProgress: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.portraitProgress),
   startPortraitSync: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.portraitStart),
   cancelPortraitSync: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.portraitCancel),
+  requestArknightsLoginCode: (server, email) =>
+    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.arknightsAccountRequestCode, server, email),
+  syncArknightsAccount: (server, email, code) =>
+    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.arknightsAccountSync, server, email, code),
+  getImportedArknightsAccount: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.arknightsAccountGet),
+  clearImportedArknightsAccount: () =>
+    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.arknightsAccountClear),
   onPortraitSyncProgress: (listener) => {
     const handler = (_event: Electron.IpcRendererEvent, progress: PortraitSyncProgress): void =>
       listener(progress)

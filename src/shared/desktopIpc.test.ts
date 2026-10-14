@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   DESKTOP_IPC_CHANNELS,
   isAllowedExternalUrl,
+  requireArknightsAccountServer,
+  requireArknightsAccountString,
   requireMetadataId,
   requireOperatorClass,
   requireOperatorId,
@@ -45,6 +47,18 @@ describe('desktop IPC contract', () => {
     expect(() => requireMetadataId('https://example.com', 'faction')).toThrow('Invalid faction ID.')
     expect(() => requireMetadataId('', 'faction')).toThrow('Invalid faction ID.')
     expect(() => requireMetadataId('x'.repeat(129), 'faction')).toThrow('Invalid faction ID.')
+  })
+
+  it('validates Arknights account test-surface inputs at the IPC boundary', () => {
+    expect(requireArknightsAccountServer('en')).toBe('en')
+    expect(requireArknightsAccountServer('jp')).toBe('jp')
+    expect(requireArknightsAccountServer('kr')).toBe('kr')
+    expect(() => requireArknightsAccountServer('cn')).toThrow('Invalid Arknights account server.')
+    expect(requireArknightsAccountString('doctor@example.com', 'email')).toBe('doctor@example.com')
+    expect(requireArknightsAccountString('123456', 'verification code')).toBe('123456')
+    expect(() => requireArknightsAccountString(123456, 'verification code')).toThrow(
+      'Invalid Arknights account verification code.',
+    )
   })
 
   it('only permits HTTP(S) URLs to leave the app', () => {

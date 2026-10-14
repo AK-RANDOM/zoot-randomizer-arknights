@@ -16,3 +16,8 @@ export interface ImportedArknightsAccount {
   ownedSkinIds: string[]
   fetchedAt: string
 }
+
+export interface ArknightsAccountSyncResult {
+  snapshot: ImportedArknightsAccount
+  warnings: string[]
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PortraitSyncProgress } from '../../shared/desktop'
 import type { OperatorPreferences, PoolPresentationMode } from '../../shared/operatorPool'
 import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
+import AccountSyncTestPanel from './AccountSyncTestPanel'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
 import {
   setDraftActionConfirmationPreference,
@@ -243,6 +244,8 @@ export default function OptionsPanel({
       </p>
 
       <ArtworkDownloadStatus />
+
+      <AccountSyncTestPanel />
     </section>
   )
 }

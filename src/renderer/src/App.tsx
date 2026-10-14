@@ -108,16 +108,19 @@ export default function App(): React.JSX.Element {
     setOperatorPreferences((current) => ({ ...current, poolPresentation }))
   const setBulkAppearance = (choice: 'e1' | 'e2' | 'random'): void => {
     if (!data.dataset) return
-    setOperatorPreferences((current) => ({
-      ...current,
+    const nextPreferences: OperatorPreferences = {
+      ...operatorPreferences,
       operatorAppearances: Object.fromEntries(
-        data.dataset!.operators.map((operator) => [
+        data.dataset.operators.map((operator) => [
           operator.id,
           choice as OperatorAppearanceChoice,
         ]),
       ),
-      appearanceRandomSeed: choice === 'random' ? Date.now() : current.appearanceRandomSeed,
-    }))
+      appearanceRandomSeed:
+        choice === 'random' ? Date.now() : operatorPreferences.appearanceRandomSeed,
+    }
+    saveOperatorPreferences(nextPreferences)
+    setOperatorPreferences(nextPreferences)
     if (choice === 'e1' || choice === 'e2') saveOperatorArtwork(choice)
     notifyOperatorAppearanceChanged()
     setMessage(
@@ -257,7 +260,11 @@ export default function App(): React.JSX.Element {
           busy={data.busy}
           updateCheck={data.updateCheck}
           onConstraintsChange={updateConstraints}
-          onPreferencesChange={setOperatorPreferences}
+          onPreferencesChange={(next) => {
+            saveOperatorPreferences(next)
+            setOperatorPreferences(next)
+            notifyOperatorAppearanceChanged()
+          }}
           onPoolChanged={markPoolChanged}
           onMessage={setMessage}
           onError={setError}

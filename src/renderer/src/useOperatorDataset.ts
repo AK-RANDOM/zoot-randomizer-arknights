@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameLocale, Operator, OperatorDataset } from '../../shared/operator'
 import type { OperatorDataInfo, OperatorUpdateCheck } from '../../shared/desktop'
 import { localizeOperatorDataset } from '../../shared/gameLocalization'
@@ -29,6 +29,7 @@ export default function useOperatorDataset({
   const [updateCheck, setUpdateCheck] = useState<OperatorUpdateCheck | null>(null)
   const [busy, setBusy] = useState(false)
   const [updateRevision, setUpdateRevision] = useState(0)
+  const skinMetadataRefreshAttempted = useRef(false)
 
   const loadData = useCallback(async (): Promise<OperatorDataset> => {
     const [nextDataset, nextInfo] = await Promise.all([
@@ -44,10 +45,42 @@ export default function useOperatorDataset({
   }, [gameLocale, onMessage, onOperatorsLoaded])
 
   useEffect(() => {
-    void loadData().catch((reason: unknown) => {
-      onError(reason instanceof Error ? reason.message : String(reason))
-      onMessage('Operator data could not be loaded.')
-    })
+    let active = true
+
+    void (async () => {
+      try {
+        const loaded = await loadData()
+        const missingSkinMetadata = loaded.operators.some((operator) => operator.skins === undefined)
+        if (!missingSkinMetadata || skinMetadataRefreshAttempted.current) return
+
+        skinMetadataRefreshAttempted.current = true
+        setBusy(true)
+        try {
+          const result = await window.desktop.updateOperatorData()
+          if (!active) return
+          if (result.updated) {
+            await loadData()
+            if (!active) return
+            setUpdateRevision((current) => current + 1)
+            onMessage('Operator skin metadata is ready.')
+          }
+        } catch {
+          if (active) {
+            onMessage('Operator data loaded. Skin metadata will become available when the update source is reachable.')
+          }
+        } finally {
+          if (active) setBusy(false)
+        }
+      } catch (reason: unknown) {
+        if (!active) return
+        onError(reason instanceof Error ? reason.message : String(reason))
+        onMessage('Operator data could not be loaded.')
+      }
+    })()
+
+    return () => {
+      active = false
+    }
   }, [loadData, onError, onMessage])
 
   const checkUpdates = useCallback(async (): Promise<void> => {

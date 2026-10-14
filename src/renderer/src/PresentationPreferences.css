@@ -23,15 +23,11 @@
     0 8px 20px rgba(0, 0, 0, 0.24);
 }
 
-/* Selected Standard and Draft offer operator cards share the same subtle rarity wash behind the artwork. */
-.squad-grid .operator-card--portrait::before,
-.draft-decision-offer-grid .operator-card--portrait::before {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  content: '';
-  background: color-mix(in srgb, var(--rarity-color) 8%, transparent);
-  pointer-events: none;
+/* Selected Standard and Draft offer cards tint the artwork background only.
+   Keep the rarity wash behind faction art and operator artwork. */
+.squad-grid .operator-card--portrait .operator-card__art,
+.draft-decision-offer-grid .operator-card--portrait .operator-card__art {
+  background: color-mix(in srgb, var(--rarity-color) 8%, #171719);
 }
 
 .operator-card--portrait::after {

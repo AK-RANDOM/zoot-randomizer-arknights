@@ -3,11 +3,6 @@ import type { PortraitSyncProgress } from '../../shared/desktop'
 import type { OperatorPreferences, PoolPresentationMode } from '../../shared/operatorPool'
 import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
-import type { PromotionArt } from '../../shared/portraits'
-import {
-  setOperatorArtworkPreference,
-  useOperatorArtworkPreference,
-} from './presentationPreferences'
 import {
   setDraftActionConfirmationPreference,
   useDraftActionConfirmationPreference,
@@ -25,19 +20,20 @@ function ArtworkChoice({
   selected,
   title,
   description,
+  onChoose,
 }: {
-  value: PromotionArt
+  value: 'e1' | 'e2' | 'random'
   selected: boolean
   title: string
   description: string
+  onChoose: (value: 'e1' | 'e2' | 'random') => void
 }): React.JSX.Element {
   return (
     <button
       type="button"
       className={`artwork-choice${selected ? ' is-selected' : ''}`}
-      role="radio"
-      aria-checked={selected}
-      onClick={() => setOperatorArtworkPreference(value)}
+      aria-pressed={selected}
+      onClick={() => onChoose(value)}
     >
       <span className="artwork-choice__mark" aria-hidden="true" />
       <span>
@@ -116,13 +112,14 @@ export default function OptionsPanel({
   onMetadataRegionChange,
   onGameLocaleChange,
   onPoolPresentationChange,
+  onBulkAppearanceChange,
 }: {
   preferences: OperatorPreferences
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
   onPoolPresentationChange: (mode: PoolPresentationMode) => void
+  onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random') => void
 }): React.JSX.Element {
-  const artworkPreference = useOperatorArtworkPreference()
   const confirmDraftActions = useDraftActionConfirmationPreference()
 
   return (
@@ -209,31 +206,40 @@ export default function OptionsPanel({
 
       <div className="option-setting">
         <div className="option-setting__copy">
-          <strong>Operator artwork</strong>
+          <strong>Bulk operator appearance</strong>
           <p>
-            Choose the promotion artwork used on generated squad cards. This is a display-only
-            preference and never changes operator eligibility, constraints, or the current squad.
+            Apply one appearance choice to every currently loaded operator. Individual operators can
+            then be changed from Setup → Global Pool → Curate. This is presentation-only.
           </p>
         </div>
-        <div className="artwork-choice-group" role="radiogroup" aria-label="Operator artwork">
+        <div className="artwork-choice-group" aria-label="Bulk operator appearance">
           <ArtworkChoice
             value="e1"
-            selected={artworkPreference === 'e1'}
-            title="E1"
-            description="Base promotion portrait"
+            selected={false}
+            title="Use E1 for all"
+            description="Apply base promotion portraits"
+            onChoose={onBulkAppearanceChange}
           />
           <ArtworkChoice
             value="e2"
-            selected={artworkPreference === 'e2'}
-            title="E2"
-            description="E2 portrait where available; otherwise E1"
+            selected={false}
+            title="Use E2 for all"
+            description="Apply E2 portraits with E1 fallback"
+            onChoose={onBulkAppearanceChange}
+          />
+          <ArtworkChoice
+            value="random"
+            selected={false}
+            title="Randomize all"
+            description="Choose a stable random E1, E2, or skin for each operator"
+            onChoose={onBulkAppearanceChange}
           />
         </div>
       </div>
 
       <p className="option-note">
-        Amiya alternate forms use their available E2-style form portrait for both choices when the
-        resource set does not provide a separate E1 portrait.
+        Bulk changes do not affect Pool inclusion. Later per-operator appearance changes override
+        the bulk result without changing other operators.
       </p>
 
       <ArtworkDownloadStatus />

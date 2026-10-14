@@ -7,6 +7,7 @@ import {
   PORTRAIT_SOURCE,
   portraitFilename,
   portraitResolutionOrder,
+  skinPortraitFilename,
   usesAmiyaPromotionFallback,
   type PortraitPhase,
   type PromotionArt,
@@ -14,6 +15,7 @@ import {
 import { getOperatorDataset } from './operatorDataService'
 
 const portraitCache = new Map<string, string>()
+const skinPortraitCache = new Map<string, string>()
 
 function bundledPortraitRoot(): string {
   const operatorRoot = app.isPackaged
@@ -35,18 +37,12 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-function localPortraitCandidates(
-  operatorId: string,
-  phase: PortraitPhase,
-): string[] {
+function localPortraitCandidates(operatorId: string, phase: PortraitPhase): string[] {
   const filename = portraitFilename(operatorId, phase)
   return [join(downloadedPortraitRoot(), filename), join(bundledPortraitRoot(), filename)]
 }
 
-async function hasLocalPortrait(
-  operatorId: string,
-  phase: PortraitPhase,
-): Promise<boolean> {
+async function hasLocalPortrait(operatorId: string, phase: PortraitPhase): Promise<boolean> {
   for (const path of localPortraitCandidates(operatorId, phase)) {
     if (await exists(path)) return true
   }
@@ -132,6 +128,69 @@ async function downloadPortraitVariant(
     if (signal?.aborted) throw error
     return false
   }
+}
+
+function downloadedSkinPortraitRoot(): string {
+  return join(app.getPath('userData'), 'operator-data', 'skin-portraits')
+}
+
+function validPortraitId(value: string): boolean {
+  return /^[a-z0-9_@#+-]+$/i.test(value)
+}
+
+async function readSkinPortrait(portraitId: string): Promise<string | null> {
+  if (!validPortraitId(portraitId)) return null
+  const path = join(downloadedSkinPortraitRoot(), skinPortraitFilename(portraitId))
+  if (!(await exists(path))) return null
+  try {
+    const data = await readFile(path)
+    return `data:image/png;base64,${data.toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+async function downloadSkinPortrait(portraitId: string): Promise<boolean> {
+  if (!validPortraitId(portraitId)) return false
+  const path = join(downloadedSkinPortraitRoot(), skinPortraitFilename(portraitId))
+  if (await exists(path)) return true
+  try {
+    const response = await fetch(
+      `${PORTRAIT_SOURCE.baseUrl}/${encodeURIComponent(skinPortraitFilename(portraitId))}`,
+      {
+        headers: { 'User-Agent': 'arknights-randomizer' },
+        signal: AbortSignal.timeout(60_000),
+      },
+    )
+    if (!response.ok) return false
+    await mkdir(downloadedSkinPortraitRoot(), { recursive: true })
+    await writeFile(path, Buffer.from(await response.arrayBuffer()))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function getOperatorSkinPortrait(
+  operatorId: string,
+  skinId: string,
+): Promise<string | null> {
+  if (!/^char_[a-z0-9_]+$/i.test(operatorId)) return null
+  const dataset = await getOperatorDataset()
+  const operator = dataset.operators.find((candidate) => candidate.id === operatorId)
+  const skin = operator?.skins?.find((candidate) => candidate.id === skinId)
+  if (!skin) return null
+
+  const cacheKey = `${operatorId}:${skinId}`
+  const cached = skinPortraitCache.get(cacheKey)
+  if (cached) return cached
+
+  let image = await readSkinPortrait(skin.portraitId)
+  if (!image && (await downloadSkinPortrait(skin.portraitId))) {
+    image = await readSkinPortrait(skin.portraitId)
+  }
+  if (image) skinPortraitCache.set(cacheKey, image)
+  return image
 }
 
 export async function syncOperatorPortraits(

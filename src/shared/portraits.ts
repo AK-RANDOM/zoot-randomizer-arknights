@@ -4,14 +4,10 @@ export type PortraitPhase = 1 | 2
 export const PORTRAIT_SOURCE = {
   repository: 'yuanyan3060/ArknightsGameResource',
   path: 'portrait',
-  baseUrl:
-    'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/portrait',
+  baseUrl: 'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/portrait',
 } as const
 
-const AMIYA_E2_AS_E1 = new Set([
-  'char_1001_amiya2',
-  'char_1037_amiya3',
-])
+const AMIYA_E2_AS_E1 = new Set(['char_1001_amiya2', 'char_1037_amiya3'])
 
 export function portraitFilename(operatorId: string, phase: PortraitPhase): string {
   return `${operatorId}_${phase}.png`
@@ -39,4 +35,8 @@ export function resolvePortraitFilename(
 
 export function usesAmiyaPromotionFallback(operatorId: string): boolean {
   return AMIYA_E2_AS_E1.has(operatorId)
+}
+
+export function skinPortraitFilename(portraitId: string): string {
+  return `${portraitId}.png`
 }

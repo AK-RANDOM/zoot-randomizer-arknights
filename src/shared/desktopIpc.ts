@@ -1,7 +1,4 @@
-import {
-  operatorClasses,
-  type OperatorClass,
-} from './operator'
+import { operatorClasses, type OperatorClass } from './operator'
 import type { PromotionArt } from './portraits'
 
 export const DESKTOP_IPC_CHANNELS = {
@@ -9,6 +6,7 @@ export const DESKTOP_IPC_CHANNELS = {
   operatorDataInfo: 'operator-data:info',
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',
+  operatorSkinPortrait: 'operator-data:skin-portrait',
   classIcon: 'operator-data:class-icon',
   subclassIcon: 'operator-data:subclass-icon',
   factionIcon: 'operator-data:faction-icon',
@@ -23,6 +21,7 @@ export const DESKTOP_IPC_CHANNELS = {
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const METADATA_ID_PATTERN = /^[a-z0-9_.:-]+$/i
 const MAX_METADATA_ID_LENGTH = 128
+const SKIN_ID_PATTERN = /^char_[a-z0-9_]+@[a-z0-9_+#-]+$/i
 
 export function requireOperatorId(value: unknown): string {
   if (typeof value !== 'string' || !OPERATOR_ID_PATTERN.test(value)) {
@@ -34,6 +33,13 @@ export function requireOperatorId(value: unknown): string {
 export function requirePromotionArt(value: unknown): PromotionArt {
   if (value !== 'e1' && value !== 'e2') {
     throw new TypeError('Invalid promotion artwork selection.')
+  }
+  return value
+}
+
+export function requireSkinId(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 160 || !SKIN_ID_PATTERN.test(value)) {
+    throw new TypeError('Invalid skin ID.')
   }
   return value
 }

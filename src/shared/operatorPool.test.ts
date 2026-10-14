@@ -14,11 +14,7 @@ import {
 import { filterHigherLevelEligibleOperators } from './randomizer'
 import { RACE_UNAVAILABLE_ID } from './raceMetadata'
 
-function operator(
-  id: string,
-  date: string,
-  extras: Partial<Operator> = {},
-): Operator {
+function operator(id: string, date: string, extras: Partial<Operator> = {}): Operator {
   return {
     id,
     name: id,
@@ -49,11 +45,13 @@ const roster = [
 describe('Iteration 6 Pool persistence model', () => {
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
     expect(createDefaultOperatorPreferences()).toEqual({
-      version: 2,
+      version: 3,
       metadataRegion: 'global',
       gameLocale: 'en',
       poolPresentation: 'imageGrid',
       excludedOperatorIds: [],
+      operatorAppearances: {},
+      appearanceRandomSeed: 1,
     })
   })
 
@@ -66,25 +64,27 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: ['char_a', 'char_a', '', 7, ' char_b '],
       }),
     ).toEqual({
-      version: 2,
+      version: 3,
       metadataRegion: 'cn',
       gameLocale: 'en',
       poolPresentation: 'detailedList',
       excludedOperatorIds: ['char_a', 'char_b'],
+      operatorAppearances: {},
+      appearanceRandomSeed: 1,
     })
   })
 
   it('persists a supported game localization independently from metadata region', () => {
     expect(
       normalizeOperatorPreferences({
-        version: 2,
+        version: 3,
         metadataRegion: 'global',
         gameLocale: 'jp',
         poolPresentation: 'compactCard',
         excludedOperatorIds: [],
       }),
     ).toMatchObject({
-      version: 2,
+      version: 3,
       metadataRegion: 'global',
       gameLocale: 'jp',
       poolPresentation: 'compactCard',
@@ -111,9 +111,10 @@ describe('Iteration 6 Pool persistence model', () => {
     expect(reconcileOperatorPreferences(preferences, roster).excludedOperatorIds).toEqual([
       'char_old',
     ])
-    expect(
-      applyManualOperatorExclusions(roster, ['char_old']).map(({ id }) => id),
-    ).toEqual(['char_tragodia', 'char_new'])
+    expect(applyManualOperatorExclusions(roster, ['char_old']).map(({ id }) => id)).toEqual([
+      'char_tragodia',
+      'char_new',
+    ])
   })
 
   it('preserves a manual exclusion while higher-level filters temporarily hide that operator', () => {
@@ -184,11 +185,7 @@ describe('Iteration 6 Pool persistence model', () => {
 
   it('bulk add/remove acts only on the displayed IDs', () => {
     const initial = ['char_hidden', 'char_a']
-    const removedDisplayed = setDisplayedOperatorsExcluded(
-      initial,
-      ['char_a', 'char_b'],
-      true,
-    )
+    const removedDisplayed = setDisplayedOperatorsExcluded(initial, ['char_a', 'char_b'], true)
     expect(removedDisplayed).toEqual(['char_hidden', 'char_a', 'char_b'])
 
     const addedDisplayed = setDisplayedOperatorsExcluded(

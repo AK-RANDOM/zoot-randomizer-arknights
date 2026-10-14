@@ -4,7 +4,7 @@ import { isGameLocale } from './gameLocalization'
 import { filterHigherLevelEligibleOperators } from './randomizer'
 import { operatorRaceIds } from './raceMetadata'
 
-export const OPERATOR_PREFERENCES_VERSION = 2 as const
+export const OPERATOR_PREFERENCES_VERSION = 3 as const
 
 export const poolPresentationModes = [
   'imageGrid',
@@ -15,6 +15,8 @@ export const poolPresentationModes = [
 
 export type PoolPresentationMode = (typeof poolPresentationModes)[number]
 
+export type OperatorAppearanceChoice = 'e1' | 'e2' | 'random' | `skin:${string}`
+
 export interface OperatorPreferences {
   version: typeof OPERATOR_PREFERENCES_VERSION
   metadataRegion: ReleaseServer
@@ -22,6 +24,10 @@ export interface OperatorPreferences {
   poolPresentation: PoolPresentationMode
   /** Explicit exclusions only. Any ID not listed is enabled by default. */
   excludedOperatorIds: string[]
+  /** Per-operator presentation choice. Missing IDs fall back to the legacy/default promotion choice. */
+  operatorAppearances: Record<string, OperatorAppearanceChoice>
+  /** Stable seed used when an operator appearance is set to random. */
+  appearanceRandomSeed: number
 }
 
 export function createDefaultOperatorPreferences(): OperatorPreferences {
@@ -31,6 +37,8 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
     gameLocale: 'en',
     poolPresentation: 'imageGrid',
     excludedOperatorIds: [],
+    operatorAppearances: {},
+    appearanceRandomSeed: 1,
   }
 }
 
@@ -48,11 +56,20 @@ function normalizeIds(value: unknown): string[] {
   return result
 }
 
+function normalizeAppearanceMap(value: unknown): Record<string, OperatorAppearanceChoice> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const result: Record<string, OperatorAppearanceChoice> = {}
+  for (const [operatorId, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!operatorId || typeof raw !== 'string') continue
+    if (raw === 'e1' || raw === 'e2' || raw === 'random' || raw.startsWith('skin:')) {
+      result[operatorId] = raw as OperatorAppearanceChoice
+    }
+  }
+  return result
+}
+
 function isPoolPresentationMode(value: unknown): value is PoolPresentationMode {
-  return (
-    typeof value === 'string' &&
-    (poolPresentationModes as readonly string[]).includes(value)
-  )
+  return typeof value === 'string' && (poolPresentationModes as readonly string[]).includes(value)
 }
 
 /**
@@ -67,7 +84,11 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
   const candidate = value as Partial<Record<keyof OperatorPreferences, unknown>> & {
     version?: unknown
   }
-  if (candidate.version !== 1 && candidate.version !== OPERATOR_PREFERENCES_VERSION) {
+  if (
+    candidate.version !== 1 &&
+    candidate.version !== 2 &&
+    candidate.version !== OPERATOR_PREFERENCES_VERSION
+  ) {
     return defaults
   }
 
@@ -82,6 +103,12 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
       ? candidate.poolPresentation
       : defaults.poolPresentation,
     excludedOperatorIds: normalizeIds(candidate.excludedOperatorIds),
+    operatorAppearances: normalizeAppearanceMap(candidate.operatorAppearances),
+    appearanceRandomSeed:
+      typeof candidate.appearanceRandomSeed === 'number' &&
+      Number.isFinite(candidate.appearanceRandomSeed)
+        ? Math.trunc(candidate.appearanceRandomSeed)
+        : defaults.appearanceRandomSeed,
   }
 }
 
@@ -94,9 +121,19 @@ export function reconcileOperatorPreferences(
   operators: readonly Operator[],
 ): OperatorPreferences {
   const existingIds = new Set(operators.map((operator) => operator.id))
+  const operatorAppearances = Object.fromEntries(
+    Object.entries(preferences.operatorAppearances).filter(([id, choice]) => {
+      if (!existingIds.has(id)) return false
+      if (!choice.startsWith('skin:')) return true
+      const operator = operators.find((item) => item.id === id)
+      const skinId = choice.slice(5)
+      return operator?.skins?.some((skin) => skin.id === skinId) ?? false
+    }),
+  )
   return {
     ...preferences,
     excludedOperatorIds: preferences.excludedOperatorIds.filter((id) => existingIds.has(id)),
+    operatorAppearances,
   }
 }
 

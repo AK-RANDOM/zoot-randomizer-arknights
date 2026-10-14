@@ -10,12 +10,13 @@ const desktopApi: DesktopApi = {
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorImage, operatorId),
   getOperatorPortrait: (operatorId, promotionArt) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorPortrait, operatorId, promotionArt),
+  getOperatorSkinPortrait: (operatorId, skinId) =>
+    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorSkinPortrait, operatorId, skinId),
   getClassIcon: (operatorClass) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.classIcon, operatorClass),
   getSubclassIcon: (subclassId) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.subclassIcon, subclassId),
-  getFactionIcon: (factionId) =>
-    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.factionIcon, factionId),
+  getFactionIcon: (factionId) => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.factionIcon, factionId),
   checkOperatorUpdates: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.checkUpdates),
   updateOperatorData: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.updateData),
   getPortraitSyncProgress: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.portraitProgress),

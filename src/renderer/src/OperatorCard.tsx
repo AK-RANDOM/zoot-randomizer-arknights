@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import { useOperatorArtworkPreference } from './presentationPreferences'
+import { useOperatorAppearanceImage } from './operatorAppearance'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -37,9 +37,11 @@ export default function OperatorCard({
   overlay,
   animationKey = 0,
 }: OperatorCardProps): React.JSX.Element {
-  const artworkPreference = useOperatorArtworkPreference()
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [usingPortrait, setUsingPortrait] = useState(false)
+  const {
+    imageUrl,
+    usingPortrait,
+    choice: artworkPreference,
+  } = useOperatorAppearanceImage(operator)
   const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
   const cardRef = useRef<HTMLElement | null>(null)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
@@ -68,40 +70,6 @@ export default function OperatorCard({
 
     return () => observer.disconnect()
   }, [operator.name])
-
-  useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    setUsingPortrait(false)
-
-    void window.desktop
-      .getOperatorPortrait(operator.id, artworkPreference)
-      .then(async (portraitUrl) => {
-        if (!active) return
-        if (portraitUrl) {
-          setUsingPortrait(true)
-          setImageUrl(portraitUrl)
-          return
-        }
-
-        const avatarUrl = await window.desktop.getOperatorImage(operator.id)
-        if (active) {
-          setUsingPortrait(false)
-          setImageUrl(avatarUrl)
-        }
-      })
-      .catch(async () => {
-        const avatarUrl = await window.desktop.getOperatorImage(operator.id)
-        if (active) {
-          setUsingPortrait(false)
-          setImageUrl(avatarUrl)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [artworkPreference, operator.id])
 
   useEffect(() => {
     const replayOnRandomize = (event: MouseEvent): void => {
@@ -136,7 +104,7 @@ export default function OperatorCard({
       className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
-      title={`${operator.name} — ${artworkPreference.toUpperCase()} artwork`}
+      title={`${operator.name} — selected artwork`}
     >
       <div className="operator-card__art">
         {operator.faction.main && (

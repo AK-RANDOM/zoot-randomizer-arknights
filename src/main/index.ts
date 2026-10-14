@@ -9,6 +9,7 @@ import {
   requireOperatorClass,
   requireOperatorId,
   requirePromotionArt,
+  requireSkinId,
 } from '../shared/desktopIpc'
 import {
   checkOperatorUpdates,
@@ -18,12 +19,12 @@ import {
   syncOperatorAvatars,
   updateOperatorData,
 } from './operatorDataService'
-import { getOperatorPortrait, syncOperatorPortraits } from './operatorPortraitService'
 import {
-  getBundledClassIcon,
-  getFactionIcon,
-  getSubclassIcon,
-} from './operatorUiAssetService'
+  getOperatorPortrait,
+  getOperatorSkinPortrait,
+  syncOperatorPortraits,
+} from './operatorPortraitService'
+import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -148,6 +149,11 @@ function registerIpc(): void {
     DESKTOP_IPC_CHANNELS.operatorPortrait,
     (_event, operatorId: unknown, promotionArt: unknown) =>
       getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.operatorSkinPortrait,
+    (_event, operatorId: unknown, skinId: unknown) =>
+      getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId)),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.classIcon, (_event, operatorClass: unknown) =>
     getBundledClassIcon(requireOperatorClass(operatorClass)),

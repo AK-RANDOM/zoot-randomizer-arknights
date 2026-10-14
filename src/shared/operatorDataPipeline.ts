@@ -19,6 +19,7 @@ import {
   type RawUniEquipData,
 } from './operatorData.ts'
 import { applyRaceMetadata, type RawHandbookInfoTable } from './raceMetadata.ts'
+import { applySkinMetadata, type RawSkinTable } from './skinMetadata.ts'
 import { buildReleaseDateMap, RELEASE_VERSION_UPSTREAM } from './releaseMetadata.ts'
 
 const GAMEDATA_BRANCH = 'master'
@@ -189,7 +190,7 @@ export async function fetchAndBuildOperatorDataset(
 
   const localeEntries = await Promise.all(
     GAME_DATA_LOCALES.map(async (locale) => {
-      const [characters, patch, handbook, handbookInfo, mainText] = await Promise.all([
+      const [characters, patch, handbook, handbookInfo, mainText, skins] = await Promise.all([
         fetchJson<RawCharacterTable>(
           gameDataExcelUrlAtRevision(locale, 'character_table.json', gamedataRevision),
           options,
@@ -210,8 +211,12 @@ export async function fetchAndBuildOperatorDataset(
           gameDataExcelUrlAtRevision(locale, 'main_text.json', gamedataRevision),
           options,
         ),
+        fetchJson<RawSkinTable>(
+          gameDataExcelUrlAtRevision(locale, 'skin_table.json', gamedataRevision),
+          options,
+        ),
       ])
-      return [locale, { characters, patch, handbook, handbookInfo, mainText }] as const
+      return [locale, { characters, patch, handbook, handbookInfo, mainText, skins }] as const
     }),
   )
   const localeData = Object.fromEntries(localeEntries)
@@ -285,6 +290,9 @@ export async function fetchAndBuildOperatorDataset(
   const localizedHandbooks = Object.fromEntries(
     GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].handbookInfo]),
   )
+  const localizedSkinTables = Object.fromEntries(
+    GAME_DATA_LOCALES.map((locale) => [locale, localeData[locale].skins]),
+  )
 
   const releaseDates = buildReleaseDateMap(
     releaseInfoSource,
@@ -294,29 +302,35 @@ export async function fetchAndBuildOperatorDataset(
   )
   const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
   const dataset = alignAvailabilityWithReleaseMetadata(
-    applyRaceMetadata(
-      normalizeCharacterTables(
-        localeData.cn.characters,
-        localeData.en.characters,
-        sources,
-        generatedAt,
-        {
-          cnPatch: localeData.cn.patch,
-          enPatch: localeData.en.patch,
-          cnCharMeta,
-          enCharMeta,
-          cnGacha,
-          factionLabels: factionLabelsFromHandbooks(localeData.cn.handbook, localeData.en.handbook),
-          localizedCharacterTables,
-          localizedPatchTables,
-          localizedFactionLabels,
-          localizedClassLabels,
-          localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
-          releaseDates,
-          releaseCategories,
-        },
+    applySkinMetadata(
+      applyRaceMetadata(
+        normalizeCharacterTables(
+          localeData.cn.characters,
+          localeData.en.characters,
+          sources,
+          generatedAt,
+          {
+            cnPatch: localeData.cn.patch,
+            enPatch: localeData.en.patch,
+            cnCharMeta,
+            enCharMeta,
+            cnGacha,
+            factionLabels: factionLabelsFromHandbooks(
+              localeData.cn.handbook,
+              localeData.en.handbook,
+            ),
+            localizedCharacterTables,
+            localizedPatchTables,
+            localizedFactionLabels,
+            localizedClassLabels,
+            localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
+            releaseDates,
+            releaseCategories,
+          },
+        ),
+        localizedHandbooks,
       ),
-      localizedHandbooks,
+      localizedSkinTables,
     ),
   )
 

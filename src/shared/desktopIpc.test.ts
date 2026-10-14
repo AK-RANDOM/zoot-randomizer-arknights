@@ -6,6 +6,7 @@ import {
   requireOperatorClass,
   requireOperatorId,
   requirePromotionArt,
+  requireSkinId,
 } from './desktopIpc'
 
 describe('desktop IPC contract', () => {
@@ -19,6 +20,11 @@ describe('desktop IPC contract', () => {
     expect(() => requireOperatorId('../operator')).toThrow('Invalid operator ID.')
     expect(() => requireOperatorId('https://example.com')).toThrow('Invalid operator ID.')
     expect(() => requireOperatorId(42)).toThrow('Invalid operator ID.')
+  })
+
+  it('validates operator skin IDs', () => {
+    expect(requireSkinId('char_222_bpipe@race#1')).toBe('char_222_bpipe@race#1')
+    expect(() => requireSkinId('../skin.png')).toThrow('Invalid skin ID.')
   })
 
   it('validates promotion artwork values', () => {

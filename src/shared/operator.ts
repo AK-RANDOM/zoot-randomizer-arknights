@@ -19,12 +19,7 @@ export const limitedAcquisitionGroups = [
   'collab',
 ] as const
 
-export const welfareAcquisitionGroups = [
-  'eventStory',
-  'redCert',
-  'cc',
-  'isRa',
-] as const
+export const welfareAcquisitionGroups = ['eventStory', 'redCert', 'cc', 'isRa'] as const
 
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
@@ -69,6 +64,12 @@ export interface OperatorFaction {
   affiliations: string[]
 }
 
+export interface OperatorSkin {
+  id: string
+  portraitId: string
+  names: Partial<Record<GameLocale, string>>
+}
+
 export interface Operator {
   id: string
   name: string
@@ -91,6 +92,8 @@ export interface Operator {
   alterGroup: string | null
   mandatoryExclusivityGroup: string | null
   imageFile: string
+  /** Optional source-driven alternate cosmetic appearances. */
+  skins?: OperatorSkin[]
 }
 
 export interface OperatorDatasetSources {

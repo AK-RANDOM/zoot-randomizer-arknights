@@ -13,11 +13,7 @@ import {
 import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type {
-  OperatorDataInfo,
-  OperatorUpdateCheck,
-  OperatorUpdateResult,
-} from '../shared/desktop'
+import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
 import type { OperatorDataset } from '../shared/operator'
 import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
 import {
@@ -128,10 +124,7 @@ async function readOperatorImage(operatorId: string): Promise<string | null> {
   return null
 }
 
-async function downloadAvatarToCache(
-  operatorId: string,
-  signal?: AbortSignal,
-): Promise<boolean> {
+async function downloadAvatarToCache(operatorId: string, signal?: AbortSignal): Promise<boolean> {
   if (await exists(downloadedImagePath(operatorId))) return true
 
   const current = avatarDownloadPromises.get(operatorId)
@@ -150,10 +143,7 @@ async function downloadAvatarToCache(
       if (!response.ok) return false
 
       await mkdir(join(downloadedRoot(), 'images'), { recursive: true })
-      await writeFile(
-        downloadedImagePath(operatorId),
-        Buffer.from(await response.arrayBuffer()),
-      )
+      await writeFile(downloadedImagePath(operatorId), Buffer.from(await response.arrayBuffer()))
       imageCache.delete(operatorId)
       return true
     } catch (error) {
@@ -227,15 +217,16 @@ export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
 
   try {
     const latest = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
-    const updateAvailable = !operatorDatasetSourcesEqual(current, latest)
+    const dataset = await getOperatorDataset()
+    const updateAvailable =
+      dataset.operators.some((operator) => operator.skins === undefined) ||
+      !operatorDatasetSourcesEqual(current, latest)
     return {
       online: true,
       updateAvailable,
       current,
       latest,
-      message: updateAvailable
-        ? 'New operator data is available.'
-        : 'Operator data is up to date.',
+      message: updateAvailable ? 'New operator data is available.' : 'Operator data is up to date.',
     }
   } catch {
     return {
@@ -248,10 +239,7 @@ export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
   }
 }
 
-async function downloadAvatar(
-  operatorId: string,
-  destination: string,
-): Promise<boolean> {
+async function downloadAvatar(operatorId: string, destination: string): Promise<boolean> {
   const response = await fetch(
     `${UPSTREAM.avatarBaseUrl}/${operatorAvatarSourceFilename(operatorId)}`,
     {
@@ -301,10 +289,7 @@ async function stageMissingImages(
   return warnings
 }
 
-async function activateStagedData(
-  stageRoot: string,
-  stageDataset: string,
-): Promise<void> {
+async function activateStagedData(stageRoot: string, stageDataset: string): Promise<void> {
   const targetRoot = downloadedRoot()
   const targetImages = join(targetRoot, 'images')
   await mkdir(targetImages, { recursive: true })
@@ -338,7 +323,8 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
   const current = await getOperatorDataset()
   const latestSources = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
 
-  if (operatorDatasetSourcesEqual(current.sources, latestSources)) {
+  const needsSkinMetadata = current.operators.some((operator) => operator.skins === undefined)
+  if (!needsSkinMetadata && operatorDatasetSourcesEqual(current.sources, latestSources)) {
     return { updated: false, dataset: current, warnings: [] }
   }
 
@@ -348,9 +334,7 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     PIPELINE_FETCH_OPTIONS,
   )
   if (!validation.valid) {
-    throw new Error(
-      `Downloaded operator data failed validation: ${validation.errors.join(' ')}`,
-    )
+    throw new Error(`Downloaded operator data failed validation: ${validation.errors.join(' ')}`)
   }
 
   const stageRoot = await mkdtemp(join(tmpdir(), 'arknights-randomizer-data-'))

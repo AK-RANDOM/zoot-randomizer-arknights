@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
+import { useOperatorAppearanceImage } from './operatorAppearance'
 import {
   resolveDraftActionPresentation,
   resolveDraftSquadPresentation,
@@ -71,23 +72,7 @@ function DraftRosterAvatar({
   operator: Operator
   overflow?: boolean
 }): React.JSX.Element {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    void window.desktop
-      .getOperatorImage(operator.id)
-      .then((avatarUrl) => {
-        if (active) setImageUrl(avatarUrl)
-      })
-      .catch(() => {
-        if (active) setImageUrl(null)
-      })
-    return () => {
-      active = false
-    }
-  }, [operator.id])
+  const { imageUrl } = useOperatorAppearanceImage(operator)
 
   return (
     <div

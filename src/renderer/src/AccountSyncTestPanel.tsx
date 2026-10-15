@@ -40,7 +40,13 @@ function avatarSummary(snapshot: ImportedArknightsAccount): string {
 
 async function resolveAvatarImage(snapshot: ImportedArknightsAccount): Promise<string | null> {
   const avatar = snapshot.avatar
-  if (!avatar?.id || avatar.type !== 'ASSISTANT') return null
+  if (!avatar?.id) return null
+
+  if (avatar.id.startsWith('avatar_')) {
+    return window.desktop.getArknightsProfileAvatar(avatar.id)
+  }
+
+  if (avatar.type !== 'ASSISTANT') return null
 
   const dataset = await window.desktop.getOperatorDataset()
   for (const operator of dataset.operators) {

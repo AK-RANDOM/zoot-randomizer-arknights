@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
 import type { OperatorDataset } from '../shared/operator'
+import { operatorDatasetNeedsSkinMetadataRefresh } from '../shared/skinMetadata'
 import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
 import {
   UPSTREAM,
@@ -219,7 +220,7 @@ export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
     const latest = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
     const dataset = await getOperatorDataset()
     const updateAvailable =
-      dataset.operators.some((operator) => operator.skins === undefined) ||
+      operatorDatasetNeedsSkinMetadataRefresh(dataset) ||
       !operatorDatasetSourcesEqual(current, latest)
     return {
       online: true,
@@ -323,7 +324,7 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
   const current = await getOperatorDataset()
   const latestSources = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
 
-  const needsSkinMetadata = current.operators.some((operator) => operator.skins === undefined)
+  const needsSkinMetadata = operatorDatasetNeedsSkinMetadataRefresh(current)
   if (!needsSkinMetadata && operatorDatasetSourcesEqual(current.sources, latestSources)) {
     return { updated: false, dataset: current, warnings: [] }
   }

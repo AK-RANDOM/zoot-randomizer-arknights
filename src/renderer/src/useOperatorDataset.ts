@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameLocale, Operator, OperatorDataset } from '../../shared/operator'
 import type { OperatorDataInfo, OperatorUpdateCheck } from '../../shared/desktop'
 import { localizeOperatorDataset } from '../../shared/gameLocalization'
+import { operatorDatasetNeedsSkinMetadataRefresh } from '../../shared/skinMetadata'
 
 export interface OperatorDatasetController {
   dataset: OperatorDataset | null
@@ -50,8 +51,7 @@ export default function useOperatorDataset({
     void (async () => {
       try {
         const loaded = await loadData()
-        const missingSkinMetadata = loaded.operators.some((operator) => operator.skins === undefined)
-        if (!missingSkinMetadata || skinMetadataRefreshAttempted.current) return
+        if (!operatorDatasetNeedsSkinMetadataRefresh(loaded) || skinMetadataRefreshAttempted.current) return
 
         skinMetadataRefreshAttempted.current = true
         setBusy(true)

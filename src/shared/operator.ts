@@ -64,6 +64,19 @@ export interface OperatorFaction {
   affiliations: string[]
 }
 
+export interface OperatorDefaultArt {
+  /** Native skin-table ID, including #1/#1+/#2 variants. */
+  id: string
+  /** Source-provided square avatar asset for this default appearance. */
+  avatarId: string
+  /** Source-provided portrait asset used when this appearance is selected outside Curate. */
+  portraitId: string
+  /** Promotion phase from buildinEvolveMap when applicable. */
+  phase?: number
+  /** Compact Curate label such as Default, E0, E1, or E2. */
+  label: string
+}
+
 export interface OperatorSkin {
   id: string
   portraitId: string
@@ -72,7 +85,7 @@ export interface OperatorSkin {
   /** CN outfit release timestamp from displaySkin.getTime when available. */
   releaseTime?: number
   names: Partial<Record<GameLocale, string>>
-  /** Source-provided localized outfit/collection brand. */
+  /** Source-provided localized outfit/collection brand. Retained for non-Curate consumers. */
   brands?: Partial<Record<GameLocale, string>>
 }
 
@@ -98,8 +111,8 @@ export interface Operator {
   alterGroup: string | null
   mandatoryExclusivityGroup: string | null
   imageFile: string
-  /** Source-provided square avatars for default E1/E2 artwork. */
-  promotionAvatarIds?: Partial<Record<'e1' | 'e2', string>>
+  /** Source-driven default appearance list. Cardinality varies by operator/form. */
+  defaultArts?: OperatorDefaultArt[]
   /** Optional source-driven alternate cosmetic appearances. */
   skins?: OperatorSkin[]
 }
@@ -110,6 +123,12 @@ export interface OperatorDatasetSources {
   gamedataJpCommit?: string | null
   gamedataKrCommit?: string | null
   gamedataTwCommit?: string | null
+  /** Optional M6 source stamps; absent on pre-Race schema-v6 datasets. */
+  gamedataCnHandbookCommit?: string | null
+  gamedataEnHandbookCommit?: string | null
+  gamedataJpHandbookCommit?: string | null
+  gamedataKrHandbookCommit?: string | null
+  gamedataTwHandbookCommit?: string | null
   /** Optional M6 source stamps; absent on pre-Race schema-v6 datasets. */
   gamedataCnHandbookCommit?: string | null
   gamedataEnHandbookCommit?: string | null

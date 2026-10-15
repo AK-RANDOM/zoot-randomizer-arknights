@@ -7,6 +7,8 @@ const styleSource = readFileSync(new URL('./PoolPanel.css', import.meta.url), 'u
 describe('Curate operator appearance picker', () => {
   it('uses native avatar assets and separates default art, skins, and random appearance', () => {
     expect(panelSource).toContain('getOperatorAvatarAsset')
+    expect(panelSource).toContain("getOperatorPromotionAvatar(operator.id, 'e1')")
+    expect(panelSource).not.toContain('getOperatorImage(operator.id)')
     expect(panelSource).not.toContain('getOperatorSkinPortrait(operatorId, skinId)')
     expect(panelSource).toContain('operator.defaultArts')
     expect(panelSource).toContain('Default Art')

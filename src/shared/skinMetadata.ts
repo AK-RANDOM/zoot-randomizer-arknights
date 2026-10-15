@@ -1,6 +1,6 @@
 import { gameLocales, type GameLocale, type OperatorDataset, type OperatorSkin } from './operator.ts'
 
-export const OPERATOR_SKIN_METADATA_VERSION = 2 as const
+export const OPERATOR_SKIN_METADATA_VERSION = 3 as const
 
 export interface RawSkinRecord {
   skinId?: unknown
@@ -10,6 +10,7 @@ export interface RawSkinRecord {
   displaySkin?: {
     skinName?: unknown
     skinGroupName?: unknown
+    getTime?: unknown
   } | null
 }
 
@@ -31,19 +32,46 @@ function localizedSkinBrand(record: RawSkinRecord | undefined): string | null {
   return null
 }
 
+function skinReleaseTime(record: RawSkinRecord | undefined): number | null {
+  const value = record?.displaySkin?.getTime
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
+}
+
+function compareSkinsByRelease(left: OperatorSkin, right: OperatorSkin): number {
+  const leftTime = left.releaseTime
+  const rightTime = right.releaseTime
+  if (leftTime !== undefined && rightTime !== undefined && leftTime !== rightTime) {
+    return leftTime - rightTime
+  }
+  if (leftTime !== undefined && rightTime === undefined) return -1
+  if (leftTime === undefined && rightTime !== undefined) return 1
+  return left.id.localeCompare(right.id)
+}
+
 export function applySkinMetadata(
   dataset: OperatorDataset,
   tables: Partial<Record<GameLocale, RawSkinTable>>,
 ): OperatorDataset {
   const cnSkins = tables.cn?.charSkins ?? {}
   const byOperator = new Map<string, OperatorSkin[]>()
+  const promotionAvatars = new Map<string, Partial<Record<'e1' | 'e2', string>>>()
 
   for (const [key, raw] of Object.entries(cnSkins)) {
     const skinId = typeof raw.skinId === 'string' ? raw.skinId : key
     const charId = typeof raw.charId === 'string' ? raw.charId : null
     const portraitId = typeof raw.portraitId === 'string' ? raw.portraitId : null
     const avatarId = typeof raw.avatarId === 'string' && raw.avatarId.trim() ? raw.avatarId.trim() : null
-    if (!charId || !portraitId || !skinId.includes('@')) continue
+    if (!charId || !portraitId) continue
+
+    if (!skinId.includes('@')) {
+      if (avatarId) {
+        const defaults = promotionAvatars.get(charId) ?? {}
+        if (skinId.endsWith('#1')) defaults.e1 = avatarId
+        if (skinId.endsWith('#2')) defaults.e2 = avatarId
+        promotionAvatars.set(charId, defaults)
+      }
+      continue
+    }
 
     const names: Partial<Record<GameLocale, string>> = {}
     const brands: Partial<Record<GameLocale, string>> = {}
@@ -65,11 +93,13 @@ export function applySkinMetadata(
       if (fallbackBrand) brands.cn = fallbackBrand
     }
 
+    const releaseTime = skinReleaseTime(raw)
     const list = byOperator.get(charId) ?? []
     list.push({
       id: skinId,
       portraitId,
       ...(avatarId ? { avatarId } : {}),
+      ...(releaseTime !== null ? { releaseTime } : {}),
       names,
       ...(Object.keys(brands).length > 0 ? { brands } : {}),
     })
@@ -81,7 +111,10 @@ export function applySkinMetadata(
     skinMetadataVersion: OPERATOR_SKIN_METADATA_VERSION,
     operators: dataset.operators.map((operator) => ({
       ...operator,
-      skins: [...(byOperator.get(operator.id) ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
+      ...(promotionAvatars.has(operator.id)
+        ? { promotionAvatarIds: promotionAvatars.get(operator.id) }
+        : {}),
+      skins: [...(byOperator.get(operator.id) ?? [])].sort(compareSkinsByRelease),
     })),
   }
 }

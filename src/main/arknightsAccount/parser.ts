@@ -2,6 +2,7 @@ import {
   ARKNIGHTS_ACCOUNT_SNAPSHOT_VERSION,
   type ArknightsAccountServer,
   type ImportedArknightsAccount,
+  type ImportedArknightsAccountAvatar,
   type ImportedOperatorFormProgress,
   type ImportedOperatorProgress,
 } from '../../shared/arknightsAccount'
@@ -9,6 +10,11 @@ import {
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const MAX_ID_LENGTH = 192
 const MAX_ACCOUNT_FIELD_LENGTH = 192
+const AVATAR_TYPES = new Set<ImportedArknightsAccountAvatar['type']>([
+  'ASSISTANT',
+  'ICON',
+  'DEFAULT',
+])
 
 export interface AccountSyncParseResult {
   snapshot: ImportedArknightsAccount
@@ -208,7 +214,25 @@ function parseOwnedSkinIds(user: JsonRecord, warnings: string[]): string[] {
   return [...new Set(ownedSkinIds)].sort((left, right) => left.localeCompare(right))
 }
 
-function parseAccountIdentity(user: JsonRecord): Pick<ImportedArknightsAccount, 'accountName' | 'uid'> {
+function parseAvatar(status: JsonRecord): ImportedArknightsAccountAvatar | undefined {
+  const avatar = getRecord(status, 'avatar')
+  if (!avatar) return undefined
+
+  const rawType = avatar['type']
+  if (typeof rawType !== 'string' || !AVATAR_TYPES.has(rawType as ImportedArknightsAccountAvatar['type'])) {
+    return undefined
+  }
+
+  const id = readAccountString(avatar['id'])
+  return {
+    type: rawType as ImportedArknightsAccountAvatar['type'],
+    ...(id ? { id } : {}),
+  }
+}
+
+function parseAccountIdentity(
+  user: JsonRecord,
+): Pick<ImportedArknightsAccount, 'accountName' | 'uid' | 'avatar'> {
   const status = getRecord(user, 'status')
   if (!status) return {}
 
@@ -221,10 +245,12 @@ function parseAccountIdentity(user: JsonRecord): Pick<ImportedArknightsAccount, 
   const uidRaw = status['uid']
   const uid =
     typeof uidRaw === 'number' && Number.isFinite(uidRaw) ? String(uidRaw) : readAccountString(uidRaw)
+  const avatar = parseAvatar(status)
 
   return {
     ...(nickname ? { accountName: nickNumber ? `${nickname}#${nickNumber}` : nickname } : {}),
     ...(uid ? { uid } : {}),
+    ...(avatar ? { avatar } : {}),
   }
 }
 

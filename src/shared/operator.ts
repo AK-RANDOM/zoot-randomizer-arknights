@@ -129,12 +129,6 @@ export interface OperatorDatasetSources {
   gamedataJpHandbookCommit?: string | null
   gamedataKrHandbookCommit?: string | null
   gamedataTwHandbookCommit?: string | null
-  /** Optional M6 source stamps; absent on pre-Race schema-v6 datasets. */
-  gamedataCnHandbookCommit?: string | null
-  gamedataEnHandbookCommit?: string | null
-  gamedataJpHandbookCommit?: string | null
-  gamedataKrHandbookCommit?: string | null
-  gamedataTwHandbookCommit?: string | null
   resourcesCommit: string | null
   releaseMetadataCommit: string | null
   /** Optional source stamp for the per-operator CN first-seen fallback map. */

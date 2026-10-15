@@ -1,6 +1,12 @@
 export const ARKNIGHTS_ACCOUNT_SNAPSHOT_VERSION = 1 as const
 
 export type ArknightsAccountServer = 'en' | 'jp' | 'kr'
+export type ImportedArknightsAvatarType = 'ASSISTANT' | 'ICON' | 'DEFAULT'
+
+export interface ImportedArknightsAccountAvatar {
+  type: ImportedArknightsAvatarType
+  id?: string
+}
 
 export interface ImportedOperatorFormProgress {
   formId: string
@@ -23,6 +29,7 @@ export interface ImportedArknightsAccount {
   server: ArknightsAccountServer
   accountName?: string
   uid?: string
+  avatar?: ImportedArknightsAccountAvatar
   operators: ImportedOperatorProgress[]
   ownedSkinIds: string[]
   fetchedAt: string

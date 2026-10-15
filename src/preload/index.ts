@@ -14,6 +14,8 @@ const desktopApi: DesktopApi = {
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorSkinPortrait, operatorId, skinId),
   getOperatorSkinAvatar: (operatorId, skinId) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorSkinAvatar, operatorId, skinId),
+  getArknightsProfileAvatar: (avatarId) =>
+    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.arknightsAccountAvatar, avatarId),
   getClassIcon: (operatorClass) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.classIcon, operatorClass),
   getSubclassIcon: (subclassId) =>

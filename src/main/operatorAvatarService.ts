@@ -7,10 +7,10 @@ import { skinAvatarFilename } from '../shared/portraits'
 import { UPSTREAM } from '../shared/operatorData'
 import { getOperatorDataset } from './operatorDataService'
 
-const promotionAvatarCache = new Map<string, string>()
+const avatarCache = new Map<string, string>()
 
-function downloadedPromotionAvatarRoot(): string {
-  return join(app.getPath('userData'), 'operator-data', 'promotion-avatars')
+function downloadedAvatarRoot(): string {
+  return join(app.getPath('userData'), 'operator-data', 'appearance-avatars')
 }
 
 function validAvatarId(value: string): boolean {
@@ -28,7 +28,7 @@ async function exists(path: string): Promise<boolean> {
 
 async function readAvatar(avatarId: string): Promise<string | null> {
   if (!validAvatarId(avatarId)) return null
-  const path = join(downloadedPromotionAvatarRoot(), skinAvatarFilename(avatarId))
+  const path = join(downloadedAvatarRoot(), skinAvatarFilename(avatarId))
   if (!(await exists(path))) return null
   try {
     const data = await readFile(path)
@@ -41,7 +41,7 @@ async function readAvatar(avatarId: string): Promise<string | null> {
 async function downloadAvatar(avatarId: string): Promise<boolean> {
   if (!validAvatarId(avatarId)) return false
   const filename = skinAvatarFilename(avatarId)
-  const path = join(downloadedPromotionAvatarRoot(), filename)
+  const path = join(downloadedAvatarRoot(), filename)
   if (await exists(path)) return true
 
   try {
@@ -50,7 +50,7 @@ async function downloadAvatar(avatarId: string): Promise<boolean> {
       signal: AbortSignal.timeout(60_000),
     })
     if (!response.ok) return false
-    await mkdir(downloadedPromotionAvatarRoot(), { recursive: true })
+    await mkdir(downloadedAvatarRoot(), { recursive: true })
     await writeFile(path, Buffer.from(await response.arrayBuffer()))
     return true
   } catch {
@@ -58,13 +58,14 @@ async function downloadAvatar(avatarId: string): Promise<boolean> {
   }
 }
 
-async function resolveAvatar(avatarId: string): Promise<string | null> {
-  const cached = promotionAvatarCache.get(avatarId)
+export async function getOperatorAvatarAsset(avatarId: string): Promise<string | null> {
+  if (!validAvatarId(avatarId)) return null
+  const cached = avatarCache.get(avatarId)
   if (cached) return cached
 
   let image = await readAvatar(avatarId)
   if (!image && (await downloadAvatar(avatarId))) image = await readAvatar(avatarId)
-  if (image) promotionAvatarCache.set(avatarId, image)
+  if (image) avatarCache.set(avatarId, image)
   return image
 }
 
@@ -79,18 +80,15 @@ export async function getOperatorPromotionAvatar(
   const operator = dataset.operators.find((candidate) => candidate.id === operatorId)
   if (!operator) return null
 
-  const preferred = operator.promotionAvatarIds?.[promotionArt]
+  const arts = operator.defaultArts ?? []
+  const preferred =
+    promotionArt === 'e2'
+      ? (arts.find((art) => art.phase === 2) ?? arts.at(-1))
+      : (arts.find((art) => art.phase === 0) ?? arts[0])
+  if (preferred) return getOperatorAvatarAsset(preferred.avatarId)
+
   const inferred = promotionArt === 'e1' ? operatorId : `${operatorId}_2`
-  const candidates = [preferred, inferred]
-  if (promotionArt === 'e2') {
-    candidates.push(operator.promotionAvatarIds?.e1, operatorId)
-  }
-
-  for (const avatarId of candidates) {
-    if (!avatarId) continue
-    const image = await resolveAvatar(avatarId)
-    if (image) return image
-  }
-
-  return null
+  const fallback = await getOperatorAvatarAsset(inferred)
+  if (fallback) return fallback
+  return promotionArt === 'e2' ? getOperatorAvatarAsset(operatorId) : null
 }

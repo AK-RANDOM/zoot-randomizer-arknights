@@ -13,6 +13,7 @@ describe('Arknights account M1 test surface', () => {
     expect(source).toContain('snapshot.avatar')
     expect(source).toContain('Profile avatar')
     expect(source).toContain('getOperatorSkinAvatar')
+    expect(source).toContain('getArknightsProfileAvatar(avatar.id)')
     expect(source).toContain('account-sync-test__avatar-image')
     expect(source).toContain('snapshot.operators.length')
     expect(source).toContain('snapshot.ownedSkinIds.length')

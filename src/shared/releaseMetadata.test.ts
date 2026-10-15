@@ -22,6 +22,33 @@ describe('release metadata fallbacks', () => {
     })
   })
 
+  it('parses generated TypeScript event literals with identifier keys and trailing commas', () => {
+    const info =
+      'export const operatorReleaseInfoByCharId = {"char_current":{"eventId":"event_current"}}'
+    const candidates = 'export const cnOperatorReleaseCandidateList = []'
+    const events = `
+      export const generatedOperatorReleaseEventList: readonly GeneratedOperatorReleaseEvent[] =
+        [
+          {
+            id: "event_current",
+            name: "Current event",
+            category: "main_story",
+            server: "global",
+            source: "manual",
+            order: 1,
+            startTime: 1791399600,
+            startDate: "2026-10-08",
+            operatorIds: ["char_current"],
+          },
+        ]
+    `
+
+    expect(buildReleaseDateMap(info, candidates, events).char_current).toEqual({
+      cn: null,
+      global: '2026-10-08',
+    })
+  })
+
   it('uses first-seen CN dates only when ordinary release metadata is missing', () => {
     const info =
       'export const operatorReleaseInfoByCharId = {"char_known":{"eventId":"event_known"}}'

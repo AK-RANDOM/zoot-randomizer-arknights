@@ -10,6 +10,8 @@ describe('Arknights account M1 test surface', () => {
     expect(source).toContain("setCode('')")
     expect(source).toContain('snapshot.accountName')
     expect(source).toContain('snapshot.uid')
+    expect(source).toContain('snapshot.avatar')
+    expect(source).toContain('Profile avatar')
     expect(source).toContain('snapshot.operators.length')
     expect(source).toContain('snapshot.ownedSkinIds.length')
     expect(source).toContain('progress.equippedSkinId')

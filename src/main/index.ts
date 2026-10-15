@@ -21,6 +21,7 @@ import {
 } from './operatorDataService'
 import {
   getOperatorPortrait,
+  getOperatorSkinAvatar,
   getOperatorSkinPortrait,
   syncOperatorPortraits,
 } from './operatorPortraitService'
@@ -154,6 +155,11 @@ function registerIpc(): void {
     DESKTOP_IPC_CHANNELS.operatorSkinPortrait,
     (_event, operatorId: unknown, skinId: unknown) =>
       getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId)),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.operatorSkinAvatar,
+    (_event, operatorId: unknown, skinId: unknown) =>
+      getOperatorSkinAvatar(requireOperatorId(operatorId), requireSkinId(skinId)),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.classIcon, (_event, operatorClass: unknown) =>
     getBundledClassIcon(requireOperatorClass(operatorClass)),

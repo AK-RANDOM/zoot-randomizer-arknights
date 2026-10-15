@@ -59,6 +59,80 @@ describe('Arknights account sync parser', () => {
     })
   })
 
+  it('extracts account display name and UID from user.status', () => {
+    const result = parseArknightsSyncData(
+      {
+        user: {
+          status: { nickName: 'Doctor', nickNumber: 1234, uid: '08116410' },
+          troop: { chars: {} },
+        },
+      },
+      'en',
+      FETCHED_AT,
+    )
+
+    expect(result.snapshot.accountName).toBe('Doctor#1234')
+    expect(result.snapshot.uid).toBe('08116410')
+  })
+
+  it('preserves Amiya forms and selected currentTmpl without warning on an empty base skin', () => {
+    const result = parseArknightsSyncData(
+      {
+        user: {
+          troop: {
+            chars: {
+              '1': {
+                charId: 'char_002_amiya',
+                level: 80,
+                evolvePhase: 2,
+                skin: '',
+                currentTmpl: 'char_1037_amiya3',
+                tmpl: {
+                  char_002_amiya: { skin: 'char_002_amiya#2' },
+                  char_1001_amiya2: { skin: 'char_1001_amiya2#2' },
+                  char_1037_amiya3: { skin: 'char_1037_amiya3#2' },
+                },
+              },
+            },
+          },
+        },
+      },
+      'en',
+      FETCHED_AT,
+    )
+
+    expect(result.warnings).toEqual([])
+    expect(result.snapshot.operators).toEqual([
+      {
+        operatorId: 'char_002_amiya',
+        level: 80,
+        elite: 2,
+        activeFormId: 'char_1037_amiya3',
+        equippedSkinId: 'char_1037_amiya3#2',
+        forms: [
+          {
+            formId: 'char_002_amiya',
+            level: 80,
+            elite: 2,
+            equippedSkinId: 'char_002_amiya#2',
+          },
+          {
+            formId: 'char_1001_amiya2',
+            level: 80,
+            elite: 2,
+            equippedSkinId: 'char_1001_amiya2#2',
+          },
+          {
+            formId: 'char_1037_amiya3',
+            level: 80,
+            elite: 2,
+            equippedSkinId: 'char_1037_amiya3#2',
+          },
+        ],
+      },
+    ])
+  })
+
   it('accepts direct user data and the legacy phase field', () => {
     const result = parseArknightsSyncData(
       {

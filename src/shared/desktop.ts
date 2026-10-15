@@ -42,6 +42,7 @@ export interface DesktopApi {
   getOperatorDataInfo(): Promise<OperatorDataInfo>
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>
+  getOperatorPromotionAvatar(operatorId: string, promotionArt: PromotionArt): Promise<string | null>
   getOperatorSkinPortrait(operatorId: string, skinId: string): Promise<string | null>
   getOperatorSkinAvatar(operatorId: string, skinId: string): Promise<string | null>
   getArknightsProfileAvatar(avatarId: string): Promise<string | null>

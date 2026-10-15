@@ -1,4 +1,4 @@
-import { gameLocales, type GameLocale, type OperatorDataset, type OperatorSkin } from './operator'
+import { gameLocales, type GameLocale, type OperatorDataset, type OperatorSkin } from './operator.ts'
 
 export const OPERATOR_SKIN_METADATA_VERSION = 2 as const
 

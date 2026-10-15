@@ -5,6 +5,7 @@ import type { PortraitSyncProgress } from '../shared/desktop'
 import {
   DESKTOP_IPC_CHANNELS,
   isAllowedExternalUrl,
+  requireArknightsAccountAvatarId,
   requireArknightsAccountServer,
   requireArknightsAccountString,
   requireMetadataId,
@@ -30,6 +31,7 @@ import {
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
+import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -212,6 +214,9 @@ function registerIpc(): void {
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountClear, () =>
     getArknightsAccountService().clearSnapshot(),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountAvatar, (_event, avatarId: unknown) =>
+    getArknightsProfileAvatar(requireArknightsAccountAvatarId(avatarId)),
   )
 }
 

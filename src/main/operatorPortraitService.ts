@@ -7,15 +7,18 @@ import {
   PORTRAIT_SOURCE,
   portraitFilename,
   portraitResolutionOrder,
+  skinAvatarFilename,
   skinPortraitFilename,
   usesAmiyaPromotionFallback,
   type PortraitPhase,
   type PromotionArt,
 } from '../shared/portraits'
 import { getOperatorDataset } from './operatorDataService'
+import { UPSTREAM } from '../shared/operatorData'
 
 const portraitCache = new Map<string, string>()
 const skinPortraitCache = new Map<string, string>()
+const skinAvatarCache = new Map<string, string>()
 
 function bundledPortraitRoot(): string {
   const operatorRoot = app.isPackaged
@@ -169,6 +172,65 @@ async function downloadSkinPortrait(portraitId: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function downloadedSkinAvatarRoot(): string {
+  return join(app.getPath('userData'), 'operator-data', 'skin-avatars')
+}
+
+async function readSkinAvatar(avatarId: string): Promise<string | null> {
+  if (!validPortraitId(avatarId)) return null
+  const path = join(downloadedSkinAvatarRoot(), skinAvatarFilename(avatarId))
+  if (!(await exists(path))) return null
+  try {
+    const data = await readFile(path)
+    return `data:image/png;base64,${data.toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+async function downloadSkinAvatar(avatarId: string): Promise<boolean> {
+  if (!validPortraitId(avatarId)) return false
+  const path = join(downloadedSkinAvatarRoot(), skinAvatarFilename(avatarId))
+  if (await exists(path)) return true
+  try {
+    const response = await fetch(
+      `${UPSTREAM.avatarBaseUrl}/${encodeURIComponent(skinAvatarFilename(avatarId))}`,
+      {
+        headers: { 'User-Agent': 'arknights-randomizer' },
+        signal: AbortSignal.timeout(60_000),
+      },
+    )
+    if (!response.ok) return false
+    await mkdir(downloadedSkinAvatarRoot(), { recursive: true })
+    await writeFile(path, Buffer.from(await response.arrayBuffer()))
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function getOperatorSkinAvatar(
+  operatorId: string,
+  skinId: string,
+): Promise<string | null> {
+  if (!/^char_[a-z0-9_]+$/i.test(operatorId)) return null
+  const dataset = await getOperatorDataset()
+  const operator = dataset.operators.find((candidate) => candidate.id === operatorId)
+  const skin = operator?.skins?.find((candidate) => candidate.id === skinId)
+  if (!skin?.avatarId) return null
+
+  const cacheKey = `${operatorId}:${skinId}`
+  const cached = skinAvatarCache.get(cacheKey)
+  if (cached) return cached
+
+  let image = await readSkinAvatar(skin.avatarId)
+  if (!image && (await downloadSkinAvatar(skin.avatarId))) {
+    image = await readSkinAvatar(skin.avatarId)
+  }
+  if (image) skinAvatarCache.set(cacheKey, image)
+  return image
 }
 
 export async function getOperatorSkinPortrait(

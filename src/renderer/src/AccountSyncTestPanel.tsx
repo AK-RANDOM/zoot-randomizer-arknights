@@ -33,6 +33,11 @@ function formSummary(progress: ImportedOperatorProgress): string | null {
     .join('\n')
 }
 
+function avatarSummary(snapshot: ImportedArknightsAccount): string {
+  if (!snapshot.avatar) return '—'
+  return snapshot.avatar.id ? `${snapshot.avatar.type}: ${snapshot.avatar.id}` : snapshot.avatar.type
+}
+
 export default function AccountSyncTestPanel(): React.JSX.Element {
   const [server, setServer] = useState<ArknightsAccountServer>('en')
   const [email, setEmail] = useState('')
@@ -219,6 +224,10 @@ export default function AccountSyncTestPanel(): React.JSX.Element {
             <span>
               <strong>{snapshot.uid ?? '—'}</strong>
               <small>UID</small>
+            </span>
+            <span>
+              <strong>{avatarSummary(snapshot)}</strong>
+              <small>Profile avatar</small>
             </span>
             <span>
               <strong>{SERVER_LABELS[snapshot.server]}</strong>

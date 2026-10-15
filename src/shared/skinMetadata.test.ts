@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { OperatorDataset } from './operator'
-import { applySkinMetadata, skinDisplayName } from './skinMetadata'
+import { applySkinMetadata, skinBrandName, skinDisplayName } from './skinMetadata'
 
 const dataset = {
   schemaVersion: 6,
@@ -46,6 +46,7 @@ describe('skin metadata', () => {
             skinId: 'char_222_bpipe@race#1',
             charId: 'char_222_bpipe',
             portraitId: 'char_222_bpipe_race#1',
+            avatarId: 'char_222_bpipe_race#1',
             displaySkin: { skinName: 'CN Skin', skinGroupName: 'Collection' },
           },
         },
@@ -56,6 +57,7 @@ describe('skin metadata', () => {
             skinId: 'char_222_bpipe@race#1',
             charId: 'char_222_bpipe',
             portraitId: 'char_222_bpipe_race#1',
+            avatarId: 'char_222_bpipe_race#1',
             displaySkin: { skinName: 'Queen, No. 1', skinGroupName: 'Whistlewind' },
           },
         },
@@ -66,9 +68,13 @@ describe('skin metadata', () => {
       {
         id: 'char_222_bpipe@race#1',
         portraitId: 'char_222_bpipe_race#1',
+        avatarId: 'char_222_bpipe_race#1',
         names: { en: 'Queen, No. 1', cn: 'CN Skin' },
+        brands: { en: 'Whistlewind', cn: 'Collection' },
       },
     ])
+    expect(result.skinMetadataVersion).toBe(2)
     expect(skinDisplayName(result.operators[0].skins![0], 'en')).toBe('Queen, No. 1')
+    expect(skinBrandName(result.operators[0].skins![0], 'en')).toBe('Whistlewind')
   })
 })

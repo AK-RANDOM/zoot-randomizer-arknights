@@ -130,6 +130,17 @@ function defaultArtsForOperator(
     .filter((art): art is OperatorDefaultArt => art !== null)
 }
 
+function extraDefaultSkinRecords(defaultArts: readonly OperatorDefaultArt[]): OperatorSkin[] {
+  if (defaultArts.length <= 2) return []
+  return defaultArts.slice(1, -1).map((art) => ({
+    id: art.id,
+    portraitId: art.portraitId,
+    avatarId: art.avatarId,
+    names: { en: art.label },
+    isDefault: true,
+  }))
+}
+
 export function applySkinMetadata(
   dataset: OperatorDataset,
   tables: Partial<Record<GameLocale, RawSkinTable>>,
@@ -182,11 +193,15 @@ export function applySkinMetadata(
   return {
     ...dataset,
     skinMetadataVersion: OPERATOR_SKIN_METADATA_VERSION,
-    operators: dataset.operators.map((operator) => ({
-      ...operator,
-      defaultArts: defaultArtsForOperator(operator.id, cnTable),
-      skins: [...(byOperator.get(operator.id) ?? [])].sort(compareSkinsByRelease),
-    })),
+    operators: dataset.operators.map((operator) => {
+      const defaultArts = defaultArtsForOperator(operator.id, cnTable)
+      const alternateSkins = [...(byOperator.get(operator.id) ?? [])].sort(compareSkinsByRelease)
+      return {
+        ...operator,
+        defaultArts,
+        skins: [...extraDefaultSkinRecords(defaultArts), ...alternateSkins],
+      }
+    }),
   }
 }
 

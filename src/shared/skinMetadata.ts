@@ -66,7 +66,7 @@ function skinOwnerId(skinId: string, raw: RawSkinRecord): string | null {
   const tmplId = cleanString(raw.tmplId)
   if (tmplId) return tmplId
 
-  const prefix = skinId.split('@', 1)[0]
+  const prefix = skinId.split('@', 1)[0] ?? ''
   if (/^char_[a-z0-9_]+$/i.test(prefix)) return prefix
   return cleanString(raw.charId)
 }

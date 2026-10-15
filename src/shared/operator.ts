@@ -67,7 +67,7 @@ export interface OperatorFaction {
 export interface OperatorDefaultArt {
   /** Native skin-table ID, including #1/#1+/#2 variants. */
   id: string
-  /** Source-provided square avatar asset for this default appearance. */
+  /** Source-provided square avatar asset for this appearance. */
   avatarId: string
   /** Source-provided portrait asset used when this appearance is selected outside Curate. */
   portraitId: string
@@ -84,6 +84,8 @@ export interface OperatorSkin {
   avatarId?: string
   /** CN outfit release timestamp from displaySkin.getTime when available. */
   releaseTime?: number
+  /** Internal marker for additional native default art represented through the legacy skin choice path. */
+  isDefault?: boolean
   names: Partial<Record<GameLocale, string>>
   /** Source-provided localized outfit/collection brand. Retained for non-Curate consumers. */
   brands?: Partial<Record<GameLocale, string>>
@@ -113,7 +115,7 @@ export interface Operator {
   imageFile: string
   /** Source-driven default appearance list. Cardinality varies by operator/form. */
   defaultArts?: OperatorDefaultArt[]
-  /** Optional source-driven alternate cosmetic appearances. */
+  /** Optional source-driven alternate cosmetic appearances plus internal extra defaults. */
   skins?: OperatorSkin[]
 }
 

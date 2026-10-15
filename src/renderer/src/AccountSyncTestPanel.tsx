@@ -23,6 +23,16 @@ function operatorLabel(
   return operatorNames.get(progress.operatorId) ?? progress.operatorId
 }
 
+function formSummary(progress: ImportedOperatorProgress): string | null {
+  if (!progress.forms || progress.forms.length === 0) return null
+  return progress.forms
+    .map((form) => {
+      const active = form.formId === progress.activeFormId ? ' • active' : ''
+      return `${form.formId}: E${form.elite} Lv${form.level} · ${form.equippedSkinId ?? 'no skin ID'}${active}`
+    })
+    .join('\n')
+}
+
 export default function AccountSyncTestPanel(): React.JSX.Element {
   const [server, setServer] = useState<ArknightsAccountServer>('en')
   const [email, setEmail] = useState('')
@@ -64,7 +74,10 @@ export default function AccountSyncTestPanel(): React.JSX.Element {
         const name = operatorLabel(progress, operatorNames).toLocaleLowerCase()
         return (
           name.includes(normalizedQuery) ||
-          progress.operatorId.toLocaleLowerCase().includes(normalizedQuery)
+          progress.operatorId.toLocaleLowerCase().includes(normalizedQuery) ||
+          progress.forms?.some((form) =>
+            form.formId.toLocaleLowerCase().includes(normalizedQuery),
+          ) === true
         )
       })
       .slice(0, 50)
@@ -200,6 +213,14 @@ export default function AccountSyncTestPanel(): React.JSX.Element {
         <div className="account-sync-test__result">
           <div className="account-sync-test__summary">
             <span>
+              <strong>{snapshot.accountName ?? '—'}</strong>
+              <small>Account</small>
+            </span>
+            <span>
+              <strong>{snapshot.uid ?? '—'}</strong>
+              <small>UID</small>
+            </span>
+            <span>
               <strong>{SERVER_LABELS[snapshot.server]}</strong>
               <small>Server</small>
             </span>
@@ -230,28 +251,34 @@ export default function AccountSyncTestPanel(): React.JSX.Element {
             <input
               type="search"
               value={query}
-              placeholder="Search operator name or char ID"
+              placeholder="Search operator name, char ID, or form ID"
               onChange={(event) => setQuery(event.target.value)}
             />
             <small>
               Showing {visibleOperators.length} result{visibleOperators.length === 1 ? '' : 's'}.
-              Check Elite, level, and equipped skin against your account.
+              Check Elite, level, equipped skin, and Amiya form state against your account.
             </small>
           </label>
 
           <div className="account-sync-test__operator-list">
-            {visibleOperators.map((progress) => (
-              <div key={progress.operatorId} className="account-sync-test__operator-row">
-                <span>
-                  <strong>{operatorLabel(progress, operatorNames)}</strong>
-                  <small>{progress.operatorId}</small>
-                </span>
-                <span>
-                  E{progress.elite} Lv{progress.level}
-                </span>
-                <span>{progress.equippedSkinId ?? 'No equipped skin ID'}</span>
-              </div>
-            ))}
+            {visibleOperators.map((progress) => {
+              const forms = formSummary(progress)
+              return (
+                <div key={progress.operatorId} className="account-sync-test__operator-row">
+                  <span>
+                    <strong>{operatorLabel(progress, operatorNames)}</strong>
+                    <small>{progress.operatorId}</small>
+                  </span>
+                  <span>
+                    E{progress.elite} Lv{progress.level}
+                  </span>
+                  <span>
+                    {progress.equippedSkinId ?? 'No equipped skin ID'}
+                    {forms && <small style={{ whiteSpace: 'pre-line' }}>{forms}</small>}
+                  </span>
+                </div>
+              )
+            })}
           </div>
 
           <button

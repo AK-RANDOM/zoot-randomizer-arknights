@@ -5,6 +5,8 @@ import type { PortraitSyncProgress } from '../shared/desktop'
 import {
   DESKTOP_IPC_CHANNELS,
   isAllowedExternalUrl,
+  requireArknightsAccountServer,
+  requireArknightsAccountString,
   requireMetadataId,
   requireOperatorClass,
   requireOperatorId,
@@ -26,6 +28,8 @@ import {
   syncOperatorPortraits,
 } from './operatorPortraitService'
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
+import { ArknightsAccountService } from './arknightsAccount/service'
+import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -51,6 +55,17 @@ function configurePortableUserData(): void {
 }
 
 configurePortableUserData()
+
+let arknightsAccountService: ArknightsAccountService | null = null
+
+function getArknightsAccountService(): ArknightsAccountService {
+  if (!arknightsAccountService) {
+    arknightsAccountService = new ArknightsAccountService(
+      new AccountSnapshotStore(join(app.getPath('userData'), 'arknights-account-snapshot.json')),
+    )
+  }
+  return arknightsAccountService
+}
 
 function publishPortraitProgress(progress: PortraitSyncProgress): PortraitSyncProgress {
   portraitSyncProgress = progress
@@ -175,6 +190,29 @@ function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitProgress, () => portraitSyncProgress)
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitStart, () => startPortraitSync())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitCancel, () => cancelPortraitSync())
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.arknightsAccountRequestCode,
+    (_event, server: unknown, email: unknown) =>
+      getArknightsAccountService().requestLoginCode(
+        requireArknightsAccountServer(server),
+        requireArknightsAccountString(email, 'email'),
+      ),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.arknightsAccountSync,
+    (_event, server: unknown, email: unknown, code: unknown) =>
+      getArknightsAccountService().syncWithEmailCode(
+        requireArknightsAccountServer(server),
+        requireArknightsAccountString(email, 'email'),
+        requireArknightsAccountString(code, 'verification code'),
+      ),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountGet, () =>
+    getArknightsAccountService().getSnapshot(),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountClear, () =>
+    getArknightsAccountService().clearSnapshot(),
+  )
 }
 
 function createWindow(): void {

@@ -67,90 +67,18 @@ describe('skin metadata', () => {
           },
         },
         charSkins: {
-          'char_222_bpipe#1': defaultRecord(
-            'char_222_bpipe#1',
-            'char_222_bpipe',
-            'char_222_bpipe',
-            'char_222_bpipe_1',
-          ),
-          'char_222_bpipe#2': defaultRecord(
-            'char_222_bpipe#2',
-            'char_222_bpipe',
-            'char_222_bpipe_2',
-            'char_222_bpipe_2',
-          ),
-          'char_002_amiya#1': defaultRecord(
-            'char_002_amiya#1',
-            'char_002_amiya',
-            'char_002_amiya',
-            'char_002_amiya_1',
-          ),
-          'char_002_amiya#1+': defaultRecord(
-            'char_002_amiya#1+',
-            'char_002_amiya',
-            'char_002_amiya_1+',
-            'char_002_amiya_1+',
-          ),
-          'char_002_amiya#2': defaultRecord(
-            'char_002_amiya#2',
-            'char_002_amiya',
-            'char_002_amiya_2',
-            'char_002_amiya_2',
-          ),
-          'char_1001_amiya2#2': {
-            ...defaultRecord(
-              'char_1001_amiya2#2',
-              'char_002_amiya',
-              'char_1001_amiya2_2',
-              'char_1001_amiya2_2',
-            ),
-            tmplId: 'char_1001_amiya2',
-          },
-          'char_1037_amiya3#2': {
-            ...defaultRecord(
-              'char_1037_amiya3#2',
-              'char_002_amiya',
-              'char_1037_amiya3_2',
-              'char_1037_amiya3_2',
-            ),
-            tmplId: 'char_1037_amiya3',
-          },
-          'char_124_kroos#1': defaultRecord(
-            'char_124_kroos#1',
-            'char_124_kroos',
-            'char_124_kroos',
-            'char_124_kroos_1',
-          ),
-          'char_222_bpipe@late#1': {
-            skinId: 'char_222_bpipe@late#1',
-            charId: 'char_222_bpipe',
-            portraitId: 'char_222_bpipe_late#1',
-            avatarId: 'char_222_bpipe_late#1',
-            displaySkin: { skinName: 'Later', skinGroupName: 'Brand', getTime: 200 },
-          },
-          'char_222_bpipe@early#1': {
-            skinId: 'char_222_bpipe@early#1',
-            charId: 'char_222_bpipe',
-            portraitId: 'char_222_bpipe_early#1',
-            avatarId: 'char_222_bpipe_early#1',
-            displaySkin: { skinName: 'Earlier', skinGroupName: 'Brand', getTime: 100 },
-          },
-          'char_1001_amiya2@sale#16': {
-            skinId: 'char_1001_amiya2@sale#16',
-            charId: 'char_002_amiya',
-            tmplId: 'char_1001_amiya2',
-            portraitId: 'char_1001_amiya2_sale#16',
-            avatarId: 'char_1001_amiya2_sale#16',
-            displaySkin: { skinName: 'Guard Skin', skinGroupName: 'Brand', getTime: 300 },
-          },
-          'char_1037_amiya3@sale#13': {
-            skinId: 'char_1037_amiya3@sale#13',
-            charId: 'char_002_amiya',
-            tmplId: 'char_1037_amiya3',
-            portraitId: 'char_1037_amiya3_sale#13',
-            avatarId: 'char_1037_amiya3_sale#13',
-            displaySkin: { skinName: 'Medic Skin', skinGroupName: 'Brand', getTime: 250 },
-          },
+          'char_222_bpipe#1': defaultRecord('char_222_bpipe#1', 'char_222_bpipe', 'char_222_bpipe', 'char_222_bpipe_1'),
+          'char_222_bpipe#2': defaultRecord('char_222_bpipe#2', 'char_222_bpipe', 'char_222_bpipe_2', 'char_222_bpipe_2'),
+          'char_002_amiya#1': defaultRecord('char_002_amiya#1', 'char_002_amiya', 'char_002_amiya', 'char_002_amiya_1'),
+          'char_002_amiya#1+': defaultRecord('char_002_amiya#1+', 'char_002_amiya', 'char_002_amiya_1+', 'char_002_amiya_1+'),
+          'char_002_amiya#2': defaultRecord('char_002_amiya#2', 'char_002_amiya', 'char_002_amiya_2', 'char_002_amiya_2'),
+          'char_1001_amiya2#2': { ...defaultRecord('char_1001_amiya2#2', 'char_002_amiya', 'char_1001_amiya2_2', 'char_1001_amiya2_2'), tmplId: 'char_1001_amiya2' },
+          'char_1037_amiya3#2': { ...defaultRecord('char_1037_amiya3#2', 'char_002_amiya', 'char_1037_amiya3_2', 'char_1037_amiya3_2'), tmplId: 'char_1037_amiya3' },
+          'char_124_kroos#1': defaultRecord('char_124_kroos#1', 'char_124_kroos', 'char_124_kroos', 'char_124_kroos_1'),
+          'char_222_bpipe@late#1': { skinId: 'char_222_bpipe@late#1', charId: 'char_222_bpipe', portraitId: 'char_222_bpipe_late#1', avatarId: 'char_222_bpipe_late#1', displaySkin: { skinName: 'Later', skinGroupName: 'Brand', getTime: 200 } },
+          'char_222_bpipe@early#1': { skinId: 'char_222_bpipe@early#1', charId: 'char_222_bpipe', portraitId: 'char_222_bpipe_early#1', avatarId: 'char_222_bpipe_early#1', displaySkin: { skinName: 'Earlier', skinGroupName: 'Brand', getTime: 100 } },
+          'char_1001_amiya2@sale#16': { skinId: 'char_1001_amiya2@sale#16', charId: 'char_002_amiya', tmplId: 'char_1001_amiya2', portraitId: 'char_1001_amiya2_sale#16', avatarId: 'char_1001_amiya2_sale#16', displaySkin: { skinName: 'Guard Skin', skinGroupName: 'Brand', getTime: 300 } },
+          'char_1037_amiya3@sale#13': { skinId: 'char_1037_amiya3@sale#13', charId: 'char_002_amiya', tmplId: 'char_1037_amiya3', portraitId: 'char_1037_amiya3_sale#13', avatarId: 'char_1037_amiya3_sale#13', displaySkin: { skinName: 'Medic Skin', skinGroupName: 'Brand', getTime: 250 } },
         },
       },
     })
@@ -162,21 +90,14 @@ describe('skin metadata', () => {
     const kroos = result.operators.find((item) => item.id === 'char_124_kroos')!
 
     expect(bagpipe.defaultArts?.map((art) => art.label)).toEqual(['E1', 'E2'])
-    expect(bagpipe.skins?.filter((skin) => !skin.isDefault).map((skin) => skin.id)).toEqual([
-      'char_222_bpipe@early#1',
-      'char_222_bpipe@late#1',
-    ])
+    expect(bagpipe.skins?.filter((skin) => !skin.isDefault).map((skin) => skin.id)).toEqual(['char_222_bpipe@early#1', 'char_222_bpipe@late#1'])
     expect(caster.defaultArts?.map((art) => art.label)).toEqual(['E0', 'E1', 'E2'])
     expect(caster.skins?.find((skin) => skin.isDefault)?.id).toBe('char_002_amiya#1+')
     expect(guard.defaultArts?.map((art) => art.id)).toEqual(['char_1001_amiya2#2'])
     expect(medic.defaultArts?.map((art) => art.id)).toEqual(['char_1037_amiya3#2'])
     expect(kroos.defaultArts?.map((art) => art.id)).toEqual(['char_124_kroos#1'])
-    expect(guard.skins?.filter((skin) => !skin.isDefault).map((skin) => skin.id)).toEqual([
-      'char_1001_amiya2@sale#16',
-    ])
-    expect(medic.skins?.filter((skin) => !skin.isDefault).map((skin) => skin.id)).toEqual([
-      'char_1037_amiya3@sale#13',
-    ])
+    expect(guard.skins?.filter((skin) => !skin.isDefault).map((skin) => skin.id)).toEqual(['char_1001_amiya2@sale#16'])
+    expect(medic.skins?.filter((skin) => !skin.isDefault).map((skin) => skin.id)).toEqual(['char_1037_amiya3@sale#13'])
     expect(caster.skins?.some((skin) => skin.id.includes('amiya2@sale'))).toBe(false)
     expect(result.skinMetadataVersion).toBe(4)
     expect(skinDisplayName(bagpipe.skins![0], 'en')).toBe('Earlier')

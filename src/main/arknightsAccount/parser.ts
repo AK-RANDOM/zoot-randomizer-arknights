@@ -2,11 +2,13 @@ import {
   ARKNIGHTS_ACCOUNT_SNAPSHOT_VERSION,
   type ArknightsAccountServer,
   type ImportedArknightsAccount,
+  type ImportedOperatorFormProgress,
   type ImportedOperatorProgress,
 } from '../../shared/arknightsAccount'
 
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const MAX_ID_LENGTH = 192
+const MAX_ACCOUNT_FIELD_LENGTH = 192
 
 export interface AccountSyncParseResult {
   snapshot: ImportedArknightsAccount
@@ -33,9 +35,8 @@ function readOperatorId(value: unknown): string | null {
 function readSkinId(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
-  if (trimmed.length === 0 || trimmed.length > MAX_ID_LENGTH || !trimmed.startsWith('char_')) {
-    return undefined
-  }
+  if (trimmed.length === 0) return undefined
+  if (trimmed.length > MAX_ID_LENGTH || !trimmed.startsWith('char_')) return undefined
   return trimmed
 }
 
@@ -47,9 +48,85 @@ function readElite(value: unknown): 0 | 1 | 2 | null {
   return value === 0 || value === 1 || value === 2 ? value : null
 }
 
+function readAccountString(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (trimmed.length === 0 || trimmed.length > MAX_ACCOUNT_FIELD_LENGTH) return undefined
+  return trimmed
+}
+
 function compareProgress(left: ImportedOperatorProgress, right: ImportedOperatorProgress): number {
   if (left.elite !== right.elite) return left.elite - right.elite
   return left.level - right.level
+}
+
+function parseFormProgress(
+  formId: string,
+  baseEntry: JsonRecord,
+  formEntry: JsonRecord,
+  warnings: string[],
+): ImportedOperatorFormProgress | null {
+  const merged = { ...baseEntry, ...formEntry }
+  const level = readLevel(merged['level'])
+  const elite = readElite(merged['evolvePhase'] ?? merged['phase'])
+  if (level === null || elite === null) {
+    warnings.push(`Skipped Amiya form ${formId}: missing or invalid progression fields.`)
+    return null
+  }
+
+  const rawSkin = merged['skinId'] ?? merged['skin']
+  const equippedSkinId = readSkinId(rawSkin)
+  if (
+    rawSkin !== undefined &&
+    rawSkin !== null &&
+    !(typeof rawSkin === 'string' && rawSkin.trim().length === 0) &&
+    equippedSkinId === undefined
+  ) {
+    warnings.push(`Ignored invalid equipped skin ID for Amiya form ${formId}.`)
+  }
+
+  return {
+    formId,
+    level,
+    elite,
+    ...(equippedSkinId ? { equippedSkinId } : {}),
+  }
+}
+
+function parseAmiyaForms(
+  rawEntry: JsonRecord,
+  operatorId: string,
+  warnings: string[],
+): Pick<ImportedOperatorProgress, 'activeFormId' | 'forms' | 'equippedSkinId'> {
+  const tmpl = getRecord(rawEntry, 'tmpl')
+  if (!tmpl || Object.keys(tmpl).length === 0) return {}
+
+  const forms: ImportedOperatorFormProgress[] = []
+  for (const [rawFormId, rawFormEntry] of Object.entries(tmpl)) {
+    const formId = readOperatorId(rawFormId)
+    if (!formId || !isRecord(rawFormEntry)) {
+      warnings.push(`Skipped invalid Amiya form entry ${rawFormId}.`)
+      continue
+    }
+    const form = parseFormProgress(formId, rawEntry, rawFormEntry, warnings)
+    if (form) forms.push(form)
+  }
+
+  forms.sort((left, right) => left.formId.localeCompare(right.formId))
+  if (forms.length === 0) return {}
+
+  const requestedActiveFormId = readOperatorId(rawEntry['currentTmpl'] ?? rawEntry['tmplId'])
+  const activeFormId =
+    requestedActiveFormId && forms.some((form) => form.formId === requestedActiveFormId)
+      ? requestedActiveFormId
+      : forms.find((form) => form.formId === operatorId)?.formId ?? forms[0]?.formId
+  const activeForm = forms.find((form) => form.formId === activeFormId)
+
+  return {
+    ...(activeFormId ? { activeFormId } : {}),
+    forms,
+    ...(activeForm?.equippedSkinId ? { equippedSkinId: activeForm.equippedSkinId } : {}),
+  }
 }
 
 function parseOperators(chars: JsonRecord, warnings: string[]): ImportedOperatorProgress[] {
@@ -72,9 +149,16 @@ function parseOperators(chars: JsonRecord, warnings: string[]): ImportedOperator
       continue
     }
 
+    const amiyaState = parseAmiyaForms(rawEntry, operatorId, warnings)
     const rawSkin = rawEntry['skinId'] ?? rawEntry['skin']
-    const equippedSkinId = readSkinId(rawSkin)
-    if (rawSkin !== undefined && equippedSkinId === undefined) {
+    const baseEquippedSkinId = readSkinId(rawSkin)
+    if (
+      !amiyaState.forms &&
+      rawSkin !== undefined &&
+      rawSkin !== null &&
+      !(typeof rawSkin === 'string' && rawSkin.trim().length === 0) &&
+      baseEquippedSkinId === undefined
+    ) {
       warnings.push(`Ignored invalid equipped skin ID for ${operatorId}.`)
     }
 
@@ -82,7 +166,8 @@ function parseOperators(chars: JsonRecord, warnings: string[]): ImportedOperator
       operatorId,
       level,
       elite,
-      ...(equippedSkinId ? { equippedSkinId } : {}),
+      ...(baseEquippedSkinId ? { equippedSkinId: baseEquippedSkinId } : {}),
+      ...amiyaState,
     }
 
     const existing = byOperatorId.get(operatorId)
@@ -123,6 +208,26 @@ function parseOwnedSkinIds(user: JsonRecord, warnings: string[]): string[] {
   return [...new Set(ownedSkinIds)].sort((left, right) => left.localeCompare(right))
 }
 
+function parseAccountIdentity(user: JsonRecord): Pick<ImportedArknightsAccount, 'accountName' | 'uid'> {
+  const status = getRecord(user, 'status')
+  if (!status) return {}
+
+  const nickname = readAccountString(status['nickName'])
+  const nickNumberRaw = status['nickNumber']
+  const nickNumber =
+    typeof nickNumberRaw === 'number' && Number.isFinite(nickNumberRaw)
+      ? String(nickNumberRaw)
+      : readAccountString(nickNumberRaw)
+  const uidRaw = status['uid']
+  const uid =
+    typeof uidRaw === 'number' && Number.isFinite(uidRaw) ? String(uidRaw) : readAccountString(uidRaw)
+
+  return {
+    ...(nickname ? { accountName: nickNumber ? `${nickname}#${nickNumber}` : nickname } : {}),
+    ...(uid ? { uid } : {}),
+  }
+}
+
 function resolveUser(payload: unknown): JsonRecord {
   if (!isRecord(payload)) throw new TypeError('Arknights sync payload must be an object.')
   const user = getRecord(payload, 'user')
@@ -151,6 +256,7 @@ export function parseArknightsSyncData(
     snapshot: {
       schemaVersion: ARKNIGHTS_ACCOUNT_SNAPSHOT_VERSION,
       server,
+      ...parseAccountIdentity(user),
       operators,
       ownedSkinIds: parseOwnedSkinIds(user, warnings),
       fetchedAt,

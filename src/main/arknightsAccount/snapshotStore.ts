@@ -4,11 +4,17 @@ import {
   ARKNIGHTS_ACCOUNT_SNAPSHOT_VERSION,
   type ArknightsAccountServer,
   type ImportedArknightsAccount,
+  type ImportedArknightsAccountAvatar,
   type ImportedOperatorFormProgress,
   type ImportedOperatorProgress,
 } from '../../shared/arknightsAccount'
 
 const SERVERS = new Set<ArknightsAccountServer>(['en', 'jp', 'kr'])
+const AVATAR_TYPES = new Set<ImportedArknightsAccountAvatar['type']>([
+  'ASSISTANT',
+  'ICON',
+  'DEFAULT',
+])
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const MAX_ID_LENGTH = 192
 const MAX_ACCOUNT_FIELD_LENGTH = 192
@@ -29,6 +35,24 @@ function normalizeOptionalString(value: unknown): string | undefined {
   const trimmed = value.trim()
   if (trimmed.length === 0 || trimmed.length > MAX_ACCOUNT_FIELD_LENGTH) return undefined
   return trimmed
+}
+
+function normalizeAvatar(value: unknown): ImportedArknightsAccountAvatar | undefined {
+  if (value === undefined) return undefined
+  if (!isRecord(value)) return undefined
+
+  const type = value['type']
+  if (typeof type !== 'string' || !AVATAR_TYPES.has(type as ImportedArknightsAccountAvatar['type'])) {
+    return undefined
+  }
+
+  const id = normalizeOptionalString(value['id'])
+  if (value['id'] !== undefined && !id) return undefined
+
+  return {
+    type: type as ImportedArknightsAccountAvatar['type'],
+    ...(id ? { id } : {}),
+  }
 }
 
 function normalizeSkinId(value: unknown): string | undefined {
@@ -169,12 +193,15 @@ export function normalizeImportedAccount(value: unknown): ImportedArknightsAccou
   if (value['accountName'] !== undefined && !accountName) return null
   const uid = normalizeOptionalString(value['uid'])
   if (value['uid'] !== undefined && !uid) return null
+  const avatar = normalizeAvatar(value['avatar'])
+  if (value['avatar'] !== undefined && !avatar) return null
 
   return {
     schemaVersion: ARKNIGHTS_ACCOUNT_SNAPSHOT_VERSION,
     server: value['server'],
     ...(accountName ? { accountName } : {}),
     ...(uid ? { uid } : {}),
+    ...(avatar ? { avatar } : {}),
     operators: operators.sort((left, right) => left.operatorId.localeCompare(right.operatorId)),
     ownedSkinIds,
     fetchedAt: value['fetchedAt'],

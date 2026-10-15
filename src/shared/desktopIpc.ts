@@ -7,6 +7,7 @@ export const DESKTOP_IPC_CHANNELS = {
   operatorDataInfo: 'operator-data:info',
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',
+  operatorPromotionAvatar: 'operator-data:promotion-avatar',
   operatorSkinPortrait: 'operator-data:skin-portrait',
   operatorSkinAvatar: 'operator-data:skin-avatar',
   classIcon: 'operator-data:class-icon',

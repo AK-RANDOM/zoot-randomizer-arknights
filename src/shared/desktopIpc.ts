@@ -22,12 +22,14 @@ export const DESKTOP_IPC_CHANNELS = {
   arknightsAccountSync: 'arknights-account:sync',
   arknightsAccountGet: 'arknights-account:get',
   arknightsAccountClear: 'arknights-account:clear',
+  arknightsAccountAvatar: 'arknights-account:avatar',
 } as const
 
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const METADATA_ID_PATTERN = /^[a-z0-9_.:-]+$/i
 const MAX_METADATA_ID_LENGTH = 128
 const SKIN_ID_PATTERN = /^char_[a-z0-9_]+@[a-z0-9_+#-]+$/i
+const ACCOUNT_AVATAR_ID_PATTERN = /^avatar_[a-z0-9_]+$/i
 
 export function requireOperatorId(value: unknown): string {
   if (typeof value !== 'string' || !OPERATOR_ID_PATTERN.test(value)) {
@@ -76,6 +78,17 @@ export function isAllowedExternalUrl(value: string): boolean {
   } catch {
     return false
   }
+}
+
+export function requireArknightsAccountAvatarId(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    value.length > 192 ||
+    !ACCOUNT_AVATAR_ID_PATTERN.test(value)
+  ) {
+    throw new TypeError('Invalid Arknights account avatar ID.')
+  }
+  return value
 }
 
 const ARKNIGHTS_ACCOUNT_SERVERS = new Set<ArknightsAccountServer>(['en', 'jp', 'kr'])

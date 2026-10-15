@@ -7,7 +7,7 @@ import {
   setOperatorExcluded,
 } from '../../shared/operatorPool'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
-import { skinBrandName, skinDisplayName } from '../../shared/skinMetadata'
+import { skinDisplayName } from '../../shared/skinMetadata'
 import {
   appearanceChoiceForOperator,
   appearanceLabel,
@@ -17,17 +17,21 @@ import './PoolPanel.css'
 
 function PoolAvatar({ operator }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const avatarId = operator.defaultArts?.[0]?.avatarId
 
   useEffect(() => {
     let active = true
     setImageUrl(null)
-    void window.desktop.getOperatorImage(operator.id).then((next) => {
+    const request = avatarId
+      ? window.desktop.getOperatorAvatarAsset(avatarId)
+      : window.desktop.getOperatorImage(operator.id)
+    void request.then((next) => {
       if (active) setImageUrl(next)
     })
     return () => {
       active = false
     }
-  }, [operator.id])
+  }, [avatarId, operator.id])
 
   return imageUrl ? (
     <img className="pool-avatar" src={imageUrl} alt="" draggable={false} />
@@ -225,6 +229,30 @@ function OperatorEntry({
   )
 }
 
+function AppearanceAvatar({ avatarId, fallbackLabel }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    setImageUrl(null)
+    if (!avatarId) return () => undefined
+    void window.desktop.getOperatorAvatarAsset(avatarId).then((next) => {
+      if (active) setImageUrl(next)
+    })
+    return () => {
+      active = false
+    }
+  }, [avatarId])
+
+  return imageUrl ? (
+    <img className="pool-appearance-avatar" src={imageUrl} alt="" draggable={false} />
+  ) : (
+    <span className="pool-appearance-avatar pool-appearance-avatar--fallback" aria-hidden="true">
+      {fallbackLabel}
+    </span>
+  )
+}
+
 function PromotionChoiceAvatar({ operatorId, promotionArt }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
@@ -248,29 +276,6 @@ function PromotionChoiceAvatar({ operatorId, promotionArt }) {
   )
 }
 
-function SkinChoiceAvatar({ operatorId, skinId }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    void window.desktop.getOperatorSkinAvatar(operatorId, skinId).then((next) => {
-      if (active) setImageUrl(next)
-    })
-    return () => {
-      active = false
-    }
-  }, [operatorId, skinId])
-
-  return imageUrl ? (
-    <img className="pool-appearance-avatar" src={imageUrl} alt="" draggable={false} />
-  ) : (
-    <span className="pool-appearance-avatar pool-appearance-avatar--fallback" aria-hidden="true">
-      ?
-    </span>
-  )
-}
-
 function compareSkinsByRelease(left, right) {
   if (left.releaseTime !== undefined && right.releaseTime !== undefined) {
     if (left.releaseTime !== right.releaseTime) return left.releaseTime - right.releaseTime
@@ -282,9 +287,18 @@ function compareSkinsByRelease(left, right) {
   return left.id.localeCompare(right.id)
 }
 
+function defaultArtChoice(defaultArt, index, count) {
+  if (count <= 1 || index === 0) return 'e1'
+  if (index === count - 1) return 'e2'
+  return `skin:${defaultArt.id}`
+}
+
 function AppearancePicker({ operator, preferences, onChoose, onClose }) {
   const selected = appearanceChoiceForOperator(preferences, operator.id)
-  const skins = [...(operator.skins ?? [])].sort(compareSkinsByRelease)
+  const defaultArts = operator.defaultArts ?? []
+  const skins = (operator.skins ?? [])
+    .filter((skin) => !skin.isDefault)
+    .sort(compareSkinsByRelease)
 
   return (
     <div className="pool-appearance-backdrop" role="presentation" onMouseDown={onClose}>
@@ -308,19 +322,38 @@ function AppearancePicker({ operator, preferences, onChoose, onClose }) {
         <section className="pool-appearance-section" aria-labelledby="pool-default-art-heading">
           <h4 id="pool-default-art-heading">Default Art</h4>
           <div className="pool-appearance-grid pool-appearance-grid--default">
-            {(['e1', 'e2'] as const).map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
-                onClick={() => onChoose(choice)}
-              >
-                <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
-                <span className="pool-appearance-tile__copy">
-                  <strong>{choice.toUpperCase()}</strong>
-                </span>
-              </button>
-            ))}
+            {defaultArts.length > 0 ? (
+              defaultArts.map((art, index) => {
+                const choice = defaultArtChoice(art, index, defaultArts.length)
+                return (
+                  <button
+                    key={art.id}
+                    type="button"
+                    className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
+                    onClick={() => onChoose(choice)}
+                  >
+                    <AppearanceAvatar avatarId={art.avatarId} fallbackLabel={art.label} />
+                    <span className="pool-appearance-tile__copy">
+                      <strong>{art.label}</strong>
+                    </span>
+                  </button>
+                )
+              })
+            ) : (
+              (['e1', 'e2'] as const).map((choice) => (
+                <button
+                  key={choice}
+                  type="button"
+                  className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
+                  onClick={() => onChoose(choice)}
+                >
+                  <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
+                  <span className="pool-appearance-tile__copy">
+                    <strong>{choice.toUpperCase()}</strong>
+                  </span>
+                </button>
+              ))
+            )}
           </div>
         </section>
 
@@ -337,10 +370,9 @@ function AppearancePicker({ operator, preferences, onChoose, onClose }) {
                     className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
                     onClick={() => onChoose(choice)}
                   >
-                    <SkinChoiceAvatar operatorId={operator.id} skinId={skin.id} />
+                    <AppearanceAvatar avatarId={skin.avatarId} fallbackLabel="?" />
                     <span className="pool-appearance-tile__copy">
                       <strong>{skinDisplayName(skin, preferences.gameLocale)}</strong>
-                      <small>{skinBrandName(skin, preferences.gameLocale) ?? 'Unbranded'}</small>
                     </span>
                   </button>
                 )
@@ -664,6 +696,7 @@ export {
   comparePoolGroups,
   comparePoolOperators,
   compareSkinsByRelease,
+  defaultArtChoice,
   PoolPanel as default,
   expandAllPoolGroups,
   operatorRaceLabel,

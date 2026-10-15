@@ -5,6 +5,7 @@ import {
   requireArknightsAccountAvatarId,
   requireArknightsAccountServer,
   requireArknightsAccountString,
+  requireAvatarAssetId,
   requireMetadataId,
   requireOperatorClass,
   requireOperatorId,
@@ -25,9 +26,18 @@ describe('desktop IPC contract', () => {
     expect(() => requireOperatorId(42)).toThrow('Invalid operator ID.')
   })
 
-  it('validates operator skin IDs', () => {
+  it('validates alternate and native default skin IDs', () => {
     expect(requireSkinId('char_222_bpipe@race#1')).toBe('char_222_bpipe@race#1')
+    expect(requireSkinId('char_002_amiya#1+')).toBe('char_002_amiya#1+')
     expect(() => requireSkinId('../skin.png')).toThrow('Invalid skin ID.')
+  })
+
+  it('validates native operator avatar asset IDs', () => {
+    expect(requireAvatarAssetId('char_1001_amiya2_sale#16')).toBe('char_1001_amiya2_sale#16')
+    expect(() => requireAvatarAssetId('../avatar.png')).toThrow('Invalid operator avatar asset ID.')
+    expect(() => requireAvatarAssetId('https://example.com/avatar.png')).toThrow(
+      'Invalid operator avatar asset ID.',
+    )
   })
 
   it('validates promotion artwork values', () => {

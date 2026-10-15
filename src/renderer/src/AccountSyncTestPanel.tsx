@@ -38,12 +38,36 @@ function avatarSummary(snapshot: ImportedArknightsAccount): string {
   return snapshot.avatar.id ? `${snapshot.avatar.type}: ${snapshot.avatar.id}` : snapshot.avatar.type
 }
 
+async function resolveAvatarImage(snapshot: ImportedArknightsAccount): Promise<string | null> {
+  const avatar = snapshot.avatar
+  if (!avatar?.id || avatar.type !== 'ASSISTANT') return null
+
+  const dataset = await window.desktop.getOperatorDataset()
+  for (const operator of dataset.operators) {
+    if (operator.skins?.some((skin) => skin.id === avatar.id)) {
+      return window.desktop.getOperatorSkinAvatar(operator.id, avatar.id)
+    }
+  }
+
+  if (/^char_[a-z0-9_]+$/i.test(avatar.id)) {
+    return window.desktop.getOperatorImage(avatar.id)
+  }
+
+  const operatorId = avatar.id.split('@', 1)[0]
+  if (/^char_[a-z0-9_]+$/i.test(operatorId)) {
+    return window.desktop.getOperatorSkinAvatar(operatorId, avatar.id)
+  }
+
+  return null
+}
+
 export default function AccountSyncTestPanel(): React.JSX.Element {
   const [server, setServer] = useState<ArknightsAccountServer>('en')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
   const [snapshot, setSnapshot] = useState<ImportedArknightsAccount | null>(null)
   const [operatorNames, setOperatorNames] = useState<ReadonlyMap<string, string>>(() => new Map())
+  const [avatarImageUrl, setAvatarImageUrl] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('No account sync has been run in this session.')
@@ -66,6 +90,23 @@ export default function AccountSyncTestPanel(): React.JSX.Element {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    setAvatarImageUrl(null)
+    if (snapshot) {
+      void resolveAvatarImage(snapshot)
+        .then((image) => {
+          if (active) setAvatarImageUrl(image)
+        })
+        .catch(() => {
+          if (active) setAvatarImageUrl(null)
+        })
+    }
+    return () => {
+      active = false
+    }
+  }, [snapshot])
 
   const visibleOperators = useMemo(() => {
     if (!snapshot) return []
@@ -225,9 +266,19 @@ export default function AccountSyncTestPanel(): React.JSX.Element {
               <strong>{snapshot.uid ?? '—'}</strong>
               <small>UID</small>
             </span>
-            <span>
-              <strong>{avatarSummary(snapshot)}</strong>
-              <small>Profile avatar</small>
+            <span className="account-sync-test__avatar-summary">
+              {avatarImageUrl && (
+                <img
+                  className="account-sync-test__avatar-image"
+                  src={avatarImageUrl}
+                  alt="Profile avatar"
+                  draggable={false}
+                />
+              )}
+              <span>
+                <strong>{avatarSummary(snapshot)}</strong>
+                <small>Profile avatar</small>
+              </span>
             </span>
             <span>
               <strong>{SERVER_LABELS[snapshot.server]}</strong>

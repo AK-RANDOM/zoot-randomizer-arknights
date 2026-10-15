@@ -63,6 +63,8 @@ function compareSkinsByRelease(left: OperatorSkin, right: OperatorSkin): number 
 }
 
 function skinOwnerId(skinId: string, raw: RawSkinRecord): string | null {
+  // Amiya's form-specific outfits retain the canonical Caster charId in skin_table.
+  // tmplId (or, when absent, the native skin-ID prefix) identifies the actual form.
   const tmplId = cleanString(raw.tmplId)
   if (tmplId) return tmplId
 
@@ -115,6 +117,8 @@ function defaultArtsForOperator(
     if (arts.length > 0) return arts
   }
 
+  // Alternate Amiya forms are represented by one built-in patched default rather
+  // than their own evolution map.
   for (const patchMap of Object.values(table.buildinPatchMap ?? {})) {
     const skinId = patchMap[operatorId]
     if (!skinId) continue

@@ -59,11 +59,16 @@ describe('Arknights account sync parser', () => {
     })
   })
 
-  it('extracts account display name and UID from user.status', () => {
+  it('extracts account display name, UID, and profile avatar from user.status', () => {
     const result = parseArknightsSyncData(
       {
         user: {
-          status: { nickName: 'Doctor', nickNumber: 1234, uid: '08116410' },
+          status: {
+            nickName: 'Doctor',
+            nickNumber: 1234,
+            uid: '08116410',
+            avatar: { type: 'ASSISTANT', id: 'char_103_angel@xmas#1' },
+          },
           troop: { chars: {} },
         },
       },
@@ -73,6 +78,25 @@ describe('Arknights account sync parser', () => {
 
     expect(result.snapshot.accountName).toBe('Doctor#1234')
     expect(result.snapshot.uid).toBe('08116410')
+    expect(result.snapshot.avatar).toEqual({
+      type: 'ASSISTANT',
+      id: 'char_103_angel@xmas#1',
+    })
+  })
+
+  it('keeps DEFAULT profile avatars without requiring an ID', () => {
+    const result = parseArknightsSyncData(
+      {
+        user: {
+          status: { avatar: { type: 'DEFAULT' } },
+          troop: { chars: {} },
+        },
+      },
+      'en',
+      FETCHED_AT,
+    )
+
+    expect(result.snapshot.avatar).toEqual({ type: 'DEFAULT' })
   })
 
   it('preserves Amiya forms and selected currentTmpl without warning on an empty base skin', () => {

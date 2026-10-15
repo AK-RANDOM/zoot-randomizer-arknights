@@ -185,6 +185,161 @@ export interface OperatorReleaseDates {
   global: string | null
 }
 
+class GeneratedDataLiteralParser {
+  private index = 0
+
+  constructor(private readonly source: string) {}
+
+  parse(): unknown {
+    const value = this.parseValue()
+    this.skipTrivia()
+    if (this.index !== this.source.length) this.fail()
+    return value
+  }
+
+  private parseValue(): unknown {
+    this.skipTrivia()
+    const character = this.source[this.index]
+
+    if (character === '{') return this.parseObject()
+    if (character === '[') return this.parseArray()
+    if (character === '"') return this.parseString()
+    if (character === '-' || (character >= '0' && character <= '9')) return this.parseNumber()
+    if (this.consumeKeyword('true')) return true
+    if (this.consumeKeyword('false')) return false
+    if (this.consumeKeyword('null')) return null
+    this.fail()
+  }
+
+  private parseObject(): Record<string, unknown> {
+    this.expect('{')
+    const entries: Array<[string, unknown]> = []
+    this.skipTrivia()
+    if (this.consume('}')) return Object.fromEntries(entries)
+
+    while (true) {
+      this.skipTrivia()
+      const key = this.source[this.index] === '"' ? this.parseString() : this.parseIdentifier()
+      this.skipTrivia()
+      this.expect(':')
+      entries.push([key, this.parseValue()])
+      this.skipTrivia()
+      if (this.consume('}')) break
+      this.expect(',')
+      this.skipTrivia()
+      if (this.consume('}')) break
+    }
+
+    return Object.fromEntries(entries)
+  }
+
+  private parseArray(): unknown[] {
+    this.expect('[')
+    const values: unknown[] = []
+    this.skipTrivia()
+    if (this.consume(']')) return values
+
+    while (true) {
+      values.push(this.parseValue())
+      this.skipTrivia()
+      if (this.consume(']')) break
+      this.expect(',')
+      this.skipTrivia()
+      if (this.consume(']')) break
+    }
+
+    return values
+  }
+
+  private parseString(): string {
+    const start = this.index
+    this.expect('"')
+    let escaped = false
+
+    while (this.index < this.source.length) {
+      const character = this.source[this.index]
+      this.index += 1
+      if (escaped) {
+        escaped = false
+      } else if (character === '\\') {
+        escaped = true
+      } else if (character === '"') {
+        return JSON.parse(this.source.slice(start, this.index)) as string
+      }
+    }
+
+    this.fail()
+  }
+
+  private parseNumber(): number {
+    const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(
+      this.source.slice(this.index),
+    )
+    if (!match) this.fail()
+    this.index += match[0].length
+    return Number(match[0])
+  }
+
+  private parseIdentifier(): string {
+    const match = /^[A-Za-z_$][A-Za-z0-9_$]*/.exec(this.source.slice(this.index))
+    if (!match) this.fail()
+    this.index += match[0].length
+    return match[0]
+  }
+
+  private consumeKeyword(keyword: string): boolean {
+    if (!this.source.startsWith(keyword, this.index)) return false
+    const next = this.source[this.index + keyword.length]
+    if (next && /[A-Za-z0-9_$]/.test(next)) return false
+    this.index += keyword.length
+    return true
+  }
+
+  private skipTrivia(): void {
+    while (this.index < this.source.length) {
+      if (/\s/.test(this.source[this.index])) {
+        this.index += 1
+        continue
+      }
+      if (this.source.startsWith('//', this.index)) {
+        const newline = this.source.indexOf('\n', this.index + 2)
+        this.index = newline < 0 ? this.source.length : newline + 1
+        continue
+      }
+      if (this.source.startsWith('/*', this.index)) {
+        const close = this.source.indexOf('*/', this.index + 2)
+        if (close < 0) this.fail()
+        this.index = close + 2
+        continue
+      }
+      break
+    }
+  }
+
+  private expect(character: string): void {
+    this.skipTrivia()
+    if (!this.consume(character)) this.fail()
+  }
+
+  private consume(character: string): boolean {
+    if (this.source[this.index] !== character) return false
+    this.index += 1
+    return true
+  }
+
+  private fail(): never {
+    throw new Error(`Unsupported generated release metadata syntax at offset ${this.index}.`)
+  }
+}
+
+function parseGeneratedDataLiteral(source: string): unknown {
+  try {
+    return JSON.parse(source)
+  } catch {
+    return new GeneratedDataLiteralParser(source).parse()
+  }
+}
+
 function generatedLiteral(source: string, marker: string, open: string, close: string): unknown {
   const markerIndex = source.indexOf(marker)
   if (markerIndex < 0) throw new Error(`Release metadata marker not found: ${marker}`)
@@ -219,7 +374,7 @@ function generatedLiteral(source: string, marker: string, open: string, close: s
     if (character === open) depth += 1
     if (character === close) depth -= 1
 
-    if (depth === 0) return JSON.parse(source.slice(start, index + 1))
+    if (depth === 0) return parseGeneratedDataLiteral(source.slice(start, index + 1))
   }
 
   throw new Error('Release metadata payload is malformed.')

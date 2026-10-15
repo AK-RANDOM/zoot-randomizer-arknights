@@ -89,6 +89,25 @@
   font-size: 0.68rem;
 }
 
+.account-sync-test__avatar-summary {
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+}
+
+.account-sync-test__avatar-summary > span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-sync-test__avatar-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #0d0d0f;
+}
+
 .account-sync-test__warnings {
   display: grid;
   gap: 4px;
@@ -133,5 +152,9 @@
   .account-sync-test__summary,
   .account-sync-test__operator-row {
     grid-template-columns: 1fr;
+  }
+
+  .account-sync-test__avatar-summary {
+    grid-template-columns: 48px minmax(0, 1fr);
   }
 }

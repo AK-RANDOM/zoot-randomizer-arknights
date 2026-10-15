@@ -69,6 +69,8 @@ export interface OperatorSkin {
   portraitId: string
   /** Source-provided square avatar asset for this appearance. */
   avatarId?: string
+  /** CN outfit release timestamp from displaySkin.getTime when available. */
+  releaseTime?: number
   names: Partial<Record<GameLocale, string>>
   /** Source-provided localized outfit/collection brand. */
   brands?: Partial<Record<GameLocale, string>>
@@ -96,6 +98,8 @@ export interface Operator {
   alterGroup: string | null
   mandatoryExclusivityGroup: string | null
   imageFile: string
+  /** Source-provided square avatars for default E1/E2 artwork. */
+  promotionAvatarIds?: Partial<Record<'e1' | 'e2', string>>
   /** Optional source-driven alternate cosmetic appearances. */
   skins?: OperatorSkin[]
 }

@@ -84,7 +84,7 @@ export interface OperatorSkin {
   avatarId?: string
   /** CN outfit release timestamp from displaySkin.getTime when available. */
   releaseTime?: number
-  /** Internal marker for additional native default art represented through the legacy skin choice path. */
+  /** Internal marker for an additional native default art represented through the legacy skin choice path. */
   isDefault?: boolean
   names: Partial<Record<GameLocale, string>>
   /** Source-provided localized outfit/collection brand. Retained for non-Curate consumers. */

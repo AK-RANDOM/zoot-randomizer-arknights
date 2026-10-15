@@ -19,6 +19,9 @@ function sampleSnapshot(): ImportedArknightsAccount {
   return {
     schemaVersion: 1,
     server: 'en',
+    accountName: 'Doctor#1234',
+    uid: '08116410',
+    avatar: { type: 'ICON', id: 'avatar_def_01' },
     operators: [
       {
         operatorId: 'char_103_angel',
@@ -52,6 +55,7 @@ describe('Arknights account snapshot store', () => {
     const unsafe = {
       ...sampleSnapshot(),
       token: 'must-not-persist',
+      avatar: { ...sampleSnapshot().avatar, secret: 'must-not-persist-avatar-secret' },
       operators: [
         {
           ...sampleSnapshot().operators[0],

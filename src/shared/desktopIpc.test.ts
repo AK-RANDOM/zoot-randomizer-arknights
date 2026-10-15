@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DESKTOP_IPC_CHANNELS,
   isAllowedExternalUrl,
+  requireArknightsAccountAvatarId,
   requireArknightsAccountServer,
   requireArknightsAccountString,
   requireMetadataId,
@@ -47,6 +48,13 @@ describe('desktop IPC contract', () => {
     expect(() => requireMetadataId('https://example.com', 'faction')).toThrow('Invalid faction ID.')
     expect(() => requireMetadataId('', 'faction')).toThrow('Invalid faction ID.')
     expect(() => requireMetadataId('x'.repeat(129), 'faction')).toThrow('Invalid faction ID.')
+  })
+
+  it('validates native Arknights profile avatar IDs', () => {
+    expect(requireArknightsAccountAvatarId('avatar_special_47')).toBe('avatar_special_47')
+    expect(() => requireArknightsAccountAvatarId('../avatar_special_47')).toThrow(
+      'Invalid Arknights account avatar ID.',
+    )
   })
 
   it('validates Arknights account test-surface inputs at the IPC boundary', () => {

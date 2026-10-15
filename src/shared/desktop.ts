@@ -1,10 +1,5 @@
 import type { OperatorClass, OperatorDataset, OperatorDatasetSources } from './operator'
 import type { PromotionArt } from './portraits'
-import type {
-  ArknightsAccountServer,
-  ArknightsAccountSyncResult,
-  ImportedArknightsAccount,
-} from './arknightsAccount'
 
 export interface OperatorDataInfo {
   origin: 'bundled' | 'downloaded'
@@ -43,6 +38,7 @@ export interface DesktopApi {
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>
   getOperatorSkinPortrait(operatorId: string, skinId: string): Promise<string | null>
+  getOperatorSkinAvatar(operatorId: string, skinId: string): Promise<string | null>
   getClassIcon(operatorClass: OperatorClass): Promise<string | null>
   getSubclassIcon(subclassId: string): Promise<string | null>
   getFactionIcon(factionId: string): Promise<string | null>
@@ -52,12 +48,4 @@ export interface DesktopApi {
   startPortraitSync(): Promise<PortraitSyncProgress>
   cancelPortraitSync(): Promise<PortraitSyncProgress>
   onPortraitSyncProgress(listener: (progress: PortraitSyncProgress) => void): () => void
-  requestArknightsLoginCode(server: ArknightsAccountServer, email: string): Promise<void>
-  syncArknightsAccount(
-    server: ArknightsAccountServer,
-    email: string,
-    code: string,
-  ): Promise<ArknightsAccountSyncResult>
-  getImportedArknightsAccount(): Promise<ImportedArknightsAccount | null>
-  clearImportedArknightsAccount(): Promise<void>
 }

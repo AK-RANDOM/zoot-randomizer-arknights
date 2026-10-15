@@ -40,3 +40,7 @@ export function usesAmiyaPromotionFallback(operatorId: string): boolean {
 export function skinPortraitFilename(portraitId: string): string {
   return `${portraitId}.png`
 }
+
+export function skinAvatarFilename(avatarId: string): string {
+  return `${avatarId}.png`
+}

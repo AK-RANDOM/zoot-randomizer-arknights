@@ -1,6 +1,5 @@
 import { operatorClasses, type OperatorClass } from './operator'
 import type { PromotionArt } from './portraits'
-import type { ArknightsAccountServer } from './arknightsAccount'
 
 export const DESKTOP_IPC_CHANNELS = {
   operatorDataGet: 'operator-data:get',
@@ -8,6 +7,7 @@ export const DESKTOP_IPC_CHANNELS = {
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',
   operatorSkinPortrait: 'operator-data:skin-portrait',
+  operatorSkinAvatar: 'operator-data:skin-avatar',
   classIcon: 'operator-data:class-icon',
   subclassIcon: 'operator-data:subclass-icon',
   factionIcon: 'operator-data:faction-icon',
@@ -17,10 +17,6 @@ export const DESKTOP_IPC_CHANNELS = {
   portraitStart: 'operator-portraits:start',
   portraitCancel: 'operator-portraits:cancel',
   portraitProgressChanged: 'operator-portraits:progress-changed',
-  arknightsAccountRequestCode: 'arknights-account:request-code',
-  arknightsAccountSync: 'arknights-account:sync',
-  arknightsAccountGet: 'arknights-account:get',
-  arknightsAccountClear: 'arknights-account:clear',
 } as const
 
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
@@ -75,24 +71,4 @@ export function isAllowedExternalUrl(value: string): boolean {
   } catch {
     return false
   }
-}
-
-const ARKNIGHTS_ACCOUNT_SERVERS = new Set<ArknightsAccountServer>(['en', 'jp', 'kr'])
-
-export function requireArknightsAccountServer(value: unknown): ArknightsAccountServer {
-  if (
-    typeof value !== 'string' ||
-    !ARKNIGHTS_ACCOUNT_SERVERS.has(value as ArknightsAccountServer)
-  ) {
-    throw new TypeError('Invalid Arknights account server.')
-  }
-  return value as ArknightsAccountServer
-}
-
-export function requireArknightsAccountString(
-  value: unknown,
-  label: 'email' | 'verification code',
-): string {
-  if (typeof value !== 'string') throw new TypeError(`Invalid Arknights account ${label}.`)
-  return value
 }

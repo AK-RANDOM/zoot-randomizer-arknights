@@ -67,7 +67,11 @@ export interface OperatorFaction {
 export interface OperatorSkin {
   id: string
   portraitId: string
+  /** Source-provided square avatar asset for this appearance. */
+  avatarId?: string
   names: Partial<Record<GameLocale, string>>
+  /** Source-provided localized outfit/collection brand. */
+  brands?: Partial<Record<GameLocale, string>>
 }
 
 export interface Operator {
@@ -127,6 +131,8 @@ export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
 
 export interface OperatorDataset {
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
+  /** Version of normalized cosmetic skin metadata embedded in operator records. */
+  skinMetadataVersion?: number
   generatedAt: string | null
   sources: OperatorDatasetSources
   /** Stable class ID -> current display label. Defaults to English in schema-v6 data. */

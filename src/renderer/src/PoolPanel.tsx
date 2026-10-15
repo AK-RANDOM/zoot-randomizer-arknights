@@ -24,7 +24,7 @@ function PoolAvatar({ operator }) {
     setImageUrl(null)
     const request = avatarId
       ? window.desktop.getOperatorAvatarAsset(avatarId)
-      : window.desktop.getOperatorImage(operator.id)
+      : window.desktop.getOperatorPromotionAvatar(operator.id, 'e1')
     void request.then((next) => {
       if (active) setImageUrl(next)
     })

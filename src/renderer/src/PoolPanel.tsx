@@ -12,27 +12,40 @@ import {
   appearanceChoiceForOperator,
   appearanceLabel,
   notifyOperatorAppearanceChanged,
+  resolveAppearanceChoice,
 } from './operatorAppearance'
 import './PoolPanel.css'
-
-function PoolAvatar({ operator }) {
+function PoolAvatar({ operator, choice, randomSeed }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const avatarId = operator.defaultArts?.[0]?.avatarId
-
+  const resolved = resolveAppearanceChoice(operator, choice, randomSeed)
   useEffect(() => {
     let active = true
     setImageUrl(null)
-    const request = avatarId
-      ? window.desktop.getOperatorAvatarAsset(avatarId)
-      : window.desktop.getOperatorPromotionAvatar(operator.id, 'e1')
+    let request
+    if (resolved.startsWith('skin:')) {
+      const skinId = resolved.slice(5)
+      const skin = operator.skins?.find((candidate) => candidate.id === skinId)
+      request =
+        skin?.isDefault && skin.avatarId
+          ? window.desktop.getOperatorAvatarAsset(skin.avatarId)
+          : window.desktop.getOperatorSkinAvatar(operator.id, skinId)
+    } else {
+      const arts = operator.defaultArts ?? []
+      const art =
+        resolved === 'e2'
+          ? (arts.find((candidate) => candidate.phase === 2) ?? arts.at(-1))
+          : (arts.find((candidate) => candidate.phase === 0) ?? arts[0])
+      request = art?.avatarId
+        ? window.desktop.getOperatorAvatarAsset(art.avatarId)
+        : window.desktop.getOperatorPromotionAvatar(operator.id, resolved)
+    }
     void request.then((next) => {
       if (active) setImageUrl(next)
     })
     return () => {
       active = false
     }
-  }, [avatarId, operator.id])
-
+  }, [operator, resolved])
   return imageUrl ? (
     <img className="pool-avatar" src={imageUrl} alt="" draggable={false} />
   ) : (
@@ -41,7 +54,6 @@ function PoolAvatar({ operator }) {
     </span>
   )
 }
-
 function acquisitionLabel(operator) {
   switch (operator.acquisition.family) {
     case 'limited':
@@ -54,7 +66,6 @@ function acquisitionLabel(operator) {
       return 'Unknown'
   }
 }
-
 function mainFactionLabel(operator, dataset) {
   const chain = operator.faction.primary ?? (operator.faction.main ? [operator.faction.main] : [])
   const labels = chain.map((id) => dataset.factionLabels[id] ?? id)
@@ -62,13 +73,11 @@ function mainFactionLabel(operator, dataset) {
   if (labels.length === 1) return labels[0]
   return `${labels[0]} (${labels.at(-1)})`
 }
-
 function operatorRaceLabel(operator, raceLabels) {
   const raceIds = operator.raceIds ?? []
   if (raceIds.length === 0) return raceLabels?.['race:unavailable'] ?? 'Unavailable'
   return raceIds.map((id) => raceLabels?.[id] ?? id).join(', ')
 }
-
 function groupLabel(operator, groupBy, dataset, constraints) {
   switch (groupBy) {
     case 'class':
@@ -87,15 +96,12 @@ function groupLabel(operator, groupBy, dataset, constraints) {
       return 'All operators'
   }
 }
-
 function compareDefaultOperators(left, right) {
   if (left.rarity !== right.rarity) return right.rarity - left.rarity
-  const classDifference =
-    operatorClasses.indexOf(left.class) - operatorClasses.indexOf(right.class)
+  const classDifference = operatorClasses.indexOf(left.class) - operatorClasses.indexOf(right.class)
   if (classDifference !== 0) return classDifference
   return left.name.localeCompare(right.name)
 }
-
 function comparePoolOperators(left, right, sort, constraints) {
   if (sort === 'alphabetical') return left.name.localeCompare(right.name)
   if (sort === 'releaseDate') {
@@ -107,7 +113,6 @@ function comparePoolOperators(left, right, sort, constraints) {
   }
   return compareDefaultOperators(left, right)
 }
-
 function groupOrderValue(label, operators, groupBy, constraints) {
   if (groupBy === 'class') return operatorClasses.indexOf(operators[0]?.class)
   if (groupBy === 'rarity') return operators[0]?.rarity ?? 0
@@ -116,7 +121,6 @@ function groupOrderValue(label, operators, groupBy, constraints) {
   }
   return label.toLocaleLowerCase()
 }
-
 function comparePoolGroups(leftEntry, rightEntry, groupBy, constraints, direction) {
   const [leftLabel, leftOperators] = leftEntry
   const [rightLabel, rightOperators] = rightEntry
@@ -125,18 +129,15 @@ function comparePoolGroups(leftEntry, rightEntry, groupBy, constraints, directio
   const comparison =
     typeof left === 'number' && typeof right === 'number'
       ? left - right
-      : String(left).localeCompare(String(right), undefined, { numeric: true })
+      : String(left).localeCompare(String(right), void 0, { numeric: true })
   return direction === 'asc' ? comparison : -comparison
 }
-
 function collapseAllPoolGroups(groups) {
   return new Set(groups.map(([label]) => label))
 }
-
 function expandAllPoolGroups() {
   return new Set()
 }
-
 function OperatorEntry({
   operator,
   factionLabel,
@@ -144,6 +145,8 @@ function OperatorEntry({
   classLabel,
   included,
   presentation,
+  appearanceChoice,
+  appearanceRandomSeed,
   appearanceName,
   onToggle,
   onAppearance,
@@ -157,9 +160,10 @@ function OperatorEntry({
     onClick: onToggle,
     'data-rarity': operator.rarity,
   }
-  const avatar = <PoolAvatar operator={operator} />
+  const avatar = (
+    <PoolAvatar operator={operator} choice={appearanceChoice} randomSeed={appearanceRandomSeed} />
+  )
   let entry
-
   if (presentation === 'imageGrid') {
     entry = (
       <button
@@ -212,7 +216,6 @@ function OperatorEntry({
       </button>
     )
   }
-
   return (
     <div className={`pool-entry-shell pool-entry-shell--${presentation}`}>
       {entry}
@@ -228,10 +231,8 @@ function OperatorEntry({
     </div>
   )
 }
-
 function AppearanceAvatar({ avatarId, fallbackLabel }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-
   useEffect(() => {
     let active = true
     setImageUrl(null)
@@ -243,7 +244,6 @@ function AppearanceAvatar({ avatarId, fallbackLabel }) {
       active = false
     }
   }, [avatarId])
-
   return imageUrl ? (
     <img className="pool-appearance-avatar" src={imageUrl} alt="" draggable={false} />
   ) : (
@@ -252,10 +252,28 @@ function AppearanceAvatar({ avatarId, fallbackLabel }) {
     </span>
   )
 }
-
+function OutfitChoiceAvatar({ operatorId, skinId, fallbackLabel }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let active = true
+    setImageUrl(null)
+    void window.desktop.getOperatorSkinAvatar(operatorId, skinId).then((next) => {
+      if (active) setImageUrl(next)
+    })
+    return () => {
+      active = false
+    }
+  }, [operatorId, skinId])
+  return imageUrl ? (
+    <img className="pool-appearance-avatar" src={imageUrl} alt="" draggable={false} />
+  ) : (
+    <span className="pool-appearance-avatar pool-appearance-avatar--fallback" aria-hidden="true">
+      {fallbackLabel}
+    </span>
+  )
+}
 function PromotionChoiceAvatar({ operatorId, promotionArt }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-
   useEffect(() => {
     let active = true
     setImageUrl(null)
@@ -266,7 +284,6 @@ function PromotionChoiceAvatar({ operatorId, promotionArt }) {
       active = false
     }
   }, [operatorId, promotionArt])
-
   return imageUrl ? (
     <img className="pool-appearance-avatar" src={imageUrl} alt="" draggable={false} />
   ) : (
@@ -275,31 +292,24 @@ function PromotionChoiceAvatar({ operatorId, promotionArt }) {
     </span>
   )
 }
-
 function compareSkinsByRelease(left, right) {
   if (left.releaseTime !== undefined && right.releaseTime !== undefined) {
     if (left.releaseTime !== right.releaseTime) return left.releaseTime - right.releaseTime
-  } else if (left.releaseTime !== undefined) {
-    return -1
-  } else if (right.releaseTime !== undefined) {
-    return 1
-  }
+  } else if (left.releaseTime !== undefined) return -1
+  else if (right.releaseTime !== undefined) return 1
   return left.id.localeCompare(right.id)
 }
-
 function defaultArtChoice(defaultArt, index, count) {
   if (count <= 1 || index === 0) return 'e1'
   if (index === count - 1) return 'e2'
   return `skin:${defaultArt.id}`
 }
-
 function AppearancePicker({ operator, preferences, onChoose, onClose }) {
   const selected = appearanceChoiceForOperator(preferences, operator.id)
   const defaultArts = operator.defaultArts ?? []
-  const skins = (operator.skins ?? [])
+  const outfits = (operator.skins ?? [])
     .filter((skin) => !skin.isDefault)
     .sort(compareSkinsByRelease)
-
   return (
     <div className="pool-appearance-backdrop" role="presentation" onMouseDown={onClose}>
       <div
@@ -318,50 +328,46 @@ function AppearancePicker({ operator, preferences, onChoose, onClose }) {
             Close
           </button>
         </div>
-
         <section className="pool-appearance-section" aria-labelledby="pool-default-art-heading">
           <h4 id="pool-default-art-heading">Default Art</h4>
           <div className="pool-appearance-grid pool-appearance-grid--default">
-            {defaultArts.length > 0 ? (
-              defaultArts.map((art, index) => {
-                const choice = defaultArtChoice(art, index, defaultArts.length)
-                return (
+            {defaultArts.length > 0
+              ? defaultArts.map((art, index) => {
+                  const choice = defaultArtChoice(art, index, defaultArts.length)
+                  return (
+                    <button
+                      key={art.id}
+                      type="button"
+                      className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
+                      onClick={() => onChoose(choice)}
+                    >
+                      <AppearanceAvatar avatarId={art.avatarId} fallbackLabel={art.label} />
+                      <span className="pool-appearance-tile__copy">
+                        <strong>{art.label}</strong>
+                      </span>
+                    </button>
+                  )
+                })
+              : ['e1', 'e2'].map((choice) => (
                   <button
-                    key={art.id}
+                    key={choice}
                     type="button"
                     className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
                     onClick={() => onChoose(choice)}
                   >
-                    <AppearanceAvatar avatarId={art.avatarId} fallbackLabel={art.label} />
+                    <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
                     <span className="pool-appearance-tile__copy">
-                      <strong>{art.label}</strong>
+                      <strong>{choice.toUpperCase()}</strong>
                     </span>
                   </button>
-                )
-              })
-            ) : (
-              (['e1', 'e2'] as const).map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
-                  onClick={() => onChoose(choice)}
-                >
-                  <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
-                  <span className="pool-appearance-tile__copy">
-                    <strong>{choice.toUpperCase()}</strong>
-                  </span>
-                </button>
-              ))
-            )}
+                ))}
           </div>
         </section>
-
-        <section className="pool-appearance-section" aria-labelledby="pool-skins-heading">
-          <h4 id="pool-skins-heading">Skins</h4>
-          {skins.length > 0 ? (
+        <section className="pool-appearance-section" aria-labelledby="pool-outfits-heading">
+          <h4 id="pool-outfits-heading">Outfits</h4>
+          {outfits.length > 0 ? (
             <div className="pool-appearance-grid pool-appearance-grid--skins">
-              {skins.map((skin) => {
+              {outfits.map((skin) => {
                 const choice = `skin:${skin.id}`
                 return (
                   <button
@@ -370,7 +376,11 @@ function AppearancePicker({ operator, preferences, onChoose, onClose }) {
                     className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
                     onClick={() => onChoose(choice)}
                   >
-                    <AppearanceAvatar avatarId={skin.avatarId} fallbackLabel="?" />
+                    <OutfitChoiceAvatar
+                      operatorId={operator.id}
+                      skinId={skin.id}
+                      fallbackLabel="?"
+                    />
                     <span className="pool-appearance-tile__copy">
                       <strong>{skinDisplayName(skin, preferences.gameLocale)}</strong>
                     </span>
@@ -379,10 +389,9 @@ function AppearancePicker({ operator, preferences, onChoose, onClose }) {
               })}
             </div>
           ) : (
-            <p className="pool-appearance-empty">No alternate skins available.</p>
+            <p className="pool-appearance-empty">No alternate outfits available.</p>
           )}
         </section>
-
         <button
           type="button"
           className={`pool-appearance-random${selected === 'random' ? ' is-selected' : ''}`}
@@ -394,7 +403,6 @@ function AppearancePicker({ operator, preferences, onChoose, onClose }) {
     </div>
   )
 }
-
 function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
   const [stateFilter, setStateFilter] = useState('all')
   const [search, setSearch] = useState('')
@@ -404,7 +412,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
   const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
   const [reversedGroups, setReversedGroups] = useState(() => new Set())
   const [appearanceOperator, setAppearanceOperator] = useState(null)
-
   const globalFilterEligible = useMemo(
     () => buildGlobalFilterOperatorPool(dataset.operators, constraints),
     [constraints, dataset],
@@ -414,8 +421,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
     [preferences.excludedOperatorIds],
   )
   const finalPool = useMemo(
-    () =>
-      applyManualOperatorExclusions(globalFilterEligible, preferences.excludedOperatorIds),
+    () => applyManualOperatorExclusions(globalFilterEligible, preferences.excludedOperatorIds),
     [globalFilterEligible, preferences.excludedOperatorIds],
   )
   const displayed = useMemo(() => {
@@ -428,7 +434,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       return true
     })
   }, [excludedIds, globalFilterEligible, search, stateFilter])
-
   const groups = useMemo(() => {
     const map = new Map()
     for (const operator of displayed) {
@@ -448,7 +453,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       comparePoolGroups(left, right, groupBy, constraints, groupDirection),
     )
   }, [constraints, dataset, displayed, groupBy, groupDirection, operatorSort])
-
   const setDisplayedExcluded = (excluded) => {
     onPreferencesChange({
       ...preferences,
@@ -459,7 +463,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       ),
     })
   }
-
   const toggleOperator = (operator) => {
     onPreferencesChange({
       ...preferences,
@@ -470,16 +473,17 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       ),
     })
   }
-
   const chooseAppearance = (operator, choice) => {
     onPreferencesChange({
       ...preferences,
-      operatorAppearances: { ...preferences.operatorAppearances, [operator.id]: choice },
+      operatorAppearances: {
+        ...preferences.operatorAppearances,
+        [operator.id]: choice,
+      },
     })
     notifyOperatorAppearanceChanged()
     setAppearanceOperator(null)
   }
-
   const collapseAll = () => setCollapsedGroups(collapseAllPoolGroups(groups))
   const expandAll = () => setCollapsedGroups(expandAllPoolGroups())
   const toggleGroupDirection = () =>
@@ -492,7 +496,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       return next
     })
   }
-
   return (
     <section className="panel pool-panel" aria-labelledby="pool-heading">
       <div className="section-heading">
@@ -658,6 +661,8 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
                         classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
                         included={!excludedIds.has(operator.id)}
                         presentation={preferences.poolPresentation}
+                        appearanceChoice={appearanceChoice}
+                        appearanceRandomSeed={preferences.appearanceRandomSeed}
                         appearanceName={appearanceLabel(
                           operator,
                           appearanceChoice,
@@ -678,7 +683,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
           <div className="pool-empty">No operators match the current Curate view.</div>
         )}
       </div>
-
       {appearanceOperator && (
         <AppearancePicker
           operator={appearanceOperator}
@@ -690,7 +694,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
     </section>
   )
 }
-
 export {
   collapseAllPoolGroups,
   comparePoolGroups,

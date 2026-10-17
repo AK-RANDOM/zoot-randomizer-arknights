@@ -4,6 +4,9 @@ import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
 import { useOperatorAppearanceImage } from './operatorAppearance'
+import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
+import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -42,6 +45,12 @@ export default function OperatorCard({
     usingPortrait,
     choice: artworkPreference,
   } = useOperatorAppearanceImage(operator)
+  const importedAccount = useImportedArknightsAccount() ?? null
+  const preferences = loadOperatorPreferences()
+  const progression =
+    preferences.showAccountProgression && importedAccount
+      ? importedAccountOperatorState(importedAccount, operator.id)
+      : null
   const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
   const cardRef = useRef<HTMLElement | null>(null)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
@@ -199,6 +208,11 @@ export default function OperatorCard({
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
+        {progression && (
+          <span className="operator-card__account-progression">
+            E{progression.elite} L{progression.level}
+          </span>
+        )}
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
           {'★'.repeat(operator.rarity)}
         </span>

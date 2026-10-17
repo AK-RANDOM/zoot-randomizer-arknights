@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from './constraints'
+import type { ImportedArknightsAccount } from './arknightsAccount'
 import type { Operator } from './operator'
 import {
-  applyAccountOwnershipRestriction,
+  applyAccountFilter,
   applyManualOperatorExclusions,
   applyRaceExclusions,
   buildFinalOperatorPool,
@@ -46,11 +47,14 @@ const roster = [
 describe('Iteration 6 Pool persistence model', () => {
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
     expect(createDefaultOperatorPreferences()).toEqual({
-      version: 5,
+      version: 7,
       metadataRegion: 'global',
       gameLocale: 'en',
       poolPresentation: 'imageGrid',
-      ownedOperatorsOnly: false,
+      accountFilterMode: 'ignore',
+      accountProgressionMin: { elite: 0, level: 1 },
+      accountProgressionMax: { elite: 2, level: 90 },
+      showAccountProgression: false,
       excludedOperatorIds: [],
       operatorAppearances: {},
       appearanceRandomSeed: 1,
@@ -66,11 +70,14 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: ['char_a', 'char_a', '', 7, ' char_b '],
       }),
     ).toEqual({
-      version: 5,
+      version: 7,
       metadataRegion: 'cn',
       gameLocale: 'en',
       poolPresentation: 'detailedList',
-      ownedOperatorsOnly: false,
+      accountFilterMode: 'ignore',
+      accountProgressionMin: { elite: 0, level: 1 },
+      accountProgressionMax: { elite: 2, level: 90 },
+      showAccountProgression: false,
       excludedOperatorIds: ['char_a', 'char_b'],
       operatorAppearances: {},
       appearanceRandomSeed: 1,
@@ -88,11 +95,25 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: [],
       }),
     ).toMatchObject({
-      version: 5,
+      version: 7,
       metadataRegion: 'global',
       gameLocale: 'jp',
       poolPresentation: 'compactCard',
-      ownedOperatorsOnly: true,
+      accountFilterMode: 'owned',
+    })
+  })
+
+  it('clamps saved progression bounds to valid generic elite-stage levels', () => {
+    expect(
+      normalizeOperatorPreferences({
+        version: 6,
+        accountProgressionMin: { elite: 0, level: 90 },
+        accountProgressionMax: { elite: 1, level: 90 },
+      }),
+    ).toMatchObject({
+      version: 7,
+      accountProgressionMin: { elite: 0, level: 50 },
+      accountProgressionMax: { elite: 1, level: 80 },
     })
   })
 
@@ -151,33 +172,57 @@ describe('Iteration 6 Pool persistence model', () => {
     ])
   })
 
-  it('applies imported account ownership after Global Filter and Curate exclusions', () => {
+  it('applies account ownership and progression inside the Global Filter before Curate exclusions', () => {
     const constraints = createDefaultConstraints()
-    const ownedIds = ['char_old', 'char_tragodia', 'char_account_unknown']
+    const snapshot: ImportedArknightsAccount = {
+      schemaVersion: 1,
+      server: 'en',
+      operators: [
+        { operatorId: 'char_old', elite: 0, level: 60 },
+        { operatorId: 'char_tragodia', elite: 2, level: 30 },
+      ],
+      ownedSkinIds: [],
+      fetchedAt: '2026-10-17T00:00:00.000Z',
+    }
 
-    expect(applyAccountOwnershipRestriction(roster, ownedIds, false).map(({ id }) => id)).toEqual([
-      'char_old',
-      'char_tragodia',
-      'char_new',
-    ])
-    expect(applyAccountOwnershipRestriction(roster, ownedIds, true).map(({ id }) => id)).toEqual([
-      'char_old',
-      'char_tragodia',
-    ])
+    expect(
+      applyAccountFilter(
+        roster,
+        snapshot,
+        'owned',
+        { elite: 0, level: 1 },
+        { elite: 2, level: 90 },
+      ).map(({ id }) => id),
+    ).toEqual(['char_old', 'char_tragodia'])
+
+    expect(
+      applyAccountFilter(
+        roster,
+        snapshot,
+        'progression',
+        { elite: 1, level: 1 },
+        { elite: 2, level: 90 },
+      ).map(({ id }) => id),
+    ).toEqual(['char_tragodia'])
+
     expect(
       buildFinalOperatorPool(roster, constraints, ['char_tragodia'], {
-        enabled: true,
-        ownedOperatorIds: ownedIds,
+        snapshot,
+        mode: 'owned',
+        minimum: { elite: 0, level: 1 },
+        maximum: { elite: 2, level: 90 },
       }).map(({ id }) => id),
     ).toEqual(['char_old'])
   })
 
-  it('leaves the pool unchanged when owned-only is enabled before an account snapshot exists', () => {
+  it('leaves the pool unchanged when account filtering has no saved account snapshot', () => {
     const constraints = createDefaultConstraints()
     expect(
       buildFinalOperatorPool(roster, constraints, [], {
-        enabled: true,
-        ownedOperatorIds: null,
+        snapshot: null,
+        mode: 'owned',
+        minimum: { elite: 0, level: 1 },
+        maximum: { elite: 2, level: 90 },
       }).map(({ id }) => id),
     ).toEqual(['char_old', 'char_tragodia', 'char_new'])
   })
@@ -227,8 +272,8 @@ describe('Iteration 6 Pool persistence model', () => {
         appearanceRandomSeed: 1,
       }),
     ).toMatchObject({
-      version: 5,
-      ownedOperatorsOnly: true,
+      version: 7,
+      accountFilterMode: 'owned',
       operatorAppearances: { char_old: 'account' },
     })
   })

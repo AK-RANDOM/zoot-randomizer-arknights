@@ -53,17 +53,16 @@ describe('Curate operator appearance picker', () => {
   })
 })
 
-const ownershipSource = readFileSync(
-  new URL('./AccountOwnershipConstraint.tsx', import.meta.url),
-  'utf8',
-)
+const globalFilterSource = readFileSync(new URL('./GlobalPoolFeature.tsx', import.meta.url), 'utf8')
 
-describe('Curate account ownership constraint', () => {
-  it('keeps ownership controls inside Curate and leaves unowned operators visible but disabled', () => {
-    expect(panelSource).toContain('<AccountOwnershipConstraint')
-    expect(panelSource).toContain('accountDisabled=')
-    expect(panelSource).toContain('unowned disabled')
-    expect(panelSource).toContain('disabled: accountDisabled')
-    expect(ownershipSource).toContain('operators stay visible in Curate but are marked unavailable')
+describe('Account-aware Global Filter', () => {
+  it('moves active account ownership filtering into Global Filter', () => {
+    expect(globalFilterSource).toContain('curateDataset')
+    expect(globalFilterSource).toContain('applyAccountFilter')
+    expect(globalFilterSource).toContain('Ignore account ownership')
+    expect(globalFilterSource).toContain('Only shows owned operators')
+    expect(globalFilterSource).toContain('Filter by operator progression')
+    expect(globalFilterSource).toContain('accountProgressionMin')
+    expect(globalFilterSource).toContain('accountProgressionMax')
   })
 })

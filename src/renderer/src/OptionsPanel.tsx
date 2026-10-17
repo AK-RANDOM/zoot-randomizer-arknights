@@ -120,6 +120,7 @@ export default function OptionsPanel({
   onGameLocaleChange,
   onPoolPresentationChange,
   onBulkAppearanceChange,
+  onShowAccountProgressionChange,
 }: {
   dataset: OperatorDataset | null
   preferences: OperatorPreferences
@@ -127,6 +128,7 @@ export default function OptionsPanel({
   onGameLocaleChange: (locale: GameLocale) => void
   onPoolPresentationChange: (mode: PoolPresentationMode) => void
   onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random' | 'account') => void
+  onShowAccountProgressionChange: (enabled: boolean) => void
 }): React.JSX.Element {
   const confirmDraftActions = useDraftActionConfirmationPreference()
   const [activeSection, setActiveSection] = useState<'preferences' | 'account'>('preferences')
@@ -285,7 +287,25 @@ export default function OptionsPanel({
         </>
       )}
 
-      {activeSection === 'account' && <ArknightsAccountPanel dataset={dataset} />}
+      {activeSection === 'account' && (
+        <>
+          <fieldset className="constraint-group detail-group">
+            <legend>Account display</legend>
+            <label className="source-check">
+              <input
+                type="checkbox"
+                checked={preferences.showAccountProgression}
+                onChange={(event) => onShowAccountProgressionChange(event.target.checked)}
+              />
+              <span>Show synced operator progression on operator cards</span>
+            </label>
+            <p className="filter-note">
+              Shows synced elite and level above the rarity stars, for example E0 L60.
+            </p>
+          </fieldset>
+          <ArknightsAccountPanel dataset={dataset} />
+        </>
+      )}
     </section>
   )
 }

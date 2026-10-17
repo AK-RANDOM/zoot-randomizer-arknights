@@ -71,17 +71,12 @@ export default function App(): React.JSX.Element {
   })
 
   const importedAccount = useImportedArknightsAccount()
-  const ownedOperatorIds = useMemo(
-    () => (importedAccount ? importedAccountOwnedOperatorIds(importedAccount) : null),
-    [importedAccount],
-  )
-
   useEffect(() => {
-    if (importedAccount !== null || !operatorPreferences.ownedOperatorsOnly) return
-    setOperatorPreferences((current) => ({ ...current, ownedOperatorsOnly: false }))
+    if (importedAccount !== null || operatorPreferences.accountFilterMode === 'ignore') return
+    setOperatorPreferences((current) => ({ ...current, accountFilterMode: 'ignore' }))
     markPoolChanged()
-    setMessage('Owned operators only was disabled because imported account data was cleared.')
-  }, [importedAccount, operatorPreferences.ownedOperatorsOnly, markPoolChanged])
+    setMessage('Account filtering was disabled because imported account data was cleared.')
+  }, [importedAccount, operatorPreferences.accountFilterMode, markPoolChanged])
 
   const finalOperatorPool = useMemo(
     () =>
@@ -91,8 +86,10 @@ export default function App(): React.JSX.Element {
             constraints,
             operatorPreferences.excludedOperatorIds,
             {
-              enabled: operatorPreferences.ownedOperatorsOnly,
-              ownedOperatorIds,
+              snapshot: importedAccount,
+              mode: operatorPreferences.accountFilterMode,
+              minimum: operatorPreferences.accountProgressionMin,
+              maximum: operatorPreferences.accountProgressionMax,
             },
           )
         : [],
@@ -100,8 +97,10 @@ export default function App(): React.JSX.Element {
       constraints,
       data.dataset,
       operatorPreferences.excludedOperatorIds,
-      operatorPreferences.ownedOperatorsOnly,
-      ownedOperatorIds,
+      operatorPreferences.accountFilterMode,
+      operatorPreferences.accountProgressionMin,
+      operatorPreferences.accountProgressionMax,
+      importedAccount,
     ],
   )
 
@@ -130,6 +129,12 @@ export default function App(): React.JSX.Element {
     setOperatorPreferences((current) => ({ ...current, gameLocale }))
   const setPoolPresentation = (poolPresentation: PoolPresentationMode): void =>
     setOperatorPreferences((current) => ({ ...current, poolPresentation }))
+  const setShowAccountProgression = (showAccountProgression: boolean): void => {
+    const next = { ...operatorPreferences, showAccountProgression }
+    saveOperatorPreferences(next)
+    setOperatorPreferences(next)
+    notifyOperatorAppearanceChanged()
+  }
   const setBulkAppearance = (choice: 'e1' | 'e2' | 'random' | 'account'): void => {
     if (!data.dataset) return
     if (choice === 'account' && !importedAccount) {
@@ -331,6 +336,7 @@ export default function App(): React.JSX.Element {
           onGameLocaleChange={setGameLocale}
           onPoolPresentationChange={setPoolPresentation}
           onBulkAppearanceChange={setBulkAppearance}
+          onShowAccountProgressionChange={setShowAccountProgression}
         />
       )}
 

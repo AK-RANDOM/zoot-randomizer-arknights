@@ -24,6 +24,8 @@ describe('Issue #78 M5 account appearance UI', () => {
 
 const optionsSource = readFileSync(new URL('./OptionsPanel.tsx', import.meta.url), 'utf8')
 const appSource = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8')
+const operatorCardSource = readFileSync(new URL('./OperatorCard.tsx', import.meta.url), 'utf8')
+
 const accountStateSource = readFileSync(
   new URL('./arknightsAccountState.ts', import.meta.url),
   'utf8',
@@ -47,5 +49,15 @@ describe('Issue #78 follow-up account UX', () => {
   it('invalidates account appearance state when equipped skins change', () => {
     expect(accountStateSource).toContain('operator.equippedSkinId')
     expect(accountStateSource).toContain('form.equippedSkinId')
+  })
+
+
+  it('optionally shows synced elite/level above rarity stars on standard and Draft operator cards', () => {
+    expect(optionsSource).toContain('Show synced operator progression on operator cards')
+    expect(optionsSource).toContain('preferences.showAccountProgression')
+    expect(operatorCardSource).not.toContain("variant === 'standard' && preferences.showAccountProgression")
+    expect(operatorCardSource).toContain('importedAccountOperatorState(importedAccount, operator.id)')
+    expect(operatorCardSource).toContain('operator-card__account-progression')
+    expect(operatorCardSource).toContain('E{progression.elite} L{progression.level}')
   })
 })

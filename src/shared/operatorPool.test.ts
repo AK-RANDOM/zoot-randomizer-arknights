@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from './constraints'
 import type { Operator } from './operator'
 import {
+  applyAccountOwnershipRestriction,
   applyManualOperatorExclusions,
   applyRaceExclusions,
   buildFinalOperatorPool,
@@ -45,10 +46,11 @@ const roster = [
 describe('Iteration 6 Pool persistence model', () => {
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
     expect(createDefaultOperatorPreferences()).toEqual({
-      version: 3,
+      version: 5,
       metadataRegion: 'global',
       gameLocale: 'en',
       poolPresentation: 'imageGrid',
+      ownedOperatorsOnly: false,
       excludedOperatorIds: [],
       operatorAppearances: {},
       appearanceRandomSeed: 1,
@@ -64,10 +66,11 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: ['char_a', 'char_a', '', 7, ' char_b '],
       }),
     ).toEqual({
-      version: 3,
+      version: 5,
       metadataRegion: 'cn',
       gameLocale: 'en',
       poolPresentation: 'detailedList',
+      ownedOperatorsOnly: false,
       excludedOperatorIds: ['char_a', 'char_b'],
       operatorAppearances: {},
       appearanceRandomSeed: 1,
@@ -77,17 +80,19 @@ describe('Iteration 6 Pool persistence model', () => {
   it('persists a supported game localization independently from metadata region', () => {
     expect(
       normalizeOperatorPreferences({
-        version: 3,
+        version: 5,
         metadataRegion: 'global',
         gameLocale: 'jp',
         poolPresentation: 'compactCard',
+        ownedOperatorsOnly: true,
         excludedOperatorIds: [],
       }),
     ).toMatchObject({
-      version: 3,
+      version: 5,
       metadataRegion: 'global',
       gameLocale: 'jp',
       poolPresentation: 'compactCard',
+      ownedOperatorsOnly: true,
     })
   })
 
@@ -146,6 +151,37 @@ describe('Iteration 6 Pool persistence model', () => {
     ])
   })
 
+  it('applies imported account ownership after Global Filter and Curate exclusions', () => {
+    const constraints = createDefaultConstraints()
+    const ownedIds = ['char_old', 'char_tragodia', 'char_account_unknown']
+
+    expect(applyAccountOwnershipRestriction(roster, ownedIds, false).map(({ id }) => id)).toEqual([
+      'char_old',
+      'char_tragodia',
+      'char_new',
+    ])
+    expect(applyAccountOwnershipRestriction(roster, ownedIds, true).map(({ id }) => id)).toEqual([
+      'char_old',
+      'char_tragodia',
+    ])
+    expect(
+      buildFinalOperatorPool(roster, constraints, ['char_tragodia'], {
+        enabled: true,
+        ownedOperatorIds: ownedIds,
+      }).map(({ id }) => id),
+    ).toEqual(['char_old'])
+  })
+
+  it('leaves the pool unchanged when owned-only is enabled before an account snapshot exists', () => {
+    const constraints = createDefaultConstraints()
+    expect(
+      buildFinalOperatorPool(roster, constraints, [], {
+        enabled: true,
+        ownedOperatorIds: null,
+      }).map(({ id }) => id),
+    ).toEqual(['char_old', 'char_tragodia', 'char_new'])
+  })
+
   it('applies stable Race exclusions to the same final pool used by Standard and Draft', () => {
     const raceRoster = [
       operator('char_oni', '2024-01-01', { raceIds: ['race:cn:%E9%AC%BC'] }),
@@ -176,6 +212,25 @@ describe('Iteration 6 Pool persistence model', () => {
       'char_oni',
       'char_legacy',
     ])
+  })
+
+  it('persists explicit account appearance mode while migrating older preference versions', () => {
+    expect(
+      normalizeOperatorPreferences({
+        version: 4,
+        metadataRegion: 'global',
+        gameLocale: 'en',
+        poolPresentation: 'imageGrid',
+        ownedOperatorsOnly: true,
+        excludedOperatorIds: [],
+        operatorAppearances: { char_old: 'account' },
+        appearanceRandomSeed: 1,
+      }),
+    ).toMatchObject({
+      version: 5,
+      ownedOperatorsOnly: true,
+      operatorAppearances: { char_old: 'account' },
+    })
   })
 
   it('toggles one operator without rewriting unrelated exclusions', () => {

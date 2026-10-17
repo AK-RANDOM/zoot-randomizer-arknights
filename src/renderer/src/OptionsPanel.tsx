@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { PortraitSyncProgress } from '../../shared/desktop'
 import type { OperatorPreferences, PoolPresentationMode } from '../../shared/operatorPool'
-import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
-import AccountSyncTestPanel from './AccountSyncTestPanel'
+import {
+  gameLocales,
+  type GameLocale,
+  type OperatorDataset,
+  type ReleaseServer,
+} from '../../shared/operator'
+import ArknightsAccountPanel from './ArknightsAccountPanel'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
 import {
   setDraftActionConfirmationPreference,
@@ -109,12 +114,14 @@ function ArtworkDownloadStatus(): React.JSX.Element {
 }
 
 export default function OptionsPanel({
+  dataset,
   preferences,
   onMetadataRegionChange,
   onGameLocaleChange,
   onPoolPresentationChange,
   onBulkAppearanceChange,
 }: {
+  dataset: OperatorDataset | null
   preferences: OperatorPreferences
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
@@ -245,7 +252,7 @@ export default function OptionsPanel({
 
       <ArtworkDownloadStatus />
 
-      <AccountSyncTestPanel />
+      <ArknightsAccountPanel dataset={dataset} />
     </section>
   )
 }

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const panelSource = readFileSync(new URL('./PoolPanel.tsx', import.meta.url), 'utf8')
+const panelSource = [
+  readFileSync(new URL('./PoolPanel.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./PoolAppearancePicker.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('./PoolPanelPresentation.tsx', import.meta.url), 'utf8'),
+].join('\n')
 const styleSource = readFileSync(new URL('./PoolPanel.css', import.meta.url), 'utf8')
 
 describe('Curate operator appearance picker', () => {

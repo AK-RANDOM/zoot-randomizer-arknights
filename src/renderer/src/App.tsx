@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import AccountOwnershipConstraint from './AccountOwnershipConstraint'
 import DraftPanel from './DraftPanel'
 import DraftRulebookPanel from './DraftRulebookPanel'
 import GlobalPoolFeature from './GlobalPoolFeature'
@@ -19,6 +20,8 @@ import { releaseRangeIsValid, remapReleaseConstraintServer } from '../../shared/
 import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPreferencesStorage'
 import { loadRaceExclusions, saveOperatorArtwork } from './rendererPersistence'
 import { notifyOperatorAppearanceChanged } from './operatorAppearance'
+import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOwnedOperatorIds } from '../../shared/arknightsAccountReconciliation'
 
 const INVALID_RELEASE_RANGE_MESSAGE =
   'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
@@ -51,6 +54,7 @@ export default function App(): React.JSX.Element {
   const [setupMode, setSetupMode] = useState<SetupMode>('global-pool')
   const [poolRevision, setPoolRevision] = useState(0)
   const [draftActive, setDraftActive] = useState(false)
+  const markPoolChanged = useCallback(() => setPoolRevision((current) => current + 1), [])
 
   useEffect(() => {
     saveOperatorPreferences(operatorPreferences)
@@ -67,6 +71,19 @@ export default function App(): React.JSX.Element {
     onError: setError,
   })
 
+  const importedAccount = useImportedArknightsAccount()
+  const ownedOperatorIds = useMemo(
+    () => (importedAccount ? importedAccountOwnedOperatorIds(importedAccount) : null),
+    [importedAccount],
+  )
+
+  useEffect(() => {
+    if (importedAccount !== null || !operatorPreferences.ownedOperatorsOnly) return
+    setOperatorPreferences((current) => ({ ...current, ownedOperatorsOnly: false }))
+    markPoolChanged()
+    setMessage('Owned operators only was disabled because imported account data was cleared.')
+  }, [importedAccount, operatorPreferences.ownedOperatorsOnly, markPoolChanged])
+
   const finalOperatorPool = useMemo(
     () =>
       data.dataset
@@ -74,9 +91,19 @@ export default function App(): React.JSX.Element {
             data.dataset.operators,
             constraints,
             operatorPreferences.excludedOperatorIds,
+            {
+              enabled: operatorPreferences.ownedOperatorsOnly,
+              ownedOperatorIds,
+            },
           )
         : [],
-    [constraints, data.dataset, operatorPreferences.excludedOperatorIds],
+    [
+      constraints,
+      data.dataset,
+      operatorPreferences.excludedOperatorIds,
+      operatorPreferences.ownedOperatorsOnly,
+      ownedOperatorIds,
+    ],
   )
 
   const updateConstraints = useCallback(
@@ -84,8 +111,6 @@ export default function App(): React.JSX.Element {
       setConstraints(update),
     [],
   )
-  const markPoolChanged = useCallback(() => setPoolRevision((current) => current + 1), [])
-
   const setMetadataRegion = (server: ReleaseServer): void => {
     if (!data.dataset || server === constraints.release.server) return
     const nextRelease = remapReleaseConstraintServer(
@@ -111,10 +136,7 @@ export default function App(): React.JSX.Element {
     const nextPreferences: OperatorPreferences = {
       ...operatorPreferences,
       operatorAppearances: Object.fromEntries(
-        data.dataset.operators.map((operator) => [
-          operator.id,
-          choice as OperatorAppearanceChoice,
-        ]),
+        data.dataset.operators.map((operator) => [operator.id, choice as OperatorAppearanceChoice]),
       ),
       appearanceRandomSeed:
         choice === 'random' ? Date.now() : operatorPreferences.appearanceRandomSeed,
@@ -252,25 +274,37 @@ export default function App(): React.JSX.Element {
       )}
 
       {activeTab === 'setup' && setupMode === 'global-pool' && (
-        <GlobalPoolFeature
-          dataset={data.dataset}
-          constraints={constraints}
-          finalOperatorPool={finalOperatorPool}
-          preferences={operatorPreferences}
-          busy={data.busy}
-          updateCheck={data.updateCheck}
-          onConstraintsChange={updateConstraints}
-          onPreferencesChange={(next) => {
-            saveOperatorPreferences(next)
-            setOperatorPreferences(next)
-            notifyOperatorAppearanceChanged()
-          }}
-          onPoolChanged={markPoolChanged}
-          onMessage={setMessage}
-          onError={setError}
-          onCheckUpdates={data.checkUpdates}
-          onInstallUpdate={data.installUpdate}
-        />
+        <>
+          <AccountOwnershipConstraint
+            dataset={data.dataset}
+            importedAccount={importedAccount ?? null}
+            preferences={operatorPreferences}
+            onChange={(next) => {
+              saveOperatorPreferences(next)
+              setOperatorPreferences(next)
+              markPoolChanged()
+            }}
+          />
+          <GlobalPoolFeature
+            dataset={data.dataset}
+            constraints={constraints}
+            finalOperatorPool={finalOperatorPool}
+            preferences={operatorPreferences}
+            busy={data.busy}
+            updateCheck={data.updateCheck}
+            onConstraintsChange={updateConstraints}
+            onPreferencesChange={(next) => {
+              saveOperatorPreferences(next)
+              setOperatorPreferences(next)
+              notifyOperatorAppearanceChanged()
+            }}
+            onPoolChanged={markPoolChanged}
+            onMessage={setMessage}
+            onError={setError}
+            onCheckUpdates={data.checkUpdates}
+            onInstallUpdate={data.installUpdate}
+          />
+        </>
       )}
 
       {activeTab === 'setup' && setupMode === 'draft-rulebooks' && data.dataset && (
@@ -279,6 +313,7 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'options' && (
         <OptionsPanel
+          dataset={data.dataset}
           preferences={operatorPreferences}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}

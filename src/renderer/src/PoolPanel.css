@@ -375,11 +375,40 @@
   min-width: 0;
 }
 
-.pool-appearance-tile__copy strong {
+.pool-appearance-outfit-name {
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pool-appearance-outfit-name strong {
+  display: inline-block;
+  min-width: max-content;
   font-size: 0.78rem;
+}
+
+.pool-appearance-tile:hover .pool-appearance-outfit-name.is-overflowing strong,
+.pool-appearance-tile:focus-visible .pool-appearance-outfit-name.is-overflowing strong {
+  animation: pool-appearance-text-scroll 2.75s ease-in-out infinite alternate;
+}
+
+@keyframes pool-appearance-text-scroll {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+  82%,
+  100% {
+    transform: translateX(calc(-1 * var(--pool-appearance-text-overflow, 0px)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pool-appearance-tile:hover .pool-appearance-outfit-name.is-overflowing strong,
+  .pool-appearance-tile:focus-visible .pool-appearance-outfit-name.is-overflowing strong {
+    animation: none;
+    transform: none;
+  }
 }
 
 .pool-appearance-empty {

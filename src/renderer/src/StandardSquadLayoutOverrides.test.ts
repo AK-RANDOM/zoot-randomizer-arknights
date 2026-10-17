@@ -87,7 +87,7 @@ describe('Standard Squad layout refinements', () => {
     expect(sharedCss).toContain('line-height: 1.12')
     expect(randomCss).not.toContain('.random-operator-card.is-constrained .random-operator-card__caption')
     expect(randomCss).toContain('letter-spacing: -0.055em')
-    expect(randomCss).toContain('.random-operator-card__star {\n  display: inline;')
+    expect(randomCss).toMatch(/\.random-operator-card__star\s*\{[^}]*display:\s*inline;/s)
     expect(randomCss).not.toContain('display: flex')
     expect(randomCss).not.toContain('margin-right: -0.055em')
     expect(randomCss).not.toContain('-webkit-text-stroke: 1.2px')

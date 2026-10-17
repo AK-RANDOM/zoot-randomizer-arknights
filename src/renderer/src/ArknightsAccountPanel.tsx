@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import type {
   ArknightsAccountServer,
   ImportedArknightsAccount,
-  ImportedOperatorProgress,
 } from '../../shared/arknightsAccount'
 import {
   reconcileArknightsAccount,
@@ -20,23 +19,6 @@ const SERVER_LABELS: Record<ArknightsAccountServer, string> = {
 
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
-}
-
-function operatorLabel(
-  progress: ImportedOperatorProgress,
-  operatorNames: ReadonlyMap<string, string>,
-): string {
-  return operatorNames.get(progress.operatorId) ?? progress.operatorId
-}
-
-function formSummary(progress: ImportedOperatorProgress): string | null {
-  if (!progress.forms || progress.forms.length === 0) return null
-  return progress.forms
-    .map((form) => {
-      const active = form.formId === progress.activeFormId ? ' • active' : ''
-      return `${form.formId}: E${form.elite} Lv${form.level} · ${form.equippedSkinId ?? 'no skin ID'}${active}`
-    })
-    .join('\n')
 }
 
 async function resolveAvatarImage(
@@ -101,22 +83,6 @@ function IdentityCounts({
   )
 }
 
-function UnknownIds({
-  label,
-  ids,
-}: {
-  label: string
-  ids: readonly string[]
-}): React.JSX.Element | null {
-  if (ids.length === 0) return null
-  return (
-    <div className="arknights-account__unknown-group">
-      <strong>{label}</strong>
-      <code>{ids.join('\n')}</code>
-    </div>
-  )
-}
-
 export default function ArknightsAccountPanel({
   dataset,
 }: {
@@ -128,15 +94,9 @@ export default function ArknightsAccountPanel({
   const [snapshot, setSnapshot] = useState<ImportedArknightsAccount | null>(null)
   const [avatarImageUrl, setAvatarImageUrl] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
-  const [query, setQuery] = useState('')
   const [status, setStatus] = useState('Checking for saved account data…')
   const [busy, setBusy] = useState<'code' | 'sync' | 'clear' | null>(null)
   const [error, setError] = useState<string | null>(null)
-
-  const operatorNames = useMemo(
-    () => new Map(dataset?.operators.map((operator) => [operator.id, operator.name]) ?? []),
-    [dataset],
-  )
 
   useEffect(() => {
     let active = true
@@ -183,32 +143,6 @@ export default function ArknightsAccountPanel({
     () => (snapshot && dataset ? reconcileArknightsAccount(snapshot, dataset) : null),
     [dataset, snapshot],
   )
-  const hasUnknownData =
-    reconciliation !== null &&
-    (reconciliation.operators.unknown > 0 ||
-      reconciliation.skins.unknown > 0 ||
-      reconciliation.equippedSkins.unknown > 0)
-
-  const visibleOperators = useMemo(() => {
-    if (!snapshot) return []
-    const normalizedQuery = query.trim().toLocaleLowerCase()
-    const sorted = [...snapshot.operators].sort((left, right) =>
-      operatorLabel(left, operatorNames).localeCompare(operatorLabel(right, operatorNames)),
-    )
-    if (!normalizedQuery) return sorted.slice(0, 20)
-    return sorted
-      .filter((progress) => {
-        const name = operatorLabel(progress, operatorNames).toLocaleLowerCase()
-        return (
-          name.includes(normalizedQuery) ||
-          progress.operatorId.toLocaleLowerCase().includes(normalizedQuery) ||
-          progress.forms?.some((form) =>
-            form.formId.toLocaleLowerCase().includes(normalizedQuery),
-          ) === true
-        )
-      })
-      .slice(0, 50)
-  }, [operatorNames, query, snapshot])
 
   const requestCode = async (): Promise<void> => {
     setBusy('code')
@@ -260,7 +194,6 @@ export default function ArknightsAccountPanel({
       setSnapshot(null)
       notifyImportedArknightsAccountChanged(null)
       setWarnings([])
-      setQuery('')
       setEmail('')
       setCode('')
       setStatus('Imported account data cleared. Login credentials were never saved.')
@@ -363,7 +296,6 @@ export default function ArknightsAccountPanel({
               )}
               <span>
                 <strong>{snapshot.accountName ?? 'Imported account'}</strong>
-                <br />
                 <small>UID:{snapshot.uid ?? '—'}</small>
               </span>
             </div>
@@ -378,58 +310,10 @@ export default function ArknightsAccountPanel({
           </div>
 
           {reconciliation ? (
-            <>
-              <div className="arknights-account__counts">
-                <IdentityCounts title="Operators" {...reconciliation.operators} />
-                <IdentityCounts title="Skins" {...reconciliation.skins} />
-                <div className="arknights-account__count-card">
-                  <strong>Equipped skins</strong>
-                  <dl>
-                    <div>
-                      <dt>Equipped</dt>
-                      <dd>{reconciliation.equippedSkins.equipped}</dd>
-                    </div>
-                    <div>
-                      <dt>Recognized</dt>
-                      <dd>{reconciliation.equippedSkins.recognized}</dd>
-                    </div>
-                    <div>
-                      <dt>Unknown</dt>
-                      <dd>{reconciliation.equippedSkins.unknown}</dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
-              <div
-                className={`arknights-account__reconciliation${hasUnknownData ? ' is-warning' : ' is-ok'}`}
-              >
-                <strong>Dataset reconciliation</strong>
-                {hasUnknownData ? (
-                  <>
-                    <p>
-                      Some account IDs are not present in the installed Zoot data. Update operator
-                      data from Setup → Global Pool, then return here to re-check newer operators or
-                      skins.
-                    </p>
-                    <details>
-                      <summary>Show unknown native IDs</summary>
-                      <div className="arknights-account__unknown-list">
-                        <UnknownIds label="Operators" ids={reconciliation.unknownOperatorIds} />
-                        <UnknownIds label="Owned skins" ids={reconciliation.unknownSkinIds} />
-                        <UnknownIds
-                          label="Equipped skins"
-                          ids={reconciliation.unknownEquippedSkinIds}
-                        />
-                      </div>
-                    </details>
-                  </>
-                ) : (
-                  <p>
-                    All imported operator and skin IDs are recognized by the installed Zoot data.
-                  </p>
-                )}
-              </div>
-            </>
+            <div className="arknights-account__counts">
+              <IdentityCounts title="Operators" {...reconciliation.operators} />
+              <IdentityCounts title="Owned outfits" {...reconciliation.skins} />
+            </div>
           ) : (
             <p>Waiting for the installed operator dataset before checking imported IDs.</p>
           )}
@@ -443,45 +327,6 @@ export default function ArknightsAccountPanel({
             </div>
           )}
 
-          <details className="arknights-account__inspector">
-            <summary>Inspect imported operator progression</summary>
-            <div className="arknights-account__inspector-body">
-              <label className="field">
-                <span>Search imported operators</span>
-                <input
-                  type="search"
-                  value={query}
-                  placeholder="Operator name, char ID, or Amiya form ID"
-                  onChange={(event) => setQuery(event.target.value)}
-                />
-              </label>
-              <div className="arknights-account__operator-list">
-                {visibleOperators.map((progress) => {
-                  const forms = formSummary(progress)
-                  const recognized = operatorNames.has(progress.operatorId)
-                  return (
-                    <div
-                      key={progress.operatorId}
-                      className={`arknights-account__operator-row${recognized ? '' : ' is-unknown'}`}
-                    >
-                      <span>
-                        <strong>{operatorLabel(progress, operatorNames)}</strong>
-                        <small>{progress.operatorId}</small>
-                      </span>
-                      <span>
-                        E{progress.elite} Lv{progress.level}
-                      </span>
-                      <span>
-                        {progress.equippedSkinId ?? 'No equipped skin ID'}
-                        {forms && <small style={{ whiteSpace: 'pre-line' }}>{forms}</small>}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          </details>
-
           <div className="arknights-account__clear">
             <div>
               <strong>Remove imported account data</strong>
@@ -492,7 +337,7 @@ export default function ArknightsAccountPanel({
             </div>
             <button
               type="button"
-              className="secondary-button"
+              className="danger-button"
               disabled={busy !== null}
               onClick={() => void clearSnapshot()}
             >

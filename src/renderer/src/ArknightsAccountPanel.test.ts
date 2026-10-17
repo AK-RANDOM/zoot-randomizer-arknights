@@ -11,6 +11,7 @@ describe('Arknights account management panel', () => {
     expect(source).toContain('Refresh account')
     expect(source).toContain('clearImportedArknightsAccount()')
     expect(source).toContain('Clear imported account data')
+    expect(source).toContain('className="danger-button"')
     expect(source).not.toContain('u8Token')
     expect(source).not.toContain('sessionSecret')
     expect(source).not.toContain('yostarToken')
@@ -22,19 +23,16 @@ describe('Arknights account management panel', () => {
     expect(source).toContain('Last synced')
     expect(source).toContain('reconcileArknightsAccount(snapshot, dataset)')
     expect(source).toContain('title="Operators"')
-    expect(source).toContain('title="Skins"')
-    expect(source).toContain('Show unknown native IDs')
-    expect(source).toContain('Setup → Global Pool')
+    expect(source).toContain('title="Owned outfits"')
+    expect(source).not.toContain('Equipped skins')
+    expect(source).not.toContain('Dataset reconciliation')
   })
 
-  it('keeps the unofficial-session warning and progression inspector', () => {
+  it('keeps the unofficial-session warning while omitting the progression inspector', () => {
     expect(source).toContain('Unofficial read-only integration')
     expect(source).toContain('disconnect an active Arknights game')
     expect(source).toContain('are not saved')
-    expect(source).toContain('Inspect imported operator progression')
-    expect(source).toContain('progress.equippedSkinId')
-    expect(source).toContain('progress.forms')
-    expect(source).toContain('progress.activeFormId')
+    expect(source).not.toContain('Inspect imported operator progression')
   })
 
   it('resolves account avatars through the current default-art/skin identity model', () => {

@@ -180,3 +180,12 @@
     transform: none;
   }
 }
+
+.operator-card__account-progression {
+  display: block;
+  margin-bottom: 2px;
+  color: #f0f0f1;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+}

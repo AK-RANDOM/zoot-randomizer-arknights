@@ -19,8 +19,8 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npm run data:update
-      - run: npm run data:validate
+      - run: node --experimental-transform-types scripts/update-operator-data.mts
+      - run: node --experimental-transform-types scripts/validate-bundled-data.mts
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test

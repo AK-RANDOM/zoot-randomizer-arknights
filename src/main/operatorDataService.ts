@@ -23,6 +23,7 @@ import {
   upgradeLegacyOperatorDataset,
 } from '../shared/operatorData'
 import {
+  fetchAndApplySkinMetadata,
   fetchAndBuildOperatorDataset,
   fetchLatestOperatorDatasetSources,
   operatorDatasetSourcesEqual,
@@ -31,6 +32,7 @@ import {
 const imageCache = new Map<string, string>()
 const avatarDownloadPromises = new Map<string, Promise<boolean>>()
 const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer' } as const
+let skinMetadataRefreshPromise: Promise<OperatorDataset | null> | null = null
 
 function bundledRoot(): string {
   return app.isPackaged
@@ -95,8 +97,31 @@ async function datasetWithOrigin(): Promise<{
   return { dataset: bundled, origin: 'bundled' }
 }
 
+async function refreshSkinMetadata(dataset: OperatorDataset): Promise<OperatorDataset> {
+  const refreshed = await fetchAndApplySkinMetadata(dataset, PIPELINE_FETCH_OPTIONS)
+  const validation = validateOperatorDataset(refreshed, { requireSourceCommits: true })
+  if (!validation.valid) {
+    throw new Error(`Refreshed skin metadata failed validation: ${validation.errors.join(' ')}`)
+  }
+
+  const stageRoot = await mkdtemp(join(tmpdir(), 'arknights-randomizer-skins-'))
+  const stageDataset = join(stageRoot, 'operators.json')
+  try {
+    await writeFile(stageDataset, `${JSON.stringify(refreshed, null, 2)}\n`, 'utf8')
+    await mkdir(downloadedRoot(), { recursive: true })
+    await activateStagedData(stageRoot, stageDataset)
+  } finally {
+    await rm(stageRoot, { recursive: true, force: true })
+  }
+  return refreshed
+}
+
 export async function getOperatorDataset(): Promise<OperatorDataset> {
-  return (await datasetWithOrigin()).dataset
+  const dataset = (await datasetWithOrigin()).dataset
+  if (!operatorDatasetNeedsSkinMetadataRefresh(dataset)) return dataset
+
+  skinMetadataRefreshPromise ??= refreshSkinMetadata(dataset).catch(() => null)
+  return (await skinMetadataRefreshPromise) ?? dataset
 }
 
 export async function getOperatorDataInfo(): Promise<OperatorDataInfo> {

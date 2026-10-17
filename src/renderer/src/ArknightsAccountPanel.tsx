@@ -363,7 +363,8 @@ export default function ArknightsAccountPanel({
               )}
               <span>
                 <strong>{snapshot.accountName ?? 'Imported account'}</strong>
-                <small>UID {snapshot.uid ?? '—'}</small>
+                <br />
+                <small>UID:{snapshot.uid ?? '—'}</small>
               </span>
             </div>
             <span>

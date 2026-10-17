@@ -22,7 +22,7 @@ interface DraftSquadGridProps {
   onAction: (action: DraftAction) => void
 }
 
-function DraftEmptySlotFrame({
+export function DraftEmptySlotFrame({
   slotNumber,
   variant,
 }: {
@@ -65,7 +65,7 @@ function EmptyOverflowFrame(): React.JSX.Element {
   )
 }
 
-function DraftRosterAvatar({
+export function DraftRosterAvatar({
   operator,
   overflow = false,
 }: {

@@ -183,7 +183,7 @@ export default function ArknightsAccountPanel({
               />
             )}
             <div className="arknights-account__account-copy">
-              <strong>{SERVER_LABELS[snapshot.server]} Service</strong>
+              <strong>{SERVER_LABELS[snapshot.server]} Server</strong>
               <span>
                 {snapshot.accountName ?? 'Imported account'} (UID: {snapshot.uid ?? '—'})
               </span>

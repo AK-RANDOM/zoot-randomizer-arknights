@@ -4,7 +4,7 @@ import { isGameLocale } from './gameLocalization'
 import { filterHigherLevelEligibleOperators } from './randomizer'
 import { operatorRaceIds } from './raceMetadata'
 
-export const OPERATOR_PREFERENCES_VERSION = 3 as const
+export const OPERATOR_PREFERENCES_VERSION = 4 as const
 
 export const poolPresentationModes = [
   'imageGrid',
@@ -22,6 +22,8 @@ export interface OperatorPreferences {
   metadataRegion: ReleaseServer
   gameLocale: GameLocale
   poolPresentation: PoolPresentationMode
+  /** Restrict the final consumer pool to identities imported from the saved account snapshot. */
+  ownedOperatorsOnly: boolean
   /** Explicit exclusions only. Any ID not listed is enabled by default. */
   excludedOperatorIds: string[]
   /** Per-operator presentation choice. Missing IDs fall back to the legacy/default promotion choice. */
@@ -36,6 +38,7 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
     metadataRegion: 'global',
     gameLocale: 'en',
     poolPresentation: 'imageGrid',
+    ownedOperatorsOnly: false,
     excludedOperatorIds: [],
     operatorAppearances: {},
     appearanceRandomSeed: 1,
@@ -87,6 +90,7 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
   if (
     candidate.version !== 1 &&
     candidate.version !== 2 &&
+    candidate.version !== 3 &&
     candidate.version !== OPERATOR_PREFERENCES_VERSION
   ) {
     return defaults
@@ -102,6 +106,10 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
     poolPresentation: isPoolPresentationMode(candidate.poolPresentation)
       ? candidate.poolPresentation
       : defaults.poolPresentation,
+    ownedOperatorsOnly:
+      typeof candidate.ownedOperatorsOnly === 'boolean'
+        ? candidate.ownedOperatorsOnly
+        : defaults.ownedOperatorsOnly,
     excludedOperatorIds: normalizeIds(candidate.excludedOperatorIds),
     operatorAppearances: normalizeAppearanceMap(candidate.operatorAppearances),
     appearanceRandomSeed:
@@ -189,6 +197,16 @@ export function applyManualOperatorExclusions(
   return operators.filter((operator) => !excluded.has(operator.id))
 }
 
+export function applyAccountOwnershipRestriction(
+  operators: readonly Operator[],
+  ownedOperatorIds: readonly string[] | null | undefined,
+  enabled: boolean,
+): Operator[] {
+  if (!enabled || !ownedOperatorIds) return [...operators]
+  const owned = new Set(normalizeIds(ownedOperatorIds))
+  return operators.filter((operator) => owned.has(operator.id))
+}
+
 export function applyRaceExclusions(
   operators: readonly Operator[],
   excludedRaceIds: readonly string[],
@@ -224,9 +242,17 @@ export function buildFinalOperatorPool(
   operators: Operator[],
   constraints: RandomizerConstraints,
   excludedOperatorIds: readonly string[],
+  accountOwnership?: {
+    enabled: boolean
+    ownedOperatorIds: readonly string[] | null | undefined
+  },
 ): Operator[] {
-  return applyManualOperatorExclusions(
-    buildGlobalFilterOperatorPool(operators, constraints),
-    excludedOperatorIds,
+  return applyAccountOwnershipRestriction(
+    applyManualOperatorExclusions(
+      buildGlobalFilterOperatorPool(operators, constraints),
+      excludedOperatorIds,
+    ),
+    accountOwnership?.ownedOperatorIds,
+    accountOwnership?.enabled ?? false,
   )
 }

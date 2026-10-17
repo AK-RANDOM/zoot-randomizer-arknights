@@ -34,6 +34,15 @@ function sortedUnique(values: Iterable<string>): string[] {
   return [...new Set(values)].sort()
 }
 
+export function importedAccountOwnedOperatorIds(snapshot: ImportedArknightsAccount): string[] {
+  const ids: string[] = []
+  for (const progress of snapshot.operators) {
+    ids.push(progress.operatorId)
+    for (const form of progress.forms ?? []) ids.push(form.formId)
+  }
+  return sortedUnique(ids)
+}
+
 function buildOperatorIdentityIndex(dataset: OperatorDataset): ReadonlyMap<string, Operator> {
   return new Map(dataset.operators.map((operator) => [operator.id, operator]))
 }

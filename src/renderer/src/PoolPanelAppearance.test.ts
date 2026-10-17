@@ -36,8 +36,8 @@ describe('Curate operator appearance picker', () => {
     expect(panelSource).toContain('.sort(compareSkinsByRelease)')
   })
 
-  it('uses the same fixed tile size for default art and outfits with a five-column dialog cap', () => {
-    expect(styleSource).toContain('width: min(660px, 100%)')
+  it('uses the same fixed tile size for default art and outfits with a three-column dialog cap', () => {
+    expect(styleSource).toContain('width: min(400px, 100%)')
     expect(styleSource).toContain('--appearance-tile-size: 112px')
     expect(styleSource).toContain(
       'grid-template-columns: repeat(auto-fill, var(--appearance-tile-size))',

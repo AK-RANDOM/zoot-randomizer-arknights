@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { operatorClasses } from '../../shared/operator'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
+import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
+import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { resolveAppearanceChoice } from './operatorAppearance'
 
 function PoolAvatar({ operator, choice, randomSeed, accountAppearance }) {
@@ -67,7 +69,18 @@ function operatorRaceLabel(operator, raceLabels) {
   if (raceIds.length === 0) return raceLabels?.['race:unavailable'] ?? 'Unavailable'
   return raceIds.map((id) => raceLabels?.[id] ?? id).join(', ')
 }
-function groupLabel(operator, groupBy, dataset, constraints) {
+function accountStateLabel(operator, importedAccount: ImportedArknightsAccount | null | undefined) {
+  if (!importedAccount) return 'Not Owned'
+  const state = importedAccountOperatorState(importedAccount, operator.id)
+  return state ? `E${state.elite}` : 'Not Owned'
+}
+function groupLabel(
+  operator,
+  groupBy,
+  dataset,
+  constraints,
+  importedAccount: ImportedArknightsAccount | null | undefined = null,
+) {
   switch (groupBy) {
     case 'class':
       return dataset.classLabels?.[operator.class] ?? operator.class
@@ -81,6 +94,8 @@ function groupLabel(operator, groupBy, dataset, constraints) {
       return mainFactionLabel(operator, dataset)
     case 'acquisition':
       return acquisitionLabel(operator)
+    case 'accountState':
+      return accountStateLabel(operator, importedAccount)
     case 'none':
       return 'All operators'
   }
@@ -107,6 +122,9 @@ function groupOrderValue(label, operators, groupBy, constraints) {
   if (groupBy === 'rarity') return operators[0]?.rarity ?? 0
   if (groupBy === 'releaseYear') {
     return operators[0]?.release[constraints.release.server].yearGroup ?? Number.MAX_SAFE_INTEGER
+  }
+  if (groupBy === 'accountState') {
+    return { E0: 0, E1: 1, E2: 2, 'Not Owned': 3 }[label] ?? Number.MAX_SAFE_INTEGER
   }
   return label.toLocaleLowerCase()
 }
@@ -228,6 +246,7 @@ function OperatorEntry({
 }
 
 export {
+  accountStateLabel,
   collapseAllPoolGroups,
   comparePoolGroups,
   comparePoolOperators,

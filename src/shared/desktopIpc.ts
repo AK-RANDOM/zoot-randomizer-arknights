@@ -7,6 +7,8 @@ export const DESKTOP_IPC_CHANNELS = {
   operatorDataInfo: 'operator-data:info',
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',
+  operatorPromotionAvatar: 'operator-data:promotion-avatar',
+  operatorAvatarAsset: 'operator-data:avatar-asset',
   operatorSkinPortrait: 'operator-data:skin-portrait',
   operatorSkinAvatar: 'operator-data:skin-avatar',
   classIcon: 'operator-data:class-icon',
@@ -28,7 +30,8 @@ export const DESKTOP_IPC_CHANNELS = {
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const METADATA_ID_PATTERN = /^[a-z0-9_.:-]+$/i
 const MAX_METADATA_ID_LENGTH = 128
-const SKIN_ID_PATTERN = /^char_[a-z0-9_]+@[a-z0-9_+#-]+$/i
+const SKIN_ID_PATTERN = /^char_[a-z0-9_]+(?:@[a-z0-9_+#-]+|#[a-z0-9_+.-]+)$/i
+const AVATAR_ASSET_ID_PATTERN = /^[a-z0-9_@#+-]+$/i
 const ACCOUNT_AVATAR_ID_PATTERN = /^avatar_[a-z0-9_]+$/i
 
 export function requireOperatorId(value: unknown): string {
@@ -48,6 +51,18 @@ export function requirePromotionArt(value: unknown): PromotionArt {
 export function requireSkinId(value: unknown): string {
   if (typeof value !== 'string' || value.length > 160 || !SKIN_ID_PATTERN.test(value)) {
     throw new TypeError('Invalid skin ID.')
+  }
+  return value
+}
+
+export function requireAvatarAssetId(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.length > 192 ||
+    !AVATAR_ASSET_ID_PATTERN.test(value)
+  ) {
+    throw new TypeError('Invalid operator avatar asset ID.')
   }
   return value
 }

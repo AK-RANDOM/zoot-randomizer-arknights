@@ -136,3 +136,68 @@ export function useOperatorAppearanceImage(
 
   return { imageUrl, usingPortrait, choice }
 }
+
+export function useOperatorAppearanceAvatar(
+  operator: Operator,
+  override?: { choice: OperatorAppearanceChoice; randomSeed: number },
+): { imageUrl: string | null; choice: OperatorAppearanceChoice } {
+  const [revision, setRevision] = useState(0)
+  const preferences = useMemo(
+    () => loadOperatorPreferences(),
+    [revision, override?.choice, override?.randomSeed],
+  )
+  const choice = override?.choice ?? appearanceChoiceForOperator(preferences, operator.id)
+  const randomSeed = override?.randomSeed ?? preferences.appearanceRandomSeed
+  const resolved = resolveAppearanceChoice(operator, choice, randomSeed)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    const changed = (): void => setRevision((current) => current + 1)
+    window.addEventListener(OPERATOR_APPEARANCE_EVENT, changed)
+    return () => window.removeEventListener(OPERATOR_APPEARANCE_EVENT, changed)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    setImageUrl(null)
+
+    const fallback = async (): Promise<void> => {
+      const avatar = await window.desktop.getOperatorImage(operator.id)
+      if (active) setImageUrl(avatar)
+    }
+
+    const load = async (): Promise<void> => {
+      if (resolved === 'e1' || resolved === 'e2') {
+        const avatar = await window.desktop.getOperatorPromotionAvatar(operator.id, resolved)
+        if (!active) return
+        if (avatar) {
+          setImageUrl(avatar)
+          return
+        }
+        await fallback()
+        return
+      }
+
+      const skinId = resolved.slice(5)
+      const skin = operator.skins?.find((candidate) => candidate.id === skinId)
+      if (!skin) {
+        await fallback()
+        return
+      }
+      const avatar = await window.desktop.getOperatorSkinAvatar(operator.id, skin.id)
+      if (!active) return
+      if (avatar) {
+        setImageUrl(avatar)
+        return
+      }
+      await fallback()
+    }
+
+    void load().catch(() => void fallback())
+    return () => {
+      active = false
+    }
+  }, [operator, resolved])
+
+  return { imageUrl, choice }
+}

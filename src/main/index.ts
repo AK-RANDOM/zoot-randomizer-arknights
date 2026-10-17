@@ -8,6 +8,7 @@ import {
   requireArknightsAccountAvatarId,
   requireArknightsAccountServer,
   requireArknightsAccountString,
+  requireAvatarAssetId,
   requireMetadataId,
   requireOperatorClass,
   requireOperatorId,
@@ -28,6 +29,7 @@ import {
   getOperatorSkinPortrait,
   syncOperatorPortraits,
 } from './operatorPortraitService'
+import { getOperatorAvatarAsset, getOperatorPromotionAvatar } from './operatorAvatarService'
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
@@ -167,6 +169,14 @@ function registerIpc(): void {
     DESKTOP_IPC_CHANNELS.operatorPortrait,
     (_event, operatorId: unknown, promotionArt: unknown) =>
       getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.operatorPromotionAvatar,
+    (_event, operatorId: unknown, promotionArt: unknown) =>
+      getOperatorPromotionAvatar(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorAvatarAsset, (_event, avatarId: unknown) =>
+    getOperatorAvatarAsset(requireAvatarAssetId(avatarId)),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorSkinPortrait,

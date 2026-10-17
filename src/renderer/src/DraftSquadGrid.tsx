@@ -3,7 +3,7 @@ import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import { useOperatorAppearanceImage } from './operatorAppearance'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import {
   resolveDraftActionPresentation,
   resolveDraftSquadPresentation,
@@ -72,7 +72,7 @@ function DraftRosterAvatar({
   operator: Operator
   overflow?: boolean
 }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceImage(operator)
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
 
   return (
     <div

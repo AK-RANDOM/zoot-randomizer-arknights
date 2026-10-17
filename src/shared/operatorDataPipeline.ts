@@ -179,6 +179,27 @@ export function alignAvailabilityWithReleaseMetadata(dataset: OperatorDataset): 
   return { ...dataset, operators }
 }
 
+export async function fetchAndApplySkinMetadata(
+  dataset: OperatorDataset,
+  options: OperatorDataFetchOptions = {},
+): Promise<OperatorDataset> {
+  const gamedataRevision = dataset.sources.gamedataCnCommit ?? GAMEDATA_BRANCH
+  const localeEntries = await Promise.all(
+    GAME_DATA_LOCALES.map(
+      async (locale) =>
+        [
+          locale,
+          await fetchJson<RawSkinTable>(
+            gameDataExcelUrlAtRevision(locale, 'skin_table.json', gamedataRevision),
+            options,
+          ),
+        ] as const,
+    ),
+  )
+
+  return applySkinMetadata(dataset, Object.fromEntries(localeEntries))
+}
+
 export async function fetchAndBuildOperatorDataset(
   sources: OperatorDatasetSources,
   generatedAt = new Date().toISOString(),

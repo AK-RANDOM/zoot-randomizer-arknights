@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import {
   evaluateDraftActionPreflight,
   type DraftAction,
@@ -15,25 +15,10 @@ import { resolveDraftStatusPresentation } from './draftPresentation'
 import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
 
 function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    void window.desktop
-      .getOperatorImage(operator.id)
-      .then((url) => {
-        if (active) setImageUrl(url)
-      })
-      .catch(() => {
-        if (active) setImageUrl(null)
-      })
-    return () => {
-      active = false
-    }
-  }, [operator.id])
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
 
   return (
     <span

@@ -59,7 +59,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
   const groups = useMemo(() => {
     const map = new Map()
     for (const operator of displayed) {
-      const label = groupLabel(operator, groupBy, dataset, constraints)
+      const label = groupLabel(operator, groupBy, dataset, constraints, importedAccount)
       const values = map.get(label) ?? []
       values.push(operator)
       map.set(label, values)
@@ -74,7 +74,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
     return entries.sort((left, right) =>
       comparePoolGroups(left, right, groupBy, constraints, groupDirection),
     )
-  }, [constraints, dataset, displayed, groupBy, groupDirection, operatorSort])
+  }, [constraints, dataset, displayed, groupBy, groupDirection, importedAccount, operatorSort])
   const setDisplayedExcluded = (excluded) => {
     onPreferencesChange({
       ...preferences,
@@ -198,8 +198,38 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
             <option value="releaseYear">Release</option>
             <option value="mainFaction">Main Faction</option>
             <option value="acquisition">Acquisition</option>
+            <option value="accountState">Account State</option>
           </select>
         </label>
+      </div>
+
+      <div className="pool-information" role="status">
+        <div className="pool-information-copy">
+          <strong>{finalPool.length} operators eligible</strong>
+          <span>· {displayed.length} displayed</span>
+          <span>· {globalFilterEligible.length} pass Global Filter</span>
+        </div>
+        {groupBy !== 'none' ? (
+          <button
+            type="button"
+            className="pool-group-direction-toggle"
+            aria-label={`Group order: ${groupDirection === 'asc' ? 'ascending' : 'descending'}. Toggle group order.`}
+            title={`Group order: ${groupDirection === 'asc' ? 'Ascending' : 'Descending'}`}
+            onClick={toggleGroupDirection}
+          >
+            <span aria-hidden="true">{groupDirection === 'asc' ? '↑' : '↓'}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="pool-group-direction-toggle"
+            aria-label={`Operator order: ${reversedGroups.has('All operators') ? 'reversed' : 'normal'}. Toggle operator order.`}
+            title={`Operator order: ${reversedGroups.has('All operators') ? 'Reverse' : 'Normal'}`}
+            onClick={() => toggleOneGroupDirection('All operators')}
+          >
+            <span aria-hidden="true">{reversedGroups.has('All operators') ? '↓' : '↑'}</span>
+          </button>
+        )}
       </div>
 
       {groupBy !== 'none' && (
@@ -212,25 +242,6 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
           </button>
         </div>
       )}
-
-      <div className="pool-information" role="status">
-        <div className="pool-information-copy">
-          <strong>{finalPool.length} operators eligible</strong>
-          <span>· {displayed.length} displayed</span>
-          <span>· {globalFilterEligible.length} pass Global Filter</span>
-        </div>
-        {groupBy !== 'none' && (
-          <button
-            type="button"
-            className="pool-group-direction-toggle"
-            aria-label={`Group order: ${groupDirection === 'asc' ? 'ascending' : 'descending'}. Toggle group order.`}
-            title={`Group order: ${groupDirection === 'asc' ? 'Ascending' : 'Descending'}`}
-            onClick={toggleGroupDirection}
-          >
-            <span aria-hidden="true">{groupDirection === 'asc' ? '↑' : '↓'}</span>
-          </button>
-        )}
-      </div>
 
       <div className={`pool-groups pool-presentation--${preferences.poolPresentation}`}>
         {groups.map(([label, operators]) => {

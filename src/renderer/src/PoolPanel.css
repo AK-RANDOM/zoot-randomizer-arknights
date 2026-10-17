@@ -281,7 +281,7 @@
 }
 
 .pool-appearance-dialog {
-  width: min(660px, 100%);
+  width: min(400px, 100%);
   max-height: min(760px, calc(100vh - 3rem));
   overflow: auto;
   border: 1px solid var(--line, rgba(255, 255, 255, 0.14));

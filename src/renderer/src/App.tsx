@@ -279,6 +279,7 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'options' && (
         <OptionsPanel
+          dataset={data.dataset}
           preferences={operatorPreferences}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}

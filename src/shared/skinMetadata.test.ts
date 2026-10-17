@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { OperatorDataset } from './operator'
-import { applySkinMetadata, skinBrandName, skinDisplayName } from './skinMetadata'
+import {
+  applySkinMetadata,
+  operatorDatasetNeedsSkinMetadataRefresh,
+  skinBrandName,
+  skinDisplayName,
+} from './skinMetadata'
 
 const dataset = {
   schemaVersion: 6,
@@ -32,7 +37,7 @@ const dataset = {
 } satisfies OperatorDataset
 
 describe('skin metadata', () => {
-  it('adds only alternate @ skins and keeps localized names', () => {
+  it('keeps all native skin IDs while exposing only alternate @ skins as selectable appearances', () => {
     const result = applySkinMetadata(dataset, {
       cn: {
         charSkins: {
@@ -41,6 +46,10 @@ describe('skin metadata', () => {
             charId: 'char_222_bpipe',
             portraitId: 'char_222_bpipe_1',
             displaySkin: { skinName: null, skinGroupName: 'Default Outfit' },
+          },
+          'char_222_bpipe#missing-portrait': {
+            skinId: 'char_222_bpipe#missing-portrait',
+            charId: 'char_222_bpipe',
           },
           'char_222_bpipe@race#1': {
             skinId: 'char_222_bpipe@race#1',
@@ -64,6 +73,11 @@ describe('skin metadata', () => {
       },
     })
 
+    expect(result.operators[0].nativeSkinIds).toEqual([
+      'char_222_bpipe#1',
+      'char_222_bpipe#missing-portrait',
+      'char_222_bpipe@race#1',
+    ])
     expect(result.operators[0].skins).toEqual([
       {
         id: 'char_222_bpipe@race#1',
@@ -73,8 +87,16 @@ describe('skin metadata', () => {
         brands: { en: 'Whistlewind', cn: 'Collection' },
       },
     ])
-    expect(result.skinMetadataVersion).toBe(2)
+    expect(result.skinMetadataVersion).toBe(3)
     expect(skinDisplayName(result.operators[0].skins![0], 'en')).toBe('Queen, No. 1')
     expect(skinBrandName(result.operators[0].skins![0], 'en')).toBe('Whistlewind')
+  })
+
+  it('requires a refresh when the dataset predates native skin identity metadata', () => {
+    expect(operatorDatasetNeedsSkinMetadataRefresh({ ...dataset, skinMetadataVersion: 2 })).toBe(
+      true,
+    )
+    const refreshed = applySkinMetadata(dataset, { cn: { charSkins: {} } })
+    expect(operatorDatasetNeedsSkinMetadataRefresh(refreshed)).toBe(false)
   })
 })

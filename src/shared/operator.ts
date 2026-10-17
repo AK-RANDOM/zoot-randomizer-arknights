@@ -96,6 +96,8 @@ export interface Operator {
   alterGroup: string | null
   mandatoryExclusivityGroup: string | null
   imageFile: string
+  /** Complete source-derived native skin IDs, including default/base appearances. */
+  nativeSkinIds?: string[]
   /** Optional source-driven alternate cosmetic appearances. */
   skins?: OperatorSkin[]
 }

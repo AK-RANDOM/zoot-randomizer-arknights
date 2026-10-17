@@ -72,6 +72,13 @@ describe('Issue #78 follow-up account UX', () => {
     expect(accountStateSource).toContain('form.equippedSkinId')
   })
 
+  it('rejects an account progression End bound lower than Start', () => {
+    expect(appSource).toContain('accountProgressionRank(next.accountProgressionMax)')
+    expect(appSource).toContain('accountProgressionRank(next.accountProgressionMin)')
+    expect(appSource).toContain('End progression cannot be lower than Start progression.')
+    expect(appSource).toContain('window.alert(')
+  })
+
   it('moves the synced progression toggle into the Account row of Global Filter', () => {
     expect(globalFilterSource).toContain('Show synced operator progression on operator cards')
     expect(globalFilterSource).toContain('preferences.showAccountProgression')

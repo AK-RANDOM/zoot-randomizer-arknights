@@ -45,6 +45,15 @@ describe('Arknights account management panel', () => {
     expect(styleSource).toContain('@media (max-width: 1100px)')
   })
 
+  it('uses one shared bounding box for account info, ownership counts, and actions', () => {
+    expect(styleSource).toContain('.arknights-account__compact {')
+    expect(styleSource).toContain('border: 1px solid #34343a')
+    expect(styleSource).toContain('background: #151517')
+    expect(styleSource).not.toContain(
+      '.arknights-account__account-info,\n.arknights-account__operator-info {\n  min-height: 72px',
+    )
+    expect(styleSource).toContain('border-left: 1px solid #34343a')
+  })
   it('resolves account avatars through the current default-art/skin identity model', () => {
     expect(source).toContain('resolveArknightsSkinIdentity(dataset, avatar.id)')
     expect(source).toContain('operator?.defaultArts?.find')

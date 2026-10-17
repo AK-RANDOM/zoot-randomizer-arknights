@@ -9,6 +9,7 @@ import { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
 import { createDefaultConstraints, type RandomizerConstraints } from '../../shared/constraints'
 import type { GameLocale, Operator, ReleaseServer } from '../../shared/operator'
 import {
+  accountProgressionRank,
   buildFinalOperatorPool,
   reconcileOperatorPreferences,
   type OperatorAppearanceChoice,
@@ -305,6 +306,15 @@ export default function App(): React.JSX.Element {
             updateCheck={data.updateCheck}
             onConstraintsChange={updateConstraints}
             onPreferencesChange={(next) => {
+              if (
+                accountProgressionRank(next.accountProgressionMax) <
+                accountProgressionRank(next.accountProgressionMin)
+              ) {
+                window.alert(
+                  'Invalid account progression range\n\nEnd progression cannot be lower than Start progression.',
+                )
+                return
+              }
               saveOperatorPreferences(next)
               setOperatorPreferences(next)
               notifyOperatorAppearanceChanged()

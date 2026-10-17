@@ -1,12 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type {
   ArknightsAccountServer,
   ImportedArknightsAccount,
 } from '../../shared/arknightsAccount'
-import {
-  reconcileArknightsAccount,
-  resolveArknightsSkinIdentity,
-} from '../../shared/arknightsAccountReconciliation'
+import { resolveArknightsSkinIdentity } from '../../shared/arknightsAccountReconciliation'
 import type { OperatorDataset } from '../../shared/operator'
 import { notifyImportedArknightsAccountChanged } from './arknightsAccountState'
 import './ArknightsAccountPanel.css'
@@ -51,38 +48,6 @@ async function resolveAvatarImage(
   return null
 }
 
-function IdentityCounts({
-  title,
-  owned,
-  recognized,
-  unknown,
-}: {
-  title: string
-  owned: number
-  recognized: number
-  unknown: number
-}): React.JSX.Element {
-  return (
-    <div className="arknights-account__count-card">
-      <strong>{title}</strong>
-      <dl>
-        <div>
-          <dt>Owned</dt>
-          <dd>{owned}</dd>
-        </div>
-        <div>
-          <dt>Recognized</dt>
-          <dd>{recognized}</dd>
-        </div>
-        <div>
-          <dt>Unknown</dt>
-          <dd>{unknown}</dd>
-        </div>
-      </dl>
-    </div>
-  )
-}
-
 export default function ArknightsAccountPanel({
   dataset,
 }: {
@@ -97,6 +62,7 @@ export default function ArknightsAccountPanel({
   const [status, setStatus] = useState('Checking for saved account data…')
   const [busy, setBusy] = useState<'code' | 'sync' | 'clear' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [refreshOpen, setRefreshOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -139,11 +105,6 @@ export default function ArknightsAccountPanel({
     }
   }, [dataset, snapshot])
 
-  const reconciliation = useMemo(
-    () => (snapshot && dataset ? reconcileArknightsAccount(snapshot, dataset) : null),
-    [dataset, snapshot],
-  )
-
   const requestCode = async (): Promise<void> => {
     setBusy('code')
     setError(null)
@@ -169,6 +130,7 @@ export default function ArknightsAccountPanel({
       setServer(result.snapshot.server)
       setWarnings(result.warnings)
       setCode('')
+      setRefreshOpen(false)
       setStatus(
         refreshing
           ? 'Account snapshot refreshed. Only sanitized account data was retained.'
@@ -196,6 +158,7 @@ export default function ArknightsAccountPanel({
       setWarnings([])
       setEmail('')
       setCode('')
+      setRefreshOpen(false)
       setStatus('Imported account data cleared. Login credentials were never saved.')
     } catch (nextError) {
       setError(formatError(nextError))
@@ -204,146 +167,152 @@ export default function ArknightsAccountPanel({
     }
   }
 
-  return (
-    <div className="arknights-account" aria-labelledby="arknights-account-heading">
-      <div className="arknights-account__heading">
-        <span className="arknights-account__eyebrow">ARKNIGHTS ACCOUNT</span>
-        <strong id="arknights-account-heading">Account import and sync</strong>
-        <p>
-          Unofficial read-only integration. Signing in may disconnect an active Arknights game
-          session. Email, verification codes, and reusable authentication secrets are not saved.
-        </p>
-      </div>
+  const authOpen = snapshot === null || refreshOpen
 
-      <div className="arknights-account__auth">
-        <strong>{snapshot ? 'Refresh imported account' : 'Import account'}</strong>
-        <div className="arknights-account__fields">
-          <label className="field">
-            <span>Server</span>
-            <select
-              value={server}
-              disabled={busy !== null}
-              onChange={(event) => setServer(event.target.value as ArknightsAccountServer)}
-            >
-              {(Object.entries(SERVER_LABELS) as Array<[ArknightsAccountServer, string]>).map(
-                ([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ),
-              )}
-            </select>
-          </label>
-          <label className="field">
-            <span>YoStar email</span>
-            <input
-              type="email"
-              value={email}
-              autoComplete="email"
-              disabled={busy !== null}
-              placeholder="doctor@example.com"
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
+  return (
+    <div className="arknights-account" aria-label="Arknights account">
+      {snapshot && (
+        <div className="arknights-account__compact">
+          <div className="arknights-account__account-info">
+            {avatarImageUrl && (
+              <img
+                className="arknights-account__avatar"
+                src={avatarImageUrl}
+                alt="Profile avatar"
+                draggable={false}
+              />
+            )}
+            <div className="arknights-account__account-copy">
+              <strong>{SERVER_LABELS[snapshot.server]} Service</strong>
+              <span>
+                {snapshot.accountName ?? 'Imported account'} (UID: {snapshot.uid ?? '—'})
+              </span>
+              <small>Last Sync: {new Date(snapshot.fetchedAt).toLocaleString()}</small>
+            </div>
+          </div>
+
+          <div className="arknights-account__operator-info">
+            <span>
+              <small>Operator Owned</small>
+              <strong>{snapshot.operators.length}</strong>
+            </span>
+            <span>
+              <small>Outfit Owned</small>
+              <strong>{snapshot.ownedSkinIds.length}</strong>
+            </span>
+          </div>
+
           <button
             type="button"
-            className="secondary-button"
-            disabled={busy !== null || email.trim().length === 0}
-            onClick={() => void requestCode()}
+            className="danger-button arknights-account__compact-action"
+            disabled={busy !== null}
+            onClick={() => void clearSnapshot()}
           >
-            {busy === 'code' ? 'Sending…' : 'Send code'}
+            {busy === 'clear' ? 'Unlinking…' : 'Unlink'}
           </button>
-          <label className="field">
-            <span>Verification code</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              value={code}
-              maxLength={6}
-              disabled={busy !== null}
-              placeholder="123456"
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            />
-          </label>
+
           <button
             type="button"
-            className="primary-button"
-            disabled={busy !== null || email.trim().length === 0 || code.length !== 6}
-            onClick={() => void syncAccount()}
+            className="primary-button arknights-account__compact-action"
+            disabled={busy !== null}
+            onClick={() => setRefreshOpen(true)}
           >
-            {busy === 'sync' ? 'Syncing…' : snapshot ? 'Refresh account' : 'Sync account'}
+            Sync
           </button>
         </div>
-      </div>
+      )}
+
+      {authOpen && (
+        <div className="arknights-account__auth">
+          <div className="arknights-account__auth-heading">
+            <strong>{snapshot ? 'Refresh imported account' : 'Import account'}</strong>
+            {snapshot && (
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={busy !== null}
+                onClick={() => setRefreshOpen(false)}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+          <p>
+            Unofficial read-only integration. Signing in may disconnect an active Arknights game
+            session. Email, verification codes, and reusable authentication secrets are not saved.
+          </p>
+          <div className="arknights-account__fields">
+            <label className="field">
+              <span>Server</span>
+              <select
+                value={server}
+                disabled={busy !== null}
+                onChange={(event) => setServer(event.target.value as ArknightsAccountServer)}
+              >
+                {(Object.entries(SERVER_LABELS) as Array<[ArknightsAccountServer, string]>).map(
+                  ([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+            <label className="field">
+              <span>YoStar email</span>
+              <input
+                type="email"
+                value={email}
+                autoComplete="email"
+                disabled={busy !== null}
+                placeholder="doctor@example.com"
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy !== null || email.trim().length === 0}
+              onClick={() => void requestCode()}
+            >
+              {busy === 'code' ? 'Sending…' : 'Send code'}
+            </button>
+            <label className="field">
+              <span>Verification code</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                maxLength={6}
+                disabled={busy !== null}
+                placeholder="123456"
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+              />
+            </label>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={busy !== null || email.trim().length === 0 || code.length !== 6}
+              onClick={() => void syncAccount()}
+            >
+              {busy === 'sync' ? 'Syncing…' : snapshot ? 'Refresh account' : 'Sync account'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="arknights-account__status" aria-live="polite">
         <span>{status}</span>
         {error && <strong className="status-error">{error}</strong>}
       </div>
 
-      {snapshot && (
-        <div className="arknights-account__result">
-          <div className="arknights-account__identity">
-            <div className="arknights-account__profile">
-              {avatarImageUrl && (
-                <img
-                  className="arknights-account__avatar"
-                  src={avatarImageUrl}
-                  alt="Profile avatar"
-                  draggable={false}
-                />
-              )}
-              <span>
-                <strong>{snapshot.accountName ?? 'Imported account'}</strong>
-                <small>UID:{snapshot.uid ?? '—'}</small>
-              </span>
-            </div>
-            <span>
-              <strong>{SERVER_LABELS[snapshot.server]}</strong>
-              <small>Server</small>
-            </span>
-            <span>
-              <strong>{new Date(snapshot.fetchedAt).toLocaleString()}</strong>
-              <small>Last synced</small>
-            </span>
-          </div>
-
-          {reconciliation ? (
-            <div className="arknights-account__counts">
-              <IdentityCounts title="Operators" {...reconciliation.operators} />
-              <IdentityCounts title="Owned outfits" {...reconciliation.skins} />
-            </div>
-          ) : (
-            <p>Waiting for the installed operator dataset before checking imported IDs.</p>
-          )}
-
-          {warnings.length > 0 && (
-            <div className="arknights-account__warnings">
-              <strong>Sync warnings</strong>
-              {warnings.map((warning) => (
-                <span key={warning}>{warning}</span>
-              ))}
-            </div>
-          )}
-
-          <div className="arknights-account__clear">
-            <div>
-              <strong>Remove imported account data</strong>
-              <small>
-                Deletes the sanitized local snapshot. This does not change anything on your
-                Arknights account.
-              </small>
-            </div>
-            <button
-              type="button"
-              className="danger-button"
-              disabled={busy !== null}
-              onClick={() => void clearSnapshot()}
-            >
-              {busy === 'clear' ? 'Clearing…' : 'Clear imported account data'}
-            </button>
-          </div>
+      {warnings.length > 0 && (
+        <div className="arknights-account__warnings">
+          <strong>Sync warnings</strong>
+          {warnings.map((warning) => (
+            <span key={warning}>{warning}</span>
+          ))}
         </div>
       )}
     </div>

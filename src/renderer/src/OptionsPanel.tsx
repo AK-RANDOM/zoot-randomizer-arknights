@@ -134,14 +134,7 @@ export default function OptionsPanel({
   const [activeSection, setActiveSection] = useState<'preferences' | 'account'>('preferences')
 
   return (
-    <section className="panel options-panel" aria-labelledby="options-heading">
-      <div className="section-heading options-heading">
-        <div>
-          <p className="eyebrow">OPTIONS</p>
-          <h2 id="options-heading">App preferences</h2>
-        </div>
-      </div>
-
+    <section className="panel options-panel" aria-label="Options">
       <nav className="squad-mode-tabs" aria-label="Options section">
         {(
           [

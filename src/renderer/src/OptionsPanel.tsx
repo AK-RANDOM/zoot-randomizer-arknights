@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { PortraitSyncProgress } from '../../shared/desktop'
 import type { OperatorPreferences, PoolPresentationMode } from '../../shared/operatorPool'
-import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
-import AccountSyncTestPanel from './AccountSyncTestPanel'
+import {
+  gameLocales,
+  type GameLocale,
+  type OperatorDataset,
+  type ReleaseServer,
+} from '../../shared/operator'
+import ArknightsAccountPanel from './ArknightsAccountPanel'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
 import {
   setDraftActionConfirmationPreference,
@@ -14,35 +19,6 @@ const presentationLabels: Record<PoolPresentationMode, string> = {
   compactCard: 'Compact card',
   simpleList: 'Simple list',
   detailedList: 'Detailed list',
-}
-
-function ArtworkChoice({
-  value,
-  selected,
-  title,
-  description,
-  onChoose,
-}: {
-  value: 'e1' | 'e2' | 'random'
-  selected: boolean
-  title: string
-  description: string
-  onChoose: (value: 'e1' | 'e2' | 'random') => void
-}): React.JSX.Element {
-  return (
-    <button
-      type="button"
-      className={`artwork-choice${selected ? ' is-selected' : ''}`}
-      aria-pressed={selected}
-      onClick={() => onChoose(value)}
-    >
-      <span className="artwork-choice__mark" aria-hidden="true" />
-      <span>
-        <strong>{title}</strong>
-        <small>{description}</small>
-      </span>
-    </button>
-  )
 }
 
 function ArtworkDownloadStatus(): React.JSX.Element {
@@ -109,28 +85,28 @@ function ArtworkDownloadStatus(): React.JSX.Element {
 }
 
 export default function OptionsPanel({
+  dataset,
   preferences,
   onMetadataRegionChange,
   onGameLocaleChange,
   onPoolPresentationChange,
   onBulkAppearanceChange,
 }: {
+  dataset: OperatorDataset | null
   preferences: OperatorPreferences
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
   onPoolPresentationChange: (mode: PoolPresentationMode) => void
-  onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random') => void
+  onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random' | 'account') => void
 }): React.JSX.Element {
   const confirmDraftActions = useDraftActionConfirmationPreference()
+  const [bulkAppearanceChoice, setBulkAppearanceChoice] = useState<
+    'e1' | 'e2' | 'random' | 'account'
+  >('e2')
 
   return (
-    <section className="panel options-panel" aria-labelledby="options-heading">
-      <div className="section-heading options-heading">
-        <div>
-          <p className="eyebrow">OPTIONS</p>
-          <h2 id="options-heading">App preferences</h2>
-        </div>
-      </div>
+    <section className="panel options-panel" aria-label="Options">
+      <ArknightsAccountPanel dataset={dataset} />
 
       <div className="primary-settings">
         <label className="field">
@@ -213,28 +189,28 @@ export default function OptionsPanel({
             then be changed from Setup → Global Pool → Curate. This is presentation-only.
           </p>
         </div>
-        <div className="artwork-choice-group" aria-label="Bulk operator appearance">
-          <ArtworkChoice
-            value="e1"
-            selected={false}
-            title="Use E1 for all"
-            description="Apply base promotion portraits"
-            onChoose={onBulkAppearanceChange}
-          />
-          <ArtworkChoice
-            value="e2"
-            selected={false}
-            title="Use E2 for all"
-            description="Apply E2 portraits with E1 fallback"
-            onChoose={onBulkAppearanceChange}
-          />
-          <ArtworkChoice
-            value="random"
-            selected={false}
-            title="Randomize all"
-            description="Choose a stable random E1, E2, or skin for each operator"
-            onChoose={onBulkAppearanceChange}
-          />
+        <div className="bulk-appearance-control">
+          <label className="field">
+            <span>Appearance</span>
+            <select
+              value={bulkAppearanceChoice}
+              onChange={(event) =>
+                setBulkAppearanceChoice(event.target.value as 'e1' | 'e2' | 'random' | 'account')
+              }
+            >
+              <option value="e1">Elite 1 for all</option>
+              <option value="e2">Elite 2 for all</option>
+              <option value="random">Randomize all</option>
+              <option value="account">Sync account outfits</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => onBulkAppearanceChange(bulkAppearanceChoice)}
+          >
+            Apply
+          </button>
         </div>
       </div>
 
@@ -244,8 +220,6 @@ export default function OptionsPanel({
       </p>
 
       <ArtworkDownloadStatus />
-
-      <AccountSyncTestPanel />
     </section>
   )
 }

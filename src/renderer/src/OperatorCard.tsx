@@ -4,6 +4,9 @@ import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
 import { useOperatorAppearanceImage } from './operatorAppearance'
+import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
+import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -42,6 +45,17 @@ export default function OperatorCard({
     usingPortrait,
     choice: artworkPreference,
   } = useOperatorAppearanceImage(operator)
+  const importedAccount = useImportedArknightsAccount() ?? null
+  const preferences = loadOperatorPreferences()
+  const showAccountProgression = preferences.showAccountProgression && importedAccount !== null
+  const progression = showAccountProgression
+    ? importedAccountOperatorState(importedAccount, operator.id)
+    : null
+  const progressionLabel = showAccountProgression
+    ? progression
+      ? `E${progression.elite} L${progression.level}`
+      : 'Not Owned'
+    : null
   const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
   const cardRef = useRef<HTMLElement | null>(null)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
@@ -199,6 +213,11 @@ export default function OperatorCard({
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
+        {progressionLabel && (
+          <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
+            {progressionLabel}
+          </span>
+        )}
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
           {'★'.repeat(operator.rarity)}
         </span>

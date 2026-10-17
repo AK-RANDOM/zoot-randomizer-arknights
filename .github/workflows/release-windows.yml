@@ -2,6 +2,9 @@ name: Build Windows release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - build/issue-78-account-sync-verify-20261017
 
 permissions:
   contents: read

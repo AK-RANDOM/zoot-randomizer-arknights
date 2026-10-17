@@ -129,12 +129,6 @@ export default function App(): React.JSX.Element {
     setOperatorPreferences((current) => ({ ...current, gameLocale }))
   const setPoolPresentation = (poolPresentation: PoolPresentationMode): void =>
     setOperatorPreferences((current) => ({ ...current, poolPresentation }))
-  const setShowAccountProgression = (showAccountProgression: boolean): void => {
-    const next = { ...operatorPreferences, showAccountProgression }
-    saveOperatorPreferences(next)
-    setOperatorPreferences(next)
-    notifyOperatorAppearanceChanged()
-  }
   const setBulkAppearance = (choice: 'e1' | 'e2' | 'random' | 'account'): void => {
     if (!data.dataset) return
     if (choice === 'account' && !importedAccount) {
@@ -336,7 +330,6 @@ export default function App(): React.JSX.Element {
           onGameLocaleChange={setGameLocale}
           onPoolPresentationChange={setPoolPresentation}
           onBulkAppearanceChange={setBulkAppearance}
-          onShowAccountProgressionChange={setShowAccountProgression}
         />
       )}
 

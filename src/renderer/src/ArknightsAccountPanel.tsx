@@ -183,7 +183,9 @@ export default function ArknightsAccountPanel({
               />
             )}
             <div className="arknights-account__account-copy">
-              <strong>{SERVER_LABELS[snapshot.server]} Server</strong>
+              <small className="arknights-account__server">
+                {SERVER_LABELS[snapshot.server]} Server
+              </small>
               <span>
                 {snapshot.accountName ?? 'Imported account'} (UID: {snapshot.uid ?? '—'})
               </span>
@@ -204,7 +206,7 @@ export default function ArknightsAccountPanel({
 
           <button
             type="button"
-            className="danger-button arknights-account__compact-action"
+            className="danger-button"
             disabled={busy !== null}
             onClick={() => void clearSnapshot()}
           >
@@ -213,7 +215,7 @@ export default function ArknightsAccountPanel({
 
           <button
             type="button"
-            className="primary-button arknights-account__compact-action"
+            className="primary-button"
             disabled={busy !== null}
             onClick={() => setRefreshOpen(true)}
           >

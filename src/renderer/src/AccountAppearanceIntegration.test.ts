@@ -40,6 +40,7 @@ describe('Issue #78 M5 account appearance UI', () => {
 const poolPanelCss = readFileSync(new URL('./PoolPanel.css', import.meta.url), 'utf8')
 
 const optionsSource = readFileSync(new URL('./OptionsPanel.tsx', import.meta.url), 'utf8')
+const globalFilterSource = readFileSync(new URL('./GlobalPoolFeature.tsx', import.meta.url), 'utf8')
 const appSource = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8')
 const operatorCardSource = readFileSync(new URL('./OperatorCard.tsx', import.meta.url), 'utf8')
 
@@ -49,16 +50,19 @@ const accountStateSource = readFileSync(
 )
 
 describe('Issue #78 follow-up account UX', () => {
-  it('keeps account management in a dedicated Options subtab', () => {
-    expect(optionsSource).toContain("['preferences', 'Preferences']")
-    expect(optionsSource).toContain("['account', 'Account']")
-    expect(optionsSource).toContain("activeSection === 'account'")
+  it('places compact account management at the top of Options without an Account subtab', () => {
     expect(optionsSource).toContain('<ArknightsAccountPanel dataset={dataset} />')
+    expect(optionsSource).not.toContain("['preferences', 'Preferences']")
+    expect(optionsSource).not.toContain("['account', 'Account']")
+    expect(optionsSource).not.toContain("activeSection === 'account'")
   })
 
-  it('supports bulk account-equipped appearance syncing', () => {
-    expect(optionsSource).toContain('Sync account outfits')
-    expect(optionsSource).toContain('Follow each imported operator')
+  it('uses a dropdown plus Apply button for bulk appearance actions', () => {
+    expect(optionsSource).toContain('bulkAppearanceChoice')
+    expect(optionsSource).toContain('<option value="account">Sync account outfits</option>')
+    expect(optionsSource).toContain('onBulkAppearanceChange(bulkAppearanceChoice)')
+    expect(optionsSource).toContain('Apply')
+    expect(optionsSource).not.toContain('artwork-choice-group')
     expect(appSource).toContain("choice === 'account'")
     expect(appSource).toContain("'account' as OperatorAppearanceChoice")
   })
@@ -68,9 +72,11 @@ describe('Issue #78 follow-up account UX', () => {
     expect(accountStateSource).toContain('form.equippedSkinId')
   })
 
-  it('optionally shows synced elite/level above rarity stars on standard and Draft operator cards', () => {
-    expect(optionsSource).toContain('Show synced operator progression on operator cards')
-    expect(optionsSource).toContain('preferences.showAccountProgression')
+  it('moves the synced progression toggle into the Account row of Global Filter', () => {
+    expect(globalFilterSource).toContain('Show synced operator progression on operator cards')
+    expect(globalFilterSource).toContain('preferences.showAccountProgression')
+    expect(globalFilterSource).toContain('account-global-filter__controls')
+    expect(optionsSource).not.toContain('Show synced operator progression on operator cards')
     expect(operatorCardSource).not.toContain(
       "variant === 'standard' && preferences.showAccountProgression",
     )

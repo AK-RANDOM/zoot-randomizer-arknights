@@ -219,6 +219,17 @@
 }
 
 .option-setting__copy p,
+.bulk-appearance-control {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.bulk-appearance-control .primary-button {
+  min-height: 42px;
+}
+
 .option-note {
   margin: 7px 0 0;
   color: #929299;
@@ -347,7 +358,8 @@
     min-width: 880px;
   }
 
-  .option-setting {
+  .option-setting,
+  .bulk-appearance-control {
     grid-template-columns: 1fr;
   }
 }

@@ -290,8 +290,15 @@
   gap: 12px;
 }
 
-.account-global-filter > .field {
-  max-width: 360px;
+.account-global-filter__controls {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(320px, 1fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.account-global-filter__progression-toggle {
+  min-height: 42px;
 }
 
 .account-progression-range {
@@ -317,6 +324,7 @@
 }
 
 @media (max-width: 900px) {
+  .account-global-filter__controls,
   .account-progression-range {
     grid-template-columns: 1fr;
   }

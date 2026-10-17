@@ -1,14 +1,14 @@
 .arknights-account {
   display: grid;
   gap: 12px;
-  margin-top: 14px;
+  margin: 0 0 18px;
 }
 
 .arknights-account__compact {
   display: grid;
   grid-template-columns: minmax(320px, 1.6fr) minmax(210px, 0.8fr) auto auto;
   gap: 10px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .arknights-account__account-info,
@@ -49,6 +49,7 @@
 }
 
 .arknights-account__account-copy small,
+.arknights-account__server,
 .arknights-account__operator-info small {
   color: #8c8c92;
   font-size: 0.68rem;
@@ -68,12 +69,6 @@
 
 .arknights-account__operator-info strong {
   font-size: 1.05rem;
-}
-
-.arknights-account__compact-action {
-  min-width: 78px;
-  min-height: 72px;
-  align-self: stretch;
 }
 
 .arknights-account .danger-button {
@@ -110,11 +105,13 @@
 }
 
 .arknights-account__auth p {
-  max-width: 900px;
+  width: 100%;
+  max-width: none;
   margin: 0;
   color: #aaa39a;
   font-size: 0.76rem;
   line-height: 1.5;
+  white-space: nowrap;
 }
 
 .arknights-account__fields {
@@ -143,13 +140,15 @@
   font-size: 0.72rem;
 }
 
+@media (max-width: 1100px) {
+  .arknights-account__auth p {
+    white-space: normal;
+  }
+}
+
 @media (max-width: 980px) {
   .arknights-account__compact,
   .arknights-account__fields {
     grid-template-columns: 1fr;
-  }
-
-  .arknights-account__compact-action {
-    min-height: 38px;
   }
 }

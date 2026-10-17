@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { ImportedArknightsAccount } from './arknightsAccount'
 import type { OperatorDataset } from './operator'
 import {
+  importedAccountEquippedSkinId,
+  importedAccountOperatorState,
+  importedAccountOwnedOperatorIds,
+  importedAccountOwnsSkin,
   reconcileArknightsAccount,
   resolveArknightsOperatorIdentity,
   resolveArknightsSkinIdentity,
@@ -32,7 +36,7 @@ const dataset = {
       alterGroup: null,
       mandatoryExclusivityGroup: null,
       imageFile: 'operators/char_103_angel.png',
-      nativeSkinIds: ['char_103_angel#1', 'char_103_angel@xmas#1'],
+      nativeSkinIds: ['char_103_angel#1', 'char_103_angel#2', 'char_103_angel@xmas#1'],
       skins: [
         {
           id: 'char_103_angel@xmas#1',
@@ -125,6 +129,37 @@ describe('Arknights account reconciliation', () => {
     })
   })
 
+  it('expands retained form identities for ownership consumers', () => {
+    expect(importedAccountOwnedOperatorIds(snapshot)).toEqual([
+      'char_002_amiya',
+      'char_1037_amiya3',
+      'char_103_angel',
+      'char_future_operator',
+    ])
+  })
+
+  it('exposes form-specific progression and equipped skin state', () => {
+    expect(importedAccountOperatorState(snapshot, 'char_1037_amiya3')).toEqual({
+      operatorId: 'char_1037_amiya3',
+      level: 80,
+      elite: 2,
+      equippedSkinId: 'char_1037_amiya3#2',
+      source: 'form',
+    })
+    expect(importedAccountEquippedSkinId(snapshot, 'char_002_amiya')).toBe('char_002_amiya#2')
+  })
+
+  it('never infers owned skin state from an equipped skin', () => {
+    const equippedButNotOwned = {
+      ...snapshot,
+      ownedSkinIds: snapshot.ownedSkinIds.filter((id) => id !== 'char_103_angel@xmas#1'),
+    }
+    expect(importedAccountEquippedSkinId(equippedButNotOwned, 'char_103_angel')).toBe(
+      'char_103_angel@xmas#1',
+    )
+    expect(importedAccountOwnsSkin(equippedButNotOwned, 'char_103_angel@xmas#1')).toBe(false)
+  })
+
   it('maps imported char IDs directly to current operator records', () => {
     expect(resolveArknightsOperatorIdentity(dataset, 'char_103_angel')).toBe(dataset.operators[0])
     expect(resolveArknightsOperatorIdentity(dataset, 'char_future_operator')).toBeNull()
@@ -141,18 +176,6 @@ describe('Arknights account reconciliation', () => {
       operatorId: 'char_103_angel',
       appearance: 'default',
     })
-  })
-
-  it('keeps legacy alternate skin records recognizable before native skin metadata refresh', () => {
-    const legacyDataset = {
-      ...dataset,
-      operators: dataset.operators.map((operator) =>
-        operator.id === 'char_103_angel' ? { ...operator, nativeSkinIds: undefined } : operator,
-      ),
-    }
-
-    expect(resolveArknightsSkinIdentity(legacyDataset, 'char_103_angel@xmas#1')).not.toBeNull()
-    expect(resolveArknightsSkinIdentity(legacyDataset, 'char_103_angel#1')).toBeNull()
   })
 
   it('treats unknown/newer identities as diagnostics instead of throwing', () => {

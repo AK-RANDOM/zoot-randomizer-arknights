@@ -46,7 +46,7 @@ const roster = [
 describe('Iteration 6 Pool persistence model', () => {
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
     expect(createDefaultOperatorPreferences()).toEqual({
-      version: 4,
+      version: 5,
       metadataRegion: 'global',
       gameLocale: 'en',
       poolPresentation: 'imageGrid',
@@ -66,7 +66,7 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: ['char_a', 'char_a', '', 7, ' char_b '],
       }),
     ).toEqual({
-      version: 4,
+      version: 5,
       metadataRegion: 'cn',
       gameLocale: 'en',
       poolPresentation: 'detailedList',
@@ -80,7 +80,7 @@ describe('Iteration 6 Pool persistence model', () => {
   it('persists a supported game localization independently from metadata region', () => {
     expect(
       normalizeOperatorPreferences({
-        version: 4,
+        version: 5,
         metadataRegion: 'global',
         gameLocale: 'jp',
         poolPresentation: 'compactCard',
@@ -88,7 +88,7 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: [],
       }),
     ).toMatchObject({
-      version: 4,
+      version: 5,
       metadataRegion: 'global',
       gameLocale: 'jp',
       poolPresentation: 'compactCard',
@@ -151,27 +151,6 @@ describe('Iteration 6 Pool persistence model', () => {
     ])
   })
 
-  it('applies imported account ownership after Global Filter and Curate exclusions', () => {
-    const constraints = createDefaultConstraints()
-    const ownedIds = ['char_old', 'char_tragodia', 'char_account_unknown']
-
-    expect(applyAccountOwnershipRestriction(roster, ownedIds, false).map(({ id }) => id)).toEqual([
-      'char_old',
-      'char_tragodia',
-      'char_new',
-    ])
-    expect(applyAccountOwnershipRestriction(roster, ownedIds, true).map(({ id }) => id)).toEqual([
-      'char_old',
-      'char_tragodia',
-    ])
-    expect(
-      buildFinalOperatorPool(roster, constraints, ['char_tragodia'], {
-        enabled: true,
-        ownedOperatorIds: ownedIds,
-      }).map(({ id }) => id),
-    ).toEqual(['char_old'])
-  })
-
   it('leaves the pool unchanged when owned-only is enabled before an account snapshot exists', () => {
     const constraints = createDefaultConstraints()
     expect(
@@ -212,6 +191,46 @@ describe('Iteration 6 Pool persistence model', () => {
       'char_oni',
       'char_legacy',
     ])
+  })
+
+  it('applies imported account ownership after Global Filter and Curate exclusions', () => {
+    const constraints = createDefaultConstraints()
+    const ownedIds = ['char_old', 'char_tragodia', 'char_account_unknown']
+
+    expect(applyAccountOwnershipRestriction(roster, ownedIds, false).map(({ id }) => id)).toEqual([
+      'char_old',
+      'char_tragodia',
+      'char_new',
+    ])
+    expect(applyAccountOwnershipRestriction(roster, ownedIds, true).map(({ id }) => id)).toEqual([
+      'char_old',
+      'char_tragodia',
+    ])
+    expect(
+      buildFinalOperatorPool(roster, constraints, ['char_tragodia'], {
+        enabled: true,
+        ownedOperatorIds: ownedIds,
+      }).map(({ id }) => id),
+    ).toEqual(['char_old'])
+  })
+
+  it('persists explicit account appearance mode while migrating older preference versions', () => {
+    expect(
+      normalizeOperatorPreferences({
+        version: 4,
+        metadataRegion: 'global',
+        gameLocale: 'en',
+        poolPresentation: 'imageGrid',
+        ownedOperatorsOnly: true,
+        excludedOperatorIds: [],
+        operatorAppearances: { char_old: 'account' },
+        appearanceRandomSeed: 1,
+      }),
+    ).toMatchObject({
+      version: 5,
+      ownedOperatorsOnly: true,
+      operatorAppearances: { char_old: 'account' },
+    })
   })
 
   it('toggles one operator without rewriting unrelated exclusions', () => {

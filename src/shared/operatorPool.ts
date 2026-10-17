@@ -4,7 +4,7 @@ import { isGameLocale } from './gameLocalization'
 import { filterHigherLevelEligibleOperators } from './randomizer'
 import { operatorRaceIds } from './raceMetadata'
 
-export const OPERATOR_PREFERENCES_VERSION = 4 as const
+export const OPERATOR_PREFERENCES_VERSION = 5 as const
 
 export const poolPresentationModes = [
   'imageGrid',
@@ -15,7 +15,7 @@ export const poolPresentationModes = [
 
 export type PoolPresentationMode = (typeof poolPresentationModes)[number]
 
-export type OperatorAppearanceChoice = 'e1' | 'e2' | 'random' | `skin:${string}`
+export type OperatorAppearanceChoice = 'e1' | 'e2' | 'random' | 'account' | `skin:${string}`
 
 export interface OperatorPreferences {
   version: typeof OPERATOR_PREFERENCES_VERSION
@@ -64,7 +64,13 @@ function normalizeAppearanceMap(value: unknown): Record<string, OperatorAppearan
   const result: Record<string, OperatorAppearanceChoice> = {}
   for (const [operatorId, raw] of Object.entries(value as Record<string, unknown>)) {
     if (!operatorId || typeof raw !== 'string') continue
-    if (raw === 'e1' || raw === 'e2' || raw === 'random' || raw.startsWith('skin:')) {
+    if (
+      raw === 'e1' ||
+      raw === 'e2' ||
+      raw === 'random' ||
+      raw === 'account' ||
+      raw.startsWith('skin:')
+    ) {
       result[operatorId] = raw as OperatorAppearanceChoice
     }
   }
@@ -91,6 +97,7 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
     candidate.version !== 1 &&
     candidate.version !== 2 &&
     candidate.version !== 3 &&
+    candidate.version !== 4 &&
     candidate.version !== OPERATOR_PREFERENCES_VERSION
   ) {
     return defaults

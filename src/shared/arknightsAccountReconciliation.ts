@@ -1,4 +1,8 @@
-import type { ImportedArknightsAccount } from './arknightsAccount'
+import type {
+  ImportedArknightsAccount,
+  ImportedOperatorFormProgress,
+  ImportedOperatorProgress,
+} from './arknightsAccount'
 import type { Operator, OperatorDataset } from './operator'
 
 export interface ArknightsAccountIdentityCounts {
@@ -30,6 +34,14 @@ export interface ArknightsAccountReconciliation {
   unknownEquippedSkinIds: string[]
 }
 
+export interface ImportedAccountOperatorState {
+  operatorId: string
+  level: number
+  elite: 0 | 1 | 2
+  equippedSkinId?: string
+  source: 'operator' | 'form'
+}
+
 function sortedUnique(values: Iterable<string>): string[] {
   return [...new Set(values)].sort()
 }
@@ -41,6 +53,52 @@ export function importedAccountOwnedOperatorIds(snapshot: ImportedArknightsAccou
     for (const form of progress.forms ?? []) ids.push(form.formId)
   }
   return sortedUnique(ids)
+}
+
+function stateFromOperator(progress: ImportedOperatorProgress): ImportedAccountOperatorState {
+  return {
+    operatorId: progress.operatorId,
+    level: progress.level,
+    elite: progress.elite,
+    equippedSkinId: progress.equippedSkinId,
+    source: 'operator',
+  }
+}
+
+function stateFromForm(form: ImportedOperatorFormProgress): ImportedAccountOperatorState {
+  return {
+    operatorId: form.formId,
+    level: form.level,
+    elite: form.elite,
+    equippedSkinId: form.equippedSkinId,
+    source: 'form',
+  }
+}
+
+export function importedAccountOperatorState(
+  snapshot: ImportedArknightsAccount,
+  operatorId: string,
+): ImportedAccountOperatorState | null {
+  for (const progress of snapshot.operators) {
+    const matchingForm = progress.forms?.find((form) => form.formId === operatorId)
+    if (matchingForm) return stateFromForm(matchingForm)
+    if (progress.operatorId === operatorId) return stateFromOperator(progress)
+  }
+  return null
+}
+
+export function importedAccountEquippedSkinId(
+  snapshot: ImportedArknightsAccount,
+  operatorId: string,
+): string | null {
+  return importedAccountOperatorState(snapshot, operatorId)?.equippedSkinId ?? null
+}
+
+export function importedAccountOwnsSkin(
+  snapshot: ImportedArknightsAccount,
+  skinId: string,
+): boolean {
+  return snapshot.ownedSkinIds.includes(skinId)
 }
 
 function buildOperatorIdentityIndex(dataset: OperatorDataset): ReadonlyMap<string, Operator> {

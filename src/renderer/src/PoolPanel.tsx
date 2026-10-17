@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  applyAccountOwnershipRestriction,
   applyManualOperatorExclusions,
   buildGlobalFilterOperatorPool,
   setDisplayedOperatorsExcluded,
@@ -12,6 +13,8 @@ import {
   resolveAccountAppearance,
 } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOwnedOperatorIds } from '../../shared/arknightsAccountReconciliation'
+import AccountOwnershipConstraint from './AccountOwnershipConstraint'
 import AppearancePicker, { compareSkinsByRelease, defaultArtChoice } from './PoolAppearancePicker'
 import {
   collapseAllPoolGroups,
@@ -42,20 +45,47 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
     () => new Set(preferences.excludedOperatorIds),
     [preferences.excludedOperatorIds],
   )
+  const ownedOperatorIds = useMemo(
+    () => (importedAccount ? importedAccountOwnedOperatorIds(importedAccount) : null),
+    [importedAccount],
+  )
+  const ownedIds = useMemo(
+    () => (ownedOperatorIds ? new Set(ownedOperatorIds) : null),
+    [ownedOperatorIds],
+  )
   const finalPool = useMemo(
-    () => applyManualOperatorExclusions(globalFilterEligible, preferences.excludedOperatorIds),
-    [globalFilterEligible, preferences.excludedOperatorIds],
+    () =>
+      applyAccountOwnershipRestriction(
+        applyManualOperatorExclusions(globalFilterEligible, preferences.excludedOperatorIds),
+        ownedOperatorIds,
+        preferences.ownedOperatorsOnly,
+      ),
+    [
+      globalFilterEligible,
+      ownedOperatorIds,
+      preferences.excludedOperatorIds,
+      preferences.ownedOperatorsOnly,
+    ],
   )
   const displayed = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
     return globalFilterEligible.filter((operator) => {
-      const excluded = excludedIds.has(operator.id)
+      const accountDisabled =
+        preferences.ownedOperatorsOnly && ownedIds !== null && !ownedIds.has(operator.id)
+      const excluded = excludedIds.has(operator.id) || accountDisabled
       if (stateFilter === 'included' && excluded) return false
       if (stateFilter === 'excluded' && !excluded) return false
       if (query && !operator.name.toLocaleLowerCase().includes(query)) return false
       return true
     })
-  }, [excludedIds, globalFilterEligible, search, stateFilter])
+  }, [
+    excludedIds,
+    globalFilterEligible,
+    ownedIds,
+    preferences.ownedOperatorsOnly,
+    search,
+    stateFilter,
+  ])
   const groups = useMemo(() => {
     const map = new Map()
     for (const operator of displayed) {
@@ -153,6 +183,13 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
         </div>
       </div>
 
+      <AccountOwnershipConstraint
+        dataset={dataset}
+        importedAccount={importedAccount}
+        preferences={preferences}
+        onChange={onPreferencesChange}
+      />
+
       <div className="pool-search-row">
         <label className="field pool-search">
           <span>Search</span>
@@ -218,6 +255,12 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
           <strong>{finalPool.length} operators eligible</strong>
           <span>· {displayed.length} displayed</span>
           <span>· {globalFilterEligible.length} pass Global Filter</span>
+          {preferences.ownedOperatorsOnly && ownedIds && (
+            <span>
+              · {globalFilterEligible.filter((operator) => !ownedIds.has(operator.id)).length}{' '}
+              unowned disabled
+            </span>
+          )}
         </div>
         {groupBy !== 'none' && (
           <button
@@ -281,7 +324,19 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
                         factionLabel={mainFactionLabel(operator, dataset)}
                         raceLabel={operatorRaceLabel(operator, dataset.raceLabels)}
                         classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
-                        included={!excludedIds.has(operator.id)}
+                        included={
+                          !excludedIds.has(operator.id) &&
+                          !(
+                            preferences.ownedOperatorsOnly &&
+                            ownedIds !== null &&
+                            !ownedIds.has(operator.id)
+                          )
+                        }
+                        accountDisabled={
+                          preferences.ownedOperatorsOnly &&
+                          ownedIds !== null &&
+                          !ownedIds.has(operator.id)
+                        }
                         presentation={preferences.poolPresentation}
                         appearanceChoice={appearanceChoice}
                         appearanceRandomSeed={preferences.appearanceRandomSeed}

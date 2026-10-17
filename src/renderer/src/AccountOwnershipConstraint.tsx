@@ -22,39 +22,32 @@ export default function AccountOwnershipConstraint({
   }, [dataset, importedAccount])
 
   return (
-    <section className="panel operators-panel" aria-labelledby="account-ownership-heading">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">SETUP • GLOBAL POOL • ACCOUNT</p>
-          <h2 id="account-ownership-heading">Account ownership</h2>
-        </div>
-      </div>
-      <fieldset className="constraint-group detail-group">
-        <legend>Imported roster</legend>
-        <label className="source-check">
-          <input
-            type="checkbox"
-            checked={preferences.ownedOperatorsOnly}
-            disabled={!importedAccount}
-            onChange={(event) =>
-              onChange({ ...preferences, ownedOperatorsOnly: event.target.checked })
-            }
-          />
-          <span>Owned operators only</span>
-        </label>
-        {importedAccount ? (
-          <p className="filter-note">
-            Restricts the consumer pool after Global Filter and Curate exclusions.{' '}
-            {recognizedOwnedCount} imported operator identities are recognized by the installed
-            data. Unknown/newer account IDs remain diagnostic only.
-          </p>
-        ) : (
-          <p className="filter-note">
-            Import an Arknights account from Options to enable this constraint. Without a saved
-            account snapshot, the pool remains unchanged.
-          </p>
-        )}
-      </fieldset>
-    </section>
+    <fieldset className="constraint-group detail-group account-ownership-constraint">
+      <legend>Account ownership</legend>
+      <label className="source-check">
+        <input
+          type="checkbox"
+          checked={preferences.ownedOperatorsOnly}
+          disabled={!importedAccount}
+          onChange={(event) =>
+            onChange({ ...preferences, ownedOperatorsOnly: event.target.checked })
+          }
+        />
+        <span>Owned operators only</span>
+      </label>
+      {importedAccount ? (
+        <p className="filter-note">
+          Limits Standard and Draft consumers to operators owned on the imported account. Unowned
+          operators stay visible in Curate but are marked unavailable. {recognizedOwnedCount}{' '}
+          imported operator identities are recognized by the installed data. Unknown/newer account
+          IDs remain diagnostic only.
+        </p>
+      ) : (
+        <p className="filter-note">
+          Import an Arknights account from Options → Account to enable this constraint. Without a
+          saved account snapshot, the pool remains unchanged.
+        </p>
+      )}
+    </fieldset>
   )
 }

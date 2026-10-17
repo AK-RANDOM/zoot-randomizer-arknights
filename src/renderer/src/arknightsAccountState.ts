@@ -9,7 +9,14 @@ const listeners = new Set<() => void>()
 function snapshotIdentity(snapshot: ImportedArknightsAccount | null | undefined): string {
   if (snapshot === undefined) return 'loading'
   if (snapshot === null) return 'none'
-  return `${snapshot.server}:${snapshot.uid ?? ''}:${snapshot.fetchedAt}:${snapshot.operators.length}:${snapshot.ownedSkinIds.length}`
+  const equipped = snapshot.operators
+    .flatMap((operator) => [
+      `${operator.operatorId}=${operator.equippedSkinId ?? ''}`,
+      ...(operator.forms ?? []).map((form) => `${form.formId}=${form.equippedSkinId ?? ''}`),
+    ])
+    .sort()
+    .join('|')
+  return `${snapshot.server}:${snapshot.uid ?? ''}:${snapshot.fetchedAt}:${snapshot.operators.length}:${snapshot.ownedSkinIds.length}:${equipped}`
 }
 
 function publishSnapshot(snapshot: ImportedArknightsAccount | null): void {

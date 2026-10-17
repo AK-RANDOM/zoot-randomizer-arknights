@@ -452,3 +452,18 @@
 .pool-appearance-account-state.is-unowned {
   color: #c5a27c;
 }
+
+.account-ownership-constraint {
+  margin-bottom: 14px;
+}
+
+.pool-entry.is-account-disabled,
+.pool-entry:disabled.is-account-disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.85);
+  opacity: 0.42;
+}
+
+.pool-entry:disabled.is-account-disabled:hover {
+  transform: none;
+}

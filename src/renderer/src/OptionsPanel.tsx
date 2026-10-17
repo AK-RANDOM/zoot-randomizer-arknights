@@ -28,11 +28,11 @@ function ArtworkChoice({
   description,
   onChoose,
 }: {
-  value: 'e1' | 'e2' | 'random'
+  value: 'e1' | 'e2' | 'random' | 'account'
   selected: boolean
   title: string
   description: string
-  onChoose: (value: 'e1' | 'e2' | 'random') => void
+  onChoose: (value: 'e1' | 'e2' | 'random' | 'account') => void
 }): React.JSX.Element {
   return (
     <button
@@ -126,9 +126,10 @@ export default function OptionsPanel({
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
   onPoolPresentationChange: (mode: PoolPresentationMode) => void
-  onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random') => void
+  onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random' | 'account') => void
 }): React.JSX.Element {
   const confirmDraftActions = useDraftActionConfirmationPreference()
+  const [activeSection, setActiveSection] = useState<'preferences' | 'account'>('preferences')
 
   return (
     <section className="panel options-panel" aria-labelledby="options-heading">
@@ -139,120 +140,152 @@ export default function OptionsPanel({
         </div>
       </div>
 
-      <div className="primary-settings">
-        <label className="field">
-          <span>Metadata region</span>
-          <select
-            value={preferences.metadataRegion}
-            onChange={(event) => onMetadataRegionChange(event.target.value as ReleaseServer)}
+      <nav className="squad-mode-tabs" aria-label="Options section">
+        {(
+          [
+            ['preferences', 'Preferences'],
+            ['account', 'Account'],
+          ] as const
+        ).map(([section, label]) => (
+          <button
+            key={section}
+            type="button"
+            className={activeSection === section ? 'is-active' : ''}
+            aria-selected={activeSection === section}
+            onClick={() => setActiveSection(section)}
           >
-            <option value="global">EN / Global</option>
-            <option value="cn">CN</option>
-          </select>
-          <small>
-            Controls operator availability, release dates, release-year grouping, Kernel-era
-            classification, and release previews.
-          </small>
-        </label>
+            {label}
+          </button>
+        ))}
+      </nav>
 
-        <label className="field">
-          <span>Game localization</span>
-          <select
-            value={preferences.gameLocale}
-            onChange={(event) => onGameLocaleChange(event.target.value as GameLocale)}
-          >
-            {gameLocales.map((locale) => (
-              <option key={locale} value={locale}>
-                {GAME_LOCALE_LABELS[locale]}
-              </option>
-            ))}
-          </select>
-          <small>
-            Changes game-provided names and terminology only. App interface text remains English.
-          </small>
-        </label>
+      {activeSection === 'preferences' && (
+        <>
+          <div className="primary-settings">
+            <label className="field">
+              <span>Metadata region</span>
+              <select
+                value={preferences.metadataRegion}
+                onChange={(event) => onMetadataRegionChange(event.target.value as ReleaseServer)}
+              >
+                <option value="global">EN / Global</option>
+                <option value="cn">CN</option>
+              </select>
+              <small>
+                Controls operator availability, release dates, release-year grouping, Kernel-era
+                classification, and release previews.
+              </small>
+            </label>
 
-        <label className="field">
-          <span>Pool presentation</span>
-          <select
-            value={preferences.poolPresentation}
-            onChange={(event) =>
-              onPoolPresentationChange(event.target.value as PoolPresentationMode)
-            }
-          >
-            {(Object.entries(presentationLabels) as Array<[PoolPresentationMode, string]>).map(
-              ([mode, label]) => (
-                <option key={mode} value={mode}>
-                  {label}
-                </option>
-              ),
-            )}
-          </select>
-          <small>
-            Presentation only. This never changes eligibility, grouping, search, or inclusion state.
-          </small>
-        </label>
-      </div>
+            <label className="field">
+              <span>Game localization</span>
+              <select
+                value={preferences.gameLocale}
+                onChange={(event) => onGameLocaleChange(event.target.value as GameLocale)}
+              >
+                {gameLocales.map((locale) => (
+                  <option key={locale} value={locale}>
+                    {GAME_LOCALE_LABELS[locale]}
+                  </option>
+                ))}
+              </select>
+              <small>
+                Changes game-provided names and terminology only. App interface text remains
+                English.
+              </small>
+            </label>
 
-      <div className="option-setting option-setting--compact">
-        <div className="option-setting__copy">
-          <strong>Draft action confirmations</strong>
-          <p>
-            Ask before Pick, Hold, Forfeit, Reroll, Release, Expand, and New Draft. Session-level
-            suppression remains available inside each confirmation.
+            <label className="field">
+              <span>Pool presentation</span>
+              <select
+                value={preferences.poolPresentation}
+                onChange={(event) =>
+                  onPoolPresentationChange(event.target.value as PoolPresentationMode)
+                }
+              >
+                {(Object.entries(presentationLabels) as Array<[PoolPresentationMode, string]>).map(
+                  ([mode, label]) => (
+                    <option key={mode} value={mode}>
+                      {label}
+                    </option>
+                  ),
+                )}
+              </select>
+              <small>
+                Presentation only. This never changes eligibility, grouping, search, or inclusion
+                state.
+              </small>
+            </label>
+          </div>
+
+          <div className="option-setting option-setting--compact">
+            <div className="option-setting__copy">
+              <strong>Draft action confirmations</strong>
+              <p>
+                Ask before Pick, Hold, Forfeit, Reroll, Release, Expand, and New Draft.
+                Session-level suppression remains available inside each confirmation.
+              </p>
+            </div>
+            <label className="option-toggle">
+              <input
+                type="checkbox"
+                checked={confirmDraftActions}
+                onChange={(event) => setDraftActionConfirmationPreference(event.target.checked)}
+              />
+              <span>Confirm Draft actions</span>
+            </label>
+          </div>
+
+          <div className="option-setting">
+            <div className="option-setting__copy">
+              <strong>Bulk operator appearance</strong>
+              <p>
+                Apply one appearance choice to every currently loaded operator. Individual operators
+                can then be changed from Setup → Global Pool → Curate. This is presentation-only.
+              </p>
+            </div>
+            <div className="artwork-choice-group" aria-label="Bulk operator appearance">
+              <ArtworkChoice
+                value="e1"
+                selected={false}
+                title="Use E1 for all"
+                description="Apply base promotion portraits"
+                onChoose={onBulkAppearanceChange}
+              />
+              <ArtworkChoice
+                value="e2"
+                selected={false}
+                title="Use E2 for all"
+                description="Apply E2 portraits with E1 fallback"
+                onChoose={onBulkAppearanceChange}
+              />
+              <ArtworkChoice
+                value="random"
+                selected={false}
+                title="Randomize all"
+                description="Choose a stable random E1, E2, or skin for each operator"
+                onChoose={onBulkAppearanceChange}
+              />
+              <ArtworkChoice
+                value="account"
+                selected={false}
+                title="Sync account outfits"
+                description="Follow each imported operator's currently equipped outfit"
+                onChoose={onBulkAppearanceChange}
+              />
+            </div>
+          </div>
+
+          <p className="option-note">
+            Bulk changes do not affect Pool inclusion. Later per-operator appearance changes
+            override the bulk result without changing other operators.
           </p>
-        </div>
-        <label className="option-toggle">
-          <input
-            type="checkbox"
-            checked={confirmDraftActions}
-            onChange={(event) => setDraftActionConfirmationPreference(event.target.checked)}
-          />
-          <span>Confirm Draft actions</span>
-        </label>
-      </div>
 
-      <div className="option-setting">
-        <div className="option-setting__copy">
-          <strong>Bulk operator appearance</strong>
-          <p>
-            Apply one appearance choice to every currently loaded operator. Individual operators can
-            then be changed from Setup → Global Pool → Curate. This is presentation-only.
-          </p>
-        </div>
-        <div className="artwork-choice-group" aria-label="Bulk operator appearance">
-          <ArtworkChoice
-            value="e1"
-            selected={false}
-            title="Use E1 for all"
-            description="Apply base promotion portraits"
-            onChoose={onBulkAppearanceChange}
-          />
-          <ArtworkChoice
-            value="e2"
-            selected={false}
-            title="Use E2 for all"
-            description="Apply E2 portraits with E1 fallback"
-            onChoose={onBulkAppearanceChange}
-          />
-          <ArtworkChoice
-            value="random"
-            selected={false}
-            title="Randomize all"
-            description="Choose a stable random E1, E2, or skin for each operator"
-            onChoose={onBulkAppearanceChange}
-          />
-        </div>
-      </div>
+          <ArtworkDownloadStatus />
+        </>
+      )}
 
-      <p className="option-note">
-        Bulk changes do not affect Pool inclusion. Later per-operator appearance changes override
-        the bulk result without changing other operators.
-      </p>
-
-      <ArtworkDownloadStatus />
-
-      <ArknightsAccountPanel dataset={dataset} />
+      {activeSection === 'account' && <ArknightsAccountPanel dataset={dataset} />}
     </section>
   )
 }

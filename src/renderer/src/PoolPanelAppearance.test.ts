@@ -52,3 +52,18 @@ describe('Curate operator appearance picker', () => {
     expect(panelSource).toContain('return `skin:${defaultArt.id}`')
   })
 })
+
+const ownershipSource = readFileSync(
+  new URL('./AccountOwnershipConstraint.tsx', import.meta.url),
+  'utf8',
+)
+
+describe('Curate account ownership constraint', () => {
+  it('keeps ownership controls inside Curate and leaves unowned operators visible but disabled', () => {
+    expect(panelSource).toContain('<AccountOwnershipConstraint')
+    expect(panelSource).toContain('accountDisabled=')
+    expect(panelSource).toContain('unowned disabled')
+    expect(panelSource).toContain('disabled: accountDisabled')
+    expect(ownershipSource).toContain('operators stay visible in Curate but are marked unavailable')
+  })
+})

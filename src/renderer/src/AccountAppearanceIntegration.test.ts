@@ -21,3 +21,31 @@ describe('Issue #78 M5 account appearance UI', () => {
     expect(poolPanelSource).toContain('importedAccountOwnsSkin(importedAccount, skin.id)')
   })
 })
+
+const optionsSource = readFileSync(new URL('./OptionsPanel.tsx', import.meta.url), 'utf8')
+const appSource = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8')
+const accountStateSource = readFileSync(
+  new URL('./arknightsAccountState.ts', import.meta.url),
+  'utf8',
+)
+
+describe('Issue #78 follow-up account UX', () => {
+  it('keeps account management in a dedicated Options subtab', () => {
+    expect(optionsSource).toContain("['preferences', 'Preferences']")
+    expect(optionsSource).toContain("['account', 'Account']")
+    expect(optionsSource).toContain("activeSection === 'account'")
+    expect(optionsSource).toContain('<ArknightsAccountPanel dataset={dataset} />')
+  })
+
+  it('supports bulk account-equipped appearance syncing', () => {
+    expect(optionsSource).toContain('Sync account outfits')
+    expect(optionsSource).toContain('Follow each imported operator')
+    expect(appSource).toContain("choice === 'account'")
+    expect(appSource).toContain("'account' as OperatorAppearanceChoice")
+  })
+
+  it('invalidates account appearance state when equipped skins change', () => {
+    expect(accountStateSource).toContain('operator.equippedSkinId')
+    expect(accountStateSource).toContain('form.equippedSkinId')
+  })
+})

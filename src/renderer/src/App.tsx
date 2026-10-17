@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import AccountOwnershipConstraint from './AccountOwnershipConstraint'
 import DraftPanel from './DraftPanel'
 import DraftRulebookPanel from './DraftRulebookPanel'
 import GlobalPoolFeature from './GlobalPoolFeature'
@@ -131,13 +130,34 @@ export default function App(): React.JSX.Element {
     setOperatorPreferences((current) => ({ ...current, gameLocale }))
   const setPoolPresentation = (poolPresentation: PoolPresentationMode): void =>
     setOperatorPreferences((current) => ({ ...current, poolPresentation }))
-  const setBulkAppearance = (choice: 'e1' | 'e2' | 'random'): void => {
+  const setBulkAppearance = (choice: 'e1' | 'e2' | 'random' | 'account'): void => {
     if (!data.dataset) return
+    if (choice === 'account' && !importedAccount) {
+      setMessage('Import an Arknights account before syncing equipped outfits.')
+      return
+    }
+    const ownedForAppearance = importedAccount
+      ? new Set(importedAccountOwnedOperatorIds(importedAccount))
+      : null
+    const operatorAppearances =
+      choice === 'account'
+        ? {
+            ...operatorPreferences.operatorAppearances,
+            ...Object.fromEntries(
+              data.dataset.operators
+                .filter((operator) => ownedForAppearance?.has(operator.id))
+                .map((operator) => [operator.id, 'account' as OperatorAppearanceChoice]),
+            ),
+          }
+        : Object.fromEntries(
+            data.dataset.operators.map((operator) => [
+              operator.id,
+              choice as OperatorAppearanceChoice,
+            ]),
+          )
     const nextPreferences: OperatorPreferences = {
       ...operatorPreferences,
-      operatorAppearances: Object.fromEntries(
-        data.dataset.operators.map((operator) => [operator.id, choice as OperatorAppearanceChoice]),
-      ),
+      operatorAppearances,
       appearanceRandomSeed:
         choice === 'random' ? Date.now() : operatorPreferences.appearanceRandomSeed,
     }
@@ -148,7 +168,9 @@ export default function App(): React.JSX.Element {
     setMessage(
       choice === 'random'
         ? 'Random appearances applied to all operators.'
-        : `${choice.toUpperCase()} artwork applied to all operators.`,
+        : choice === 'account'
+          ? `${ownedForAppearance?.size ?? 0} imported operators now follow their equipped account outfits.`
+          : `${choice.toUpperCase()} artwork applied to all operators.`,
     )
   }
 
@@ -275,16 +297,6 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'setup' && setupMode === 'global-pool' && (
         <>
-          <AccountOwnershipConstraint
-            dataset={data.dataset}
-            importedAccount={importedAccount ?? null}
-            preferences={operatorPreferences}
-            onChange={(next) => {
-              saveOperatorPreferences(next)
-              setOperatorPreferences(next)
-              markPoolChanged()
-            }}
-          />
           <GlobalPoolFeature
             dataset={data.dataset}
             constraints={constraints}

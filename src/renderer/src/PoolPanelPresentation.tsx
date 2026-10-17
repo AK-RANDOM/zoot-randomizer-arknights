@@ -133,6 +133,7 @@ function OperatorEntry({
   raceLabel,
   classLabel,
   included,
+  accountDisabled = false,
   presentation,
   appearanceChoice,
   appearanceRandomSeed,
@@ -141,13 +142,14 @@ function OperatorEntry({
   onToggle,
   onAppearance,
 }) {
-  const stateLabel = included ? 'Included' : 'Excluded'
+  const stateLabel = accountDisabled ? 'Not owned' : included ? 'Included' : 'Excluded'
   const commonProps = {
     type: 'button' as const,
     'aria-pressed': included,
     'aria-label': `${operator.name}, ${stateLabel}`,
     title: `${operator.name} — ${stateLabel}`,
     onClick: onToggle,
+    disabled: accountDisabled,
     'data-rarity': operator.rarity,
   }
   const avatar = (
@@ -163,7 +165,7 @@ function OperatorEntry({
     entry = (
       <button
         {...commonProps}
-        className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}
+        className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}${accountDisabled ? ' is-account-disabled' : ''}`}
       >
         {avatar}
       </button>
@@ -172,7 +174,7 @@ function OperatorEntry({
     entry = (
       <button
         {...commonProps}
-        className={`pool-entry pool-entry--compact${included ? '' : ' is-excluded'}`}
+        className={`pool-entry pool-entry--compact${included ? '' : ' is-excluded'}${accountDisabled ? ' is-account-disabled' : ''}`}
       >
         {avatar}
         <span className="pool-entry-copy">
@@ -185,7 +187,7 @@ function OperatorEntry({
     entry = (
       <button
         {...commonProps}
-        className={`pool-entry pool-entry--list${included ? '' : ' is-excluded'}`}
+        className={`pool-entry pool-entry--list${included ? '' : ' is-excluded'}${accountDisabled ? ' is-account-disabled' : ''}`}
       >
         {avatar}
         <strong>{operator.name}</strong>
@@ -196,7 +198,7 @@ function OperatorEntry({
     entry = (
       <button
         {...commonProps}
-        className={`pool-entry pool-entry--detailed${included ? '' : ' is-excluded'}`}
+        className={`pool-entry pool-entry--detailed${included ? '' : ' is-excluded'}${accountDisabled ? ' is-account-disabled' : ''}`}
       >
         {avatar}
         <span className="pool-entry-copy">

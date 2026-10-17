@@ -21,7 +21,7 @@ describe('Arknights account management panel', () => {
   })
 
   it('renders the compact account and ownership summaries in the requested format', () => {
-    expect(source).toContain('{SERVER_LABELS[snapshot.server]} Service')
+    expect(source).toContain('{SERVER_LABELS[snapshot.server]} Server')
     expect(source).toContain("(UID: {snapshot.uid ?? '—'})")
     expect(source).toContain('Last Sync:')
     expect(source).toContain('Operator Owned')

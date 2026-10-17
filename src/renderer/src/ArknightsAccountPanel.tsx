@@ -59,7 +59,6 @@ export default function ArknightsAccountPanel({
   const [snapshot, setSnapshot] = useState<ImportedArknightsAccount | null>(null)
   const [avatarImageUrl, setAvatarImageUrl] = useState<string | null>(null)
   const [warnings, setWarnings] = useState<string[]>([])
-  const [status, setStatus] = useState('Checking for saved account data…')
   const [busy, setBusy] = useState<'code' | 'sync' | 'clear' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [refreshOpen, setRefreshOpen] = useState(false)
@@ -73,15 +72,12 @@ export default function ArknightsAccountPanel({
         setSnapshot(next)
         if (next) {
           setServer(next.server)
-          setStatus('Loaded the last sanitized account snapshot from local storage.')
         } else {
-          setStatus('No imported account data is saved yet.')
         }
       })
       .catch((nextError) => {
         if (!active) return
         setError(formatError(nextError))
-        setStatus('Saved account data could not be loaded.')
       })
     return () => {
       active = false
@@ -110,17 +106,14 @@ export default function ArknightsAccountPanel({
     setError(null)
     try {
       await window.desktop.requestArknightsLoginCode(server, email)
-      setStatus('Verification code requested. Check your email, then enter the 6-digit code below.')
     } catch (nextError) {
       setError(formatError(nextError))
-      setStatus('Verification code request failed.')
     } finally {
       setBusy(null)
     }
   }
 
   const syncAccount = async (): Promise<void> => {
-    const refreshing = snapshot !== null
     setBusy('sync')
     setError(null)
     try {
@@ -131,18 +124,8 @@ export default function ArknightsAccountPanel({
       setWarnings(result.warnings)
       setCode('')
       setRefreshOpen(false)
-      setStatus(
-        refreshing
-          ? 'Account snapshot refreshed. Only sanitized account data was retained.'
-          : 'Account imported. Only sanitized account data was retained.',
-      )
     } catch (nextError) {
       setError(formatError(nextError))
-      setStatus(
-        snapshot
-          ? 'Refresh failed. The last valid saved snapshot remains available.'
-          : 'Account import failed. No account snapshot was saved.',
-      )
     } finally {
       setBusy(null)
     }
@@ -159,7 +142,6 @@ export default function ArknightsAccountPanel({
       setEmail('')
       setCode('')
       setRefreshOpen(false)
-      setStatus('Imported account data cleared. Login credentials were never saved.')
     } catch (nextError) {
       setError(formatError(nextError))
     } finally {
@@ -215,7 +197,7 @@ export default function ArknightsAccountPanel({
 
           <button
             type="button"
-            className="primary-button"
+            className="secondary-button"
             disabled={busy !== null}
             onClick={() => setRefreshOpen(true)}
           >
@@ -294,7 +276,7 @@ export default function ArknightsAccountPanel({
             </label>
             <button
               type="button"
-              className="primary-button"
+              className="secondary-button"
               disabled={busy !== null || email.trim().length === 0 || code.length !== 6}
               onClick={() => void syncAccount()}
             >
@@ -304,10 +286,11 @@ export default function ArknightsAccountPanel({
         </div>
       )}
 
-      <div className="arknights-account__status" aria-live="polite">
-        <span>{status}</span>
-        {error && <strong className="status-error">{error}</strong>}
-      </div>
+      {error && (
+        <strong className="status-error arknights-account__error" aria-live="assertive">
+          {error}
+        </strong>
+      )}
 
       {warnings.length > 0 && (
         <div className="arknights-account__warnings">

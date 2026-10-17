@@ -47,10 +47,15 @@ export default function OperatorCard({
   } = useOperatorAppearanceImage(operator)
   const importedAccount = useImportedArknightsAccount() ?? null
   const preferences = loadOperatorPreferences()
-  const progression =
-    preferences.showAccountProgression && importedAccount
-      ? importedAccountOperatorState(importedAccount, operator.id)
-      : null
+  const showAccountProgression = preferences.showAccountProgression && importedAccount !== null
+  const progression = showAccountProgression
+    ? importedAccountOperatorState(importedAccount, operator.id)
+    : null
+  const progressionLabel = showAccountProgression
+    ? progression
+      ? `E${progression.elite} L${progression.level}`
+      : 'Not Owned'
+    : null
   const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
   const cardRef = useRef<HTMLElement | null>(null)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
@@ -208,9 +213,9 @@ export default function OperatorCard({
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
-        {progression && (
-          <span className="operator-card__account-progression">
-            E{progression.elite} L{progression.level}
+        {progressionLabel && (
+          <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
+            {progressionLabel}
           </span>
         )}
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>

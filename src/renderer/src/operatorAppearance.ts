@@ -13,6 +13,8 @@ import {
 
 export const OPERATOR_APPEARANCE_EVENT = 'arknights-randomizer:operator-appearance-changed'
 
+const AMIYA_E2_DEFAULT_FORM_IDS = new Set(['char_1001_amiya2', 'char_1037_amiya3'])
+
 export type ResolvedOperatorAppearanceChoice = Exclude<
   OperatorAppearanceChoice,
   'random' | 'account'
@@ -47,7 +49,8 @@ function defaultArtAppearance(
   const arts = operator.defaultArts ?? []
   const index = arts.findIndex((art) => art.id === skinId)
   if (index < 0) return null
-  if (arts.length <= 1 || index === 0) return 'e1'
+  if (arts.length <= 1) return AMIYA_E2_DEFAULT_FORM_IDS.has(operator.id) ? 'e2' : 'e1'
+  if (index === 0) return 'e1'
   if (index === arts.length - 1) return 'e2'
   return `skin:${skinId}`
 }

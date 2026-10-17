@@ -92,6 +92,34 @@ describe('operator appearance resolution', () => {
     expect(resolveAccountAppearance(operator, snapshot('char_222_bpipe#2')).choice).toBe('e2')
   })
 
+  it('treats Amiya Guard and Medic patched defaults as Elite 2 account art', () => {
+    for (const [id, name, klass] of [
+      ['char_1001_amiya2', 'Amiya (Guard)', 'Guard'],
+      ['char_1037_amiya3', 'Amiya (Medic)', 'Medic'],
+    ] as const) {
+      const form: Operator = {
+        ...operator,
+        id,
+        name,
+        class: klass,
+        defaultArts: [
+          {
+            id: `${id}#2`,
+            avatarId: `${id}_2`,
+            portraitId: `${id}_2`,
+            label: 'Default',
+          },
+        ],
+        skins: [],
+      }
+      const formSnapshot: ImportedArknightsAccount = {
+        ...snapshot(),
+        operators: [{ operatorId: id, level: 90, elite: 2, equippedSkinId: `${id}#2` }],
+      }
+      expect(resolveAccountAppearance(form, formSnapshot).choice).toBe('e2')
+    }
+  })
+
   it('uses a safe E2 fallback when the imported equipped skin is unknown locally', () => {
     const account = resolveAccountAppearance(operator, snapshot('char_222_bpipe@future#1'))
     expect(account.recognized).toBe(false)

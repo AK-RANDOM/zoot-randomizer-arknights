@@ -206,7 +206,7 @@ export default function OptionsPanel({
           </label>
           <button
             type="button"
-            className="primary-button"
+            className="secondary-button"
             onClick={() => onBulkAppearanceChange(bulkAppearanceChoice)}
           >
             Apply

@@ -226,10 +226,6 @@
   align-items: end;
 }
 
-.bulk-appearance-control .primary-button {
-  min-height: 42px;
-}
-
 .option-note {
   margin: 7px 0 0;
   color: #929299;
@@ -397,4 +393,13 @@
   width: 16px;
   height: 16px;
   accent-color: #f5ad2f;
+}
+
+/* Account progression is an inline Global Filter control, not a boxed option card. */
+.option-toggle.account-global-filter__progression-toggle {
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 400;
 }

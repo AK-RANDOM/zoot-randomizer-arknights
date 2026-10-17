@@ -7,6 +7,9 @@ import {
 import { skinDisplayName } from '../../shared/skinMetadata'
 import { appearanceChoiceForOperator, resolveAccountAppearance } from './operatorAppearance'
 
+const AMIYA_CASTER_ID = 'char_002_amiya'
+const AMIYA_E2_DEFAULT_FORM_IDS = new Set(['char_1001_amiya2', 'char_1037_amiya3'])
+
 function ScrollingOutfitName({ text }: { text: string }): React.JSX.Element {
   const viewportRef = useRef<HTMLSpanElement | null>(null)
   const textRef = useRef<HTMLSpanElement | null>(null)
@@ -107,12 +110,16 @@ function compareSkinsByRelease(left, right) {
   else if (right.releaseTime !== undefined) return 1
   return left.id.localeCompare(right.id)
 }
-function defaultArtChoice(defaultArt, index, count) {
-  if (count <= 1 || index === 0) return 'e1'
+function defaultArtChoice(defaultArt, index, count, operatorId) {
+  if (count <= 1) return AMIYA_E2_DEFAULT_FORM_IDS.has(operatorId) ? 'e2' : 'e1'
+  if (index === 0) return 'e1'
   if (index === count - 1) return 'e2'
   return `skin:${defaultArt.id}`
 }
-function defaultArtDisplayLabel(choice, fallbackLabel) {
+function defaultArtDisplayLabel(operatorId, defaultArt, choice, fallbackLabel) {
+  if (operatorId === AMIYA_CASTER_ID && defaultArt.phase !== undefined) {
+    return `Elite ${defaultArt.phase}`
+  }
   if (choice === 'e1') return 'Elite 1'
   if (choice === 'e2') return 'Elite 2'
   return fallbackLabel
@@ -167,13 +174,6 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
             Close
           </button>
         </div>
-        {importedAccount && (
-          <p className="pool-appearance-account-note">
-            Account data is advisory. Your explicit artwork choice wins unless you select
-            <strong> Account equipped</strong>. Skin ownership comes only from the imported
-            owned-skin collection and is not inferred from the equipped skin.
-          </p>
-        )}
         {accountChoice && (
           <section className="pool-appearance-section" aria-labelledby="pool-account-art-heading">
             <h4 id="pool-account-art-heading">Imported account</h4>
@@ -192,8 +192,8 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
           <div className="pool-appearance-grid pool-appearance-grid--default">
             {defaultArts.length > 0
               ? defaultArts.map((art, index) => {
-                  const choice = defaultArtChoice(art, index, defaultArts.length)
-                  const displayLabel = defaultArtDisplayLabel(choice, art.label)
+                  const choice = defaultArtChoice(art, index, defaultArts.length, operator.id)
+                  const displayLabel = defaultArtDisplayLabel(operator.id, art, choice, art.label)
                   return (
                     <button
                       key={art.id}
@@ -208,19 +208,21 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
                     </button>
                   )
                 })
-              : ['e1', 'e2'].map((choice) => (
-                  <button
-                    key={choice}
-                    type="button"
-                    className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
-                    onClick={() => onChoose(choice)}
-                  >
-                    <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
-                    <span className="pool-appearance-tile__copy">
-                      <strong>{choice === 'e1' ? 'Elite 1' : 'Elite 2'}</strong>
-                    </span>
-                  </button>
-                ))}
+              : (AMIYA_E2_DEFAULT_FORM_IDS.has(operator.id) ? ['e2'] : ['e1', 'e2']).map(
+                  (choice) => (
+                    <button
+                      key={choice}
+                      type="button"
+                      className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
+                      onClick={() => onChoose(choice)}
+                    >
+                      <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
+                      <span className="pool-appearance-tile__copy">
+                        <strong>{choice === 'e1' ? 'Elite 1' : 'Elite 2'}</strong>
+                      </span>
+                    </button>
+                  ),
+                )}
           </div>
         </section>
         <section className="pool-appearance-section" aria-labelledby="pool-outfits-heading">

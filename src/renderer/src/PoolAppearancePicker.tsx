@@ -1,10 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import {
   importedAccountOperatorState,
   importedAccountOwnsSkin,
 } from '../../shared/arknightsAccountReconciliation'
 import { skinDisplayName } from '../../shared/skinMetadata'
 import { appearanceChoiceForOperator, resolveAccountAppearance } from './operatorAppearance'
+
+function ScrollingOutfitName({ text }: { text: string }): React.JSX.Element {
+  const viewportRef = useRef<HTMLSpanElement | null>(null)
+  const textRef = useRef<HTMLSpanElement | null>(null)
+  const [overflow, setOverflow] = useState(0)
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    const label = textRef.current
+    if (!viewport || !label) return
+
+    const measure = (): void => {
+      setOverflow(Math.max(0, label.scrollWidth - viewport.clientWidth))
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(viewport)
+    observer.observe(label)
+    return () => observer.disconnect()
+  }, [text])
+
+  return (
+    <span
+      ref={viewportRef}
+      className={`pool-appearance-outfit-name${overflow > 0 ? ' is-overflowing' : ''}`}
+      style={{ '--pool-appearance-text-overflow': `${overflow}px` } as CSSProperties}
+    >
+      <strong ref={textRef}>{text}</strong>
+    </span>
+  )
+}
 
 function AppearanceAvatar({ avatarId, fallbackLabel }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -78,6 +111,11 @@ function defaultArtChoice(defaultArt, index, count) {
   if (count <= 1 || index === 0) return 'e1'
   if (index === count - 1) return 'e2'
   return `skin:${defaultArt.id}`
+}
+function defaultArtDisplayLabel(choice, fallbackLabel) {
+  if (choice === 'e1') return 'Elite 1'
+  if (choice === 'e2') return 'Elite 2'
+  return fallbackLabel
 }
 function accountChoiceDescription(operator, accountResolution, preferences) {
   if (!accountResolution.equippedSkinId) return 'No equipped skin ID · uses E2 fallback'
@@ -155,6 +193,7 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
             {defaultArts.length > 0
               ? defaultArts.map((art, index) => {
                   const choice = defaultArtChoice(art, index, defaultArts.length)
+                  const displayLabel = defaultArtDisplayLabel(choice, art.label)
                   return (
                     <button
                       key={art.id}
@@ -162,9 +201,9 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
                       className={`pool-appearance-tile${selected === choice ? ' is-selected' : ''}`}
                       onClick={() => onChoose(choice)}
                     >
-                      <AppearanceAvatar avatarId={art.avatarId} fallbackLabel={art.label} />
+                      <AppearanceAvatar avatarId={art.avatarId} fallbackLabel={displayLabel} />
                       <span className="pool-appearance-tile__copy">
-                        <strong>{art.label}</strong>
+                        <strong>{displayLabel}</strong>
                       </span>
                     </button>
                   )
@@ -178,7 +217,7 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
                   >
                     <PromotionChoiceAvatar operatorId={operator.id} promotionArt={choice} />
                     <span className="pool-appearance-tile__copy">
-                      <strong>{choice.toUpperCase()}</strong>
+                      <strong>{choice === 'e1' ? 'Elite 1' : 'Elite 2'}</strong>
                     </span>
                   </button>
                 ))}
@@ -203,7 +242,7 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
                       fallbackLabel="?"
                     />
                     <span className="pool-appearance-tile__copy">
-                      <strong>{skinDisplayName(skin, preferences.gameLocale)}</strong>
+                      <ScrollingOutfitName text={skinDisplayName(skin, preferences.gameLocale)} />
                       {importedAccount && (
                         <small
                           className={
@@ -213,8 +252,8 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
                           }
                         >
                           {importedAccountOwnsSkin(importedAccount, skin.id)
-                            ? 'Owned on imported account'
-                            : 'Not owned on imported account'}
+                            ? 'Owned'
+                            : 'Not Owned'}
                         </small>
                       )}
                     </span>

@@ -131,10 +131,9 @@ function isSideEvent(activityId: string, activity: GameActivity, zone: GameZone)
 }
 
 /**
- * A rerun may have a completely different activity id and localized title.
- * Playable stage codes retain their event prefix (DV, FC, OD, HE, etc.).
- * Deduplicating by this key keeps the oldest original entry while removing
- * just the repeated activity entry, not the Side Story itself.
+ * Expose the dominant numbered operation prefix for catalog diagnostics.
+ * The actual rerun deduplication uses canonical IDs, map-zone identity,
+ * names, and shared stage codes; a prefix on its own is not sufficient.
  */
 export function garrisonSideStoryStageFamily(event: GarrisonEvent): string | null {
   const counts = new Map<string, number>()
@@ -252,50 +251,160 @@ export function buildGarrisonEventCatalog(
     if (!event.stages[type].includes(code)) event.stages[type].push(code)
   }
 
-  // Collapse different activity IDs for the SAME Side Story. Originals take
-  // precedence over rerun zones, even when reruns have different IDs instead
-  // of a `_re` suffix. Never append a rerun's additional stage entries to
-  // the original event; those are not new Side Stories.
-  const canonicalSides = new Map<string, GarrisonEvent>()
-  const sidesByFamily = new Map<string, GarrisonEvent>()
-  const candidates = [...sideByActivity.values()].sort((left, right) => {
-    const leftRerun = isRerunActivity(left.id, activities[left.id]!)
-    const rightRerun = isRerunActivity(right.id, activities[right.id]!)
-    return (
-      Number(leftRerun) - Number(rightRerun) ||
-      (left.releaseTime ?? Infinity) - (right.releaseTime ?? Infinity) ||
-      left.id.localeCompare(right.id, 'en')
-    )
-  })
-  for (const candidate of candidates) {
-    const nameKey = candidate.name.toLocaleLowerCase('en')
-    // If a rerun was renamed in localization, matching multiple stage codes
-    // still makes it a duplicate of the original run, not a separate event.
-    const candidateCodes = new Set(STAGE_TYPES.flatMap((type) => candidate.stages[type]))
-    const matchingStages = [...canonicalSides.values()].find((existing) => {
-      const existingCodes = STAGE_TYPES.flatMap((type) => existing.stages[type])
-      const overlap = existingCodes.filter(
-        (code) => candidateCodes.has(code) && !/^(?:EX|S|TR)-\d+$/i.test(code),
-      )
-      return overlap.length >= 2
-    })
-    const family = garrisonSideStoryStageFamily(candidate)
-    const existing =
-      (family ? sidesByFamily.get(family) : undefined) ??
-      canonicalSides.get(nameKey) ??
-      matchingStages
-    if (existing) {
-      const oldest = originalReleaseByName.get(nameKey)
-      const earlier = oldest ?? candidate.releaseTime
-      if (earlier !== null && earlier !== undefined) {
-        existing.releaseTime =
-          existing.releaseTime === null ? earlier : Math.min(existing.releaseTime, earlier)
-      }
-      continue
+  // The activity table contains *records for runs*, not a canonical list of
+  // stories. `act19side` and `act19sre`, for example, are the original and
+  // rerun of Dorothy's Vision. Their stage lists need not have identical
+  // layouts, so matching stage-code families alone is insufficient.
+  //
+  // Use three grounded identities (in precedence order):
+  // 1. Explicit `actNNsre` -> `actNNside` original/rerun relationship.
+  // 2. Actual activity-zone chapter names, matched by the full ordered set.
+  // 3. Normalized event title or at least two identical operation codes.
+  // A standalone `actNNsre` remains usable if the original has no playable
+  // stages in the current data, instead of silently removing the Side Story.
+  const normalizeIdentity = (value: string): string =>
+    value.toLocaleLowerCase('en').replace(/[\p{P}\p{S}\s]+/gu, '')
+  const zoneIdentityByActivity = new Map<string, string>()
+  const zoneNamesByActivity = new Map<string, string[]>()
+  for (const [zoneId, zone] of Object.entries(zones)) {
+    if (zone.type !== 'ACTIVITY') continue
+    const activityId = /^(act[0-9a-z]+)_zone\d+/i.exec(zoneId)?.[1]
+    const name = zone.zoneNameSecond?.trim()
+    if (!activityId || !name) continue
+    const names = zoneNamesByActivity.get(activityId) ?? []
+    const normalized = normalizeIdentity(name)
+    if (normalized && !names.includes(normalized)) names.push(normalized)
+    zoneNamesByActivity.set(activityId, names)
+  }
+  for (const [activityId, names] of zoneNamesByActivity) {
+    // Require more than one zone: unrelated events often reuse a generic
+    // single-zone title such as "Test Site" or "Main Stage".
+    if (names.length >= 2) zoneIdentityByActivity.set(activityId, [...names].sort().join('|'))
+  }
+
+  const candidates = [...sideByActivity.values()]
+  const parents = candidates.map((_, index) => index)
+  const find = (index: number): number => {
+    while (parents[index] !== index) {
+      parents[index] = parents[parents[index]]
+      index = parents[index]
     }
-    candidate.releaseTime = originalReleaseByName.get(nameKey) ?? candidate.releaseTime
-    canonicalSides.set(nameKey, candidate)
-    if (family) sidesByFamily.set(family, candidate)
+    return index
+  }
+  const unite = (left: number, right: number): void => {
+    const a = find(left)
+    const b = find(right)
+    if (a !== b) parents[b] = a
+  }
+  const byActivityId = new Map(candidates.map((event, i) => [event.id, i]))
+  const byName = new Map<string, number>()
+  const byZoneIdentity = new Map<string, number>()
+  const byStageCode = new Map<string, number[]>()
+  for (const [index, candidate] of candidates.entries()) {
+    // Rerun record IDs do not have to be included in the name-matching
+    // metadata. Some have localized titles without a rerun suffix.
+    const rerunPair = /^act(\d+)sre$/i.exec(candidate.id)
+    if (rerunPair) {
+      const original = byActivityId.get(`act${rerunPair[1]}side`)
+      if (original !== undefined) unite(index, original)
+    }
+    const nameKey = normalizeIdentity(candidate.name)
+    const sameName = byName.get(nameKey)
+    if (nameKey && sameName !== undefined) unite(index, sameName)
+    else if (nameKey) byName.set(nameKey, index)
+
+    const zoneIdentity = zoneIdentityByActivity.get(candidate.id)
+    if (zoneIdentity) {
+      const sameZone = byZoneIdentity.get(zoneIdentity)
+      if (sameZone !== undefined) unite(index, sameZone)
+      else byZoneIdentity.set(zoneIdentity, index)
+    }
+    // Two equal operation codes provide independent corroboration when the
+    // event's zone labels change between versions/localizations.
+    for (const code of new Set(STAGE_TYPES.flatMap((type) => candidate.stages[type]))) {
+      if (/^(?:EX|S|TR)-\d+$/i.test(code)) continue
+      const holders = byStageCode.get(code) ?? []
+      holders.push(index)
+      byStageCode.set(code, holders)
+    }
+  }
+  const sharedCodes = new Map<string, number>()
+  for (const owners of byStageCode.values()) {
+    for (let a = 0; a < owners.length; a++) {
+      for (let b = a + 1; b < owners.length; b++) {
+        const pair = `${owners[a]}:${owners[b]}`
+        sharedCodes.set(pair, (sharedCodes.get(pair) ?? 0) + 1)
+      }
+    }
+  }
+  for (const [pair, count] of sharedCodes) {
+    if (count < 2) continue
+    const [left, right] = pair.split(':').map(Number)
+    unite(left, right)
+  }
+
+  const grouped = new Map<number, GarrisonEvent[]>()
+  for (const [index, candidate] of candidates.entries()) {
+    const root = find(index)
+    const group = grouped.get(root) ?? []
+    group.push(candidate)
+    grouped.set(root, group)
+  }
+  const canonicalSides = new Map<string, GarrisonEvent>()
+  for (const group of grouped.values()) {
+    // Prefer the original activity's stage data, not the rerun's reordered
+    // stage list. For older `actNNdM` records, earlier release comes first.
+    group.sort(
+      (left, right) =>
+        Number(isRerunActivity(left.id, activities[left.id]!)) -
+          Number(isRerunActivity(right.id, activities[right.id]!)) ||
+        (left.releaseTime ?? Infinity) - (right.releaseTime ?? Infinity) ||
+        left.id.localeCompare(right.id, 'en'),
+    )
+    const chosen = group[0]
+    let earliest = Math.min(
+      ...group.flatMap((event) => [
+        event.releaseTime ?? Infinity,
+        originalReleaseByName.get(event.name.toLocaleLowerCase('en')) ?? Infinity,
+      ]),
+    )
+    // Some old originals retain activity metadata and a map-zone record but
+    // no longer have normal stages in stage_table. Keep their original
+    // identity and date while borrowing the only available stage list.
+    // This also prevents App Localization from restoring the rerun label.
+    const rerunPair = /^act(\d+)sre$/i.exec(chosen.id)
+    const directOriginalId = rerunPair ? `act${rerunPair[1]}side` : null
+    const zoneIdentity = zoneIdentityByActivity.get(chosen.id)
+    const originalOptions = [
+      ...(directOriginalId ? [directOriginalId] : []),
+      ...(zoneIdentity
+        ? [...zoneIdentityByActivity.entries()]
+            .filter(([, identity]) => identity === zoneIdentity)
+            .map(([id]) => id)
+        : []),
+    ]
+    const originalSource = [...new Set(originalOptions)]
+      .filter((id) => {
+        const activity = activities[id]
+        return (
+          activity &&
+          isSideEvent(id, activity, {}) &&
+          !isRerunActivity(id, activity) &&
+          validReleaseTime(activity.startTime) !== null
+        )
+      })
+      .sort((left, right) => activities[left]!.startTime! - activities[right]!.startTime!)[0]
+    if (originalSource) {
+      const original = activities[originalSource]!
+      const originalTime = validReleaseTime(original.startTime)
+      if (originalTime !== null && originalTime <= earliest) {
+        chosen.id = originalSource
+        if (original.name?.trim()) chosen.name = originalEventName(original.name)
+        earliest = originalTime
+      }
+    }
+    chosen.releaseTime = Number.isFinite(earliest) ? earliest : null
+    canonicalSides.set(chosen.id, chosen)
   }
 
   return [...byKey.values(), ...canonicalSides.values()]

@@ -10,13 +10,11 @@ import {
 
 const BASE_URL = 'https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/master'
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
-const CATALOG_VERSION = 10
+const CATALOG_VERSION = 11
 const pending = new Map<string, Promise<GarrisonEvent[]>>()
 
-const gameDataLocale = (region: ReleaseServer): GameLocale =>
-  region === 'cn' ? 'cn' : 'en'
-const catalogKey = (region: ReleaseServer, locale: GameLocale): string =>
-  `${region}-${locale}`
+const gameDataLocale = (region: ReleaseServer): GameLocale => (region === 'cn' ? 'cn' : 'en')
+const catalogKey = (region: ReleaseServer, locale: GameLocale): string => `${region}-${locale}`
 const cacheFile = (region: ReleaseServer, locale: GameLocale): string =>
   join(app.getPath('userData'), `garrison-event-catalog-${catalogKey(region, locale)}.json`)
 
@@ -83,7 +81,11 @@ async function fetchCatalog(region: ReleaseServer, locale: GameLocale): Promise<
   await mkdir(app.getPath('userData'), { recursive: true })
   await writeFile(
     cacheFile(region, locale),
-    JSON.stringify({ version: CATALOG_VERSION, fetchedAt: localized ? Date.now() : 0, events }),
+    JSON.stringify({
+      version: CATALOG_VERSION,
+      fetchedAt: localized ? Date.now() : 0,
+      events,
+    }),
     'utf8',
   )
   return events

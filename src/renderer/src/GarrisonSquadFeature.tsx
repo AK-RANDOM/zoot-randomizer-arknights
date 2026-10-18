@@ -10,6 +10,8 @@ import {
 import {
   cloneGarrison,
   cloneGarrisonStage,
+  clearAllGarrisonSquads,
+  clearGarrisonStageSquad,
   createGarrison,
   createGarrisonStage,
   garrisonEquals,
@@ -129,7 +131,6 @@ export default function GarrisonSquadFeature({
       (catalog) => {
         if (!active) return
         setEvents(catalog)
-        setEventId((current) => current || catalog[0]?.id || '')
         setEventsError(null)
         setEventsLoading(false)
       },
@@ -154,15 +155,12 @@ export default function GarrisonSquadFeature({
 
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
+  // Native Electron close guard replaces the unresponsive beforeunload blocker.
   useEffect(() => {
-    if (!hasUnsavedChanges) return
-    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
-      event.preventDefault()
-      event.returnValue = ''
-    }
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+    window.desktop.setGarrisonCloseDirty(hasUnsavedChanges)
   }, [hasUnsavedChanges])
+
+  useEffect(() => () => window.desktop.setGarrisonCloseDirty(false), [])
 
   const resetHistory = (): void => {
     setUndoWorking(null)
@@ -243,6 +241,50 @@ export default function GarrisonSquadFeature({
       }),
     )
   }
+
+  // Persist synchronously before acknowledging Electron's close request.
+  // Include an open stage editor's draft instead of silently losing it.
+  useEffect(
+    () =>
+      window.desktop.onGarrisonCloseSaveRequested(() => {
+        if (conflictDraft) {
+          onMessage('Resolve or cancel the Garrison conflict before saving and closing.')
+          window.desktop.completeGarrisonCloseSave(false)
+          return
+        }
+        try {
+          const candidate = cloneGarrison(working)
+          if (stageEditor) {
+            const stage = cloneGarrisonStage({
+              ...stageEditor.stage,
+              name: stageEditor.stage.name.trim() || 'Untitled Stage',
+            })
+            candidate.stages =
+              stageEditor.mode === 'new'
+                ? [...candidate.stages, stage]
+                : candidate.stages.map((entry) => (entry.id === stage.id ? stage : entry))
+          }
+          if (!candidate.duplicateOperatorsAllowed && garrisonHasOperatorConflicts(candidate)) {
+            onMessage('Resolve duplicate assignments before saving and closing.')
+            window.desktop.completeGarrisonCloseSave(false)
+            return
+          }
+          const saved = cloneGarrison({
+            ...candidate,
+            name: candidate.name.trim() || 'Untitled Garrison',
+          })
+          const nextLibrary = library.some((item) => item.id === saved.id)
+            ? library.map((item) => (item.id === saved.id ? saved : item))
+            : [...library, saved]
+          saveSavedGarrisons(nextLibrary)
+          window.desktop.completeGarrisonCloseSave(true)
+        } catch (error) {
+          onMessage(error instanceof Error ? `Could not save Garrison: ${error.message}` : 'Could not save Garrison.')
+          window.desktop.completeGarrisonCloseSave(false)
+        }
+      }),
+    [working, library, stageEditor, conflictDraft, onMessage],
+  )
 
   const deleteSelectedGarrison = (): void => {
     if (!selectedGarrison || stageEditor || conflictDraft) return
@@ -462,6 +504,21 @@ export default function GarrisonSquadFeature({
     const targetIndex = currentIndex + (event.key === 'ArrowUp' ? -1 : 1)
     const target = working.stages[targetIndex]
     if (target) moveStage(stageId, target.id, event.key === 'ArrowUp' ? 'before' : 'after')
+  }
+
+  const clearStageSquad = (stageId: string): void => {
+    if (stageEditor || conflictDraft) return
+    const stage = working.stages.find((entry) => entry.id === stageId)
+    if (!stage?.operatorIds.length) return
+    applyWorkingEdit(clearGarrisonStageSquad(working, stageId))
+    onMessage(`Cleared operators from “${stage.name}”. Stage retained; use Undo Edit to restore.`)
+  }
+
+  const clearEverySquad = (): void => {
+    if (stageEditor || conflictDraft || !working.stages.some((stage) => stage.operatorIds.length)) return
+    if (!window.confirm('Clear all operator assignments? The stage table will be kept, and you can undo this edit.')) return
+    applyWorkingEdit(clearAllGarrisonSquads(working))
+    onMessage('Cleared all stage squads without removing any stages. Use Undo Edit to restore.')
   }
 
   const deleteStage = (stageId: string): void => {
@@ -762,6 +819,7 @@ export default function GarrisonSquadFeature({
               }
               onChange={(event) => setEventId(event.target.value)}
             >
+              <option value="" disabled hidden>Quick add event</option>
               {eventsLoading ? (
                 <option value="">Loading events…</option>
               ) : events.length === 0 ? (
@@ -825,6 +883,15 @@ export default function GarrisonSquadFeature({
             onClick={canUndo ? undoEdit : redoEdit}
           >
             {canUndo ? 'Undo Edit' : 'Redo Edit'}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={stageEditor !== null || conflictDraft !== null || !working.stages.some((stage) => stage.operatorIds.length > 0)}
+            onClick={clearEverySquad}
+            title="Clear all operator assignments, preserving the stage table"
+          >
+            Clear all
           </button>
         </div>
         {eventsError && (
@@ -916,6 +983,15 @@ export default function GarrisonSquadFeature({
                       onClick={() => editStage(stage)}
                     >
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={stageEditor !== null || conflictDraft !== null || stage.operatorIds.length === 0}
+                      onClick={() => clearStageSquad(stage.id)}
+                      title={`Clear operators from ${stage.name} without deleting the stage`}
+                    >
+                      Clear
                     </button>
                     <button
                       type="button"

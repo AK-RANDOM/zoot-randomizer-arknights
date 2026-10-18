@@ -6,6 +6,14 @@ const desktopApi: DesktopApi = {
   platform: process.platform,
   getOperatorDataset: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorDataGet),
   getGarrisonEvents: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.garrisonEventsGet),
+  setGarrisonCloseDirty: (dirty) => ipcRenderer.send(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, dirty),
+  onGarrisonCloseSaveRequested: (listener) => {
+    const handler = (): void => listener()
+    ipcRenderer.on(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest, handler)
+    return () => ipcRenderer.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest, handler)
+  },
+  completeGarrisonCloseSave: (success) =>
+    ipcRenderer.send(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, success),
   getOperatorDataInfo: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorDataInfo),
   getOperatorImage: (operatorId) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorImage, operatorId),

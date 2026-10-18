@@ -75,6 +75,23 @@ export function cloneGarrison(garrison: Garrison): Garrison {
   }
 }
 
+/** Remove assignments without altering stage IDs, names or order. */
+export function clearAllGarrisonSquads(garrison: Garrison): Garrison {
+  const next = cloneGarrison(garrison)
+  next.stages.forEach((stage) => {
+    stage.operatorIds = []
+  })
+  return next
+}
+
+/** Clear a single stage's operator assignments, preserving the stage record. */
+export function clearGarrisonStageSquad(garrison: Garrison, stageId: string): Garrison {
+  const next = cloneGarrison(garrison)
+  const stage = next.stages.find((candidate) => candidate.id === stageId)
+  if (stage) stage.operatorIds = []
+  return next
+}
+
 export function garrisonEquals(left: Garrison, right: Garrison): boolean {
   return JSON.stringify(cloneGarrison(left)) === JSON.stringify(cloneGarrison(right))
 }

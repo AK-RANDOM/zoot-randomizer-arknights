@@ -5,6 +5,9 @@ import type { ArknightsAccountServer } from './arknightsAccount'
 export const DESKTOP_IPC_CHANNELS = {
   operatorDataGet: 'operator-data:get',
   garrisonEventsGet: 'garrison-events:get',
+  garrisonCloseDirty: 'garrison-close:dirty',
+  garrisonCloseSaveRequest: 'garrison-close:save-request',
+  garrisonCloseSaveResult: 'garrison-close:save-result',
   operatorDataInfo: 'operator-data:info',
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',

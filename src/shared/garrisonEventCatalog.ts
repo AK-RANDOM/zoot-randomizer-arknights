@@ -130,6 +130,24 @@ function isSideEvent(activityId: string, activity: GameActivity, zone: GameZone)
   )
 }
 
+/**
+ * A rerun may have a completely different activity id and localized title.
+ * Playable stage codes retain their event prefix (DV, FC, OD, HE, etc.).
+ * Deduplicating by this key keeps the oldest original entry while removing
+ * just the repeated activity entry, not the Side Story itself.
+ */
+export function garrisonSideStoryStageFamily(event: GarrisonEvent): string | null {
+  const counts = new Map<string, number>()
+  for (const code of event.stages.standard) {
+    const match = /^([A-Z][A-Z0-9]{0,7})-\d+$/i.exec(code.trim())
+    if (!match) continue
+    const family = match[1].toUpperCase()
+    counts.set(family, (counts.get(family) ?? 0) + 1)
+  }
+  const winner = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
+  return winner && winner[1] >= 2 ? winner[0] : null
+}
+
 const validReleaseTime = (time: number | undefined): number | null =>
   typeof time === 'number' && Number.isFinite(time) && time > 0 ? time : null
 
@@ -239,6 +257,7 @@ export function buildGarrisonEventCatalog(
   // of a `_re` suffix. Never append a rerun's additional stage entries to
   // the original event; those are not new Side Stories.
   const canonicalSides = new Map<string, GarrisonEvent>()
+  const sidesByFamily = new Map<string, GarrisonEvent>()
   const candidates = [...sideByActivity.values()].sort((left, right) => {
     const leftRerun = isRerunActivity(left.id, activities[left.id]!)
     const rightRerun = isRerunActivity(right.id, activities[right.id]!)
@@ -260,7 +279,11 @@ export function buildGarrisonEventCatalog(
       )
       return overlap.length >= 2
     })
-    const existing = canonicalSides.get(nameKey) ?? matchingStages
+    const family = garrisonSideStoryStageFamily(candidate)
+    const existing =
+      (family ? sidesByFamily.get(family) : undefined) ??
+      canonicalSides.get(nameKey) ??
+      matchingStages
     if (existing) {
       const oldest = originalReleaseByName.get(nameKey)
       const earlier = oldest ?? candidate.releaseTime
@@ -272,6 +295,7 @@ export function buildGarrisonEventCatalog(
     }
     candidate.releaseTime = originalReleaseByName.get(nameKey) ?? candidate.releaseTime
     canonicalSides.set(nameKey, candidate)
+    if (family) sidesByFamily.set(family, candidate)
   }
 
   return [...byKey.values(), ...canonicalSides.values()]

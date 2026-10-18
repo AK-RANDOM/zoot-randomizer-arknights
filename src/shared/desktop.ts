@@ -41,6 +41,10 @@ export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
   getGarrisonEvents(): Promise<GarrisonEvent[]>
+  /** Track unsaved edits so the native window close guard can offer Save/Discard/Cancel. */
+  setGarrisonCloseDirty(dirty: boolean): void
+  onGarrisonCloseSaveRequested(listener: () => void): () => void
+  completeGarrisonCloseSave(success: boolean): void
   getOperatorDataInfo(): Promise<OperatorDataInfo>
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>

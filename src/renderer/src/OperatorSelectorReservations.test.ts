@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from '../../shared/constraints'
 import type { Operator } from '../../shared/operator'
@@ -80,5 +81,24 @@ describe('Standard slot operator reservations', () => {
     })
     expect(options[0].disabled).toBe(true)
     expect(options[1].disabled).toBeUndefined()
+  })
+})
+
+describe('operator selector warning placement', () => {
+  it('places disabled reason next to class icon after operator portrait and name, without a leading gap', () => {
+    const source = readFileSync(new URL('./OperatorSelectorBase.tsx', import.meta.url), 'utf8')
+    const styles = readFileSync(new URL('./OperatorSelector.css', import.meta.url), 'utf8')
+    const section = source.slice(
+      source.indexOf('className="operator-selector-results"'),
+      source.indexOf('No eligible operators match'),
+    )
+    expect(section.indexOf('<OperatorAvatar')).toBeLessThan(
+      section.indexOf('operator-selector-right-meta'),
+    )
+    expect(section.indexOf('operator-selector-availability-warning')).toBeLessThan(
+      section.indexOf('<OperatorClassStack'),
+    )
+    expect(styles).toContain('grid-template-columns: 42px minmax(0, 1fr) auto;')
+    expect(styles).not.toContain('grid-template-columns: 84px 42px')
   })
 })

@@ -80,14 +80,53 @@ describe('Garrison event stage catalog', () => {
       'An Earlier Side Story',
       'Example Side Story',
       'A Newer Side Story',
-      'Example Vignette',
     ])
-    expect(catalog.map((event) => event.group)).toEqual(['side', 'side', 'side', 'side'])
+    expect(catalog.map((event) => event.group)).toEqual(['side', 'side', 'side'])
     expect(catalog[1].releaseTime).toBe(100)
     expect(catalog[1].stages.standard).toEqual(['EX-10', 'GA-1', 'GA-2', 'GA-10'])
     expect(catalog[1].stages.ex).toEqual(['GA-EX-1', 'GA-EX-2'])
     expect(catalog[1].stages.s).toEqual(['GA-S-1'])
-    expect(catalog[3].stages.standard).toEqual(['SV-1'])
+    expect(catalog.some((event) => event.name.includes('Vignette'))).toBe(false)
+  })
+
+  it('sorts Side Stories by their original first-release timestamps and excludes mini/branchline vignettes', () => {
+    const events = buildGarrisonEventCatalog(
+      {
+        basicInfo: {
+          act40side: { name: 'Later Original', startTime: 400, displayType: 'SIDESTORY' },
+          act11side: { name: 'Earlier Original', startTime: 100, displayType: 'SIDESTORY' },
+          act11side_rerun: {
+            name: 'Earlier Original',
+            startTime: 900,
+            displayType: 'SIDESTORY',
+            isReplicate: true,
+          },
+          act9mini: { name: 'Mini Vignette', startTime: 50, displayType: 'BRANCHLINE' },
+          act8sre: { name: 'Branchline Vignette', startTime: 60, displayType: 'BRANCHLINE' },
+        },
+      },
+      {
+        zones: {
+          act40side_zone1: { type: 'ACTIVITY' },
+          act11side_zone1: { type: 'ACTIVITY' },
+          act11side_rerun_zone1: { type: 'ACTIVITY' },
+          act9mini_zone1: { type: 'ACTIVITY' },
+          act8sre_zone1: { type: 'ACTIVITY' },
+        },
+      },
+      {
+        stages: {
+          a: stage('ZZ-1', 'act40side_zone1'),
+          b: stage('AA-1', 'act11side_zone1'),
+          c: stage('AA-2', 'act11side_rerun_zone1'),
+          d: stage('MN-1', 'act9mini_zone1'),
+          e: stage('VN-1', 'act8sre_zone1'),
+        },
+      },
+    )
+    expect(events.map((event) => event.name)).toEqual(['Earlier Original', 'Later Original'])
+    expect(events.map((event) => event.releaseTime)).toEqual([100, 400])
+    expect(events[0].stages.standard).toEqual(['AA-1'])
   })
 
   it('includes crossover Side Stories even when their activity display type differs', () => {

@@ -9,14 +9,17 @@ describe('Garrison operator picker and overview review refinements', () => {
     expect(sourceCode).not.toContain('slot {editingSlotIndex + 1}')
   })
 
-  it('places the unavailable reason before each aligned avatar, with short explanations', () => {
+  it('places the unavailable reason immediately before the class icon, without an avatar gap', () => {
     const selector = source('./OperatorSelectorBase.tsx')
     const css = source('./OperatorSelector.css')
     const garrison = source('./GarrisonStageEditor.tsx')
-    expect(selector.indexOf('operator-selector-availability')).toBeLessThan(
-      selector.indexOf('<OperatorAvatar operator={option.operator} />'),
+    expect(selector.indexOf('<OperatorAvatar operator={option.operator} />')).toBeLessThan(
+      selector.indexOf('operator-selector-availability-warning'),
     )
-    expect(css).toContain('grid-template-columns: 84px 42px minmax(0, 1fr) auto;')
+    expect(selector.indexOf('operator-selector-availability-warning')).toBeLessThan(
+      selector.indexOf('<OperatorClassStack option={option} />'),
+    )
+    expect(css).toContain('grid-template-columns: 42px minmax(0, 1fr) auto;')
     expect(garrison).toContain("? 'Already in squad'")
     expect(garrison).toContain("? 'Alter in squad'")
     expect(garrison).toContain('`Assigned to ${stageNames.join(')

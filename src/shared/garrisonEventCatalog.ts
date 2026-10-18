@@ -91,8 +91,10 @@ function isRerunActivity(activityId: string, activity: GameActivity): boolean {
 /** Some collaboration Side Stories use a different displayType in activity_table. */
 function isSideEvent(activityId: string, activity: GameActivity, zone: GameZone): boolean {
   return (
-    ['SIDESTORY', 'BRANCHLINE'].includes(activity.displayType ?? '') ||
-    (zone.type === 'ACTIVITY' && /^act\d+(?:side|sre|mini)$/.test(activityId))
+    // Vignettes (mini events) and other Branchline activities are not
+    // accessible via this Side Story stage picker.
+    (/^act\d+side$/.test(activityId) && zone.type === 'ACTIVITY') ||
+    (activity.displayType === 'SIDESTORY' && !/mini|sre|rerun|_re$/i.test(activityId))
   )
 }
 

@@ -137,24 +137,23 @@ export default function OperatorSelector({
               onClick={() => onSelect(option)}
               data-rarity={option.operator.rarity}
             >
-              <span className="operator-selector-availability" aria-hidden={!option.disabled}>
-                {option.disabled && (
-                  <span
-                    className="operator-selector-availability-warning"
-                    title={option.disabledReason ?? 'Unavailable'}
-                    aria-label={option.disabledReason ?? 'Unavailable'}
-                    data-reason={option.disabledReason ?? 'Unavailable'}
-                  >
-                    {option.disabledReason ?? 'Unavailable'}
-                  </span>
-                )}
-              </span>
               <OperatorAvatar operator={option.operator} />
               <span className="operator-selector-copy">
                 <strong>{option.label}</strong>
                 <small>{optionMeta(option)}</small>
               </span>
-              <OperatorClassStack option={option} />
+              <span className="operator-selector-right-meta">
+                {option.disabled && (
+                  <span
+                    className="operator-selector-availability-warning"
+                    title={option.disabledReason ?? 'Unavailable'}
+                    data-reason={option.disabledReason ?? 'Unavailable'}
+                  >
+                    {option.disabledReason ?? 'Unavailable'}
+                  </span>
+                )}
+                <OperatorClassStack option={option} />
+              </span>
             </button>
           ))}
           {visible.length === 0 && (

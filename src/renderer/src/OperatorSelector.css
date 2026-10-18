@@ -46,7 +46,7 @@
 }
 
 .operator-selector-option {
-  grid-template-columns: 84px 42px minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   min-height: 48px;
   padding: 4px;
 }
@@ -134,17 +134,17 @@
   text-align: right;
 }
 
-/* Disabled explanations live to the left of the avatar, in a reserved
-   column that stays the same width when an option is selectable. */
-.operator-selector-availability {
-  display: grid;
-  place-items: center end;
+/* Inline warning sits immediately before the class icon. No reserved
+   leading column or space on available operators. */
+.operator-selector-right-meta {
+  display: flex;
   min-width: 0;
-  min-height: 42px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 .operator-selector-availability-warning {
-  display: -webkit-box;
-  max-width: 100%;
+  max-width: 96px;
   overflow: hidden;
   color: #e2a0a6;
   font-size: 0.6rem;
@@ -152,10 +152,7 @@
   font-weight: 750;
   line-height: 1.15;
   text-align: right;
-  text-overflow: ellipsis;
   overflow-wrap: anywhere;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
 }
 
 .operator-selector-avatar {

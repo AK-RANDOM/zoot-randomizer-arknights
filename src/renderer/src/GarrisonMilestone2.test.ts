@@ -88,18 +88,18 @@ describe('Garrison Squad M2', () => {
     expect(css).toContain('flex-wrap: nowrap')
   })
 
-  it('exposes Allow Operators in multiple stages and resolves conflicts on stage Confirm', () => {
+  it('exposes Allow duplicates and resolves conflicts on stage Confirm', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     const dialog = read('./GarrisonConflictDialog.tsx')
-    expect(feature).toContain('Allow Operators in multiple stages')
+    expect(feature).toContain('Allow duplicates')
     expect(feature).toContain('changeDuplicatePolicy(event.target.checked)')
     expect(feature).toContain('garrisonHasOperatorConflicts(next)')
     expect(feature).toContain('before confirming this stage')
     expect(feature).not.toContain('before saving this Garrison')
     expect(dialog).toContain('Conflict detected')
-    expect(dialog).toContain('Remove Conflicting Operator')
-    expect(dialog).toContain('Clear Squad')
-    expect(dialog).toContain('Clear Conflict')
+    expect(dialog).toContain('Remove All')
+    expect(dialog).toContain('Clear')
+    expect(dialog).toContain('Apply Changes')
   })
 
   it('places Confirm and Cancel in the Draft capacity-control column', () => {

@@ -19,10 +19,10 @@ describe('Garrison Squad M4 cross-stage duplicate policy', () => {
   it('blocks operators used by other stages at selection time instead of hiding them', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     const editor = read('./GarrisonStageEditor.tsx')
-    expect(feature).toContain('otherStages={working.stages.filter')
+    expect(feature).toContain('otherStages={working.stages.filter(')
     expect(feature).toContain('duplicateOperatorsAllowed={working.duplicateOperatorsAllowed}')
     expect(editor).toContain('crossStageAssignments')
-    expect(editor).toContain('disabled: conflictingStages.length > 0')
+    expect(editor).toContain('disabled: Boolean(reason)')
     expect(editor).toContain('Already assigned to')
     expect(editor).toContain('remain visible but unavailable')
     expect(editor).toContain('if (!option || option.disabled) return')
@@ -30,13 +30,13 @@ describe('Garrison Squad M4 cross-stage duplicate policy', () => {
 
   it('excludes the currently edited stage from cross-stage conflict lookup', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
-    expect(feature).toContain('working.stages.filter((stage) => stage.id !== stageEditor.stage.id)')
+    expect(feature).toContain('(entry) => entry.id !== stageEditor.stage.id,')
   })
 
   it('retains same-stage duplicate prevention independently of cross-stage policy', () => {
     const editor = read('./GarrisonStageEditor.tsx')
     expect(editor).toContain('reservedInStage')
-    expect(editor).toContain('.filter((operator) => !reservedInStage.has(operator.id))')
+    expect(editor).toContain("'Already picked in this stage'")
     expect(editor).toContain('normalizeGarrisonStageOperatorIds(next)')
   })
 
@@ -45,8 +45,8 @@ describe('Garrison Squad M4 cross-stage duplicate policy', () => {
     expect(dialog).toContain('getGarrisonOperatorConflicts')
     expect(dialog).toContain('Conflicting operators and stages')
     expect(dialog).toContain("conflict.stageNames.join(' · ')")
-    expect(dialog).toContain('Remove Conflicting Operator')
-    expect(dialog).toContain('Clear Squad')
-    expect(dialog).toContain('Clear Conflict')
+    expect(dialog).toContain('Remove All')
+    expect(dialog).toContain('Clear')
+    expect(dialog).toContain('Apply Changes')
   })
 })

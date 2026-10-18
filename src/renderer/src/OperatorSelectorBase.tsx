@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Operator, OperatorClass } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import './OperatorSelector.css'
 
 export interface OperatorSelectorOption {
@@ -14,24 +15,7 @@ export interface OperatorSelectorOption {
 }
 
 function OperatorAvatar({ operator }: { operator: Operator }): React.JSX.Element {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    void window.desktop
-      .getOperatorImage(operator.id)
-      .then((url) => {
-        if (active) setImageUrl(url)
-      })
-      .catch(() => {
-        if (active) setImageUrl(null)
-      })
-    return () => {
-      active = false
-    }
-  }, [operator.id])
-
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
   return imageUrl ? (
     <img className="operator-selector-avatar" src={imageUrl} alt="" draggable={false} />
   ) : (
@@ -70,13 +54,17 @@ export function filterOperatorSelectorOptions(
   options: readonly OperatorSelectorOption[],
   search: string,
   limit = 60,
+  includeInternalId = true,
 ): OperatorSelectorOption[] {
   const query = search.trim().toLocaleLowerCase()
   const matches = query
     ? options.filter((option) =>
-        [option.label, option.operator.name, option.operator.id, ...(option.aliases ?? [])].some(
-          (value) => value.toLocaleLowerCase().includes(query),
-        ),
+        [
+          option.label,
+          option.operator.name,
+          ...(includeInternalId ? [option.operator.id] : []),
+          ...(option.aliases ?? []),
+        ].some((value) => value.toLocaleLowerCase().includes(query)),
       )
     : options
   return matches.slice(0, limit)
@@ -88,19 +76,21 @@ export default function OperatorSelector({
   onSelect,
   placeholder = 'Search operators…',
   disabled = false,
+  includeInternalId = true,
 }: {
   options: readonly OperatorSelectorOption[]
   valueKey: string | null
   onSelect: (option: OperatorSelectorOption | null) => void
   placeholder?: string
   disabled?: boolean
+  includeInternalId?: boolean
 }): React.JSX.Element {
   const [search, setSearch] = useState('')
   const selected = options.find((option) => option.key === valueKey) ?? null
   const hasSearch = search.trim().length > 0
   const visible = useMemo(
-    () => (hasSearch ? filterOperatorSelectorOptions(options, search) : []),
-    [hasSearch, options, search],
+    () => (hasSearch ? filterOperatorSelectorOptions(options, search, 60, includeInternalId) : []),
+    [hasSearch, includeInternalId, options, search],
   )
 
   return (

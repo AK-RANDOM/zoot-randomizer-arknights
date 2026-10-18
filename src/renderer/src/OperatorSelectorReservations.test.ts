@@ -29,7 +29,7 @@ function option(value: Operator): OperatorSelectorOption {
 }
 
 describe('Standard slot operator reservations', () => {
-  it('removes exact operators locked by another slot', () => {
+  it('keeps operators picked in another slot visible but disabled', () => {
     const alpha = operator('alpha')
     const beta = operator('beta')
     const constraints = createDefaultConstraints()
@@ -41,10 +41,14 @@ describe('Standard slot operator reservations', () => {
       operators: [alpha, beta],
     })
 
-    expect(filtered.map((entry) => entry.operator.id)).toEqual(['beta'])
+    expect(filtered.map((entry) => [entry.operator.id, Boolean(entry.disabled)])).toEqual([
+      ['alpha', true],
+      ['beta', false],
+    ])
+    expect(filtered[0].disabledReason).toContain('Already picked in another slot')
   })
 
-  it('also removes alters of another fixed operator when Alter Exclusivity is enabled', () => {
+  it('disables alters of another fixed operator when Alter Exclusivity is enabled', () => {
     const alpha = operator('alpha', 'alpha-family')
     const alphaAlter = operator('alpha-alter', 'alpha-family')
     const beta = operator('beta')
@@ -57,6 +61,24 @@ describe('Standard slot operator reservations', () => {
       { slotIndex: 1, constraints, operators: [alpha, alphaAlter, beta] },
     )
 
-    expect(filtered.map((entry) => entry.operator.id)).toEqual(['beta'])
+    expect(filtered.map((entry) => [entry.operator.id, Boolean(entry.disabled)])).toEqual([
+      ['alpha', true],
+      ['alpha-alter', true],
+      ['beta', false],
+    ])
+    expect(filtered[1].disabledReason).toContain('Alter of an operator')
+  })
+  it('does not disable alters when Alter Exclusivity is off', () => {
+    const original = operator('alpha', 'group')
+    const alter = operator('alpha-alter', 'group')
+    const constraints = createDefaultConstraints()
+    constraints.slots[0].operatorId = original.id
+    const options = filterReservedSlotOperatorOptions([option(original), option(alter)], {
+      slotIndex: 1,
+      constraints,
+      operators: [original, alter],
+    })
+    expect(options[0].disabled).toBe(true)
+    expect(options[1].disabled).toBeUndefined()
   })
 })

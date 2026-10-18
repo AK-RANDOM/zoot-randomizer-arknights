@@ -43,6 +43,7 @@ export default function GarrisonStageEditor({
   stage,
   otherStages,
   duplicateOperatorsAllowed,
+  alterExclusivity,
   operators,
   eligibleOperators,
   onChange,
@@ -53,6 +54,7 @@ export default function GarrisonStageEditor({
   stage: GarrisonStage
   otherStages: readonly GarrisonStage[]
   duplicateOperatorsAllowed: boolean
+  alterExclusivity: boolean
   operators: readonly Operator[]
   eligibleOperators: readonly Operator[]
   onChange: (stage: GarrisonStage) => void
@@ -85,26 +87,44 @@ export default function GarrisonStageEditor({
     const reservedInStage = new Set(
       stage.operatorIds.filter((operatorId, index) => index !== editingSlotIndex && operatorId),
     )
+    const reservedAlterGroups = new Set(
+      stage.operatorIds
+        .filter((_, index) => index !== editingSlotIndex)
+        .map((operatorId) => operatorById.get(operatorId)?.alterGroup)
+        .filter((group): group is string => Boolean(group)),
+    )
 
     return eligibleOperators
-      .filter((operator) => !reservedInStage.has(operator.id))
       .map((operator) => {
         const conflictingStages = crossStageAssignments.get(operator.id) ?? []
+        const reason = reservedInStage.has(operator.id)
+          ? 'Already picked in this stage'
+          : alterExclusivity && operator.alterGroup && reservedAlterGroups.has(operator.alterGroup)
+            ? 'Alter of an operator already picked in this stage'
+            : conflictingStages.length > 0
+              ? conflictReason(conflictingStages)
+              : undefined
         return {
           key: operator.id,
           label: operator.name,
           operator,
           aliases: [operator.subclass.name],
-          disabled: conflictingStages.length > 0,
-          disabledReason:
-            conflictingStages.length > 0 ? conflictReason(conflictingStages) : undefined,
+          disabled: Boolean(reason),
+          disabledReason: reason,
         }
       })
       .sort(
         (left, right) =>
           right.operator.rarity - left.operator.rarity || left.label.localeCompare(right.label),
       )
-  }, [crossStageAssignments, editingSlotIndex, eligibleOperators, stage.operatorIds])
+  }, [
+    alterExclusivity,
+    crossStageAssignments,
+    editingSlotIndex,
+    eligibleOperators,
+    operatorById,
+    stage.operatorIds,
+  ])
 
   const replaceSlot = (slotIndex: number, operatorId: string): void => {
     const next = [...stage.operatorIds]
@@ -256,6 +276,7 @@ export default function GarrisonStageEditor({
               <OperatorSelector
                 options={operatorOptions}
                 valueKey={null}
+                includeInternalId={false}
                 placeholder="Search eligible operators…"
                 onSelect={(option) => {
                   if (!option || option.disabled) return

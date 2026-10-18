@@ -90,10 +90,19 @@ export function getGarrisonParticipation(garrison: Garrison): GarrisonParticipat
     }
   }
 
-  return firstSeenOrder.map((operatorId) => ({
-    operatorId,
-    stageCount: stageCountByOperator.get(operatorId) ?? 0,
-  }))
+  // Descending usage, then earliest stage (top to bottom), then its slot position.
+  // The first-seen list naturally records the stage/slot tie-break order.
+  return firstSeenOrder
+    .map((operatorId, firstPosition) => ({
+      operatorId,
+      stageCount: stageCountByOperator.get(operatorId) ?? 0,
+      firstPosition,
+    }))
+    .sort(
+      (left, right) =>
+        right.stageCount - left.stageCount || left.firstPosition - right.firstPosition,
+    )
+    .map(({ operatorId, stageCount }) => ({ operatorId, stageCount }))
 }
 
 export function getGarrisonOperatorConflicts(garrison: Garrison): GarrisonOperatorConflict[] {

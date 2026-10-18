@@ -1,25 +1,47 @@
 import { useMemo } from 'react'
 import type { Operator } from '../../shared/operator'
 import {
-  clearGarrisonOperatorConflicts,
   cloneGarrison,
   getGarrisonConflictOperatorIds,
   getGarrisonOperatorConflicts,
   type Garrison,
 } from '../../shared/garrison'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
+
+function ConflictOperatorIcon({ operator }: { operator: Operator | undefined }): React.JSX.Element {
+  // Render a fallback for operators no longer present in the current game dataset.
+  return operator ? (
+    <KnownConflictOperatorIcon operator={operator} />
+  ) : (
+    <span className="garrison-conflict-avatar garrison-stage-missing-icon" aria-hidden="true">
+      ?
+    </span>
+  )
+}
+
+function KnownConflictOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
+  return imageUrl ? (
+    <img className="garrison-conflict-avatar" src={imageUrl} alt="" draggable={false} />
+  ) : (
+    <span className="garrison-conflict-avatar garrison-stage-missing-icon" aria-hidden="true">
+      {operator.name.slice(0, 1)}
+    </span>
+  )
+}
 
 export default function GarrisonConflictDialog({
   garrison,
   operators,
   onChange,
   onCancel,
-  onClearConflict,
+  onApply,
 }: {
   garrison: Garrison
   operators: readonly Operator[]
   onChange: (garrison: Garrison) => void
   onCancel: () => void
-  onClearConflict: (garrison: Garrison) => void
+  onApply: (garrison: Garrison) => void
 }): React.JSX.Element {
   const operatorById = useMemo(
     () => new Map(operators.map((operator) => [operator.id, operator] as const)),
@@ -40,6 +62,18 @@ export default function GarrisonConflictDialog({
       stage.id === stageId ? { ...stage, operatorIds } : stage,
     )
     onChange(next)
+  }
+
+  const applyChanges = (): void => {
+    if (
+      conflicts.length > 0 &&
+      !window.confirm(
+        `${conflicts.length} operator conflict${conflicts.length === 1 ? '' : 's'} remain. ` +
+          'Apply these changes anyway? Allow duplicates will remain enabled because assignments are still duplicated.',
+      )
+    )
+      return
+    onApply(cloneGarrison(garrison))
   }
 
   return (
@@ -67,85 +101,96 @@ export default function GarrisonConflictDialog({
         </div>
 
         <p className="garrison-conflict-intro">
-          Cross-stage duplicate prevention requires every operator to belong to at most one stage.
-          Choose which assignments to remove, or use Clear Conflict to keep each operator's first
-          stage assignment in document order.
+          Operators assigned to multiple stages are listed below. Click an operator icon to remove
+          it from that stage, or use the stage actions. Applying with unresolved conflicts will
+          require confirmation and leave Allow duplicates enabled.
         </p>
 
         <div className="garrison-conflict-summary" aria-label="Conflicting operators and stages">
           {conflicts.map((conflict) => {
-            const label = operatorById.get(conflict.operatorId)?.name ?? conflict.operatorId
+            const operator = operatorById.get(conflict.operatorId)
             return (
               <div className="garrison-conflict-summary-row" key={conflict.operatorId}>
-                <strong>{label}</strong>
+                <div className="garrison-conflict-summary-operator">
+                  <ConflictOperatorIcon operator={operator} />
+                  <strong>{operator?.name ?? conflict.operatorId}</strong>
+                </div>
                 <span>{conflict.stageNames.join(' · ')}</span>
               </div>
             )
           })}
+          {conflicts.length === 0 && (
+            <p className="garrison-conflict-resolved">No conflicts remain.</p>
+          )}
         </div>
 
-        <div className="garrison-conflict-table" role="table" aria-label="Operator conflicts">
-          <div className="garrison-conflict-row garrison-conflict-row--header" role="row">
-            <span role="columnheader">Stage</span>
-            <span role="columnheader">Action</span>
-          </div>
-          {conflictStages.map(({ stage, operatorIds }) => (
-            <div className="garrison-conflict-row" role="row" key={stage.id}>
-              <div className="garrison-conflict-stage" role="cell">
-                <strong>{stage.name}</strong>
-                <div className="garrison-conflict-operators">
-                  {operatorIds.map((operatorId) => (
-                    <span
-                      className="garrison-conflict-operator"
-                      key={operatorId}
-                      title={operatorId}
-                    >
-                      {operatorById.get(operatorId)?.name ?? operatorId}
-                    </span>
-                  ))}
+        {conflictStages.length > 0 && (
+          <div className="garrison-conflict-table" role="table" aria-label="Operator conflicts">
+            <div className="garrison-conflict-row garrison-conflict-row--header" role="row">
+              <span role="columnheader">Stage</span>
+              <span role="columnheader">Actions</span>
+            </div>
+            {conflictStages.map(({ stage, operatorIds }) => (
+              <div className="garrison-conflict-row" role="row" key={stage.id}>
+                <div className="garrison-conflict-stage" role="cell">
+                  <strong>{stage.name}</strong>
+                  <div className="garrison-conflict-operators">
+                    {operatorIds.map((operatorId) => {
+                      const operator = operatorById.get(operatorId)
+                      return (
+                        <button
+                          type="button"
+                          className="garrison-conflict-operator"
+                          key={operatorId}
+                          title={`Remove ${operator?.name ?? operatorId} from ${stage.name}`}
+                          aria-label={`Remove ${operator?.name ?? operatorId} from ${stage.name}`}
+                          onClick={() =>
+                            updateStage(
+                              stage.id,
+                              stage.operatorIds.filter((id) => id !== operatorId),
+                            )
+                          }
+                        >
+                          <ConflictOperatorIcon operator={operator} />
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="garrison-conflict-actions" role="cell">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    title={`Remove all conflicting operators from ${stage.name}`}
+                    onClick={() =>
+                      updateStage(
+                        stage.id,
+                        stage.operatorIds.filter((id) => !conflictIds.has(id)),
+                      )
+                    }
+                  >
+                    Remove All
+                  </button>
+                  <button
+                    type="button"
+                    className="danger-button"
+                    title={`Clear every operator from ${stage.name}`}
+                    onClick={() => updateStage(stage.id, [])}
+                  >
+                    Clear
+                  </button>
                 </div>
               </div>
-              <div className="garrison-conflict-actions" role="cell">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() =>
-                    updateStage(
-                      stage.id,
-                      stage.operatorIds.filter((operatorId) => !conflictIds.has(operatorId)),
-                    )
-                  }
-                >
-                  Remove Conflicting Operator
-                </button>
-                <button
-                  type="button"
-                  className="danger-button"
-                  onClick={() => updateStage(stage.id, [])}
-                >
-                  Clear Squad
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="garrison-conflict-footer">
           <button type="button" className="secondary-button" onClick={onCancel}>
             Cancel
           </button>
-          <button
-            type="button"
-            className="randomize-button"
-            onClick={() =>
-              onClearConflict(
-                conflicts.length > 0
-                  ? clearGarrisonOperatorConflicts(garrison)
-                  : cloneGarrison(garrison),
-              )
-            }
-          >
-            Clear Conflict
+          <button type="button" className="randomize-button" onClick={applyChanges}>
+            Apply Changes
           </button>
         </div>
       </div>

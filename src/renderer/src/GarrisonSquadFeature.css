@@ -39,18 +39,22 @@
   border-radius: 4px;
   color: #c6c6cb !important;
   background: #171719;
-  font-size: 0.66rem !important;
+  font-size: 0.76rem !important;
   font-weight: 750 !important;
   text-transform: none !important;
   letter-spacing: 0 !important;
 }
-.garrison-repeat-toggle input {
-  width: auto;
-  min-height: 0;
+.garrison-document-heading .garrison-repeat-toggle input {
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  padding: 0;
   margin: 0;
   accent-color: #f5ad2f;
 }
-.garrison-document-heading input,
+.garrison-name-field input,
 .garrison-stage-name input {
   width: 100%;
   min-height: 38px;
@@ -136,10 +140,15 @@
   width: 100%;
   margin-top: 10px;
 }
+.garrison-stage-editor-inline {
+  padding: 12px;
+  border-top: 1px solid #4a3b21;
+  background: #131315;
+}
 .garrison-stage-editor {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #2b2b30;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 .garrison-stage-editor-thirteenth {
   width: 100%;
@@ -276,17 +285,39 @@
   gap: 6px;
 }
 .garrison-conflict-operator {
-  max-width: 190px;
-  overflow: hidden;
-  padding: 5px 8px;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  padding: 2px;
   border: 1px solid #4a4a51;
   border-radius: 4px;
-  color: #dedee2;
   background: #1b1b1f;
-  font-size: 0.68rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
+.garrison-conflict-operator:hover,
+.garrison-conflict-operator:focus-visible {
+  border-color: #d55757;
+  background: #62262a;
+}
+.garrison-conflict-operator:hover .garrison-conflict-avatar,
+.garrison-conflict-operator:focus-visible .garrison-conflict-avatar {
+  filter: sepia(1) saturate(5) hue-rotate(305deg) brightness(0.95);
+}
+.garrison-conflict-avatar {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 3px;
+}
+.garrison-conflict-actions button {
+  font-size: 0.78rem;
+}
+
 .garrison-conflict-actions,
 .garrison-conflict-footer {
   display: flex;
@@ -355,7 +386,7 @@
   display: grid;
   grid-template-columns: minmax(150px, 0.45fr) minmax(0, 1fr);
   gap: 10px;
-  align-items: baseline;
+  align-items: center;
   padding: 7px 9px;
   border: 1px solid #34343a;
   border-radius: 4px;
@@ -397,4 +428,18 @@
   .garrison-conflict-summary-row {
     grid-template-columns: 1fr;
   }
+}
+
+.garrison-conflict-summary-operator {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+.garrison-conflict-summary-operator strong {
+  min-width: 0;
+}
+.garrison-conflict-summary .garrison-conflict-resolved {
+  color: #a5c1a5;
+  font-size: 0.78rem;
 }

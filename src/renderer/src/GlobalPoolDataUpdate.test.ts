@@ -5,12 +5,9 @@ const source = readFileSync(new URL('./GlobalPoolFeature.tsx', import.meta.url),
 
 describe('Global Pool data update control', () => {
   it('uses the top data update button for both checking and installing', () => {
-    expect(source).toContain(
-      "updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates()",
-    )
-    expect(source).toContain(
-      "updateCheck?.updateAvailable ? 'Update data' : 'Check data updates'",
-    )
+    expect(source).toContain('updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates()')
+    expect(source).toContain("? 'Update data'")
+    expect(source).toContain(": 'Check data updates'")
   })
 
   it('does not render a bottom data update status area', () => {

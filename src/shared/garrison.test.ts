@@ -47,6 +47,26 @@ describe('Garrison model', () => {
     ])
   })
 
+  it('orders participants by usage, then stage order, then slot order', () => {
+    const doc = sampleGarrison()
+    doc.stages = [
+      { id: 'early', name: 'First', operatorIds: ['first-single', 'second-tie', 'first-tie'] },
+      { id: 'middle', name: 'Second', operatorIds: ['first-tie', 'second-tie', 'other'] },
+      { id: 'late', name: 'Third', operatorIds: ['most', 'most-tail', 'most-tail-2'] },
+      { id: 'last', name: 'Last', operatorIds: ['most', 'second-tie', 'first-tie'] },
+      { id: 'end', name: 'End', operatorIds: ['most', 'most-tail'] },
+    ]
+    expect(getGarrisonParticipation(doc)).toEqual([
+      { operatorId: 'second-tie', stageCount: 3 },
+      { operatorId: 'first-tie', stageCount: 3 },
+      { operatorId: 'most', stageCount: 3 },
+      { operatorId: 'most-tail', stageCount: 2 },
+      { operatorId: 'first-single', stageCount: 1 },
+      { operatorId: 'other', stageCount: 1 },
+      { operatorId: 'most-tail-2', stageCount: 1 },
+    ])
+  })
+
   it('identifies every conflicting operator together with all affected stages', () => {
     expect(getGarrisonOperatorConflicts(sampleGarrison())).toEqual([
       {

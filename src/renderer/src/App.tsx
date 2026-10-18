@@ -246,7 +246,7 @@ export default function App(): React.JSX.Element {
           {(
             [
               ['standard', 'Standard'],
-              ['garrison', 'Garrison Squad'],
+              ['garrison', 'Garrison'],
               ['draft', 'Drafts'],
             ] as const
           ).map(([mode, label]) => (
@@ -300,6 +300,7 @@ export default function App(): React.JSX.Element {
         <GarrisonSquadFeature
           operators={data.dataset?.operators ?? []}
           eligibleOperators={finalOperatorPool}
+          alterExclusivity={constraints.alterExclusivity}
           onDirtyChange={setGarrisonDirty}
           onMessage={setMessage}
         />

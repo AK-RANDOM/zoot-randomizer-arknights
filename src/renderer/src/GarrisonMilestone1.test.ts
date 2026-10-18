@@ -7,7 +7,7 @@ describe('Garrison Squad M1', () => {
   it('adds Garrison as a non-randomized Get Squad mode', () => {
     const app = read('./App.tsx')
     expect(app).toContain("type SquadMode = 'standard' | 'garrison' | 'draft'")
-    expect(app).toContain("['garrison', 'Garrison Squad']")
+    expect(app).toContain("['garrison', 'Garrison']")
     expect(app).toContain('<GarrisonSquadFeature')
     expect(app).toContain('This Garrison has unsaved changes')
   })

@@ -1,4 +1,4 @@
-import type { OperatorClass, OperatorDataset, OperatorDatasetSources } from './operator'
+import type { GameLocale, OperatorClass, OperatorDataset, OperatorDatasetSources, ReleaseServer } from './operator'
 import type { PromotionArt } from './portraits'
 import type { GarrisonEvent } from './garrisonEventCatalog'
 import type {
@@ -40,7 +40,7 @@ export interface PortraitSyncProgress {
 export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
-  getGarrisonEvents(): Promise<GarrisonEvent[]>
+  getGarrisonEvents(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]>
   /** Track unsaved edits so the native window close guard can offer Save/Discard/Cancel. */
   setGarrisonCloseDirty(dirty: boolean): void
   onGarrisonCloseSaveRequested(listener: () => void): () => void

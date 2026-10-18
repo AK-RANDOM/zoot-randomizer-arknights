@@ -51,7 +51,7 @@ describe('Garrison event quick-add toolbar', () => {
     expect(code).toContain('value={selectedStageType}')
   })
   it('loads the catalog through the desktop API and offers cached offline use', () => {
-    expect(source('./GarrisonSquadFeature.tsx')).toContain('window.desktop.getGarrisonEvents()')
+    expect(source('./GarrisonSquadFeature.tsx')).toContain('window.desktop.getGarrisonEvents(metadataRegion, gameLocale)')
     expect(source('../../main/garrisonEventCatalogService.ts')).toContain(
       'if (cache) return cache.events',
     )

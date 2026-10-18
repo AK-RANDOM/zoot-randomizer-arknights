@@ -5,7 +5,8 @@ import { DESKTOP_IPC_CHANNELS } from '../shared/desktopIpc'
 const desktopApi: DesktopApi = {
   platform: process.platform,
   getOperatorDataset: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorDataGet),
-  getGarrisonEvents: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.garrisonEventsGet),
+  getGarrisonEvents: (region, locale) =>
+    ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.garrisonEventsGet, region, locale),
   setGarrisonCloseDirty: (dirty) => ipcRenderer.send(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, dirty),
   onGarrisonCloseSaveRequested: (listener) => {
     const handler = (): void => listener()

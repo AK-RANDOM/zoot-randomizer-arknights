@@ -119,13 +119,13 @@ export default function OptionsPanel({
             <option value="cn">CN</option>
           </select>
           <small>
-            Controls operator availability, release dates, release-year grouping, Kernel-era
+            Controls operator and Garrison event availability, event release order, release-year grouping, Kernel-era
             classification, and release previews.
           </small>
         </label>
 
         <label className="field">
-          <span>Game localization</span>
+          <span>App Localization</span>
           <select
             value={preferences.gameLocale}
             onChange={(event) => onGameLocaleChange(event.target.value as GameLocale)}
@@ -137,7 +137,7 @@ export default function OptionsPanel({
             ))}
           </select>
           <small>
-            Changes game-provided names and terminology only. App interface text remains English.
+            Controls localized names (including Garrison events) and game terminology. App interface text remains English.
           </small>
         </label>
 

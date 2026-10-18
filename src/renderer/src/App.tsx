@@ -301,6 +301,8 @@ export default function App(): React.JSX.Element {
           operators={data.dataset?.operators ?? []}
           eligibleOperators={finalOperatorPool}
           alterExclusivity={constraints.alterExclusivity}
+          metadataRegion={operatorPreferences.metadataRegion}
+          gameLocale={operatorPreferences.gameLocale}
           onDirtyChange={setGarrisonDirty}
           onMessage={setMessage}
         />

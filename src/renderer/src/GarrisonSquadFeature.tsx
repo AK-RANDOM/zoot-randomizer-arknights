@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { DragEvent, KeyboardEvent } from 'react'
-import type { Operator } from '../../shared/operator'
+import type { GameLocale, Operator, ReleaseServer } from '../../shared/operator'
 import {
   appendEventStages,
   availableGarrisonEventStageTypes,
@@ -71,12 +71,16 @@ export default function GarrisonSquadFeature({
   operators,
   eligibleOperators,
   alterExclusivity,
+  metadataRegion,
+  gameLocale,
   onDirtyChange,
   onMessage,
 }: {
   operators: readonly Operator[]
   eligibleOperators: readonly Operator[]
   alterExclusivity: boolean
+  metadataRegion: ReleaseServer
+  gameLocale: GameLocale
   onDirtyChange: (dirty: boolean) => void
   onMessage: (message: string) => void
 }): React.JSX.Element {
@@ -127,7 +131,11 @@ export default function GarrisonSquadFeature({
 
   useEffect(() => {
     let active = true
-    window.desktop.getGarrisonEvents().then(
+    setEventsLoading(true)
+    setEventsError(null)
+    setEvents([])
+    setEventId('')
+    window.desktop.getGarrisonEvents(metadataRegion, gameLocale).then(
       (catalog) => {
         if (!active) return
         setEvents(catalog)
@@ -143,7 +151,7 @@ export default function GarrisonSquadFeature({
     return () => {
       active = false
     }
-  }, [])
+  }, [metadataRegion, gameLocale])
 
   useEffect(() => {
     saveSavedGarrisons(library)

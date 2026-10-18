@@ -1,4 +1,4 @@
-import { operatorClasses, type OperatorClass } from './operator'
+import { gameLocales, operatorClasses, type GameLocale, type OperatorClass, type ReleaseServer } from './operator'
 import type { PromotionArt } from './portraits'
 import type { ArknightsAccountServer } from './arknightsAccount'
 
@@ -30,6 +30,18 @@ export const DESKTOP_IPC_CHANNELS = {
   arknightsAccountClear: 'arknights-account:clear',
   arknightsAccountAvatar: 'arknights-account:avatar',
 } as const
+
+export function requireMetadataRegion(value: unknown): ReleaseServer {
+  if (value === 'global' || value === 'cn') return value
+  throw new TypeError('Invalid metadata region')
+}
+
+export function requireGameLocale(value: unknown): GameLocale {
+  if (typeof value === 'string' && (gameLocales as readonly string[]).includes(value)) {
+    return value as GameLocale
+  }
+  throw new TypeError('Invalid app localization')
+}
 
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const METADATA_ID_PATTERN = /^[a-z0-9_.:-]+$/i

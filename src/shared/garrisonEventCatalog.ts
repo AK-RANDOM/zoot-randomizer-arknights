@@ -1,4 +1,4 @@
-/** Event-stage quick-add catalog derived from the English game-data tables. */
+/** Event-stage quick-add catalog derived from region-specific game-data tables. */
 export type GarrisonEventStageType = 'standard' | 'h' | 'ex' | 's'
 export type GarrisonEventGroup = 'main' | 'side'
 
@@ -311,6 +311,47 @@ export function buildGarrisonEventCatalog(
         left.name.localeCompare(right.name, 'en')
       )
     })
+}
+
+/**
+ * Localize event labels independently from the metadata region used for the
+ * event list, stage codes and original release order.
+ *
+ * A CN-only event may not exist in the requested locale. In that case its
+ * source-region name is kept rather than dropping the event or inventing a
+ * translation. Localized tables are intentionally used for labels only.
+ */
+export function localizeGarrisonEventNames(
+  events: readonly GarrisonEvent[],
+  activityTable: { basicInfo?: Record<string, GameActivity> },
+  zoneTable: { zones?: Record<string, GameZone> },
+): GarrisonEvent[] {
+  const activities = activityTable.basicInfo ?? {}
+  const zones = zoneTable.zones ?? {}
+  const mainNames = new Map<number, string>()
+
+  for (const [zoneId, zone] of Object.entries(zones)) {
+    const episode = mainlineEpisode(zoneId, zone)
+    const name = zone.zoneNameSecond?.trim()
+    if (episode === null || !name) continue
+    // The normal chapter-zone name has priority over limited/retro copies.
+    if (!mainNames.has(episode) || zoneId === `main_${episode}`) {
+      mainNames.set(episode, cleanedEventName(name))
+    }
+  }
+
+  return events.map((event) => {
+    let label: string | undefined
+    if (event.group === 'main') {
+      const episode = Number(event.id.replace(/^main:/, ''))
+      const title = mainNames.get(episode)
+      if (title) label = `Chapter ${episode} - ${title}`
+    } else {
+      const title = activities[event.id]?.name
+      if (title?.trim()) label = originalEventName(title)
+    }
+    return label ? { ...event, name: label } : { ...event }
+  })
 }
 
 export function appendEventStages(

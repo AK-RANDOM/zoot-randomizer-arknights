@@ -11,15 +11,15 @@ export const DEV_STRICT_DRAFT_RULEBOOK_ID = 'builtin:dev-strict' as const
 export const ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK_ID = 'builtin:arknights-headhunting' as const
 export const DEV_LAX_DRAFT_RULEBOOK_ID = 'builtin:dev-lax' as const
 
-const BALANCE_PRESET_REVISION = '2026.10-workboard-58'
+const BALANCE_PRESET_REVISION = '2026.10-fallback55'
 const SHARED_BALANCE_RARITY_COSTS: DraftEconomyRules['rarityCosts'] = {
   1: -7,
   2: -4,
   3: -3,
   4: 0,
   5: 7,
-  // Fallback for 6★ operators not listed in the current #58 pricing profile.
-  6: 21,
+  // Unlisted/new 6★ operators default to 55; explicitly priced operators keep their profile costs.
+  6: 55,
 }
 const SHARED_HOLD_UPKEEP: DraftEconomyRules['holdUpkeep'] = {
   mode: 'schedule',

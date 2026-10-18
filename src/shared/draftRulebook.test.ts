@@ -48,14 +48,17 @@ describe('Draft Rulebook foundation', () => {
     expect(strict).toMatchObject({
       offerSize: 3,
       maxRounds: 15,
-      capacityRules: { enabled: true, startingActiveSlots: 7, overflowSlots: 1 },
+      capacityRules: { enabled: true, startingActiveSlots: 6, overflowSlots: 1 },
       economyRules: { enabled: true, startingPoints: 45, forfeitRebate: 4 },
       actionRules: { reroll: { perDraftLimit: 3, cooldownRounds: 3 } },
     })
     expect(strict.economyRules.rarityCosts[5]).toBe(7)
+    expect(strict.economyRules.holdCost).toBe(3)
+    expect(strict.economyRules.slotExpansionCost).toBe(2)
+    expect(strict.actionRules.slotExpansion.cooldownRounds).toBe(2)
     expect(strict.economyRules.holdUpkeep).toEqual({
       mode: 'schedule',
-      costs: [2, 2, 3, 5, 6],
+      costs: [0, 2, 3, 5, 6],
       repeatLast: true,
     })
     expect(strict.pullDistribution).toMatchObject({
@@ -69,20 +72,24 @@ describe('Draft Rulebook foundation', () => {
     })
 
     const arknights = resolveDraftRulebook(ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK).configuration
+    expect(arknights.economyRules.holdCost).toBe(3)
+    expect(arknights.actionRules.slotExpansion.cooldownRounds).toBe(2)
     expect(arknights).toMatchObject({
-      offerSize: 4,
+      offerSize: 5,
       maxRounds: 15,
-      capacityRules: { enabled: true, startingActiveSlots: 8, overflowSlots: 1 },
+      capacityRules: { enabled: true, startingActiveSlots: 6, overflowSlots: 1 },
       economyRules: { enabled: true, startingPoints: 55, forfeitRebate: 4 },
       actionRules: { reroll: { perDraftLimit: 2, cooldownRounds: 3 } },
       pullDistribution: { type: 'arknights', firstTenActualFiveStarGuarantee: true },
     })
 
     const lax = resolveDraftRulebook(DEV_LAX_DRAFT_RULEBOOK).configuration
+    expect(lax.economyRules.holdCost).toBe(3)
+    expect(lax.actionRules.slotExpansion.cooldownRounds).toBe(2)
     expect(lax).toMatchObject({
       offerSize: 4,
       maxRounds: 15,
-      capacityRules: { enabled: true, startingActiveSlots: 8, overflowSlots: 1 },
+      capacityRules: { enabled: true, startingActiveSlots: 6, overflowSlots: 1 },
       economyRules: { enabled: true, startingPoints: 70, forfeitRebate: 4 },
       actionRules: { reroll: { perDraftLimit: 4, cooldownRounds: 2 } },
     })

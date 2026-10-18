@@ -11,19 +11,19 @@ export const DEV_STRICT_DRAFT_RULEBOOK_ID = 'builtin:dev-strict' as const
 export const ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK_ID = 'builtin:arknights-headhunting' as const
 export const DEV_LAX_DRAFT_RULEBOOK_ID = 'builtin:dev-lax' as const
 
-const BALANCE_PRESET_REVISION = '2026.10-m3'
+const BALANCE_PRESET_REVISION = '2026.10-workboard-58'
 const SHARED_BALANCE_RARITY_COSTS: DraftEconomyRules['rarityCosts'] = {
   1: -7,
   2: -4,
   3: -3,
   4: 0,
   5: 7,
-  // Temporary 6★ fallback until concrete operator-specific prices are authored or imported.
+  // Fallback for 6★ operators not listed in the current #58 pricing profile.
   6: 21,
 }
 const SHARED_HOLD_UPKEEP: DraftEconomyRules['holdUpkeep'] = {
   mode: 'schedule',
-  costs: [2, 2, 3, 5, 6],
+  costs: [0, 2, 3, 5, 6],
   repeatLast: true,
 }
 
@@ -57,7 +57,7 @@ function balanceActionRules(
       enabled: true,
       perRoundLimit: 1,
       perDraftLimit: null,
-      cooldownRounds: 0,
+      cooldownRounds: 2,
     },
   }
 }
@@ -69,9 +69,8 @@ function balanceEconomy(startingPoints: number): Omit<DraftEconomyRules, 'operat
     rarityCosts: SHARED_BALANCE_RARITY_COSTS,
     forfeitRebate: 4,
     rerollCost: 0,
-    holdCost: 0,
+    holdCost: 3,
     holdUpkeep: SHARED_HOLD_UPKEEP,
-    // #58 leaves expansion pricing for playtest validation; retain the existing provisional default.
     slotExpansionCost: 2,
   }
 }
@@ -118,7 +117,7 @@ export const DEV_STRICT_DRAFT_RULEBOOK: DraftRulebook = {
     actionRules: balanceActionRules(3, 3),
     capacityRules: {
       enabled: true,
-      startingActiveSlots: 7,
+      startingActiveSlots: 6,
       overflowSlots: 1,
       maxActiveSlots: 12,
     },
@@ -149,13 +148,13 @@ export const ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK: DraftRulebook = {
     revision: BALANCE_PRESET_REVISION,
   },
   generalRules: {
-    offerSize: 4,
+    offerSize: 5,
     pricingProfileId: SHARED_BALANCE_PRICING_PROFILE_ID,
     maxRounds: 15,
     actionRules: balanceActionRules(2, 3),
     capacityRules: {
       enabled: true,
-      startingActiveSlots: 8,
+      startingActiveSlots: 6,
       overflowSlots: 1,
       maxActiveSlots: 12,
     },
@@ -186,7 +185,7 @@ export const DEV_LAX_DRAFT_RULEBOOK: DraftRulebook = {
     actionRules: balanceActionRules(4, 2),
     capacityRules: {
       enabled: true,
-      startingActiveSlots: 8,
+      startingActiveSlots: 6,
       overflowSlots: 1,
       maxActiveSlots: 12,
     },

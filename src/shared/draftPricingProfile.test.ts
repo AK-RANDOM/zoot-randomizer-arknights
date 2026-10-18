@@ -5,12 +5,47 @@ import {
   applyDraftPricingCsv,
   serializeDraftPricingCsv,
   SHARED_BALANCE_PRICING_PROFILE,
+  SHARED_BALANCE_SIX_STAR_COSTS,
 } from './draftPricingProfile'
 
 const operators = [
   { id: 'char_a', name: 'A', rarity: 5 },
   { id: 'char_b', name: 'B', rarity: 6 },
 ] as Operator[]
+
+describe('Bundled Draft #58 pricing', () => {
+  it('includes the current 137 specified 6★ operators with the locked tier populations', () => {
+    expect(Object.keys(SHARED_BALANCE_SIX_STAR_COSTS)).toHaveLength(137)
+    expect(SHARED_BALANCE_PRICING_PROFILE.operatorCosts).toEqual(SHARED_BALANCE_SIX_STAR_COSTS)
+    expect(
+      Object.values(SHARED_BALANCE_PRICING_PROFILE.operatorCosts).reduce<Record<number, number>>(
+        (totals, cost) => ({ ...totals, [cost]: (totals[cost] ?? 0) + 1 }),
+        {},
+      ),
+    ).toEqual({
+      14: 15,
+      16: 15,
+      18: 15,
+      21: 15,
+      24: 15,
+      27: 15,
+      30: 15,
+      40: 6,
+      45: 6,
+      50: 6,
+      55: 6,
+      60: 8,
+    })
+  })
+
+  it('uses stable operator IDs for representative premium and normal costs', () => {
+    expect(SHARED_BALANCE_SIX_STAR_COSTS.char_2027_wang).toBe(60)
+    expect(SHARED_BALANCE_SIX_STAR_COSTS.char_2025_shu).toBe(50)
+    expect(SHARED_BALANCE_SIX_STAR_COSTS.char_4064_mlynar).toBe(40)
+    expect(SHARED_BALANCE_SIX_STAR_COSTS.char_222_bpipe).toBe(30)
+    expect(SHARED_BALANCE_SIX_STAR_COSTS.char_225_haak).toBe(14)
+  })
+})
 
 describe('Draft pricing CSV', () => {
   it('parses valid rows and ignores optional extra columns', () => {

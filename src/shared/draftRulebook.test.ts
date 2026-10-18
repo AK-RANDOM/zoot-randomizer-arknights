@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { STANDARD_DRAFT_CONFIGURATION } from './draft'
-import { SHARED_BALANCE_PRICING_PROFILE_ID } from './draftPricingProfile'
+import { getDraftOperatorCostWithConfiguration, STANDARD_DRAFT_CONFIGURATION } from './draft'
+import type { Operator } from './operator'
+import {
+  SHARED_BALANCE_PRICING_PROFILE,
+  SHARED_BALANCE_PRICING_PROFILE_ID,
+} from './draftPricingProfile'
 import {
   ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
   BUILT_IN_DRAFT_RULEBOOKS,
@@ -102,6 +106,22 @@ describe('Draft Rulebook foundation', () => {
         { id: '6', weight: 15, rarities: [6] },
       ],
     })
+  })
+
+  it('prices future unlisted 6★ at 55 without overriding established 6★ prices', () => {
+    const futureOperator = { id: 'char_future_six_star', rarity: 6 } as Operator
+    const pricedOperator = { id: 'char_103_angel', rarity: 6 } as Operator
+
+    for (const rulebook of [
+      DEV_STRICT_DRAFT_RULEBOOK,
+      ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
+      DEV_LAX_DRAFT_RULEBOOK,
+    ]) {
+      const { configuration } = resolveDraftRulebook(rulebook, SHARED_BALANCE_PRICING_PROFILE)
+      expect(configuration.economyRules.rarityCosts[6]).toBe(55)
+      expect(getDraftOperatorCostWithConfiguration(futureOperator, configuration)).toBe(55)
+      expect(getDraftOperatorCostWithConfiguration(pricedOperator, configuration)).toBe(21)
+    }
   })
 
   it('round-trips through the human-readable JSON interchange format', () => {

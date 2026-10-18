@@ -164,12 +164,12 @@ describe('Garrison event stage catalog', () => {
     expect(events[0].releaseTime).toBe(200)
   })
 
-  it('excludes rerun-only events, including those marked through their title', () => {
+  it('filters rerun records without removing original events marked as rerun', () => {
     const events = buildGarrisonEventCatalog(
       {
         basicInfo: {
-          act50side: { name: 'Some Event Rerun', startTime: 500, displayType: 'SIDESTORY' },
-          act51side: { name: 'Original Event', startTime: 100, displayType: 'SIDESTORY' },
+          act50side: { name: 'Some Event', startTime: 500, displayType: 'SIDESTORY', isReplicate: true },
+          act51side: { name: 'Original Event', startTime: 100, displayType: 'SIDESTORY', isReplicate: true },
           act51side_re: {
             name: 'Original Event',
             startTime: 800,
@@ -193,8 +193,9 @@ describe('Garrison event stage catalog', () => {
         },
       },
     )
-    expect(events.map((event) => event.name)).toEqual(['Original Event'])
+    expect(events.map((event) => event.name)).toEqual(['Original Event', 'Some Event'])
     expect(events[0].stages.standard).toEqual(['OE-1'])
+    expect(events[1].stages.standard).toEqual(['RR-1'])
   })
 
   it('groups Main Story chapters by episode with chapter titles in release order', () => {

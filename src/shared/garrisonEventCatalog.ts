@@ -77,15 +77,13 @@ const cleanedEventName = (name: string): string =>
     .replace(/\s*[-–—]+\s*$/, '')
     .trim()
 
-/** A rerun isn't a separate event and cannot contribute duplicate stages. */
-function isRerunActivity(activityId: string, activity: GameActivity): boolean {
-  return (
-    activity.isReplicate === true ||
-    /(?:^|[_-])(?:re|rerun|replicate)$/.test(activityId.toLowerCase()) ||
-    /(?:^|\s|[-–—])(?:\(?re-?run\)?|\(?rerun\)?|复刻|復刻)(?:\s*[-–—])?$/i.test(
-      activity.name?.trim() ?? '',
-    )
-  )
+/**
+ * Exclude the rerun *record*, never the original event. In game data,
+ * isReplicate can be set on an original event after it receives a rerun;
+ * filtering that flag drops the original event as well.
+ */
+function isRerunActivity(activityId: string): boolean {
+  return /(?:^|[_-])(?:re|rerun|replicate)(?:[_-]\d+)?$/i.test(activityId)
 }
 
 /** Some collaboration Side Stories use a different displayType in activity_table. */
@@ -160,7 +158,7 @@ export function buildGarrisonEventCatalog(
     } else if (
       stage.stageType !== 'ACTIVITY' ||
       !activity ||
-      isRerunActivity(activityId, activity) ||
+      isRerunActivity(activityId) ||
       !isSideEvent(activityId, activity, zone)
     ) {
       continue

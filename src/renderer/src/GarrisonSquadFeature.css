@@ -443,3 +443,57 @@
   color: #a5c1a5;
   font-size: 0.78rem;
 }
+
+/* Event quick-add lives between the participation overview and the stage list. */
+.garrison-stage-quickadd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.garrison-stage-quickadd select {
+  box-sizing: border-box;
+  height: 36px;
+  max-width: 100%;
+  padding: 0 30px 0 10px;
+  border: 1px solid #36363c;
+  border-radius: 4px;
+  color: #dedee1;
+  background: #171719;
+  font: inherit;
+  font-size: 0.78rem;
+}
+.garrison-stage-quickadd select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.garrison-stage-quickadd .garrison-event-selector {
+  flex: 0 1 300px;
+  min-width: 155px;
+}
+.garrison-stage-quickadd .garrison-event-selector select {
+  width: 100%;
+}
+.garrison-stage-quickadd .garrison-type-selector {
+  flex: 0 0 auto;
+}
+.garrison-stage-quickadd-spacer {
+  flex: 1 1 auto;
+}
+.garrison-history-toggle {
+  white-space: nowrap;
+}
+.garrison-event-error {
+  margin: -4px 0 10px;
+  color: #d9a052;
+  font-size: 0.73rem;
+}
+@media (max-width: 650px) {
+  .garrison-stage-quickadd .garrison-event-selector {
+    flex: 1 1 100%;
+  }
+  .garrison-stage-quickadd-spacer {
+    flex-basis: 1px;
+  }
+}

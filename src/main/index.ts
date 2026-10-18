@@ -34,6 +34,7 @@ import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operator
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
+import { getGarrisonEventCatalog } from './garrisonEventCatalogService'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -161,6 +162,7 @@ function cancelPortraitSync(): PortraitSyncProgress {
 
 function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataGet, () => getOperatorDataset())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.garrisonEventsGet, () => getGarrisonEventCatalog())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataInfo, () => getOperatorDataInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorImage, (_event, operatorId: unknown) =>
     getOperatorImage(requireOperatorId(operatorId)),

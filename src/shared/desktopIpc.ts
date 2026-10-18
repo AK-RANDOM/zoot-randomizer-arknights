@@ -4,6 +4,7 @@ import type { ArknightsAccountServer } from './arknightsAccount'
 
 export const DESKTOP_IPC_CHANNELS = {
   operatorDataGet: 'operator-data:get',
+  garrisonEventsGet: 'garrison-events:get',
   operatorDataInfo: 'operator-data:info',
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',
@@ -96,11 +97,7 @@ export function isAllowedExternalUrl(value: string): boolean {
 }
 
 export function requireArknightsAccountAvatarId(value: unknown): string {
-  if (
-    typeof value !== 'string' ||
-    value.length > 192 ||
-    !ACCOUNT_AVATAR_ID_PATTERN.test(value)
-  ) {
+  if (typeof value !== 'string' || value.length > 192 || !ACCOUNT_AVATAR_ID_PATTERN.test(value)) {
     throw new TypeError('Invalid Arknights account avatar ID.')
   }
   return value

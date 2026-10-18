@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import type { Operator } from '../../shared/operator'
 import {
+  appendEventStages,
+  type GarrisonEvent,
+  type GarrisonEventStageType,
+} from '../../shared/garrisonEventCatalog'
+import {
   cloneGarrison,
   cloneGarrisonStage,
   createGarrison,
@@ -77,6 +82,11 @@ export default function GarrisonSquadFeature({
   const [undoWorking, setUndoWorking] = useState<Garrison | null>(null)
   const [redoWorking, setRedoWorking] = useState<Garrison | null>(null)
   const [stageEditor, setStageEditor] = useState<StageEditorState | null>(null)
+  const [events, setEvents] = useState<GarrisonEvent[]>([])
+  const [eventsLoading, setEventsLoading] = useState(true)
+  const [eventsError, setEventsError] = useState<string | null>(null)
+  const [eventId, setEventId] = useState('')
+  const [stageType, setStageType] = useState<GarrisonEventStageType>('standard')
   const [conflictDraft, setConflictDraft] = useState<Garrison | null>(null)
   const [conflictPurpose, setConflictPurpose] = useState<ConflictPurpose | null>(null)
   const [nameDialog, setNameDialog] = useState<{
@@ -97,6 +107,29 @@ export default function GarrisonSquadFeature({
   const participation = useMemo(() => getGarrisonParticipation(working), [working])
   const canUndo = stageEditor ? stageEditor.undo !== null : undoWorking !== null
   const canRedo = stageEditor ? stageEditor.redo !== null : redoWorking !== null
+  const selectedEvent = events.find((event) => event.id === eventId)
+  const selectedEventStages = selectedEvent?.stages[stageType] ?? []
+
+  useEffect(() => {
+    let active = true
+    window.desktop.getGarrisonEvents().then(
+      (catalog) => {
+        if (!active) return
+        setEvents(catalog)
+        setEventId((current) => current || catalog[0]?.id || '')
+        setEventsError(null)
+        setEventsLoading(false)
+      },
+      (error: unknown) => {
+        if (!active) return
+        setEventsError(error instanceof Error ? error.message : 'Event catalog unavailable.')
+        setEventsLoading(false)
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [])
 
   useEffect(() => {
     saveSavedGarrisons(library)
@@ -256,6 +289,22 @@ export default function GarrisonSquadFeature({
       allowDuplicates
         ? 'Operators may now be reused across stages. Save Garrison to keep the change.'
         : 'Cross-stage duplicate prevention enabled. Save Garrison to keep the change.',
+    )
+  }
+
+  const addEvent = (): void => {
+    if (stageEditor || conflictDraft || !selectedEvent) return
+    const names = appendEventStages(working.stages, selectedEvent, stageType)
+    if (!names.length) {
+      onMessage(`No new ${stageType.toUpperCase()} stages to add for “${selectedEvent.name}”.`)
+      return
+    }
+    const next = cloneGarrison(working)
+    next.stages.push(...names.map((name) => createGarrisonStage(name)))
+    applyWorkingEdit(next)
+    const skipped = selectedEventStages.length - names.length
+    onMessage(
+      `Added ${names.length} stage${names.length === 1 ? '' : 's'} from “${selectedEvent.name}”${skipped ? `; skipped ${skipped} already present` : ''}. Save Garrison to keep the change.`,
     )
   }
 
@@ -479,22 +528,6 @@ export default function GarrisonSquadFeature({
             <button
               type="button"
               className="secondary-button"
-              disabled={!canUndo || conflictDraft !== null}
-              onClick={undoEdit}
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={!canRedo || conflictDraft !== null}
-              onClick={redoEdit}
-            >
-              Redo
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
               disabled={!selectedGarrison || stageEditor !== null || conflictDraft !== null}
               onClick={deleteSelectedGarrison}
             >
@@ -630,6 +663,76 @@ export default function GarrisonSquadFeature({
             </div>
           )}
         </section>
+
+        <div className="garrison-stage-quickadd" aria-label="Garrison stage tools">
+          <label className="garrison-event-selector">
+            <span className="sr-only">Event name</span>
+            <select
+              aria-label="Event name"
+              title={eventsError ?? 'Select an event to add its stages'}
+              value={eventId}
+              disabled={
+                eventsLoading ||
+                events.length === 0 ||
+                stageEditor !== null ||
+                conflictDraft !== null
+              }
+              onChange={(event) => setEventId(event.target.value)}
+            >
+              {eventsLoading ? (
+                <option value="">Loading events…</option>
+              ) : events.length === 0 ? (
+                <option value="">Events unavailable</option>
+              ) : (
+                events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <label className="garrison-type-selector">
+            <span className="sr-only">Stage type</span>
+            <select
+              aria-label="Stage type"
+              value={stageType}
+              disabled={stageEditor !== null || conflictDraft !== null}
+              onChange={(event) => setStageType(event.target.value as GarrisonEventStageType)}
+            >
+              <option value="standard">Standard Stage</option>
+              <option value="ex">EX Stage</option>
+              <option value="s">S Stage</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!selectedEventStages.length || stageEditor !== null || conflictDraft !== null}
+            onClick={addEvent}
+            title={
+              selectedEvent
+                ? `Add ${selectedEventStages.length} ${stageType.toUpperCase()} stages from ${selectedEvent.name}`
+                : 'Select an event first'
+            }
+          >
+            Add Event
+          </button>
+          <span className="garrison-stage-quickadd-spacer" aria-hidden="true" />
+          <button
+            type="button"
+            className="secondary-button garrison-history-toggle"
+            disabled={(!canUndo && !canRedo) || conflictDraft !== null}
+            onClick={canUndo ? undoEdit : redoEdit}
+          >
+            {canUndo ? 'Undo Edit' : 'Redo Edit'}
+          </button>
+        </div>
+        {eventsError && (
+          <p className="garrison-event-error" role="status">
+            {eventsError}
+          </p>
+        )}
 
         <div className="garrison-stage-table" role="table" aria-label="Garrison stages">
           <div className="garrison-stage-row garrison-stage-row--header" role="row">

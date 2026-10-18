@@ -1,5 +1,6 @@
 import type { OperatorClass, OperatorDataset, OperatorDatasetSources } from './operator'
 import type { PromotionArt } from './portraits'
+import type { GarrisonEvent } from './garrisonEventCatalog'
 import type {
   ArknightsAccountServer,
   ArknightsAccountSyncResult,
@@ -39,6 +40,7 @@ export interface PortraitSyncProgress {
 export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
+  getGarrisonEvents(): Promise<GarrisonEvent[]>
   getOperatorDataInfo(): Promise<OperatorDataInfo>
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>

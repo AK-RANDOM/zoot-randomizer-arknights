@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DraftPanel from './DraftPanel'
 import DraftRulebookPanel from './DraftRulebookPanel'
+import GarrisonSquadFeature from './GarrisonSquadFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
 import OptionsPanel from './OptionsPanel'
 import StandardSquadFeature from './StandardSquadFeature'
@@ -28,7 +29,7 @@ const INVALID_RELEASE_RANGE_MESSAGE =
 const DEFAULT_DRAFT_TARGET_SIZE = 12
 
 type AppTab = 'squads' | 'setup' | 'options'
-type SquadMode = 'standard' | 'draft'
+type SquadMode = 'standard' | 'garrison' | 'draft'
 type SetupMode = 'global-pool' | 'draft-rulebooks'
 
 function displayDate(value: string | null | undefined): string {
@@ -54,6 +55,7 @@ export default function App(): React.JSX.Element {
   const [setupMode, setSetupMode] = useState<SetupMode>('global-pool')
   const [poolRevision, setPoolRevision] = useState(0)
   const [draftActive, setDraftActive] = useState(false)
+  const [garrisonDirty, setGarrisonDirty] = useState(false)
   const markPoolChanged = useCallback(() => setPoolRevision((current) => current + 1), [])
 
   useEffect(() => {
@@ -186,14 +188,22 @@ export default function App(): React.JSX.Element {
     setDraftActive(false)
     return true
   }
+  const confirmGarrisonExit = (): boolean => {
+    if (!garrisonDirty) return true
+    return window.confirm(
+      'This Garrison has unsaved changes. Leaving will discard the working changes. Continue?',
+    )
+  }
   const selectMainTab = (tab: AppTab): void => {
     if (tab === activeTab) return
     if (activeTab === 'squads' && squadMode === 'draft' && !confirmDraftExit()) return
+    if (activeTab === 'squads' && squadMode === 'garrison' && !confirmGarrisonExit()) return
     setActiveTab(tab)
   }
   const selectSquadMode = (mode: SquadMode): void => {
     if (mode === squadMode) return
     if (squadMode === 'draft' && !confirmDraftExit()) return
+    if (squadMode === 'garrison' && !confirmGarrisonExit()) return
     setSquadMode(mode)
   }
 
@@ -236,6 +246,7 @@ export default function App(): React.JSX.Element {
           {(
             [
               ['standard', 'Standard'],
+              ['garrison', 'Garrison Squad'],
               ['draft', 'Drafts'],
             ] as const
           ).map(([mode, label]) => (
@@ -282,6 +293,15 @@ export default function App(): React.JSX.Element {
           onConstraintsChange={updateConstraints}
           onMessage={setMessage}
           onError={setError}
+        />
+      )}
+
+      {activeTab === 'squads' && squadMode === 'garrison' && (
+        <GarrisonSquadFeature
+          operators={data.dataset?.operators ?? []}
+          eligibleOperators={finalOperatorPool}
+          onDirtyChange={setGarrisonDirty}
+          onMessage={setMessage}
         />
       )}
 

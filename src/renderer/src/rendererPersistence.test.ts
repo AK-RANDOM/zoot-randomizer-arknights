@@ -72,6 +72,34 @@ describe('renderer persistence', () => {
     expect(normalized.confirmDraftActions).toBe(false)
   })
 
+  it('stores only structurally valid saved Garrisons and preserves stage order', () => {
+    const normalized = normalizeRendererPersistence({
+      ...loadRendererPersistence(new MemoryStorage()),
+      garrisons: [
+        {
+          id: 'garrison:one',
+          name: 'Annihilation',
+          duplicateOperatorsAllowed: true,
+          stages: [
+            { id: 'stage:2', name: 'Second', operatorIds: ['char_b', 'char_b'] },
+            { id: 'stage:1', name: 'First', operatorIds: ['char_a'] },
+          ],
+        },
+        {
+          id: 'garrison:bad',
+          name: 'Broken',
+          duplicateOperatorsAllowed: false,
+          stages: [{ id: '', name: 'Invalid', operatorIds: [] }],
+        },
+      ],
+    })
+
+    expect(normalized.garrisons).toHaveLength(1)
+    expect(normalized.garrisons[0]?.id).toBe('garrison:one')
+    expect(normalized.garrisons[0]?.stages.map((stage) => stage.id)).toEqual(['stage:2', 'stage:1'])
+    expect(normalized.garrisons[0]?.stages[0]?.operatorIds).toEqual(['char_b'])
+  })
+
   it('migrates persisted schema v1 Rulebooks to the current schema', () => {
     const v1 = JSON.parse(JSON.stringify(STANDARD_DRAFT_RULEBOOK)) as Record<string, unknown>
     v1.schemaVersion = 1

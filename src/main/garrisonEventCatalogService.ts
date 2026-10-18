@@ -7,7 +7,7 @@ const BASE_URL =
   'https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/master/en/gamedata/excel'
 const FILES = ['activity_table.json', 'zone_table.json', 'stage_table.json'] as const
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
-const CATALOG_VERSION = 7
+const CATALOG_VERSION = 8
 const cacheFile = (): string => join(app.getPath('userData'), 'garrison-event-catalog.json')
 let pending: Promise<GarrisonEvent[]> | null = null
 

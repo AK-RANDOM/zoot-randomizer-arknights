@@ -168,8 +168,18 @@ describe('Garrison event stage catalog', () => {
     const events = buildGarrisonEventCatalog(
       {
         basicInfo: {
-          act50side: { name: 'Some Event', startTime: 500, displayType: 'SIDESTORY', isReplicate: true },
-          act51side: { name: 'Original Event', startTime: 100, displayType: 'SIDESTORY', isReplicate: true },
+          act50side: {
+            name: 'Some Event',
+            startTime: 500,
+            displayType: 'SIDESTORY',
+            isReplicate: true,
+          },
+          act51side: {
+            name: 'Original Event',
+            startTime: 100,
+            displayType: 'SIDESTORY',
+            isReplicate: true,
+          },
           act51side_re: {
             name: 'Original Event',
             startTime: 800,
@@ -196,6 +206,147 @@ describe('Garrison event stage catalog', () => {
     expect(events.map((event) => event.name)).toEqual(['Original Event', 'Some Event'])
     expect(events[0].stages.standard).toEqual(['OE-1'])
     expect(events[1].stages.standard).toEqual(['RR-1'])
+  })
+
+  it('keeps every original Side Story, including legacy TYPE_ACT activities, while deduplicating their reruns', () => {
+    const events = buildGarrisonEventCatalog(
+      {
+        basicInfo: {
+          act5d0: { name: 'Code of Brawl', startTime: 100, displayType: 'TYPE_ACT5D0' },
+          act14d7: { name: 'Code of Brawl (Rerun)', startTime: 500, displayType: 'TYPE_ACT5D0' },
+          act9d0: { name: 'Darknights Memoir', startTime: 200, displayType: 'TYPE_ACT9D0' },
+          act17d5: {
+            name: 'Darknights Memoir - Rerun',
+            startTime: 600,
+            displayType: 'TYPE_ACT9D0',
+          },
+          act12d0: { name: 'The Great Chief Returns', startTime: 300, displayType: 'TYPE_ACT9D0' },
+          act45side: { name: 'Somniloquium Serenum', startTime: 900, displayType: 'TYPE_ACT9D0' },
+          // The rerun may not have a rerun label in its translated name.
+          act45sre: { name: 'Somniloquium Serenum', startTime: 1100, displayType: 'TYPE_ACT9D0' },
+          act50side: { name: 'A New Event', startTime: 1200, displayType: 'TYPE_ACT24SIDE' },
+          act13d0: { name: 'Rewinding Breeze', startTime: 250, displayType: 'MINISTORY' },
+          act10mini: { name: 'Mini Vignette', startTime: 350, displayType: 'MINISTORY' },
+          act8sre: {
+            name: 'Rerun-only Original - Rerun',
+            startTime: 700,
+            displayType: 'TYPE_ACT9D0',
+          },
+        },
+      },
+      {
+        zones: Object.fromEntries(
+          [
+            'act5d0',
+            'act14d7',
+            'act9d0',
+            'act17d5',
+            'act12d0',
+            'act45side',
+            'act45sre',
+            'act50side',
+            'act13d0',
+            'act10mini',
+            'act8sre',
+          ].map((id) => [`${id}_zone1`, { type: 'ACTIVITY', zoneIndex: 0 }]),
+        ),
+      },
+      {
+        stages: {
+          originalCode: stage('CB-1', 'act5d0_zone1'),
+          originalCode2: stage('CB-2', 'act5d0_zone1'),
+          rerunCode: stage('CB-1', 'act14d7_zone1'),
+          rerunCode2: stage('CB-2', 'act14d7_zone1'),
+          originalDark: stage('DM-1', 'act9d0_zone1'),
+          rerunDark: stage('DM-1', 'act17d5_zone1'),
+          chief: stage('RI-1', 'act12d0_zone1'),
+          originalAve: stage('SS-1', 'act45side_zone1'),
+          rerunAve: stage('SS-2', 'act45sre_zone1'),
+          newEvent: stage('NE-1', 'act50side_zone1'),
+          oldVignette: stage('RB-1', 'act13d0_zone1'),
+          vignette: stage('MN-1', 'act10mini_zone1'),
+          rerunOnly: stage('RO-1', 'act8sre_zone1'),
+        },
+      },
+    )
+    expect(events.map(({ name }) => name)).toEqual([
+      'Code of Brawl',
+      'Darknights Memoir',
+      'The Great Chief Returns',
+      'Rerun-only Original',
+      'Somniloquium Serenum',
+      'A New Event',
+    ])
+    expect(events.find(({ name }) => name === 'Code of Brawl')?.stages.standard).toEqual([
+      'CB-1',
+      'CB-2',
+    ])
+    expect(events.find(({ name }) => name === 'Somniloquium Serenum')?.stages.standard).toEqual([
+      'SS-1',
+    ])
+    expect(
+      events.some(({ name }) => name.includes('Vignette') || name === 'Rewinding Breeze'),
+    ).toBe(false)
+  })
+
+  it('uses original release metadata even when only the old Side Story rerun has a battle zone', () => {
+    const events = buildGarrisonEventCatalog(
+      {
+        basicInfo: {
+          act3d0: { name: 'Heart of Surging Flame', startTime: 100, displayType: 'TYPE_ACT3D0' },
+          act11d7: {
+            name: 'Heart of Surging Flame - Rerun',
+            startTime: 500,
+            displayType: 'TYPE_ACT3D0',
+          },
+          act9d0: { name: 'Darknights Memoir', startTime: 300, displayType: 'TYPE_ACT9D0' },
+        },
+      },
+      {
+        zones: {
+          act11d7_zone1: { type: 'ACTIVITY' },
+          act9d0_zone1: { type: 'ACTIVITY' },
+        },
+      },
+      {
+        stages: {
+          rerunMap: stage('OF-1', 'act11d7_zone1'),
+          otherMap: stage('DM-1', 'act9d0_zone1'),
+        },
+      },
+    )
+    expect(events.map(({ name }) => name)).toEqual(['Heart of Surging Flame', 'Darknights Memoir'])
+    expect(events[0].releaseTime).toBe(100)
+    expect(events[0].stages.standard).toEqual(['OF-1'])
+  })
+
+  it('recognizes renamed reruns by their duplicated stage codes without suppressing unrelated originals', () => {
+    const events = buildGarrisonEventCatalog(
+      {
+        basicInfo: {
+          act21side: { name: 'Under Tides', displayType: 'TYPE_ACT9D0', startTime: 100 },
+          act21sre: { name: 'Under the Tides', displayType: 'TYPE_ACT9D0', startTime: 400 },
+          act22side: { name: 'Other Story', displayType: 'TYPE_ACT9D0', startTime: 300 },
+        },
+      },
+      {
+        zones: {
+          act21side_zone1: { type: 'ACTIVITY' },
+          act21sre_zone1: { type: 'ACTIVITY' },
+          act22side_zone1: { type: 'ACTIVITY' },
+        },
+      },
+      {
+        stages: {
+          u1: stage('UT-1', 'act21side_zone1'),
+          u2: stage('UT-2', 'act21side_zone1'),
+          r1: stage('UT-1', 'act21sre_zone1'),
+          r2: stage('UT-2', 'act21sre_zone1'),
+          o1: stage('OT-1', 'act22side_zone1'),
+        },
+      },
+    )
+    expect(events.map(({ name }) => name)).toEqual(['Under Tides', 'Other Story'])
   })
 
   it('groups Main Story chapters by episode with chapter titles in release order', () => {

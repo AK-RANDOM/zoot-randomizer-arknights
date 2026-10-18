@@ -78,21 +78,55 @@ const cleanedEventName = (name: string): string =>
     .trim()
 
 /**
- * Exclude the rerun *record*, never the original event. In game data,
- * isReplicate can be set on an original event after it receives a rerun;
- * filtering that flag drops the original event as well.
+ * An activity can keep `isReplicate: true` after a rerun; it is NOT a
+ * rerun-only flag. Use record identity and the event's own rerun label.
+ * Legacy reruns (e.g. act14d7) have no `_re` suffix at all.
  */
-function isRerunActivity(activityId: string): boolean {
-  return /(?:^|[_-])(?:re|rerun|replicate)(?:[_-]\d+)?$/i.test(activityId)
+function isRerunActivity(activityId: string, activity: GameActivity): boolean {
+  return (
+    /^act\d+(?:r\d+)?sre$/i.test(activityId) ||
+    /(?:^|[_-])(?:re|rerun|replicate)(?:[_-]\d+)?$/i.test(activityId) ||
+    hasRerunSuffix(activity.name ?? '')
+  )
 }
 
-/** Some collaboration Side Stories use a different displayType in activity_table. */
+function hasRerunSuffix(name: string): boolean {
+  return /(?:\(\s*(?:re[ -]?run|replicate|复刻|復刻)\s*\)|(?:[\s·・:–—-]+)(?:re[ -]?run|replicate|复刻|復刻))\s*$/i.test(
+    name.trim(),
+  )
+}
+
+/** Rerun entries share their ORIGINAL event's title, not a new dropdown item. */
+function originalEventName(name: string): string {
+  const trimmed = cleanedEventName(name)
+  return cleanedEventName(
+    trimmed.replace(
+      /(?:\(\s*(?:re[ -]?run|replicate|复刻|復刻)\s*\)|(?:[\s·・:–—-]+)(?:re[ -]?run|replicate|复刻|復刻))\s*$/i,
+      '',
+    ),
+  )
+}
+
+/**
+ * Old Side Stories have ids like `act15d0` and displayType `TYPE_ACT9D0`.
+ * New events use `act45side` with `TYPE_ACT9D0` or `TYPE_ACT45SIDE`.
+ * Do not whitelist only a modern id/displayType spelling: that silently
+ * removes earlier Side Stories from the list.
+ */
 function isSideEvent(activityId: string, activity: GameActivity, zone: GameZone): boolean {
+  if (zone.type && zone.type !== 'ACTIVITY') return false
+  const displayType = activity.displayType?.trim().toUpperCase() ?? ''
+  // Vignettes are MINISTORY/BRANCHLINE; actXXmini is their record family.
+  if (
+    displayType === 'MINISTORY' ||
+    displayType === 'BRANCHLINE' ||
+    /(?:mini|vignette)/i.test(activityId)
+  )
+    return false
   return (
-    // Vignettes (mini events) and other Branchline activities are not
-    // accessible via this Side Story stage picker.
-    (/^act\d+side$/.test(activityId) && zone.type === 'ACTIVITY') ||
-    (activity.displayType === 'SIDESTORY' && !/mini|sre|rerun|_re$/i.test(activityId))
+    /^act\d+side$/i.test(activityId) ||
+    displayType === 'SIDESTORY' ||
+    /^TYPE_ACT\d+(?:D\d+|SIDE)$/i.test(displayType)
   )
 }
 
@@ -125,6 +159,19 @@ export function buildGarrisonEventCatalog(
   const activities = activityTable.basicInfo ?? {}
   const zones = zoneTable.zones ?? {}
   const byKey = new Map<string, GarrisonEvent>()
+  const sideByActivity = new Map<string, GarrisonEvent>()
+  // Some earliest events survive in the activity metadata even when their
+  // original battle zones have been moved to the permanent archive. Recover
+  // the *original* release timestamp instead of the subsequent rerun date.
+  const originalReleaseByName = new Map<string, number>()
+  for (const [activityId, activity] of Object.entries(activities)) {
+    const time = validReleaseTime(activity.startTime)
+    if (time === null || !activity.name?.trim()) continue
+    if (!isSideEvent(activityId, activity, {})) continue
+    const key = originalEventName(activity.name).toLocaleLowerCase('en')
+    const old = originalReleaseByName.get(key)
+    if (old === undefined || time < old) originalReleaseByName.set(key, time)
+  }
 
   // Within each event, keep game-defined zone order, then numeric operation code.
   const stages = Object.values(stageTable.stages ?? {}).sort((left, right) => {
@@ -146,8 +193,7 @@ export function buildGarrisonEventCatalog(
     const isMain = episode !== null
     const type = isMain ? classifyMainStoryStage(code, episode) : classifyGarrisonEventStage(code)
     if (!type) continue
-    // Do not collapse actXXside_rerun_zone1 into actXXside: it is a separate
-    // activity record that must be excluded, not appended to the original.
+    // Keep source activity identity until the original-vs-rerun deduplication.
     const activityId = zoneId.replace(/_zone\d+.*$/, '')
     const activity = activities[activityId]
     if (isMain) {
@@ -158,7 +204,6 @@ export function buildGarrisonEventCatalog(
     } else if (
       stage.stageType !== 'ACTIVITY' ||
       !activity ||
-      isRerunActivity(activityId) ||
       !isSideEvent(activityId, activity, zone)
     ) {
       continue
@@ -167,10 +212,11 @@ export function buildGarrisonEventCatalog(
     const group: GarrisonEventGroup = isMain ? 'main' : 'side'
     const name = isMain
       ? `Chapter ${episode} - ${cleanedEventName(zone.zoneNameSecond ?? '')}`
-      : cleanedEventName(activity?.name ?? '')
+      : originalEventName(activity?.name ?? '')
     if (!name || (isMain && !zone.zoneNameSecond?.trim())) continue
-    const key = isMain ? `main:${episode}` : `side:${name.toLocaleLowerCase('en')}`
-    let event = byKey.get(key)
+    const key = isMain ? `main:${episode}` : activityId
+    const target = isMain ? byKey : sideByActivity
+    let event = target.get(key)
     const releaseTime = validReleaseTime(activity?.startTime)
     if (!event) {
       event = {
@@ -180,22 +226,59 @@ export function buildGarrisonEventCatalog(
         releaseTime,
         stages: { standard: [], h: [], ex: [], s: [] },
       }
-      byKey.set(key, event)
+      target.set(key, event)
     } else if (releaseTime !== null) {
-      // If the source contains multiple original zones, keep the first release date.
       event.releaseTime =
         event.releaseTime === null ? releaseTime : Math.min(event.releaseTime, releaseTime)
     }
     if (!event.stages[type].includes(code)) event.stages[type].push(code)
   }
 
-  return [...byKey.values()]
+  // Collapse different activity IDs for the SAME Side Story. Originals take
+  // precedence over rerun zones, even when reruns have different IDs instead
+  // of a `_re` suffix. Never append a rerun's additional stage entries to
+  // the original event; those are not new Side Stories.
+  const canonicalSides = new Map<string, GarrisonEvent>()
+  const candidates = [...sideByActivity.values()].sort((left, right) => {
+    const leftRerun = isRerunActivity(left.id, activities[left.id]!)
+    const rightRerun = isRerunActivity(right.id, activities[right.id]!)
+    return (
+      Number(leftRerun) - Number(rightRerun) ||
+      (left.releaseTime ?? Infinity) - (right.releaseTime ?? Infinity) ||
+      left.id.localeCompare(right.id, 'en')
+    )
+  })
+  for (const candidate of candidates) {
+    const nameKey = candidate.name.toLocaleLowerCase('en')
+    // If a rerun was renamed in localization, matching multiple stage codes
+    // still makes it a duplicate of the original run, not a separate event.
+    const candidateCodes = new Set(STAGE_TYPES.flatMap((type) => candidate.stages[type]))
+    const matchingStages = [...canonicalSides.values()].find((existing) => {
+      const existingCodes = STAGE_TYPES.flatMap((type) => existing.stages[type])
+      const overlap = existingCodes.filter(
+        (code) => candidateCodes.has(code) && !/^(?:EX|S|TR)-\d+$/i.test(code),
+      )
+      return overlap.length >= 2
+    })
+    const existing = canonicalSides.get(nameKey) ?? matchingStages
+    if (existing) {
+      const oldest = originalReleaseByName.get(nameKey)
+      const earlier = oldest ?? candidate.releaseTime
+      if (earlier !== null && earlier !== undefined) {
+        existing.releaseTime =
+          existing.releaseTime === null ? earlier : Math.min(existing.releaseTime, earlier)
+      }
+      continue
+    }
+    candidate.releaseTime = originalReleaseByName.get(nameKey) ?? candidate.releaseTime
+    canonicalSides.set(nameKey, candidate)
+  }
+
+  return [...byKey.values(), ...canonicalSides.values()]
     .filter((event) => STAGE_TYPES.some((type) => event.stages[type].length > 0))
     .sort((left, right) => {
       if (left.group !== right.group) return left.group === 'main' ? -1 : 1
       if (left.group === 'main') {
-        // Episodes are released sequentially. This also handles chapters that
-        // have no activity_table release timestamp.
         return Number(left.id.split(':')[1]) - Number(right.id.split(':')[1])
       }
       return (

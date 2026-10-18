@@ -26,6 +26,14 @@ describe('Garrison event quick-add toolbar', () => {
     expect(code).not.toContain('onClick={undoEdit}')
     expect(code).not.toContain('onClick={redoEdit}')
   })
+  it('shows Main Story and Side Story optgroups in the event dropdown', () => {
+    const code = source('./GarrisonSquadFeature.tsx')
+    expect(code).toContain("label={group === 'main' ? 'Main Story' : 'Side Story'}")
+    expect(code).toContain('event.group === group')
+    const service = source('../../main/garrisonEventCatalogService.ts')
+    expect(service).toContain('cache.version === CATALOG_VERSION')
+  })
+
   it('appends the selected event as one transactional Garrison edit, preserving existing stages', () => {
     const code = source('./GarrisonSquadFeature.tsx')
     expect(code).toContain('appendEventStages(working.stages, selectedEvent, stageType)')

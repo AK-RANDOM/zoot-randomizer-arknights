@@ -684,10 +684,16 @@ export default function GarrisonSquadFeature({
               ) : events.length === 0 ? (
                 <option value="">Events unavailable</option>
               ) : (
-                events.map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.name}
-                  </option>
+                (['main', 'side'] as const).map((group) => (
+                  <optgroup key={group} label={group === 'main' ? 'Main Story' : 'Side Story'}>
+                    {events
+                      .filter((event) => event.group === group)
+                      .map((event) => (
+                        <option key={event.id} value={event.id}>
+                          {event.name}
+                        </option>
+                      ))}
+                  </optgroup>
                 ))
               )}
             </select>

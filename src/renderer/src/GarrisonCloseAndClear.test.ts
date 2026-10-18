@@ -7,7 +7,7 @@ const preload = readFileSync(new URL('../../preload/index.ts', import.meta.url),
 
 describe('Garrison close, placeholder and clearing controls', () => {
   it('does not automatically select Chapter 0 when event data arrives', () => {
-    expect(feature).toContain('<option value="" disabled hidden>Quick add event</option>')
+    expect(feature).toMatch(/<option value="" disabled hidden>\s*Quick add event\s*<\/option>/)
     expect(feature).toContain("const [eventId, setEventId] = useState('')")
     expect(feature).not.toContain("setEventId((current) => current || catalog[0]?.id || '')")
   })

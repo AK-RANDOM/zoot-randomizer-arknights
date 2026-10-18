@@ -21,6 +21,8 @@ import {
   type Garrison,
   type GarrisonStage,
 } from '../../shared/garrison'
+import { garrisonEventHelperOperator } from '../../shared/garrisonEventHelper'
+import GarrisonEventHelperAvatar from './GarrisonEventHelperAvatar'
 import GarrisonConflictDialog from './GarrisonConflictDialog'
 import GarrisonStageEditor from './GarrisonStageEditor'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
@@ -122,6 +124,10 @@ export default function GarrisonSquadFeature({
   const canUndo = stageEditor ? stageEditor.undo !== null : undoWorking !== null
   const canRedo = stageEditor ? stageEditor.redo !== null : redoWorking !== null
   const selectedEvent = events.find((event) => event.id === eventId)
+  const eventHelper = useMemo(
+    () => garrisonEventHelperOperator(selectedEvent, operators, metadataRegion),
+    [selectedEvent, operators, metadataRegion],
+  )
   const availableStageTypes = selectedEvent ? availableGarrisonEventStageTypes(selectedEvent) : []
   // The selected type may not exist for the next event. Always use a valid option.
   const selectedStageType = availableStageTypes.includes(stageType)
@@ -287,7 +293,11 @@ export default function GarrisonSquadFeature({
           saveSavedGarrisons(nextLibrary)
           window.desktop.completeGarrisonCloseSave(true)
         } catch (error) {
-          onMessage(error instanceof Error ? `Could not save Garrison: ${error.message}` : 'Could not save Garrison.')
+          onMessage(
+            error instanceof Error
+              ? `Could not save Garrison: ${error.message}`
+              : 'Could not save Garrison.',
+          )
           window.desktop.completeGarrisonCloseSave(false)
         }
       }),
@@ -523,8 +533,14 @@ export default function GarrisonSquadFeature({
   }
 
   const clearEverySquad = (): void => {
-    if (stageEditor || conflictDraft || !working.stages.some((stage) => stage.operatorIds.length)) return
-    if (!window.confirm('Clear all operator assignments? The stage table will be kept, and you can undo this edit.')) return
+    if (stageEditor || conflictDraft || !working.stages.some((stage) => stage.operatorIds.length))
+      return
+    if (
+      !window.confirm(
+        'Clear all operator assignments? The stage table will be kept, and you can undo this edit.',
+      )
+    )
+      return
     applyWorkingEdit(clearAllGarrisonSquads(working))
     onMessage('Cleared all stage squads without removing any stages. Use Undo Edit to restore.')
   }
@@ -813,40 +829,45 @@ export default function GarrisonSquadFeature({
         </section>
 
         <div className="garrison-stage-quickadd" aria-label="Garrison stage tools">
-          <label className="garrison-event-selector">
-            <span className="sr-only">Event name</span>
-            <select
-              aria-label="Event name"
-              title={eventsError ?? 'Select an event to add its stages'}
-              value={eventId}
-              disabled={
-                eventsLoading ||
-                events.length === 0 ||
-                stageEditor !== null ||
-                conflictDraft !== null
-              }
-              onChange={(event) => setEventId(event.target.value)}
-            >
-              <option value="" disabled hidden>Quick add event</option>
-              {eventsLoading ? (
-                <option value="">Loading events…</option>
-              ) : events.length === 0 ? (
-                <option value="">Events unavailable</option>
-              ) : (
-                (['main', 'side'] as const).map((group) => (
-                  <optgroup key={group} label={group === 'main' ? 'Main Story' : 'Side Story'}>
-                    {events
-                      .filter((event) => event.group === group)
-                      .map((event) => (
-                        <option key={event.id} value={event.id}>
-                          {event.name}
-                        </option>
-                      ))}
-                  </optgroup>
-                ))
-              )}
-            </select>
-          </label>
+          <div className="garrison-event-picker">
+            <GarrisonEventHelperAvatar operator={eventHelper} />
+            <label className="garrison-event-selector">
+              <span className="sr-only">Event name</span>
+              <select
+                aria-label="Event name"
+                title={eventsError ?? 'Select an event to add its stages'}
+                value={eventId}
+                disabled={
+                  eventsLoading ||
+                  events.length === 0 ||
+                  stageEditor !== null ||
+                  conflictDraft !== null
+                }
+                onChange={(event) => setEventId(event.target.value)}
+              >
+                <option value="" disabled hidden>
+                  Quick add event
+                </option>
+                {eventsLoading ? (
+                  <option value="">Loading events…</option>
+                ) : events.length === 0 ? (
+                  <option value="">Events unavailable</option>
+                ) : (
+                  (['main', 'side'] as const).map((group) => (
+                    <optgroup key={group} label={group === 'main' ? 'Main Story' : 'Side Story'}>
+                      {events
+                        .filter((event) => event.group === group)
+                        .map((event) => (
+                          <option key={event.id} value={event.id}>
+                            {event.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))
+                )}
+              </select>
+            </label>
+          </div>
           <label className="garrison-type-selector">
             <span className="sr-only">Stage type</span>
             <select
@@ -895,7 +916,11 @@ export default function GarrisonSquadFeature({
           <button
             type="button"
             className="secondary-button"
-            disabled={stageEditor !== null || conflictDraft !== null || !working.stages.some((stage) => stage.operatorIds.length > 0)}
+            disabled={
+              stageEditor !== null ||
+              conflictDraft !== null ||
+              !working.stages.some((stage) => stage.operatorIds.length > 0)
+            }
             onClick={clearEverySquad}
             title="Clear all operator assignments, preserving the stage table"
           >
@@ -995,7 +1020,11 @@ export default function GarrisonSquadFeature({
                     <button
                       type="button"
                       className="secondary-button"
-                      disabled={stageEditor !== null || conflictDraft !== null || stage.operatorIds.length === 0}
+                      disabled={
+                        stageEditor !== null ||
+                        conflictDraft !== null ||
+                        stage.operatorIds.length === 0
+                      }
                       onClick={() => clearStageSquad(stage.id)}
                       title={`Clear operators from ${stage.name} without deleting the stage`}
                     >

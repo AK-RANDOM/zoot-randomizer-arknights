@@ -7,6 +7,7 @@ import {
   getGarrisonConflictOperatorIds,
   getGarrisonOperatorConflicts,
   getGarrisonParticipation,
+  reorderGarrisonStages,
   garrisonHasOperatorConflicts,
   normalizeGarrisonStageOperatorIds,
   type Garrison,
@@ -102,5 +103,31 @@ describe('Garrison model', () => {
     const cloned = cloneGarrison(original)
     cloned.stages[0]?.operatorIds.push('char_b')
     expect(original.stages[0]?.operatorIds).toEqual(['char_a'])
+  })
+})
+
+describe('Garrison stage drag ordering', () => {
+  it('moves a row upward or downward without changing assignments or IDs', () => {
+    const original = sampleGarrison()
+    const moved = reorderGarrisonStages(original, 'stage:a', 'stage:c', 'after')
+    expect(moved.stages.map(({ id }) => id)).toEqual(['stage:b', 'stage:c', 'stage:a'])
+    expect(moved.stages[2].operatorIds).toEqual(['char_a', 'char_b'])
+    expect(original.stages.map(({ id }) => id)).toEqual(['stage:a', 'stage:b', 'stage:c'])
+    const back = reorderGarrisonStages(moved, 'stage:a', 'stage:b', 'before')
+    expect(back).toEqual(original)
+  })
+
+  it('ignores invalid and same-row drops', () => {
+    const original = sampleGarrison()
+    expect(reorderGarrisonStages(original, 'stage:a', 'stage:a', 'before')).toEqual(original)
+    expect(reorderGarrisonStages(original, 'missing', 'stage:b', 'after')).toEqual(original)
+    expect(reorderGarrisonStages(original, 'stage:a', 'missing', 'after')).toEqual(original)
+  })
+
+  it('changes participation first-seen order as rows are moved', () => {
+    const original = sampleGarrison()
+    const moved = reorderGarrisonStages(original, 'stage:c', 'stage:a', 'before')
+    expect(moved.stages[0].name).toBe('Stage C')
+    expect(getGarrisonParticipation(moved)).toEqual(getGarrisonParticipation(original))
   })
 })

@@ -36,9 +36,19 @@ describe('Garrison event quick-add toolbar', () => {
 
   it('appends the selected event as one transactional Garrison edit, preserving existing stages', () => {
     const code = source('./GarrisonSquadFeature.tsx')
-    expect(code).toContain('appendEventStages(working.stages, selectedEvent, stageType)')
+    expect(code).toContain('appendEventStages(working.stages, selectedEvent, selectedStageType)')
     expect(code).toContain('next.stages.push(...names.map((name) => createGarrisonStage(name)))')
     expect(code).toContain('applyWorkingEdit(next)')
+  })
+  it('shows story-appropriate stage types only when populated, and resets missing choices', () => {
+    const code = source('./GarrisonSquadFeature.tsx')
+    expect(code).toContain('availableGarrisonEventStageTypes(selectedEvent)')
+    expect(code).toContain('availableStageTypes.includes(stageType)')
+    expect(code).toContain('availableStageTypes.map((type) => (')
+    expect(code).toContain("? 'H Stage'")
+    expect(code).toContain("? 'EX Stage'")
+    expect(code).toContain(": 'S Stage'")
+    expect(code).toContain('value={selectedStageType}')
   })
   it('loads the catalog through the desktop API and offers cached offline use', () => {
     expect(source('./GarrisonSquadFeature.tsx')).toContain('window.desktop.getGarrisonEvents()')

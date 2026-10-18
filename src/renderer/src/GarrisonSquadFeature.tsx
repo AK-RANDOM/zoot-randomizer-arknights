@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import type { DragEvent, KeyboardEvent } from 'react'
 import type { Operator } from '../../shared/operator'
 import {
   appendEventStages,
+  availableGarrisonEventStageTypes,
   type GarrisonEvent,
   type GarrisonEventStageType,
 } from '../../shared/garrisonEventCatalog'
@@ -13,6 +15,7 @@ import {
   garrisonEquals,
   getGarrisonParticipation,
   garrisonHasOperatorConflicts,
+  reorderGarrisonStages,
   type Garrison,
   type GarrisonStage,
 } from '../../shared/garrison'
@@ -87,6 +90,11 @@ export default function GarrisonSquadFeature({
   const [eventsError, setEventsError] = useState<string | null>(null)
   const [eventId, setEventId] = useState('')
   const [stageType, setStageType] = useState<GarrisonEventStageType>('standard')
+  const [draggedStageId, setDraggedStageId] = useState<string | null>(null)
+  const [stageDropHint, setStageDropHint] = useState<{
+    stageId: string
+    placement: 'before' | 'after'
+  } | null>(null)
   const [conflictDraft, setConflictDraft] = useState<Garrison | null>(null)
   const [conflictPurpose, setConflictPurpose] = useState<ConflictPurpose | null>(null)
   const [nameDialog, setNameDialog] = useState<{
@@ -108,7 +116,12 @@ export default function GarrisonSquadFeature({
   const canUndo = stageEditor ? stageEditor.undo !== null : undoWorking !== null
   const canRedo = stageEditor ? stageEditor.redo !== null : redoWorking !== null
   const selectedEvent = events.find((event) => event.id === eventId)
-  const selectedEventStages = selectedEvent?.stages[stageType] ?? []
+  const availableStageTypes = selectedEvent ? availableGarrisonEventStageTypes(selectedEvent) : []
+  // The selected type may not exist for the next event. Always use a valid option.
+  const selectedStageType = availableStageTypes.includes(stageType)
+    ? stageType
+    : (availableStageTypes[0] ?? 'standard')
+  const selectedEventStages = selectedEvent?.stages[selectedStageType] ?? []
 
   useEffect(() => {
     let active = true
@@ -294,9 +307,11 @@ export default function GarrisonSquadFeature({
 
   const addEvent = (): void => {
     if (stageEditor || conflictDraft || !selectedEvent) return
-    const names = appendEventStages(working.stages, selectedEvent, stageType)
+    const names = appendEventStages(working.stages, selectedEvent, selectedStageType)
     if (!names.length) {
-      onMessage(`No new ${stageType.toUpperCase()} stages to add for “${selectedEvent.name}”.`)
+      onMessage(
+        `No new ${selectedStageType.toUpperCase()} stages to add for “${selectedEvent.name}”.`,
+      )
       return
     }
     const next = cloneGarrison(working)
@@ -383,6 +398,70 @@ export default function GarrisonSquadFeature({
     const next = cloneGarrison(working)
     next.stages = next.stages.map((stage) => (stage.id === stageId ? { ...stage, name } : stage))
     applyWorkingEdit(next)
+  }
+
+  const moveStage = (
+    movingStageId: string,
+    targetStageId: string,
+    placement: 'before' | 'after',
+  ): void => {
+    if (stageEditor || conflictDraft) return
+    const next = reorderGarrisonStages(working, movingStageId, targetStageId, placement)
+    if (garrisonEquals(working, next)) return
+    applyWorkingEdit(next)
+    onMessage('Reordered Garrison stages. Save Garrison to keep the new order.')
+  }
+
+  const stageDragStart = (event: DragEvent<HTMLButtonElement>, stageId: string): void => {
+    if (stageEditor || conflictDraft) {
+      event.preventDefault()
+      return
+    }
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', stageId)
+    setDraggedStageId(stageId)
+    setStageDropHint(null)
+  }
+
+  const stageDragOver = (event: DragEvent<HTMLDivElement>, stageId: string): void => {
+    if (!draggedStageId || draggedStageId === stageId || stageEditor || conflictDraft) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    const placement =
+      event.clientY <
+      event.currentTarget.getBoundingClientRect().top +
+        event.currentTarget.getBoundingClientRect().height / 2
+        ? 'before'
+        : 'after'
+    setStageDropHint((current) =>
+      current?.stageId === stageId && current.placement === placement
+        ? current
+        : { stageId, placement },
+    )
+  }
+
+  const stageDrop = (event: DragEvent<HTMLDivElement>, stageId: string): void => {
+    event.preventDefault()
+    const movingStageId = draggedStageId
+    const placement =
+      event.clientY <
+      event.currentTarget.getBoundingClientRect().top +
+        event.currentTarget.getBoundingClientRect().height / 2
+        ? 'before'
+        : 'after'
+    setDraggedStageId(null)
+    setStageDropHint(null)
+    if (movingStageId) moveStage(movingStageId, stageId, placement)
+  }
+
+  const stageHandleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, stageId: string): void => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return
+    if (stageEditor || conflictDraft) return
+    event.preventDefault()
+    const currentIndex = working.stages.findIndex((stage) => stage.id === stageId)
+    const targetIndex = currentIndex + (event.key === 'ArrowUp' ? -1 : 1)
+    const target = working.stages[targetIndex]
+    if (target) moveStage(stageId, target.id, event.key === 'ArrowUp' ? 'before' : 'after')
   }
 
   const deleteStage = (stageId: string): void => {
@@ -706,13 +785,23 @@ export default function GarrisonSquadFeature({
             <span className="sr-only">Stage type</span>
             <select
               aria-label="Stage type"
-              value={stageType}
-              disabled={stageEditor !== null || conflictDraft !== null}
+              value={selectedStageType}
+              disabled={
+                availableStageTypes.length === 0 || stageEditor !== null || conflictDraft !== null
+              }
               onChange={(event) => setStageType(event.target.value as GarrisonEventStageType)}
             >
-              <option value="standard">Standard Stage</option>
-              <option value="ex">EX Stage</option>
-              <option value="s">S Stage</option>
+              {availableStageTypes.map((type) => (
+                <option key={type} value={type}>
+                  {type === 'standard'
+                    ? 'Standard Stage'
+                    : type === 'h'
+                      ? 'H Stage'
+                      : type === 'ex'
+                        ? 'EX Stage'
+                        : 'S Stage'}
+                </option>
+              ))}
             </select>
           </label>
           <button
@@ -722,7 +811,7 @@ export default function GarrisonSquadFeature({
             onClick={addEvent}
             title={
               selectedEvent
-                ? `Add ${selectedEventStages.length} ${stageType.toUpperCase()} stages from ${selectedEvent.name}`
+                ? `Add ${selectedEventStages.length} ${selectedStageType.toUpperCase()} stages from ${selectedEvent.name}`
                 : 'Select an event first'
             }
           >
@@ -755,16 +844,45 @@ export default function GarrisonSquadFeature({
           ) : (
             working.stages.map((stage) => (
               <Fragment key={stage.id}>
-                <div className="garrison-stage-row" role="row">
-                  <label className="garrison-stage-name" role="cell">
-                    <span className="sr-only">Stage name</span>
-                    <input
-                      type="text"
-                      value={stage.name}
+                <div
+                  className={[
+                    'garrison-stage-row',
+                    draggedStageId === stage.id ? 'is-dragging' : '',
+                    stageDropHint?.stageId === stage.id ? `is-drop-${stageDropHint.placement}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  role="row"
+                  onDragOver={(event) => stageDragOver(event, stage.id)}
+                  onDrop={(event) => stageDrop(event, stage.id)}
+                >
+                  <div className="garrison-stage-name-cell" role="cell">
+                    <button
+                      type="button"
+                      className="garrison-stage-drag-handle"
+                      draggable={stageEditor === null && conflictDraft === null}
                       disabled={stageEditor !== null || conflictDraft !== null}
-                      onChange={(event) => renameStage(stage.id, event.target.value)}
-                    />
-                  </label>
+                      aria-label={`Reorder ${stage.name}; use Up or Down arrow keys`}
+                      title="Drag to reorder; use Up/Down arrow keys when focused"
+                      onDragStart={(event) => stageDragStart(event, stage.id)}
+                      onDragEnd={() => {
+                        setDraggedStageId(null)
+                        setStageDropHint(null)
+                      }}
+                      onKeyDown={(event) => stageHandleKeyDown(event, stage.id)}
+                    >
+                      <span aria-hidden="true">⠿</span>
+                    </button>
+                    <label className="garrison-stage-name">
+                      <span className="sr-only">Stage name</span>
+                      <input
+                        type="text"
+                        value={stage.name}
+                        disabled={stageEditor !== null || conflictDraft !== null}
+                        onChange={(event) => renameStage(stage.id, event.target.value)}
+                      />
+                    </label>
+                  </div>
                   <div className="garrison-stage-squad-preview" role="cell">
                     {stage.operatorIds.length === 0 ? (
                       <span className="garrison-stage-squad-placeholder">Empty</span>

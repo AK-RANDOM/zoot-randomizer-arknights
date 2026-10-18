@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendEventStages,
+  availableGarrisonEventStageTypes,
   buildGarrisonEventCatalog,
   classifyGarrisonEventStage,
+  classifyMainStoryStage,
 } from './garrisonEventCatalog'
 
 describe('Garrison event stage catalog', () => {
@@ -40,13 +42,17 @@ describe('Garrison event stage catalog', () => {
     ...extra,
   })
 
-  it('distinguishes Standard, EX and S from story, tutorial and special operations', () => {
+  it('classifies side-story EX and S while sending other non-tutorial stages to Standard', () => {
     expect(classifyGarrisonEventStage('GA-1')).toBe('standard')
     expect(classifyGarrisonEventStage('OF-EX6')).toBe('ex')
     expect(classifyGarrisonEventStage('GT-EX-2')).toBe('ex')
     expect(classifyGarrisonEventStage('DH-S-1')).toBe('s')
-    for (const code of ['GA-ST-1', 'GA-TR-1', 'OF-MO-1', 'GT-HX-1', 'GA-EX-CM-1']) {
-      expect(classifyGarrisonEventStage(code)).toBeNull()
+    expect(classifyGarrisonEventStage('S3-1')).toBe('standard')
+    expect(classifyGarrisonEventStage('TR-15')).toBeNull()
+    expect(classifyGarrisonEventStage('SN-TR-1')).toBeNull()
+    expect(classifyGarrisonEventStage('GA-TR-1')).toBeNull()
+    for (const code of ['GA-ST-1', 'OF-MO-1', 'GT-HX-1', 'GA-EX-CM-1']) {
+      expect(classifyGarrisonEventStage(code)).toBe('standard')
     }
   })
 
@@ -216,13 +222,131 @@ describe('Garrison event stage catalog', () => {
     expect(catalog[3].releaseTime).toBe(500)
   })
 
+  it('imports only episode-matching Chapter 3 stages and excludes tutorials and side-event codes', () => {
+    const stages: Record<
+      string,
+      { code: string; zoneId: string; stageType: string; difficulty: string }
+    > = {}
+    for (let i = 1; i <= 8; i += 1) {
+      stages[`main${i}`] = {
+        code: `3-${i}`,
+        zoneId: 'main_3',
+        stageType: 'MAIN',
+        difficulty: 'NORMAL',
+      }
+      stages[`sub${i}`] = {
+        code: `S3-${i}`,
+        zoneId: 'main_3',
+        stageType: 'SUB',
+        difficulty: 'NORMAL',
+      }
+    }
+    for (const code of ['TR-15', 'AF-2', 'SA-2', 'S2-8', '4-1', 'TR-21']) {
+      stages[`other${code}`] = { code, zoneId: 'main_3', stageType: 'MAIN', difficulty: 'NORMAL' }
+    }
+    const catalog = buildGarrisonEventCatalog(
+      { basicInfo: {} },
+      { zones: { main_3: { type: 'MAINLINE', zoneNameSecond: 'Stinging Shock' } } },
+      { stages },
+    )
+    expect(catalog).toHaveLength(1)
+    expect(catalog[0].name).toBe('Chapter 3 - Stinging Shock')
+    expect(catalog[0].stages.standard).toEqual([
+      ...Array.from({ length: 8 }, (_, i) => `3-${i + 1}`),
+      ...Array.from({ length: 8 }, (_, i) => `S3-${i + 1}`),
+    ])
+    expect(catalog[0].stages.s).toEqual([])
+    expect(catalog[0].stages.ex).toEqual([])
+  })
+
+  it('limits main story to the selected chapter and excludes tutorial codes', () => {
+    expect(classifyMainStoryStage('3-8', 3)).toBe('standard')
+    expect(classifyMainStoryStage('S3-7', 3)).toBe('standard')
+    expect(classifyMainStoryStage('S3-8', 3)).toBe('standard')
+    expect(classifyMainStoryStage('AF-2', 3)).toBeNull()
+    expect(classifyMainStoryStage('SA-2', 3)).toBeNull()
+    expect(classifyMainStoryStage('S2-1', 3)).toBeNull()
+    expect(classifyMainStoryStage('TR-15', 3)).toBeNull()
+  })
+
+  it('offers Main Story Standard/H only and Side Story Standard/EX/S only when populated', () => {
+    const catalog = buildGarrisonEventCatalog(
+      { basicInfo: { act8side: { name: 'Event Eight', displayType: 'SIDESTORY' } } },
+      {
+        zones: {
+          main_5: { type: 'MAINLINE', zoneNameSecond: 'Necessary Solutions' },
+          act8side_zone1: { type: 'ACTIVITY' },
+        },
+      },
+      {
+        stages: {
+          main: { code: '5-1', zoneId: 'main_5', stageType: 'MAIN', difficulty: 'NORMAL' },
+          sub: { code: 'S5-1', zoneId: 'main_5', stageType: 'SUB', difficulty: 'NORMAL' },
+          hard: { code: 'H5-1', zoneId: 'main_5', stageType: 'MAIN', difficulty: 'NORMAL' },
+          tutorial: { code: 'TR-11', zoneId: 'main_5', stageType: 'MAIN', difficulty: 'NORMAL' },
+          side: {
+            code: 'EF-1',
+            zoneId: 'act8side_zone1',
+            stageType: 'ACTIVITY',
+            difficulty: 'NORMAL',
+          },
+          ex: {
+            code: 'EF-EX-1',
+            zoneId: 'act8side_zone1',
+            stageType: 'ACTIVITY',
+            difficulty: 'NORMAL',
+          },
+          special: {
+            code: 'EF-MO-1',
+            zoneId: 'act8side_zone1',
+            stageType: 'ACTIVITY',
+            difficulty: 'NORMAL',
+          },
+          tutorial2: {
+            code: 'EF-TR-1',
+            zoneId: 'act8side_zone1',
+            stageType: 'ACTIVITY',
+            difficulty: 'NORMAL',
+          },
+        },
+      },
+    )
+    const main = catalog.find((event) => event.group === 'main')!
+    const side = catalog.find((event) => event.group === 'side')!
+    expect(availableGarrisonEventStageTypes(main)).toEqual(['standard', 'h'])
+    expect(main.stages.standard).toEqual(['5-1', 'S5-1'])
+    expect(main.stages.h).toEqual(['H5-1'])
+    expect(availableGarrisonEventStageTypes(side)).toEqual(['standard', 'ex'])
+    expect(side.stages.standard).toEqual(['EF-1', 'EF-MO-1'])
+    expect(side.stages.ex).toEqual(['EF-EX-1'])
+    expect(side.stages.s).toEqual([])
+  })
+
+  it('hides the category dropdown options for any stage types missing from an event', () => {
+    const bare = {
+      id: 'main:3',
+      name: 'Chapter 3 - Stinging Shock',
+      group: 'main' as const,
+      releaseTime: null,
+      stages: { standard: ['3-1', 'S3-1'], h: [], ex: [], s: [] },
+    }
+    expect(availableGarrisonEventStageTypes(bare)).toEqual(['standard'])
+    expect(
+      availableGarrisonEventStageTypes({
+        ...bare,
+        group: 'side',
+        stages: { standard: [], h: [], ex: ['EF-EX-1'], s: ['EF-S-1'] },
+      }),
+    ).toEqual(['ex', 's'])
+  })
+
   it('adds only missing stages and never creates guessed stage numbers', () => {
     const event = {
       id: 'act13side',
       name: 'Example Side Story',
       group: 'side' as const,
       releaseTime: 100,
-      stages: { standard: ['GA-1', 'GA-2', 'GA-3'], ex: [], s: ['GA-S-1'] },
+      stages: { standard: ['GA-1', 'GA-2', 'GA-3'], h: [], ex: [], s: ['GA-S-1'] },
     }
     expect(appendEventStages([{ name: 'ga-2' }, { name: 'Elsewhere' }], event, 'standard')).toEqual(
       ['GA-1', 'GA-3'],

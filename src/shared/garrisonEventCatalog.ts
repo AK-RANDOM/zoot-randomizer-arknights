@@ -1,5 +1,5 @@
 /** Event-stage quick-add catalog derived from the English game-data tables. */
-export type GarrisonEventStageType = 'standard' | 'ex' | 's'
+export type GarrisonEventStageType = 'standard' | 'h' | 'ex' | 's'
 export type GarrisonEventGroup = 'main' | 'side'
 
 export interface GarrisonEvent {
@@ -11,13 +11,43 @@ export interface GarrisonEvent {
   stages: Record<GarrisonEventStageType, string[]>
 }
 
-const STAGE_TYPES: readonly GarrisonEventStageType[] = ['standard', 'ex', 's']
+const STAGE_TYPES: readonly GarrisonEventStageType[] = ['standard', 'h', 'ex', 's']
+const MAIN_TYPES: readonly GarrisonEventStageType[] = ['standard', 'h']
+const SIDE_TYPES: readonly GarrisonEventStageType[] = ['standard', 'ex', 's']
+
+/** Stage categories are specific to story type, and empty ones are omitted. */
+export function availableGarrisonEventStageTypes(event: GarrisonEvent): GarrisonEventStageType[] {
+  return (event.group === 'main' ? MAIN_TYPES : SIDE_TYPES).filter(
+    (type) => event.stages[type]?.length > 0,
+  )
+}
 
 export function classifyGarrisonEventStage(code: string): GarrisonEventStageType | null {
+  // Tutorial labels occur both standalone (TR-15) and inside event codes (SN-TR-1).
+  if (/(?:^|-)TR(?:-|\d|$)/i.test(code)) return null
+  if (!code.trim()) return null
   if (/^[a-z0-9]+-EX-?\d+$/i.test(code)) return 'ex'
   if (/^[a-z0-9]+-S-?\d+$/i.test(code)) return 's'
-  if (/^[a-z0-9]+-\d+$/i.test(code)) return 'standard'
-  return null // No tutorial, story-only, challenge, MO, or special stages.
+  // Any other non-tutorial operation for this event belongs in Standard.
+  return 'standard'
+}
+
+/**
+ * Zone assignments alone aren't enough for a Main Story event: side-event
+ * operations can also be assigned to a main_# zone. Only accept operation
+ * codes belonging to that episode. Main Story S# operations are Standard,
+ * while H# operations have their own H category.
+ */
+export function classifyMainStoryStage(
+  code: string,
+  episode: number,
+): GarrisonEventStageType | null {
+  if (/(?:^|-)TR(?:-|\d|$)/i.test(code)) return null
+  if (new RegExp(`^H${episode}-\\d+$`, 'i').test(code)) return 'h'
+  if (new RegExp(`^(?:S)?${episode}-\\d+$`, 'i').test(code)) return 'standard'
+  // Episode 8's core operations use three story-route prefixes.
+  if (episode === 8 && /^(?:R8|M8|JT8)-\d+$/i.test(code)) return 'standard'
+  return null
 }
 
 interface GameActivity {
@@ -108,14 +138,14 @@ export function buildGarrisonEventCatalog(
   for (const stage of stages) {
     if (stage.difficulty !== 'NORMAL' || stage.isStoryOnly || stage.isHardPredefined) continue
     const code = stage.code?.trim() ?? ''
-    const type = classifyGarrisonEventStage(code)
-    if (!type) continue
     const zoneId = stage.zoneId ?? ''
     const zone = zones[zoneId]
     if (!zone) continue
 
     const episode = mainlineEpisode(zoneId, zone)
     const isMain = episode !== null
+    const type = isMain ? classifyMainStoryStage(code, episode) : classifyGarrisonEventStage(code)
+    if (!type) continue
     // Do not collapse actXXside_rerun_zone1 into actXXside: it is a separate
     // activity record that must be excluded, not appended to the original.
     const activityId = zoneId.replace(/_zone\d+.*$/, '')
@@ -123,7 +153,8 @@ export function buildGarrisonEventCatalog(
     if (isMain) {
       // Main-story chapters can be served from normal mainline or from
       // limited-time/retro mainline zones. Merge them by episode number.
-      if (!['MAIN', 'ACTIVITY'].includes(stage.stageType ?? '')) continue
+      // Some S# sub-operations use SUB rather than MAIN stageType.
+      if (!['MAIN', 'SUB', 'ACTIVITY'].includes(stage.stageType ?? '')) continue
     } else if (
       stage.stageType !== 'ACTIVITY' ||
       !activity ||
@@ -147,7 +178,7 @@ export function buildGarrisonEventCatalog(
         name,
         group,
         releaseTime,
-        stages: { standard: [], ex: [], s: [] },
+        stages: { standard: [], h: [], ex: [], s: [] },
       }
       byKey.set(key, event)
     } else if (releaseTime !== null) {

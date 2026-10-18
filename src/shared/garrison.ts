@@ -160,3 +160,20 @@ export function clearGarrisonOperatorConflicts(garrison: Garrison): Garrison {
 
   return next
 }
+
+/** Move a stage without changing its ID or assignments. Invalid moves are no-ops. */
+export function reorderGarrisonStages(
+  garrison: Garrison,
+  movingStageId: string,
+  targetStageId: string,
+  placement: 'before' | 'after',
+): Garrison {
+  const from = garrison.stages.findIndex((stage) => stage.id === movingStageId)
+  const target = garrison.stages.findIndex((stage) => stage.id === targetStageId)
+  if (from < 0 || target < 0 || from === target) return cloneGarrison(garrison)
+  const next = cloneGarrison(garrison)
+  const [moving] = next.stages.splice(from, 1)
+  const targetIndex = next.stages.findIndex((stage) => stage.id === targetStageId)
+  next.stages.splice(targetIndex + (placement === 'after' ? 1 : 0), 0, moving)
+  return next
+}

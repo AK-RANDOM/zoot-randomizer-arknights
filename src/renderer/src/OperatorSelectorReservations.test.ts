@@ -45,7 +45,7 @@ describe('Standard slot operator reservations', () => {
       ['alpha', true],
       ['beta', false],
     ])
-    expect(filtered[0].disabledReason).toContain('Already picked in another slot')
+    expect(filtered[0].disabledReason).toContain('Already in squad')
   })
 
   it('disables alters of another fixed operator when Alter Exclusivity is enabled', () => {
@@ -66,7 +66,7 @@ describe('Standard slot operator reservations', () => {
       ['alpha-alter', true],
       ['beta', false],
     ])
-    expect(filtered[1].disabledReason).toContain('Alter of an operator')
+    expect(filtered[1].disabledReason).toContain('Alter in squad')
   })
   it('does not disable alters when Alter Exclusivity is off', () => {
     const original = operator('alpha', 'group')

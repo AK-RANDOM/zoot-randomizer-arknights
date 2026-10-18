@@ -40,9 +40,7 @@ export function filterReservedSlotOperatorOptions(
       reservedAlterGroups.has(option.operator.alterGroup),
     )
     if (!exactReserved && !alterReserved) return option
-    const reason = exactReserved
-      ? 'Already picked in another slot'
-      : 'Alter of an operator picked in another slot'
+    const reason = exactReserved ? 'Already in squad' : 'Alter in squad'
     return {
       ...option,
       disabled: true,

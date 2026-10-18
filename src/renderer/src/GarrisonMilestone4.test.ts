@@ -23,7 +23,7 @@ describe('Garrison Squad M4 cross-stage duplicate policy', () => {
     expect(feature).toContain('duplicateOperatorsAllowed={working.duplicateOperatorsAllowed}')
     expect(editor).toContain('crossStageAssignments')
     expect(editor).toContain('disabled: Boolean(reason)')
-    expect(editor).toContain('Already assigned to')
+    expect(editor).toContain('Assigned to')
     expect(editor).toContain('remain visible but unavailable')
     expect(editor).toContain('if (!option || option.disabled) return')
   })
@@ -36,7 +36,7 @@ describe('Garrison Squad M4 cross-stage duplicate policy', () => {
   it('retains same-stage duplicate prevention independently of cross-stage policy', () => {
     const editor = read('./GarrisonStageEditor.tsx')
     expect(editor).toContain('reservedInStage')
-    expect(editor).toContain("'Already picked in this stage'")
+    expect(editor).toContain("'Already in squad'")
     expect(editor).toContain('normalizeGarrisonStageOperatorIds(next)')
   })
 

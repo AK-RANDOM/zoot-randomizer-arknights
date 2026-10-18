@@ -14,8 +14,8 @@ describe('Garrison review refinements', () => {
     const standard = read('./SquadConstraintEditorBase.tsx')
     const selector = read('./OperatorSelector.tsx')
     expect(standard).toContain('disabled: reservedIdentity')
-    expect(selector).toContain('Alter of an operator picked in another slot')
-    expect(selector).toContain('Already picked in another slot')
+    expect(selector).toContain('Alter in squad')
+    expect(selector).toContain('Already in squad')
   })
 
   it('applies alter exclusivity within the Garrison stage', () => {
@@ -24,7 +24,7 @@ describe('Garrison review refinements', () => {
     expect(app).toContain('alterExclusivity={constraints.alterExclusivity}')
     expect(editor).toContain('reservedAlterGroups')
     expect(editor).toContain('alterExclusivity && operator.alterGroup')
-    expect(editor).toContain('Alter of an operator already picked in this stage')
+    expect(editor).toContain('Alter in squad')
   })
 
   it('confirms unresolved conflicts without silently cleaning them or disabling duplicates', () => {

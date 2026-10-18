@@ -34,8 +34,7 @@ function StageNameInput({
 }
 
 function conflictReason(stageNames: readonly string[]): string {
-  if (stageNames.length === 1) return `Already assigned to ${stageNames[0]}`
-  return `Already assigned to ${stageNames.join(', ')}`
+  return `Assigned to ${stageNames.join(', ')}`
 }
 
 export default function GarrisonStageEditor({
@@ -98,9 +97,9 @@ export default function GarrisonStageEditor({
       .map((operator) => {
         const conflictingStages = crossStageAssignments.get(operator.id) ?? []
         const reason = reservedInStage.has(operator.id)
-          ? 'Already picked in this stage'
+          ? 'Already in squad'
           : alterExclusivity && operator.alterGroup && reservedAlterGroups.has(operator.alterGroup)
-            ? 'Alter of an operator already picked in this stage'
+            ? 'Alter in squad'
             : conflictingStages.length > 0
               ? conflictReason(conflictingStages)
               : undefined
@@ -260,7 +259,7 @@ export default function GarrisonStageEditor({
               <div>
                 <p className="eyebrow">GARRISON OPERATOR</p>
                 <h3 id="garrison-operator-picker-title">
-                  {editingOperatorId ? 'Modify' : 'Add'} slot {editingSlotIndex + 1}
+                  {editingOperatorId ? 'Modify Operator' : 'Add Operator'}
                 </h3>
               </div>
               <button

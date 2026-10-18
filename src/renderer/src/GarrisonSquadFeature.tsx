@@ -595,9 +595,11 @@ export default function GarrisonSquadFeature({
             }}
           >
             <strong id="garrison-participants-heading">Participating Operators</strong>
-            <span style={{ color: '#77777e', fontSize: '0.68rem' }}>
-              {participation.length} unique
-            </span>
+            {working.duplicateOperatorsAllowed && (
+              <span style={{ color: '#77777e', fontSize: '0.68rem' }}>
+                {participation.length} unique
+              </span>
+            )}
           </div>
           {participation.length === 0 ? (
             <p>No operators assigned yet.</p>
@@ -634,29 +636,31 @@ export default function GarrisonSquadFeature({
                         ?
                       </span>
                     )}
-                    <span
-                      className="garrison-participant-count"
-                      aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
-                      style={{
-                        position: 'absolute',
-                        right: -4,
-                        bottom: -4,
-                        display: 'grid',
-                        minWidth: 19,
-                        height: 19,
-                        placeItems: 'center',
-                        padding: '0 4px',
-                        border: '1px solid rgba(255, 255, 255, 0.42)',
-                        borderRadius: 999,
-                        color: '#fff',
-                        background: '#171719',
-                        fontSize: '0.62rem',
-                        fontWeight: 900,
-                        lineHeight: 1,
-                      }}
-                    >
-                      ×{stageCount}
-                    </span>
+                    {working.duplicateOperatorsAllowed && (
+                      <span
+                        className="garrison-participant-count"
+                        aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
+                        style={{
+                          position: 'absolute',
+                          right: -4,
+                          bottom: -4,
+                          display: 'grid',
+                          minWidth: 19,
+                          height: 19,
+                          placeItems: 'center',
+                          padding: '0 4px',
+                          border: '1px solid rgba(255, 255, 255, 0.42)',
+                          borderRadius: 999,
+                          color: '#fff',
+                          background: '#171719',
+                          fontSize: '0.62rem',
+                          fontWeight: 900,
+                          lineHeight: 1,
+                        }}
+                      >
+                        ×{stageCount}
+                      </span>
+                    )}
                   </span>
                 )
               })}

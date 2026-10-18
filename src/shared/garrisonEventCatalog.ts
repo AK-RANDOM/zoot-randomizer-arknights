@@ -46,6 +46,26 @@ const cleanedEventName = (name: string): string =>
     .trim()
     .replace(/\s*[-–—]+\s*$/, '')
     .trim()
+
+/** A rerun isn't a separate event and cannot contribute duplicate stages. */
+function isRerunActivity(activityId: string, activity: GameActivity): boolean {
+  return (
+    activity.isReplicate === true ||
+    /(?:^|[_-])(?:re|rerun|replicate)$/.test(activityId.toLowerCase()) ||
+    /(?:^|\s|[-–—])(?:\(?re-?run\)?|\(?rerun\)?|复刻|復刻)(?:\s*[-–—])?$/i.test(
+      activity.name?.trim() ?? '',
+    )
+  )
+}
+
+/** Some collaboration Side Stories use a different displayType in activity_table. */
+function isSideEvent(activityId: string, activity: GameActivity, zone: GameZone): boolean {
+  return (
+    ['SIDESTORY', 'BRANCHLINE'].includes(activity.displayType ?? '') ||
+    (zone.type === 'ACTIVITY' && /^act\d+(?:side|sre|mini)$/.test(activityId))
+  )
+}
+
 const validReleaseTime = (time: number | undefined): number | null =>
   typeof time === 'number' && Number.isFinite(time) && time > 0 ? time : null
 
@@ -96,7 +116,9 @@ export function buildGarrisonEventCatalog(
 
     const episode = mainlineEpisode(zoneId, zone)
     const isMain = episode !== null
-    const activityId = zoneId.split('_')[0]
+    // Do not collapse actXXside_rerun_zone1 into actXXside: it is a separate
+    // activity record that must be excluded, not appended to the original.
+    const activityId = zoneId.replace(/_zone\d+.*$/, '')
     const activity = activities[activityId]
     if (isMain) {
       // Main-story chapters can be served from normal mainline or from
@@ -105,7 +127,8 @@ export function buildGarrisonEventCatalog(
     } else if (
       stage.stageType !== 'ACTIVITY' ||
       !activity ||
-      !['SIDESTORY', 'BRANCHLINE'].includes(activity.displayType ?? '')
+      isRerunActivity(activityId, activity) ||
+      !isSideEvent(activityId, activity, zone)
     ) {
       continue
     }
@@ -113,14 +136,7 @@ export function buildGarrisonEventCatalog(
     const group: GarrisonEventGroup = isMain ? 'main' : 'side'
     const name = isMain
       ? `Chapter ${episode} - ${cleanedEventName(zone.zoneNameSecond ?? '')}`
-      : cleanedEventName(
-          activity?.isReplicate
-            ? cleanedEventName(activity.name ?? '').replace(
-                /\s*(?:\((?:re)?run\)|（复刻）|\s+rerun)\s*$/i,
-                '',
-              )
-            : (activity?.name ?? ''),
-        )
+      : cleanedEventName(activity?.name ?? '')
     if (!name || (isMain && !zone.zoneNameSecond?.trim())) continue
     const key = isMain ? `main:${episode}` : `side:${name.toLocaleLowerCase('en')}`
     let event = byKey.get(key)
@@ -135,7 +151,7 @@ export function buildGarrisonEventCatalog(
       }
       byKey.set(key, event)
     } else if (releaseTime !== null) {
-      // When a side story has reruns, retain its original/earliest release date.
+      // If the source contains multiple original zones, keep the first release date.
       event.releaseTime =
         event.releaseTime === null ? releaseTime : Math.min(event.releaseTime, releaseTime)
     }

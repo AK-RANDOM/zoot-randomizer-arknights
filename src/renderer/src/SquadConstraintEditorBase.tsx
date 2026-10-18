@@ -302,7 +302,7 @@ export default function SquadConstraintEditor({
         operator,
         aliases: [operator.subclass.name],
         disabled: reservedIdentity,
-        disabledReason: reservedIdentity ? 'Already picked in another slot' : undefined,
+        disabledReason: reservedIdentity ? 'Already in squad' : undefined,
       })
     }
     return options.sort(

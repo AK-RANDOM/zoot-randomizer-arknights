@@ -84,6 +84,74 @@ describe('Garrison event stage catalog', () => {
     expect(catalog[3].stages.standard).toEqual(['SV-1'])
   })
 
+  it('includes crossover Side Stories even when their activity display type differs', () => {
+    const events = buildGarrisonEventCatalog(
+      {
+        basicInfo: {
+          act45side: { name: 'Somniloquium Serenum', displayType: 'ACTIVITY', startTime: 200 },
+          act45side_re: {
+            name: 'Somniloquium Serenum Rerun',
+            displayType: 'ACTIVITY',
+            startTime: 400,
+            isReplicate: true,
+          },
+        },
+      },
+      {
+        zones: {
+          act45side_zone1: { type: 'ACTIVITY', zoneIndex: 0 },
+          act45side_zone2: { type: 'ACTIVITY', zoneIndex: 1 },
+          act45side_re_zone1: { type: 'ACTIVITY', zoneIndex: 0 },
+        },
+      },
+      {
+        stages: {
+          first: stage('SS-1', 'act45side_zone1'),
+          ex: stage('SS-EX-1', 'act45side_zone2'),
+          rerun: stage('SS-2', 'act45side_re_zone1'),
+        },
+      },
+    )
+    expect(events).toHaveLength(1)
+    expect(events[0].name).toBe('Somniloquium Serenum')
+    expect(events[0].stages.standard).toEqual(['SS-1'])
+    expect(events[0].stages.ex).toEqual(['SS-EX-1'])
+    expect(events[0].releaseTime).toBe(200)
+  })
+
+  it('excludes rerun-only events, including those marked through their title', () => {
+    const events = buildGarrisonEventCatalog(
+      {
+        basicInfo: {
+          act50side: { name: 'Some Event Rerun', startTime: 500, displayType: 'SIDESTORY' },
+          act51side: { name: 'Original Event', startTime: 100, displayType: 'SIDESTORY' },
+          act51side_re: {
+            name: 'Original Event',
+            startTime: 800,
+            displayType: 'SIDESTORY',
+            isReplicate: true,
+          },
+        },
+      },
+      {
+        zones: {
+          act50side_zone1: { type: 'ACTIVITY', zoneIndex: 0 },
+          act51side_zone1: { type: 'ACTIVITY', zoneIndex: 0 },
+          act51side_re_zone1: { type: 'ACTIVITY', zoneIndex: 0 },
+        },
+      },
+      {
+        stages: {
+          rerunOnly: stage('RR-1', 'act50side_zone1'),
+          original: stage('OE-1', 'act51side_zone1'),
+          replicate: stage('OE-2', 'act51side_re_zone1'),
+        },
+      },
+    )
+    expect(events.map((event) => event.name)).toEqual(['Original Event'])
+    expect(events[0].stages.standard).toEqual(['OE-1'])
+  })
+
   it('groups Main Story chapters by episode with chapter titles in release order', () => {
     const activity = {
       basicInfo: {

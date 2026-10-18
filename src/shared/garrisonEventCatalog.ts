@@ -264,6 +264,17 @@ export function buildGarrisonEventCatalog(
   // stages in the current data, instead of silently removing the Side Story.
   const normalizeIdentity = (value: string): string =>
     value.toLocaleLowerCase('en').replace(/[\p{P}\p{S}\s]+/gu, '')
+  // Original act17d0 has "Task Records"; rerun act1r6sre uses "Task Record".
+  // Compare full multi-zone identities after safe English singular/plural
+  // normalization; never merge by one generic chapter name alone.
+  const normalizeZoneIdentity = (value: string): string => {
+    const normalized = value
+      .toLocaleLowerCase('en')
+      .replace(/[\p{P}\p{S}]+/gu, ' ')
+      .trim()
+      .replace(/\s+/g, ' ')
+    return normalizeIdentity(normalized.replace(/\b([a-z]{4,})s\b$/u, '$1'))
+  }
   const zoneIdentityByActivity = new Map<string, string>()
   const zoneNamesByActivity = new Map<string, string[]>()
   for (const [zoneId, zone] of Object.entries(zones)) {
@@ -272,7 +283,7 @@ export function buildGarrisonEventCatalog(
     const name = zone.zoneNameSecond?.trim()
     if (!activityId || !name) continue
     const names = zoneNamesByActivity.get(activityId) ?? []
-    const normalized = normalizeIdentity(name)
+    const normalized = normalizeZoneIdentity(name)
     if (normalized && !names.includes(normalized)) names.push(normalized)
     zoneNamesByActivity.set(activityId, names)
   }

@@ -10,7 +10,7 @@ import {
 
 const BASE_URL = 'https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/master'
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
-const CATALOG_VERSION = 11
+const CATALOG_VERSION = 12
 const pending = new Map<string, Promise<GarrisonEvent[]>>()
 
 const gameDataLocale = (region: ReleaseServer): GameLocale => (region === 'cn' ? 'cn' : 'en')

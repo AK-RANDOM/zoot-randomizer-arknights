@@ -18,7 +18,11 @@ export default function DraftRulebookRulebookEditor({
   onChange: (mutate: (draft: DraftRulebook) => void) => void
 }): React.JSX.Element {
   return (
-    <>
+    <div className="rulebook-rulebook-layout">
+      <header className="rulebook-rulebook-intro">
+        <h3>Rulebook settings</h3>
+        <p>Manage identity, draft setup, economy, capacity, and player actions.</p>
+      </header>
       <DraftRulebookIdentifierEditor
         rulebook={rulebook}
         disabled={disabled}
@@ -33,6 +37,6 @@ export default function DraftRulebookRulebookEditor({
           onChange={onChange}
         />
       </div>
-    </>
+    </div>
   )
 }

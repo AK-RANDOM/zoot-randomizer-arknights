@@ -37,6 +37,14 @@ export interface PortraitSyncProgress {
   message: string
 }
 
+export interface ArtworkStorageInfo {
+  path: string
+  warning?: string
+  categories: Array<{ name: string; files: number; bytes: number }>
+  totalFiles: number
+  totalBytes: number
+}
+
 export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
@@ -58,6 +66,10 @@ export interface DesktopApi {
   getFactionIcon(factionId: string): Promise<string | null>
   checkOperatorUpdates(): Promise<OperatorUpdateCheck>
   updateOperatorData(): Promise<OperatorUpdateResult>
+  getArtworkStorageInfo(): Promise<ArtworkStorageInfo>
+  openArtworkStorageFolder(): Promise<void>
+  clearDownloadedArtwork(): Promise<ArtworkStorageInfo>
+  startCompleteArtworkDownload(): Promise<PortraitSyncProgress>
   getPortraitSyncProgress(): Promise<PortraitSyncProgress>
   startPortraitSync(): Promise<PortraitSyncProgress>
   cancelPortraitSync(): Promise<PortraitSyncProgress>

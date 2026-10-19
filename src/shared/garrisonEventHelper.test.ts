@@ -80,6 +80,30 @@ describe('Garrison event helper icon selection', () => {
     ).toBe('Ash')
   })
 
+  it('always associates Operation Originium Dust with Ash in both regions, including unusual or missing CN dates', () => {
+    const originalWithCNDateMismatch = event('act17d0', '2021-02-03')
+    const rerunWithRerunDate = event('act1r6sre', '2024-03-21')
+    const originalWithoutTimestamp = event('act17d0', null)
+
+    for (const region of ['cn', 'global'] as const) {
+      expect(garrisonEventHelperOperator(originalWithCNDateMismatch, operators, region)?.id).toBe(
+        'char_456_ash',
+      )
+      expect(garrisonEventHelperOperator(rerunWithRerunDate, operators, region)?.id).toBe(
+        'char_456_ash',
+      )
+      expect(garrisonEventHelperOperator(originalWithoutTimestamp, operators, region)?.id).toBe(
+        'char_456_ash',
+      )
+    }
+  })
+
+  it('does not choose Ash for unrelated activities or when Ash is unavailable in the selected region', () => {
+    expect(garrisonEventHelperOperator(event('act17d1', '2021-02-03'), operators, 'cn')).toBeNull()
+    const withoutAsh = operators.filter((operator) => operator.id !== 'char_456_ash')
+    expect(garrisonEventHelperOperator(event('act17d0', '2021-02-03'), withoutAsh, 'cn')).toBeNull()
+  })
+
   it('prefers limited operators over simultaneous standard 6★ debuts', () => {
     expect(
       garrisonEventHelperOperator(event('act100side', '2024-05-01'), operators, 'cn')?.id,

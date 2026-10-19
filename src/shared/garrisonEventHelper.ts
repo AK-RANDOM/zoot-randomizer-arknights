@@ -30,6 +30,18 @@ export const GARRISON_CHAPTER_HELPER_IDS: Readonly<Record<number, string>> = {
   17: 'char_1052_kalts2',
 }
 
+/**
+ * Crossover collaborations do not always share the event activity start date
+ * with the featured operator's regional release metadata. Use the original
+ * game's activity ID to identify a confirmed featured 6★ rather than relying
+ * exclusively on a date within one day. Keep both the original and rerun ID:
+ * depending on zone availability the catalog may retain either one.
+ */
+export const GARRISON_EXPLICIT_EVENT_HELPER_IDS: Readonly<Record<string, string>> = {
+  act17d0: 'char_456_ash', // Operation Originium Dust (original)
+  act1r6sre: 'char_456_ash', // Operation Originium Dust (rerun)
+}
+
 const ONE_DAY_MS = 86_400_000
 
 /** A game-data activity timestamp and operator release date can differ by a day across timezones. */
@@ -59,6 +71,18 @@ export function garrisonEventHelperOperator(
     const chapter = match ? Number(match[1]) : NaN
     const id = GARRISON_CHAPTER_HELPER_IDS[chapter]
     if (id) return operators.find((operator) => operator.id === id) ?? null
+  }
+
+  // Canonical event identity wins over inferred date proximity. This also
+  // covers CN event metadata where the timestamp differs from Ash's debut.
+  const explicitId = GARRISON_EXPLICIT_EVENT_HELPER_IDS[event.id.toLowerCase()]
+  if (explicitId) {
+    return (
+      operators.find(
+        (operator) =>
+          operator.id === explicitId && operator.rarity === 6 && operator.availableOn[region],
+      ) ?? null
+    )
   }
 
   if (event.releaseTime === null) return null

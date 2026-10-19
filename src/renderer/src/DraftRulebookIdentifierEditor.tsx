@@ -20,7 +20,7 @@ export default function DraftRulebookIdentifierEditor({
   return (
     <fieldset className="constraint-group rulebook-editor-section rulebook-identifier-editor">
       <legend>Identifier</legend>
-      <label className="field">
+      <label className="field rulebook-name-field">
         <span>Name</span>
         <input disabled={disabled} value={rulebook.identifier.name} onChange={(event) => onChange((draft) => { draft.identifier.name = event.target.value })} />
       </label>

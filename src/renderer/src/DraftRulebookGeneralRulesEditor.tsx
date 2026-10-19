@@ -191,7 +191,8 @@ export default function DraftRulebookGeneralRulesEditor({
   return (
     <>
       <fieldset className="constraint-group rulebook-editor-section">
-        <legend>General Rules</legend>
+        <legend>Draft Setup</legend>
+        <p className="rulebook-section-description">Configure the size and length of each draft.</p>
         <div className="rulebook-inline-fields rulebook-inline-fields--three">
           <label className="field">
             <span>Choices per offer</span>
@@ -223,93 +224,12 @@ export default function DraftRulebookGeneralRulesEditor({
               }
             />
           </label>
-          <label className="field">
-            <span>Starting points</span>
-            <input type="number" disabled={disabled} value={economy.startingPoints} onChange={(event) => updateEconomy({ startingPoints: Number(event.target.value) })} />
-          </label>
         </div>
-        <label className="rulebook-toggle">
-          <input type="checkbox" disabled={disabled} checked={economy.enabled} onChange={(event) => updateEconomy({ enabled: event.target.checked })} />
-          <span>Enable point economy</span>
-        </label>
-        <div className="rulebook-rarity-cost-grid">
-          {operatorRarities.map((rarity) => (
-            <label className="field" key={rarity}>
-              <span>{rarity}★ cost</span>
-              <input type="number" disabled={disabled} value={rarityCost(rarity)} onChange={(event) => setRarityCost(rarity, Number(event.target.value))} />
-            </label>
-          ))}
-        </div>
-        <div className="rulebook-inline-fields rulebook-inline-fields--three">
-          <label className="field"><span>Forfeit rebate</span><input type="number" disabled={disabled} value={economy.forfeitRebate} onChange={(event) => updateEconomy({ forfeitRebate: Number(event.target.value) })} /></label>
-          <label className="field"><span>Reroll cost</span><input type="number" disabled={disabled} value={economy.rerollCost} onChange={(event) => updateEconomy({ rerollCost: Number(event.target.value) })} /></label>
-          <label className="field"><span>Hold cost</span><input type="number" disabled={disabled} value={economy.holdCost} onChange={(event) => updateEconomy({ holdCost: Number(event.target.value) })} /></label>
-        </div>
-        <div className="rulebook-inline-fields rulebook-inline-fields--three">
-          <label className="field">
-            <span>Hold upkeep</span>
-            <select disabled={disabled} value={economy.holdUpkeep.mode} onChange={(event) => setHoldUpkeepMode(event.target.value as DraftHoldUpkeepRules['mode'])}>
-              <option value="none">None</option>
-              <option value="static">Static</option>
-              <option value="escalating">Escalating</option>
-              <option value="schedule">Schedule</option>
-            </select>
-          </label>
-          {economy.holdUpkeep.mode === 'static' && (
-            <label className="field">
-              <span>Upkeep per round</span>
-              <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.cost} onChange={(event) => updateEconomy({ holdUpkeep: { mode: 'static', cost: Math.max(0, Number(event.target.value) || 0) } })} />
-            </label>
-          )}
-          {economy.holdUpkeep.mode === 'escalating' && (
-            <>
-              <label className="field">
-                <span>Upkeep base</span>
-                <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.baseCost} onChange={(event) => updateEconomy({ holdUpkeep: {
-                  mode: 'escalating',
-                  baseCost: Math.max(0, Number(event.target.value) || 0),
-                  escalation: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.escalation : 0,
-                } })} />
-              </label>
-              <label className="field">
-                <span>Increase per charge</span>
-                <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.escalation} onChange={(event) => updateEconomy({ holdUpkeep: {
-                  mode: 'escalating',
-                  baseCost: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.baseCost : 0,
-                  escalation: Math.max(0, Number(event.target.value) || 0),
-                } })} />
-              </label>
-            </>
-          )}
-          {economy.holdUpkeep.mode === 'schedule' && (
-            <>
-              <label className="field">
-                <span>Upkeep schedule</span>
-                <input
-                  disabled={disabled}
-                  value={economy.holdUpkeep.costs.join(', ')}
-                  onChange={(event) => setScheduledHoldCosts(event.target.value)}
-                  placeholder="2, 2, 3, 5, 6"
-                />
-              </label>
-              <label className="rulebook-toggle">
-                <input
-                  type="checkbox"
-                  disabled={disabled}
-                  checked={economy.holdUpkeep.repeatLast}
-                  onChange={(event) => updateEconomy({ holdUpkeep: {
-                    mode: 'schedule',
-                    costs: economy.holdUpkeep.mode === 'schedule' ? economy.holdUpkeep.costs : [0],
-                    repeatLast: event.target.checked,
-                  } })}
-                />
-                <span>Repeat final upkeep value</span>
-              </label>
-            </>
-          )}
-        </div>
-        {economy.holdUpkeep.mode !== 'none' && <small className="filter-note">Upkeep is charged when the held operator survives another completed round. Draft or release it during the current round to avoid the next charge.</small>}
-        <label className="field"><span>Slot expansion cost</span><input type="number" disabled={disabled} value={economy.slotExpansionCost} onChange={(event) => updateEconomy({ slotExpansionCost: Number(event.target.value) })} /></label>
+      </fieldset>
+
+      <fieldset className="constraint-group rulebook-editor-section">
+        <legend>Squad Capacity</legend>
+        <p className="rulebook-section-description">Control available Capacity Slots and overflow allowance.</p>
         <label className="rulebook-toggle">
           <input type="checkbox" disabled={disabled} checked={capacity.enabled} onChange={(event) => updateCapacity({ enabled: event.target.checked })} />
           <span>Enable capacity rules</span>
@@ -322,12 +242,13 @@ export default function DraftRulebookGeneralRulesEditor({
       </fieldset>
 
       <fieldset className="constraint-group rulebook-editor-section rulebook-wide-section">
-        <legend>Advanced Actions</legend>
+        <legend>Round &amp; Utility Actions</legend>
+        <p className="rulebook-section-description">Configure which actions are allowed and how often they can be used.</p>
         <div className="rulebook-action-grid">
           <LimitedActionEditor label="Hold" description="consumes the round and stores one offered operator" rule={actions.hold} disabled={disabled} onChange={(rule) => updateHold(rule)}>
             <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.hold.enabled} checked={actions.hold.discardUnheldOffer} onChange={(event) => updateHold({ discardUnheldOffer: event.target.checked })} /><span>Discard the other offered operators when Hold resolves</span></label>
           </LimitedActionEditor>
-          <LimitedActionEditor label="Forfeit" description="consumes the round and gives up one usable capacity opportunity" rule={actions.forfeit} disabled={disabled} onChange={(rule) => updateForfeit(rule)}>
+          <LimitedActionEditor label="Capacity Forfeit" description="consumes the round and gives up one usable capacity opportunity" rule={actions.forfeit} disabled={disabled} onChange={(rule) => updateForfeit(rule)}>
             <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.forfeit.enabled} checked={actions.forfeit.discardOffer} onChange={(event) => updateForfeit({ discardOffer: event.target.checked })} /><span>Discard the forfeited offer from the draft pool</span></label>
           </LimitedActionEditor>
           <div className="rulebook-action-card">
@@ -339,20 +260,118 @@ export default function DraftRulebookGeneralRulesEditor({
                 {getRerollMode(actions.reroll) === 'advanced' && <option value="advanced">Advanced imported limits</option>}
               </select>
             </label>
-            {actions.reroll.enabled && getRerollMode(actions.reroll) !== 'unlimited' && getRerollMode(actions.reroll) !== 'none' && (
-              <div className="rulebook-inline-fields">
-                {(getRerollMode(actions.reroll) === 'per-round' || getRerollMode(actions.reroll) === 'advanced') && <label className="field"><span>Per-round limit</span><input type="number" min={1} disabled={disabled} value={actions.reroll.perRoundLimit ?? ''} onChange={(event) => updateReroll({ perRoundLimit: parsePositiveLimit(event.target.value) })} /></label>}
-                {(getRerollMode(actions.reroll) === 'per-draft' || getRerollMode(actions.reroll) === 'advanced') && <label className="field"><span>Per-draft limit</span><input type="number" min={1} disabled={disabled} value={actions.reroll.perDraftLimit ?? ''} onChange={(event) => updateReroll({ perDraftLimit: parsePositiveLimit(event.target.value) })} /></label>}
-              </div>
-            )}
-            <label className="field"><span>Cooldown rounds</span><input type="number" min={0} disabled={disabled || !actions.reroll.enabled} value={actions.reroll.cooldownRounds} onChange={(event) => updateReroll({ cooldownRounds: Math.max(0, Number(event.target.value) || 0) })} /></label>
+            <div className="rulebook-inline-fields rulebook-reroll-details">
+              {actions.reroll.enabled && getRerollMode(actions.reroll) !== 'unlimited' && getRerollMode(actions.reroll) !== 'none' && (
+                <>
+                  {(getRerollMode(actions.reroll) === 'per-round' || getRerollMode(actions.reroll) === 'advanced') && <label className="field"><span>Per-round limit</span><input type="number" min={1} disabled={disabled} value={actions.reroll.perRoundLimit ?? ''} onChange={(event) => updateReroll({ perRoundLimit: parsePositiveLimit(event.target.value) })} /></label>}
+                  {(getRerollMode(actions.reroll) === 'per-draft' || getRerollMode(actions.reroll) === 'advanced') && <label className="field"><span>Per-draft limit</span><input type="number" min={1} disabled={disabled} value={actions.reroll.perDraftLimit ?? ''} onChange={(event) => updateReroll({ perDraftLimit: parsePositiveLimit(event.target.value) })} /></label>}
+                </>
+              )}
+              <label className="field"><span>Cooldown rounds</span><input type="number" min={0} disabled={disabled || !actions.reroll.enabled} value={actions.reroll.cooldownRounds} onChange={(event) => updateReroll({ cooldownRounds: Math.max(0, Number(event.target.value) || 0) })} /></label>
+            </div>
             <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.reroll.enabled} checked={actions.reroll.discardOffer} onChange={(event) => updateReroll({ discardOffer: event.target.checked })} /><span>Discard rerolled operators from the draft pool</span></label>
           </div>
-          <LimitedActionEditor label="Slot Expansion" description="non-turn-consuming capacity purchase" rule={actions.slotExpansion} disabled={disabled} onChange={(rule) => updateSlotExpansion(rule)}>
+          <LimitedActionEditor label="Capacity Expansion" description="non-turn-consuming capacity purchase" rule={actions.slotExpansion} disabled={disabled} onChange={(rule) => updateSlotExpansion(rule)}>
             <small className="filter-note">The built-in advanced default allows {DEFAULT_DRAFT_ACTION_RULES.slotExpansion.perRoundLimit} expansion per round.</small>
           </LimitedActionEditor>
         </div>
       </fieldset>
+
+      <fieldset className="constraint-group rulebook-editor-section">
+        <legend>Economy</legend>
+        <p className="rulebook-section-description">Set the starting budget, operator costs and action fees.</p>
+        <label className="rulebook-toggle">
+          <input type="checkbox" disabled={disabled} checked={economy.enabled} onChange={(event) => updateEconomy({ enabled: event.target.checked })} />
+          <span>Enable point economy</span>
+        </label>
+        {economy.enabled && (
+          <div className="rulebook-economy-controls">
+            <label className="field rulebook-primary-field"><span>Starting points</span><input type="number" disabled={disabled || !economy.enabled} value={economy.startingPoints} onChange={(event) => updateEconomy({ startingPoints: Number(event.target.value) })} /></label>
+            <h4 className="rulebook-setting-label">Operator base costs</h4>
+            <div className="rulebook-rarity-cost-grid">
+              {operatorRarities.map((rarity) => (
+                <label className="field" key={rarity}>
+                  <span>{rarity}★ cost</span>
+                  <input type="number" disabled={disabled || !economy.enabled} value={rarityCost(rarity)} onChange={(event) => setRarityCost(rarity, Number(event.target.value))} />
+                </label>
+              ))}
+            </div>
+            <h4 className="rulebook-setting-label">Action costs and rebates</h4>
+            <div className="rulebook-inline-fields rulebook-inline-fields--three">
+              <label className="field"><span>Forfeit rebate</span><input type="number" disabled={disabled || !economy.enabled} value={economy.forfeitRebate} onChange={(event) => updateEconomy({ forfeitRebate: Number(event.target.value) })} /></label>
+              <label className="field"><span>Reroll cost</span><input type="number" disabled={disabled || !economy.enabled} value={economy.rerollCost} onChange={(event) => updateEconomy({ rerollCost: Number(event.target.value) })} /></label>
+              <label className="field"><span>Hold cost</span><input type="number" disabled={disabled || !economy.enabled} value={economy.holdCost} onChange={(event) => updateEconomy({ holdCost: Number(event.target.value) })} /></label>
+              <label className="field"><span>Slot expansion cost</span><input type="number" disabled={disabled || !economy.enabled} value={economy.slotExpansionCost} onChange={(event) => updateEconomy({ slotExpansionCost: Number(event.target.value) })} /></label>
+            </div>
+            <h4 className="rulebook-setting-label">Held operator upkeep</h4>
+            <div className="rulebook-inline-fields rulebook-inline-fields--three rulebook-hold-upkeep-fields">
+              <label className="field">
+                <span>Hold upkeep</span>
+                <select disabled={disabled || !economy.enabled} value={economy.holdUpkeep.mode} onChange={(event) => setHoldUpkeepMode(event.target.value as DraftHoldUpkeepRules['mode'])}>
+                  <option value="none">None</option>
+                  <option value="static">Static</option>
+                  <option value="escalating">Escalating</option>
+                  <option value="schedule">Schedule</option>
+                </select>
+              </label>
+              {economy.holdUpkeep.mode === 'static' && (
+                <label className="field">
+                  <span>Upkeep per round</span>
+                  <input type="number" min={0} disabled={disabled || !economy.enabled} value={economy.holdUpkeep.cost} onChange={(event) => updateEconomy({ holdUpkeep: { mode: 'static', cost: Math.max(0, Number(event.target.value) || 0) } })} />
+                </label>
+              )}
+              {economy.holdUpkeep.mode === 'escalating' && (
+                <>
+                  <label className="field">
+                    <span>Upkeep base</span>
+                    <input type="number" min={0} disabled={disabled || !economy.enabled} value={economy.holdUpkeep.baseCost} onChange={(event) => updateEconomy({ holdUpkeep: {
+                      mode: 'escalating',
+                      baseCost: Math.max(0, Number(event.target.value) || 0),
+                      escalation: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.escalation : 0,
+                    } })} />
+                  </label>
+                  <label className="field">
+                    <span>Increase per charge</span>
+                    <input type="number" min={0} disabled={disabled || !economy.enabled} value={economy.holdUpkeep.escalation} onChange={(event) => updateEconomy({ holdUpkeep: {
+                      mode: 'escalating',
+                      baseCost: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.baseCost : 0,
+                      escalation: Math.max(0, Number(event.target.value) || 0),
+                    } })} />
+                  </label>
+                </>
+              )}
+              {economy.holdUpkeep.mode === 'schedule' && (
+                <>
+                  <label className="field rulebook-schedule-field">
+                    <span>Upkeep schedule</span>
+                    <input
+                      disabled={disabled || !economy.enabled}
+                      value={economy.holdUpkeep.costs.join(', ')}
+                      onChange={(event) => setScheduledHoldCosts(event.target.value)}
+                      placeholder="2, 2, 3, 5, 6"
+                    />
+                  </label>
+                  <label className="rulebook-toggle rulebook-repeat-last-toggle">
+                    <input
+                      type="checkbox"
+                      disabled={disabled || !economy.enabled}
+                      checked={economy.holdUpkeep.repeatLast}
+                      onChange={(event) => updateEconomy({ holdUpkeep: {
+                        mode: 'schedule',
+                        costs: economy.holdUpkeep.mode === 'schedule' ? economy.holdUpkeep.costs : [0],
+                        repeatLast: event.target.checked,
+                      } })}
+                    />
+                    <span>Repeat final upkeep value</span>
+                  </label>
+                </>
+              )}
+            </div>
+            {economy.holdUpkeep.mode !== 'none' && <small className="filter-note">Upkeep is charged when the held operator survives another completed round. Draft or release it during the current round to avoid the next charge.</small>}
+          </div>
+        )}
+      </fieldset>
+
 
       <fieldset className="constraint-group rulebook-editor-section">
         <legend>Pull Distribution</legend>

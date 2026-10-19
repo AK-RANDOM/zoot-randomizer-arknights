@@ -8,6 +8,10 @@ import { UPSTREAM } from '../shared/operatorData'
 import { getOperatorDataset } from './operatorDataService'
 
 const avatarCache = new Map<string, string>()
+export function clearAvatarMemoryCaches(): void {
+  avatarCache.clear()
+}
+
 
 function downloadedAvatarRoot(): string {
   return join(app.getPath('userData'), 'operator-data', 'appearance-avatars')

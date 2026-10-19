@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from '../../shared/constraints'
 import type { Operator } from '../../shared/operator'
@@ -29,7 +30,7 @@ function option(value: Operator): OperatorSelectorOption {
 }
 
 describe('Standard slot operator reservations', () => {
-  it('removes exact operators locked by another slot', () => {
+  it('keeps operators picked in another slot visible but disabled', () => {
     const alpha = operator('alpha')
     const beta = operator('beta')
     const constraints = createDefaultConstraints()
@@ -41,10 +42,14 @@ describe('Standard slot operator reservations', () => {
       operators: [alpha, beta],
     })
 
-    expect(filtered.map((entry) => entry.operator.id)).toEqual(['beta'])
+    expect(filtered.map((entry) => [entry.operator.id, Boolean(entry.disabled)])).toEqual([
+      ['alpha', true],
+      ['beta', false],
+    ])
+    expect(filtered[0].disabledReason).toContain('Already in squad')
   })
 
-  it('also removes alters of another fixed operator when Alter Exclusivity is enabled', () => {
+  it('disables alters of another fixed operator when Alter Exclusivity is enabled', () => {
     const alpha = operator('alpha', 'alpha-family')
     const alphaAlter = operator('alpha-alter', 'alpha-family')
     const beta = operator('beta')
@@ -57,6 +62,43 @@ describe('Standard slot operator reservations', () => {
       { slotIndex: 1, constraints, operators: [alpha, alphaAlter, beta] },
     )
 
-    expect(filtered.map((entry) => entry.operator.id)).toEqual(['beta'])
+    expect(filtered.map((entry) => [entry.operator.id, Boolean(entry.disabled)])).toEqual([
+      ['alpha', true],
+      ['alpha-alter', true],
+      ['beta', false],
+    ])
+    expect(filtered[1].disabledReason).toContain('Alter in squad')
+  })
+  it('does not disable alters when Alter Exclusivity is off', () => {
+    const original = operator('alpha', 'group')
+    const alter = operator('alpha-alter', 'group')
+    const constraints = createDefaultConstraints()
+    constraints.slots[0].operatorId = original.id
+    const options = filterReservedSlotOperatorOptions([option(original), option(alter)], {
+      slotIndex: 1,
+      constraints,
+      operators: [original, alter],
+    })
+    expect(options[0].disabled).toBe(true)
+    expect(options[1].disabled).toBeUndefined()
+  })
+})
+
+describe('operator selector warning placement', () => {
+  it('places disabled reason next to class icon after operator portrait and name, without a leading gap', () => {
+    const source = readFileSync(new URL('./OperatorSelectorBase.tsx', import.meta.url), 'utf8')
+    const styles = readFileSync(new URL('./OperatorSelector.css', import.meta.url), 'utf8')
+    const section = source.slice(
+      source.indexOf('className="operator-selector-results"'),
+      source.indexOf('No eligible operators match'),
+    )
+    expect(section.indexOf('<OperatorAvatar')).toBeLessThan(
+      section.indexOf('operator-selector-right-meta'),
+    )
+    expect(section.indexOf('operator-selector-availability-warning')).toBeLessThan(
+      section.indexOf('<OperatorClassStack'),
+    )
+    expect(styles).toContain('grid-template-columns: 42px minmax(0, 1fr) auto;')
+    expect(styles).not.toContain('grid-template-columns: 84px 42px')
   })
 })

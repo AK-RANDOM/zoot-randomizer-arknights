@@ -1,9 +1,13 @@
-import { operatorClasses, type OperatorClass } from './operator'
+import { gameLocales, operatorClasses, type GameLocale, type OperatorClass, type ReleaseServer } from './operator'
 import type { PromotionArt } from './portraits'
 import type { ArknightsAccountServer } from './arknightsAccount'
 
 export const DESKTOP_IPC_CHANNELS = {
   operatorDataGet: 'operator-data:get',
+  garrisonEventsGet: 'garrison-events:get',
+  garrisonCloseDirty: 'garrison-close:dirty',
+  garrisonCloseSaveRequest: 'garrison-close:save-request',
+  garrisonCloseSaveResult: 'garrison-close:save-result',
   operatorDataInfo: 'operator-data:info',
   operatorImage: 'operator-data:image',
   operatorPortrait: 'operator-data:portrait',
@@ -26,6 +30,18 @@ export const DESKTOP_IPC_CHANNELS = {
   arknightsAccountClear: 'arknights-account:clear',
   arknightsAccountAvatar: 'arknights-account:avatar',
 } as const
+
+export function requireMetadataRegion(value: unknown): ReleaseServer {
+  if (value === 'global' || value === 'cn') return value
+  throw new TypeError('Invalid metadata region')
+}
+
+export function requireGameLocale(value: unknown): GameLocale {
+  if (typeof value === 'string' && (gameLocales as readonly string[]).includes(value)) {
+    return value as GameLocale
+  }
+  throw new TypeError('Invalid app localization')
+}
 
 const OPERATOR_ID_PATTERN = /^char_[a-z0-9_]+$/i
 const METADATA_ID_PATTERN = /^[a-z0-9_.:-]+$/i
@@ -96,11 +112,7 @@ export function isAllowedExternalUrl(value: string): boolean {
 }
 
 export function requireArknightsAccountAvatarId(value: unknown): string {
-  if (
-    typeof value !== 'string' ||
-    value.length > 192 ||
-    !ACCOUNT_AVATAR_ID_PATTERN.test(value)
-  ) {
+  if (typeof value !== 'string' || value.length > 192 || !ACCOUNT_AVATAR_ID_PATTERN.test(value)) {
     throw new TypeError('Invalid Arknights account avatar ID.')
   }
   return value

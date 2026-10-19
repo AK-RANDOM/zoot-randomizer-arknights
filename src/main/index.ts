@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import type { PortraitSyncProgress } from '../shared/desktop'
@@ -7,6 +7,8 @@ import {
   isAllowedExternalUrl,
   requireArknightsAccountAvatarId,
   requireArknightsAccountServer,
+  requireMetadataRegion,
+  requireGameLocale,
   requireArknightsAccountString,
   requireAvatarAssetId,
   requireMetadataId,
@@ -34,6 +36,7 @@ import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operator
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
+import { getGarrisonEventCatalog } from './garrisonEventCatalogService'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -161,6 +164,9 @@ function cancelPortraitSync(): PortraitSyncProgress {
 
 function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataGet, () => getOperatorDataset())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.garrisonEventsGet, (_event, region: unknown, locale: unknown) =>
+    getGarrisonEventCatalog(requireMetadataRegion(region), requireGameLocale(locale)),
+  )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataInfo, () => getOperatorDataInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorImage, (_event, operatorId: unknown) =>
     getOperatorImage(requireOperatorId(operatorId)),
@@ -245,6 +251,60 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: true,
     },
+  })
+
+  // Renderer unload handlers cannot synchronously persist a React working
+  // copy. Keep close ownership in Electron, and wait for the renderer to write
+  // the Garrison before honoring the user's Save choice.
+  let garrisonDirty = false
+  let waitingForSave = false
+  let allowClose = false
+  const onDirty = (event: Electron.IpcMainEvent, dirty: unknown): void => {
+    if (event.sender === mainWindow.webContents) garrisonDirty = dirty === true
+  }
+  const onSaveResult = (event: Electron.IpcMainEvent, success: unknown): void => {
+    if (event.sender !== mainWindow.webContents || !waitingForSave) return
+    waitingForSave = false
+    if (success === true) {
+      garrisonDirty = false
+      allowClose = true
+      mainWindow.close()
+    } else {
+      dialog.showMessageBoxSync(mainWindow, {
+        type: 'warning',
+        title: 'Garrison was not saved',
+        message: 'The Garrison could not be saved. Resolve unfinished edits or conflicts, then try again.',
+        buttons: ['Return to Garrison'],
+      })
+    }
+  }
+  ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, onDirty)
+  ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, onSaveResult)
+  mainWindow.on('closed', () => {
+    ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, onDirty)
+    ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, onSaveResult)
+  })
+  mainWindow.on('close', (event) => {
+    if (smokeTest || allowClose || !garrisonDirty) return
+    event.preventDefault()
+    if (waitingForSave) return
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'question',
+      title: 'Unsaved Garrison',
+      message: 'Save your Garrison before closing the application?',
+      detail: 'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
+      buttons: ['Save Garrison', 'Discard Changes', 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+    })
+    if (choice === 1) {
+      allowClose = true
+      mainWindow.close()
+    } else if (choice === 0) {
+      waitingForSave = true
+      mainWindow.webContents.send(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest)
+    }
   })
 
   if (smokeTest) {

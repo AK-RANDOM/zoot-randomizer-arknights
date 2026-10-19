@@ -1,5 +1,6 @@
-import type { OperatorClass, OperatorDataset, OperatorDatasetSources } from './operator'
+import type { GameLocale, OperatorClass, OperatorDataset, OperatorDatasetSources, ReleaseServer } from './operator'
 import type { PromotionArt } from './portraits'
+import type { GarrisonEvent } from './garrisonEventCatalog'
 import type {
   ArknightsAccountServer,
   ArknightsAccountSyncResult,
@@ -39,6 +40,11 @@ export interface PortraitSyncProgress {
 export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
+  getGarrisonEvents(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]>
+  /** Track unsaved edits so the native window close guard can offer Save/Discard/Cancel. */
+  setGarrisonCloseDirty(dirty: boolean): void
+  onGarrisonCloseSaveRequested(listener: () => void): () => void
+  completeGarrisonCloseSave(success: boolean): void
   getOperatorDataInfo(): Promise<OperatorDataInfo>
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>

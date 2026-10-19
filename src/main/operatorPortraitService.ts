@@ -17,6 +17,12 @@ import { getOperatorDataset } from './operatorDataService'
 import { UPSTREAM } from '../shared/operatorData'
 
 const portraitCache = new Map<string, string>()
+export function clearPortraitMemoryCaches(): void {
+  portraitCache.clear()
+  skinPortraitCache.clear()
+  skinAvatarCache.clear()
+}
+
 const skinPortraitCache = new Map<string, string>()
 const skinAvatarCache = new Map<string, string>()
 

@@ -30,6 +30,9 @@ import {
 } from '../shared/operatorDataPipeline'
 
 const imageCache = new Map<string, string>()
+export function clearOperatorImageMemoryCaches(): void {
+  imageCache.clear()
+}
 const avatarDownloadPromises = new Map<string, Promise<boolean>>()
 const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer' } as const
 let skinMetadataRefreshPromise: Promise<OperatorDataset | null> | null = null

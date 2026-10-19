@@ -332,6 +332,40 @@
   font-size: 0.7rem;
 }
 
+
+/* Compact artwork controls: one toolbar, expandable details. */
+.artwork-download-status {
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px 12px;
+}
+.artwork-download-status .bulk-appearance-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.artwork-download-status .bulk-appearance-control button {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.artwork-download-status details {
+  color: #929299;
+  font-size: 0.76rem;
+}
+.artwork-download-status details summary {
+  cursor: pointer;
+}
+.artwork-download-status details > small {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 5px 0;
+}
+.artwork-download-status__heading small {
+  color: #929299;
+  font-size: 0.76rem;
+}
+
 @keyframes operator-art-in {
   from {
     opacity: 0.35;

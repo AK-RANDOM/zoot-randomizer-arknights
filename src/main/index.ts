@@ -1,6 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync } from 'node:fs'
 import type { PortraitSyncProgress } from '../shared/desktop'
 import {
   DESKTOP_IPC_CHANNELS,
@@ -23,6 +22,7 @@ import {
   getOperatorDataset,
   getOperatorImage,
   syncOperatorAvatars,
+  clearOperatorImageMemoryCaches,
   updateOperatorData,
 } from './operatorDataService'
 import {
@@ -30,13 +30,19 @@ import {
   getOperatorSkinAvatar,
   getOperatorSkinPortrait,
   syncOperatorPortraits,
+  clearPortraitMemoryCaches,
 } from './operatorPortraitService'
-import { getOperatorAvatarAsset, getOperatorPromotionAvatar } from './operatorAvatarService'
+import { getOperatorAvatarAsset, getOperatorPromotionAvatar, clearAvatarMemoryCaches } from './operatorAvatarService'
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
 import { getGarrisonEventCatalog } from './garrisonEventCatalogService'
+import {
+  clearDownloadedArtwork, downloadAdditionalArtwork, getArtworkStorageInfo,
+  openArtworkStorageFolder, enumerateAdditionalArtwork,
+} from './artworkStorage'
+import { ensureWritableDirectory, resolvePortableDataPath } from './portableStorage'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -47,17 +53,37 @@ let portraitSyncProgress: PortraitSyncProgress = {
 let portraitSyncController: AbortController | null = null
 let portraitSyncPromise: Promise<PortraitSyncProgress> | null = null
 
+let activeImageRequests = 0
+let clearingArtwork = false
+
+async function guardedImageRequest<T>(request: () => Promise<T>): Promise<T> {
+  if (clearingArtwork) throw new Error('Artwork cache is being cleared.')
+  activeImageRequests++
+  try {
+    return await request()
+  } finally {
+    activeImageRequests--
+  }
+}
+
 function configurePortableUserData(): void {
-  const portableDir = process.env['PORTABLE_EXECUTABLE_DIR']
-  if (!portableDir) return
+  const portableData = resolvePortableDataPath({
+    isPackaged: app.isPackaged,
+    executablePath: process.execPath,
+    portableExecutableDir: process.env['PORTABLE_EXECUTABLE_DIR'],
+  })
+  if (!portableData) return
 
   try {
-    const portableData = join(portableDir, 'Arknights-Randomizer-Data')
-    mkdirSync(portableData, { recursive: true })
+    ensureWritableDirectory(portableData)
     app.setPath('userData', portableData)
-  } catch {
-    // A read-only portable location should never prevent the app from launching.
-    // Electron will fall back to its normal per-user application-data directory.
+  } catch (error) {
+    // Retain the normal userData directory rather than preventing launch.
+    // Do not delete or move existing user data automatically.
+    console.warn(
+      `Portable data directory unavailable (${portableData}). Falling back to user profile storage.`,
+      error,
+    )
   }
 }
 
@@ -82,7 +108,8 @@ function publishPortraitProgress(progress: PortraitSyncProgress): PortraitSyncPr
   return progress
 }
 
-async function startPortraitSync(): Promise<PortraitSyncProgress> {
+async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgress> {
+  if (clearingArtwork) throw new Error('Artwork cache is being cleared.')
   if (portraitSyncPromise) return portraitSyncPromise
 
   const controller = new AbortController()
@@ -91,7 +118,7 @@ async function startPortraitSync(): Promise<PortraitSyncProgress> {
     try {
       const dataset = await getOperatorDataset()
       const operatorIds = dataset.operators.map((operator) => operator.id)
-      const total = operatorIds.length * 2
+      const total = operatorIds.length * 2 + (includeAll ? enumerateAdditionalArtwork(dataset).length : 0)
       publishPortraitProgress({
         status: 'downloading',
         completed: 0,
@@ -120,7 +147,18 @@ async function startPortraitSync(): Promise<PortraitSyncProgress> {
             message: progress.message,
           }),
       })
-      const warnings = [...avatarWarnings, ...portraitWarnings]
+      const additionalWarnings = includeAll
+        ? await downloadAdditionalArtwork(dataset, {
+            signal: controller.signal,
+            onProgress: (completed, additionalTotal) => publishPortraitProgress({
+              status: 'downloading',
+              completed: operatorIds.length * 2 + completed,
+              total: operatorIds.length * 2 + additionalTotal,
+              message: `Downloading appearance and skin artwork… ${completed}/${additionalTotal}`,
+            }),
+          })
+        : []
+      const warnings = [...avatarWarnings, ...portraitWarnings, ...additionalWarnings]
       return publishPortraitProgress({
         status: 'complete',
         completed: total,
@@ -169,30 +207,30 @@ function registerIpc(): void {
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataInfo, () => getOperatorDataInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorImage, (_event, operatorId: unknown) =>
-    getOperatorImage(requireOperatorId(operatorId)),
+    guardedImageRequest(() => getOperatorImage(requireOperatorId(operatorId))),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorPortrait,
     (_event, operatorId: unknown, promotionArt: unknown) =>
-      getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+      guardedImageRequest(() => getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt))),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorPromotionAvatar,
     (_event, operatorId: unknown, promotionArt: unknown) =>
-      getOperatorPromotionAvatar(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+      guardedImageRequest(() => getOperatorPromotionAvatar(requireOperatorId(operatorId), requirePromotionArt(promotionArt))),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorAvatarAsset, (_event, avatarId: unknown) =>
-    getOperatorAvatarAsset(requireAvatarAssetId(avatarId)),
+    guardedImageRequest(() => getOperatorAvatarAsset(requireAvatarAssetId(avatarId))),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorSkinPortrait,
     (_event, operatorId: unknown, skinId: unknown) =>
-      getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId)),
+      guardedImageRequest(() => getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId))),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorSkinAvatar,
     (_event, operatorId: unknown, skinId: unknown) =>
-      getOperatorSkinAvatar(requireOperatorId(operatorId), requireSkinId(skinId)),
+      guardedImageRequest(() => getOperatorSkinAvatar(requireOperatorId(operatorId), requireSkinId(skinId))),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.classIcon, (_event, operatorClass: unknown) =>
     getBundledClassIcon(requireOperatorClass(operatorClass)),
@@ -205,6 +243,27 @@ function registerIpc(): void {
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.checkUpdates, () => checkOperatorUpdates())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.updateData, () => updateOperatorData())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkStorageInfo, () => getArtworkStorageInfo())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkOpenFolder, () => openArtworkStorageFolder())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkClear, async () => {
+    if (clearingArtwork || portraitSyncPromise || activeImageRequests > 0)
+      throw new Error('Artwork is still being downloaded or displayed. Retry after activity finishes.')
+    clearingArtwork = true
+    try {
+      const result = await clearDownloadedArtwork()
+      clearPortraitMemoryCaches()
+      clearAvatarMemoryCaches()
+      clearOperatorImageMemoryCaches()
+      return result
+    } finally {
+      clearingArtwork = false
+    }
+  })
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkDownloadAll, async () => {
+    // A startup normal-art sync must not silently swallow a full-art request.
+    if (portraitSyncPromise) await portraitSyncPromise
+    return startPortraitSync(true)
+  })
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitProgress, () => portraitSyncProgress)
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitStart, () => startPortraitSync())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitCancel, () => cancelPortraitSync())

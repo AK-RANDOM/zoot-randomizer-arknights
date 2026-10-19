@@ -1,6 +1,11 @@
-/* The legacy General Rules editor still owns Pull Distribution in its backend shape.
- * Hide only the section that actually contains that editor when it is composed inside
- * the new Rulebook surface; do not depend on fieldset order. */
-.rulebook-rulebook-compat > .rulebook-editor-section:has(.rulebook-distribution-editor) {
-  display: none;
-}
+/* Rulebook-level layout and the legacy distribution ownership boundary. */
+.rulebook-rulebook-layout, .rulebook-rulebook-compat { display: grid; gap: 16px; min-width: 0; }
+.rulebook-rulebook-intro h3 { margin: 0 0 5px; font-size: 1.12rem; color: #f0f0f2; }
+.rulebook-rulebook-intro p, .rulebook-section-description { margin: 0 0 14px; color: #a9a9b2; font-size: .82rem; line-height: 1.5; }
+.rulebook-rulebook-layout .rulebook-editor-section { padding: 17px 18px; border: 1px solid #37373e; border-radius: 9px; background: #18181c; }
+.rulebook-rulebook-layout .rulebook-editor-section > legend { padding: 0 6px; font-weight: 700; color: #f0f0f3; }
+.rulebook-rulebook-layout .rulebook-rulebook-compat > .rulebook-editor-section:has(.rulebook-distribution-editor) { display: none; }
+.rulebook-rulebook-layout .rulebook-primary-field { max-width: 220px; margin: 12px 0; }
+.rulebook-rulebook-layout .rulebook-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rulebook-rulebook-layout .rulebook-action-card { align-content: start; }
+@media (max-width: 820px) { .rulebook-rulebook-layout .rulebook-action-grid { grid-template-columns: 1fr; } .rulebook-rulebook-layout .rulebook-editor-section { padding: 14px; } }

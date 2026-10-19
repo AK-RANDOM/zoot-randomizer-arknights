@@ -8,4 +8,47 @@
 .rulebook-rulebook-layout .rulebook-primary-field { max-width: 220px; margin: 12px 0; }
 .rulebook-rulebook-layout .rulebook-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .rulebook-rulebook-layout .rulebook-action-card { align-content: start; }
+
+/* Use compact control groups rather than distributing small inputs across wide grid columns. */
+.rulebook-rulebook-layout .rulebook-inline-fields,
+.rulebook-rulebook-layout .rulebook-inline-fields--three,
+.rulebook-rulebook-layout .rulebook-rarity-cost-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 12px;
+}
+.rulebook-rulebook-layout .rulebook-inline-fields > .field,
+.rulebook-rulebook-layout .rulebook-rarity-cost-grid > .field {
+  flex: 0 0 144px;
+  width: 144px;
+  max-width: 100%;
+  min-width: 0;
+}
+.rulebook-rulebook-layout .rulebook-inline-fields > .field input,
+.rulebook-rulebook-layout .rulebook-inline-fields > .field select,
+.rulebook-rulebook-layout .rulebook-rarity-cost-grid > .field input {
+  width: 100%;
+  min-width: 0;
+}
+.rulebook-rulebook-layout .rulebook-hold-upkeep-fields > .rulebook-schedule-field {
+  flex-basis: 252px;
+  width: 252px;
+}
+.rulebook-rulebook-layout .rulebook-hold-upkeep-fields > .rulebook-toggle {
+  flex: 0 1 230px;
+  max-width: 100%;
+}
+.rulebook-rulebook-layout .rulebook-setting-label {
+  margin: 18px 0 8px;
+  color: #bdbdc5;
+  font-size: .74rem;
+  font-weight: 750;
+  letter-spacing: .035em;
+}
+.rulebook-rulebook-layout .rulebook-rarity-cost-grid {
+  margin: 0;
+}
+
 @media (max-width: 820px) { .rulebook-rulebook-layout .rulebook-action-grid { grid-template-columns: 1fr; } .rulebook-rulebook-layout .rulebook-editor-section { padding: 14px; } }

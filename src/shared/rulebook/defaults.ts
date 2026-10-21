@@ -13,17 +13,17 @@ export const DEV_LAX_DRAFT_RULEBOOK_ID = 'builtin:dev-lax' as const
 
 const BALANCE_PRESET_REVISION = '2026.10-fallback55'
 const SHARED_BALANCE_RARITY_COSTS: DraftEconomyRules['rarityCosts'] = {
-  1: -7,
-  2: -4,
-  3: -3,
+  1: 7,
+  2: 4,
+  3: 3,
   4: 0,
-  5: 7,
+  5: -7,
   // Unlisted/new 6★ operators default to 55; explicitly priced operators keep their profile costs.
-  6: 55,
+  6: -55,
 }
 const SHARED_HOLD_UPKEEP: DraftEconomyRules['holdUpkeep'] = {
   mode: 'schedule',
-  costs: [0, 2, 3, 5, 6],
+  costs: [0, -2, -3, -5, -6],
   repeatLast: true,
 }
 
@@ -69,9 +69,9 @@ function balanceEconomy(startingPoints: number): Omit<DraftEconomyRules, 'operat
     rarityCosts: SHARED_BALANCE_RARITY_COSTS,
     forfeitRebate: 4,
     rerollCost: 0,
-    holdCost: 3,
+    holdCost: -3,
     holdUpkeep: SHARED_HOLD_UPKEEP,
-    slotExpansionCost: 2,
+    slotExpansionCost: -2,
   }
 }
 

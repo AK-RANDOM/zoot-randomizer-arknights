@@ -110,7 +110,7 @@ function ExpandControl({
     presentation.economy.pointDelta === 0
       ? 'Free'
       : presentation.economy.pointDelta > 0
-        ? `+${presentation.economy.amount} pts`
+        ? `${presentation.economy.amount} pts`
         : `${presentation.economy.amount} pts`
 
   return (

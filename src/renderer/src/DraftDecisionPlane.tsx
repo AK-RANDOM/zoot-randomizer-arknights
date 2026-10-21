@@ -33,7 +33,7 @@ interface DraftDecisionPlaneProps {
 
 function pointDeltaLabel(value: DraftEconomyValuePresentation): string {
   if (value.pointDelta === 0) return 'Free'
-  return value.pointDelta > 0 ? `+${value.amount} pts` : `${value.amount} pts`
+  return `${value.amount} pts`
 }
 
 function remainingLimitLabel(

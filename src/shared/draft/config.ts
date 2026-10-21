@@ -55,13 +55,13 @@ export const DEFAULT_DRAFT_CAPACITY_RULES: DraftCapacityRules = {
 export const DEFAULT_DRAFT_ECONOMY_RULES: DraftEconomyRules = {
   enabled: false,
   startingPoints: 0,
-  rarityCosts: { 1: -8, 2: -6, 3: -4, 4: 0, 5: 12, 6: 32 },
+  rarityCosts: { 1: 8, 2: 6, 3: 4, 4: 0, 5: -12, 6: -32 },
   operatorCostOverrides: {},
   forfeitRebate: 4,
   rerollCost: 0,
   holdCost: 0,
   holdUpkeep: { mode: 'none' },
-  slotExpansionCost: 2,
+  slotExpansionCost: -2,
 }
 
 const DEFAULT_DRAFT_PULL_DISTRIBUTION: DraftPullDistribution = { type: 'equal' }
@@ -228,8 +228,8 @@ function validateLimitedRule(label: string, rule: DraftLimitedActionRules): void
 function validateHoldUpkeep(rules: DraftHoldUpkeepRules): void {
   if (rules.mode === 'none') return
   if (rules.mode === 'static') {
-    if (!Number.isFinite(rules.cost) || rules.cost < 0) {
-      throw new Error('Draft static Hold upkeep cost must be a non-negative finite number.')
+    if (!Number.isFinite(rules.cost) || rules.cost > 0) {
+      throw new Error('Draft static Hold upkeep cost must be a non-positive finite number.')
     }
     return
   }
@@ -237,19 +237,19 @@ function validateHoldUpkeep(rules: DraftHoldUpkeepRules): void {
     if (rules.costs.length === 0) {
       throw new Error('Draft scheduled Hold upkeep requires at least one cost.')
     }
-    if (rules.costs.some((cost) => !Number.isFinite(cost) || cost < 0)) {
-      throw new Error('Draft scheduled Hold upkeep costs must be non-negative finite numbers.')
+    if (rules.costs.some((cost) => !Number.isFinite(cost) || cost > 0)) {
+      throw new Error('Draft scheduled Hold upkeep costs must be non-positive finite numbers.')
     }
     if (typeof rules.repeatLast !== 'boolean') {
       throw new Error('Draft scheduled Hold upkeep repeatLast must be boolean.')
     }
     return
   }
-  if (!Number.isFinite(rules.baseCost) || rules.baseCost < 0) {
-    throw new Error('Draft escalating Hold upkeep base cost must be a non-negative finite number.')
+  if (!Number.isFinite(rules.baseCost) || rules.baseCost > 0) {
+    throw new Error('Draft escalating Hold upkeep base cost must be a non-positive finite number.')
   }
-  if (!Number.isFinite(rules.escalation) || rules.escalation < 0) {
-    throw new Error('Draft Hold upkeep escalation must be a non-negative finite number.')
+  if (!Number.isFinite(rules.escalation) || rules.escalation > 0) {
+    throw new Error('Draft Hold upkeep escalation must be a non-positive finite number.')
   }
 }
 
@@ -277,8 +277,8 @@ function validateInteractions(interactions: readonly ResolvedDraftInteraction[])
     if (interaction.type === 'anchor') {
       validateOperatorIds(`${interaction.id} source`, interaction.sourceOperatorIds)
       validateOperatorIds(`${interaction.id} target`, interaction.targetOperatorIds)
-      if (!Number.isFinite(interaction.modifier) || interaction.modifier < 0) {
-        throw new Error(`Draft interaction ${interaction.id} modifier must be non-negative.`)
+      if (!Number.isFinite(interaction.modifier)) {
+        throw new Error(`Draft interaction ${interaction.id} modifier must be finite.`)
       }
       continue
     }
@@ -295,8 +295,8 @@ function validateInteractions(interactions: readonly ResolvedDraftInteraction[])
             `Draft interaction ${interaction.id} member counts must be positive and strictly increasing.`,
           )
         }
-        if (!Number.isFinite(step.modifier) || step.modifier < 0) {
-          throw new Error(`Draft interaction ${interaction.id} modifier must be non-negative.`)
+        if (!Number.isFinite(step.modifier)) {
+          throw new Error(`Draft interaction ${interaction.id} modifier must be finite.`)
         }
         previousCount = step.memberCount
       }
@@ -310,8 +310,8 @@ function validateInteractions(interactions: readonly ResolvedDraftInteraction[])
     if (!Number.isInteger(interaction.threshold) || interaction.threshold < 1) {
       throw new Error(`Draft interaction ${interaction.id} threshold must be a positive integer.`)
     }
-    if (!Number.isFinite(interaction.modifier) || interaction.modifier < 0) {
-      throw new Error(`Draft interaction ${interaction.id} modifier must be non-negative.`)
+    if (!Number.isFinite(interaction.modifier)) {
+      throw new Error(`Draft interaction ${interaction.id} modifier must be finite.`)
     }
   }
 }

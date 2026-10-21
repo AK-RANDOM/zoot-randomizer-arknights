@@ -56,13 +56,13 @@ describe('Draft Rulebook foundation', () => {
       economyRules: { enabled: true, startingPoints: 45, forfeitRebate: 4 },
       actionRules: { reroll: { perDraftLimit: 3, cooldownRounds: 3 } },
     })
-    expect(strict.economyRules.rarityCosts[5]).toBe(7)
-    expect(strict.economyRules.holdCost).toBe(3)
-    expect(strict.economyRules.slotExpansionCost).toBe(2)
+    expect(strict.economyRules.rarityCosts[5]).toBe(-7)
+    expect(strict.economyRules.holdCost).toBe(-3)
+    expect(strict.economyRules.slotExpansionCost).toBe(-2)
     expect(strict.actionRules.slotExpansion.cooldownRounds).toBe(2)
     expect(strict.economyRules.holdUpkeep).toEqual({
       mode: 'schedule',
-      costs: [0, 2, 3, 5, 6],
+      costs: [0, -2, -3, -5, -6],
       repeatLast: true,
     })
     expect(strict.pullDistribution).toMatchObject({
@@ -76,7 +76,7 @@ describe('Draft Rulebook foundation', () => {
     })
 
     const arknights = resolveDraftRulebook(ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK).configuration
-    expect(arknights.economyRules.holdCost).toBe(3)
+    expect(arknights.economyRules.holdCost).toBe(-3)
     expect(arknights.actionRules.slotExpansion.cooldownRounds).toBe(2)
     expect(arknights).toMatchObject({
       offerSize: 5,
@@ -88,7 +88,7 @@ describe('Draft Rulebook foundation', () => {
     })
 
     const lax = resolveDraftRulebook(DEV_LAX_DRAFT_RULEBOOK).configuration
-    expect(lax.economyRules.holdCost).toBe(3)
+    expect(lax.economyRules.holdCost).toBe(-3)
     expect(lax.actionRules.slotExpansion.cooldownRounds).toBe(2)
     expect(lax).toMatchObject({
       offerSize: 4,
@@ -118,9 +118,9 @@ describe('Draft Rulebook foundation', () => {
       DEV_LAX_DRAFT_RULEBOOK,
     ]) {
       const { configuration } = resolveDraftRulebook(rulebook, SHARED_BALANCE_PRICING_PROFILE)
-      expect(configuration.economyRules.rarityCosts[6]).toBe(55)
-      expect(getDraftOperatorCostWithConfiguration(futureOperator, configuration)).toBe(55)
-      expect(getDraftOperatorCostWithConfiguration(pricedOperator, configuration)).toBe(21)
+      expect(configuration.economyRules.rarityCosts[6]).toBe(-55)
+      expect(getDraftOperatorCostWithConfiguration(futureOperator, configuration)).toBe(-55)
+      expect(getDraftOperatorCostWithConfiguration(pricedOperator, configuration)).toBe(-21)
     }
   })
 
@@ -147,10 +147,10 @@ describe('Draft Rulebook foundation', () => {
       offerSize: 3,
       actionRules: { reroll: { enabled: true, perRoundLimit: 2 } },
       capacityRules: { enabled: true, startingActiveSlots: 6, overflowSlots: 1 },
-      economyRules: { enabled: true, startingPoints: 20, rerollCost: 3 },
+      economyRules: { enabled: true, startingPoints: 20, rerollCost: -3 },
       pullDistribution: { type: 'arknights' },
     }
-    rulebook.overrides.operatorCosts = { char_test: 17 }
+    rulebook.overrides.operatorCosts = { char_test: -17 }
 
     const resolved = resolveDraftRulebook(rulebook)
     expect(resolved.configuration.actionRules.reroll).toMatchObject({
@@ -165,9 +165,9 @@ describe('Draft Rulebook foundation', () => {
     expect(resolved.configuration.economyRules).toMatchObject({
       enabled: true,
       startingPoints: 20,
-      rerollCost: 3,
+      rerollCost: -3,
     })
-    expect(resolved.configuration.economyRules.operatorCostOverrides).toEqual({ char_test: 17 })
+    expect(resolved.configuration.economyRules.operatorCostOverrides).toEqual({ char_test: -17 })
     expect(resolved.configuration.pullDistribution).toEqual({ type: 'arknights' })
   })
 
@@ -175,34 +175,34 @@ describe('Draft Rulebook foundation', () => {
     const rulebook = cloneStandard()
     rulebook.generalRules.economyRules = {
       enabled: true,
-      holdUpkeep: { mode: 'static', cost: 3 },
+      holdUpkeep: { mode: 'static', cost: -3 },
     }
     expect(resolveDraftRulebook(rulebook).configuration.economyRules.holdUpkeep).toEqual({
       mode: 'static',
-      cost: 3,
+      cost: -3,
     })
 
     rulebook.generalRules.economyRules.holdUpkeep = {
       mode: 'escalating',
-      baseCost: 2,
-      escalation: 1,
+      baseCost: -2,
+      escalation: -1,
     }
     expect(validateDraftRulebook(rulebook).valid).toBe(true)
     expect(resolveDraftRulebook(rulebook).configuration.economyRules.holdUpkeep).toEqual({
       mode: 'escalating',
-      baseCost: 2,
-      escalation: 1,
+      baseCost: -2,
+      escalation: -1,
     })
 
     rulebook.generalRules.economyRules.holdUpkeep = {
       mode: 'schedule',
-      costs: [2, 2, 3, 5, 6],
+      costs: [-2, -2, -3, -5, -6],
       repeatLast: true,
     }
     expect(validateDraftRulebook(rulebook).valid).toBe(true)
     expect(resolveDraftRulebook(rulebook).configuration.economyRules.holdUpkeep).toEqual({
       mode: 'schedule',
-      costs: [2, 2, 3, 5, 6],
+      costs: [-2, -2, -3, -5, -6],
       repeatLast: true,
     })
   })
@@ -276,10 +276,10 @@ describe('Draft Rulebook foundation', () => {
       generalRules: { economyRules: unknown }
     }
     malformedUpkeep.generalRules.economyRules = {
-      holdUpkeep: { mode: 'escalating', baseCost: 2, escalation: -1 },
+      holdUpkeep: { mode: 'escalating', baseCost: -2, escalation: 1 },
     }
     expect(validateDraftRulebook(malformedUpkeep).errors.join(' ')).toContain(
-      'holdUpkeep.escalation must be a non-negative finite number',
+      'holdUpkeep.escalation must be a non-positive finite number',
     )
   })
 

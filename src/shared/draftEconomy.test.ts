@@ -61,14 +61,37 @@ const zeroRarityCosts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 }
 describe('Draft point economy', () => {
   it('uses locked rarity baselines and operator overrides', () => {
     expect(pool.slice(0, 6).map((operator) => getDraftOperatorCost(operator, options))).toEqual([
-      -8, -6, -4, 0, 12, 32,
+      8, 6, 4, 0, -12, -32,
     ])
     expect(
-      getDraftOperatorCost(pool[5], { economyRules: { operatorCostOverrides: { six: 25 } } }),
-    ).toBe(25)
+      getDraftOperatorCost(pool[5], { economyRules: { operatorCostOverrides: { six: -25 } } }),
+    ).toBe(-25)
   })
 
-  it('charges positive-cost picks and lets negative costs generate budget', () => {
+  it('ceil-rounds the final signed transaction after modifiers and upkeep', () => {
+    const roundingOptions: DraftEngineOptions = {
+      random: () => 0,
+      actionRules: { hold: { enabled: true } },
+      economyRules: {
+        enabled: true,
+        startingPoints: 20,
+        rarityCosts: { ...zeroRarityCosts, 4: -5.5, 1: 5.5 },
+        holdUpkeep: { mode: 'static', cost: -0.6 },
+      },
+    }
+    const costOnly = getDraftActionPointDelta(pool, { type: 'pick', operatorId: 'four' }, roundingOptions)
+    const refund = getDraftActionPointDelta(pool, { type: 'pick', operatorId: 'one' }, roundingOptions)
+    expect(costOnly).toBe(-5)
+    expect(refund).toBe(6)
+    expect(getDraftActionPointDelta(
+      pool,
+      { type: 'pick', operatorId: 'four' },
+      roundingOptions,
+      { draftedOperatorIds: [], heldOperatorId: 'two', holdUpkeepCharges: 0 },
+    )).toBe(-6)
+  })
+
+  it('charges negative-cost picks and lets positive refunds generate budget', () => {
     let state = startDraft(pool, 6, options)
     expect(state.points).toBe(20)
     state = applyDraftAction(state, pool, { type: 'pick', operatorId: 'one' }, options)
@@ -104,9 +127,9 @@ describe('Draft point economy', () => {
         enabled: true,
         startingPoints: 10,
         forfeitRebate: 4,
-        rerollCost: 3,
-        holdCost: 2,
-        slotExpansionCost: 2,
+        rerollCost: -3,
+        holdCost: -2,
+        slotExpansionCost: -2,
       },
     }
     // Keep the target above the six starting active slots so slot expansion is
@@ -128,8 +151,8 @@ describe('Draft point economy', () => {
         enabled: true,
         startingPoints: 10,
         rarityCosts: zeroRarityCosts,
-        holdCost: 2,
-        holdUpkeep: { mode: 'static', cost: 3 },
+        holdCost: -2,
+        holdUpkeep: { mode: 'static', cost: -3 },
       },
     }
     let state = startDraft(pool, 6, priced)
@@ -138,7 +161,7 @@ describe('Draft point economy', () => {
     state = applyDraftAction(state, pool, { type: 'hold', operatorId: heldId }, priced)
     expect(state.points).toBe(8)
     expect(state.holdUpkeepCharges).toBe(0)
-    expect(getDraftHoldUpkeepCost(state, priced)).toBe(3)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(-3)
 
     state = applyDraftAction(
       state,
@@ -163,14 +186,14 @@ describe('Draft point economy', () => {
         enabled: true,
         startingPoints: 10,
         rarityCosts: zeroRarityCosts,
-        holdUpkeep: { mode: 'escalating', baseCost: 2, escalation: 2 },
+        holdUpkeep: { mode: 'escalating', baseCost: -2, escalation: -2 },
       },
     }
     let state = startDraft(pool, 6, priced)
     const heldId = state.currentOfferIds[0]
 
     state = applyDraftAction(state, pool, { type: 'hold', operatorId: heldId }, priced)
-    expect(getDraftHoldUpkeepCost(state, priced)).toBe(2)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(-2)
 
     state = applyDraftAction(
       state,
@@ -180,7 +203,7 @@ describe('Draft point economy', () => {
     )
     expect(state.points).toBe(8)
     expect(state.holdUpkeepCharges).toBe(1)
-    expect(getDraftHoldUpkeepCost(state, priced)).toBe(4)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(-4)
 
     state = applyDraftAction(
       state,
@@ -190,14 +213,14 @@ describe('Draft point economy', () => {
     )
     expect(state.points).toBe(4)
     expect(state.holdUpkeepCharges).toBe(2)
-    expect(getDraftHoldUpkeepCost(state, priced)).toBe(6)
+    expect(getDraftHoldUpkeepCost(state, priced)).toBe(-6)
   })
 
   it('uses an exact scheduled Hold upkeep curve and repeats its final value', () => {
     const priced: DraftEngineOptions = {
       economyRules: {
         enabled: true,
-        holdUpkeep: { mode: 'schedule', costs: [2, 2, 3, 5, 6], repeatLast: true },
+        holdUpkeep: { mode: 'schedule', costs: [-2, -2, -3, -5, -6], repeatLast: true },
       },
     }
     const base = startDraft(pool, 6, { random: () => 0 })
@@ -205,7 +228,7 @@ describe('Draft point economy', () => {
       getDraftHoldUpkeepCost({ ...base, heldOperatorId: 'one', holdUpkeepCharges }, priced),
     )
 
-    expect(costs).toEqual([2, 2, 3, 5, 6, 6, 6])
+    expect(costs).toEqual([-2, -2, -3, -5, -6, -6, -6]
   })
 
   it('charges Hold upkeep on carried picks but not on Forfeit', () => {
@@ -220,7 +243,7 @@ describe('Draft point economy', () => {
         startingPoints: 1,
         rarityCosts: zeroRarityCosts,
         forfeitRebate: 4,
-        holdUpkeep: { mode: 'static', cost: 2 },
+        holdUpkeep: { mode: 'static', cost: -2 },
       },
     }
     let state = startDraft(pool, 6, priced)

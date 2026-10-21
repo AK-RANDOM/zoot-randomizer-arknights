@@ -274,7 +274,7 @@ describe('Draft advanced execution mechanics', () => {
         enabled: true,
         startingPoints: 0,
         rarityCosts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
-        slotExpansionCost: 2,
+        slotExpansionCost: -2,
       },
     }
 
@@ -319,7 +319,7 @@ describe('Draft advanced execution mechanics', () => {
         enabled: true,
         startingPoints: 2,
         rarityCosts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
-        slotExpansionCost: 2,
+        slotExpansionCost: -2,
       },
     }
 

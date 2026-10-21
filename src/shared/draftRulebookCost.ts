@@ -321,8 +321,8 @@ export function getDraftRulebookOperatorCostBreakdown(
     overrideCost,
     overrideDelta: overrideCost === null ? 0 : overrideCost - rarityCost,
     baselineCost,
-    minimumCost: baselineCost + range.minimumModifier,
-    maximumCost: baselineCost + range.maximumModifier,
+    minimumCost: Math.ceil(baselineCost + range.minimumModifier),
+    maximumCost: Math.ceil(baselineCost + range.maximumModifier),
   }
 }
 

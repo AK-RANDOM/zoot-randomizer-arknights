@@ -228,7 +228,7 @@ describe('Draft point economy', () => {
       getDraftHoldUpkeepCost({ ...base, heldOperatorId: 'one', holdUpkeepCharges }, priced),
     )
 
-    expect(costs).toEqual([-2, -2, -3, -5, -6, -6, -6]
+    expect(costs).toEqual([-2, -2, -3, -5, -6, -6, -6])
   })
 
   it('charges Hold upkeep on carried picks but not on Forfeit', () => {

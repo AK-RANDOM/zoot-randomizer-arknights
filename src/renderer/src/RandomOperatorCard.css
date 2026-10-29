@@ -1,0 +1,70 @@
+/* Empty Standard slots mirror the finalized operator-card composition. */
+.random-operator-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  color: inherit;
+  text-align: inherit;
+}
+
+.random-operator-card__art {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #19191c 0 50%, #141416 50% 100%);
+}
+
+.random-operator-card > .slot-config-number,
+.squad-grid .disabled-slot > .slot-config-number {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  left: 8px;
+  color: #ffffff;
+  font-size: 0.61rem;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.random-operator-card__caption {
+  z-index: 2;
+  gap: 3px;
+}
+
+.random-operator-card__rarity {
+  width: max-content;
+  font-size: 0.66rem;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+}
+
+/* Keep colored rarity stars in normal inline text flow so their baseline and
+   spacing match the selected operator card's continuous star run. */
+.random-operator-card__star {
+  position: relative;
+  top: -1px;
+  display: inline;
+}
+
+/* Unavailable Standard capacity uses the same unfilled-card composition, but the
+   destructive palette is shared with Draft's Forfeit surface. */
+.squad-grid .disabled-slot {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  border-color: rgba(207, 73, 79, 0.86);
+  color: #f1d4d6;
+  background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
+  text-align: inherit;
+}
+
+.squad-grid .disabled-slot::before,
+.squad-grid .disabled-slot small {
+  display: none;
+}
+
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
+  position: absolute;
+  z-index: 2;
+  color: #ffffff;
+}

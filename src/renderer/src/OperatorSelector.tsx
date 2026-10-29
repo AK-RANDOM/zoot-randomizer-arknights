@@ -23,8 +23,6 @@ export function filterReservedSlotOperatorOptions(
       .map((slot) => slot.operatorId)
       .filter((operatorId): operatorId is string => Boolean(operatorId)),
   )
-  if (reservedOperatorIds.size === 0) return options
-
   const operatorById = new Map(reservation.operators.map((operator) => [operator.id, operator]))
   const reservedAlterGroups = new Set<string>()
   if (reservation.constraints.alterExclusivity) {
@@ -34,13 +32,20 @@ export function filterReservedSlotOperatorOptions(
     }
   }
 
-  return options.filter((option) => {
-    if (reservedOperatorIds.has(option.operator.id)) return false
-    return !(
+  return options.map((option) => {
+    const exactReserved = reservedOperatorIds.has(option.operator.id)
+    const alterReserved = Boolean(
       reservation.constraints.alterExclusivity &&
       option.operator.alterGroup &&
-      reservedAlterGroups.has(option.operator.alterGroup)
+      reservedAlterGroups.has(option.operator.alterGroup),
     )
+    if (!exactReserved && !alterReserved) return option
+    const reason = exactReserved ? 'Already in squad' : 'Alter in squad'
+    return {
+      ...option,
+      disabled: true,
+      disabledReason: [option.disabledReason, reason].filter(Boolean).join(' · '),
+    }
   })
 }
 

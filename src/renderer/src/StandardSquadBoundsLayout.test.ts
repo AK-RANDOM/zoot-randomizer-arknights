@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 
 const featureSource = readFileSync(new URL('./StandardSquadFeature.tsx', import.meta.url), 'utf8')
 const featureStyles = readFileSync(new URL('./StandardSquadFeature.css', import.meta.url), 'utf8')
-const constraintStyles = readFileSync(new URL('./SquadConstraintEditor.css', import.meta.url), 'utf8')
+const constraintStyles = readFileSync(
+  new URL('./SquadConstraintEditor.css', import.meta.url),
+  'utf8',
+)
 const boundPillSource = readFileSync(new URL('./BoundPill.tsx', import.meta.url), 'utf8')
 
 describe('Standard Squad bounds layout structure', () => {
@@ -26,23 +29,40 @@ describe('Standard Squad bounds layout structure', () => {
 
   it('keeps slot constraint class icons frameless so the button owns the only border', () => {
     expect(constraintStyles).toContain(
-      '.slot-constraint-class-icon-button .class-icon {\n  width: 34px;\n  height: 34px;\n  border: 0;\n  background: transparent;\n  box-shadow: none;'
+      '.slot-constraint-class-icon-button .class-icon {\n  width: 34px;\n  height: 34px;\n  border: 0;\n  background: transparent;\n  box-shadow: none;',
     )
+    expect(constraintStyles).not.toContain('.slot-constraint-class-icon-button .class-icon::after')
     expect(constraintStyles).not.toContain(
-      '.slot-constraint-class-icon-button.is-open {\n  border-color: rgba(240, 198, 109, 0.88);\n  box-shadow:'
+      '.slot-constraint-class-icon-button.is-open {\n  border-color: rgba(240, 198, 109, 0.88);\n  box-shadow:',
     )
+  })
+
+  it('labels class-bound popover controls beside their class icons', () => {
+    expect(featureSource).toContain('className="bound-class-label"')
+    expect(featureSource).toContain('<span>{classLabel}</span>')
+  })
+
+  it('keeps the slot reset action at the same text scale as Apply', () => {
+    expect(constraintStyles).toContain('.slot-editor-actions .danger-button {')
+    expect(constraintStyles).toContain('font-size: inherit')
+    expect(constraintStyles).not.toContain("content: 'Reset'")
+    expect(constraintStyles).not.toContain('font-size: 0;')
   })
 
   it('closes the previously active bound popover before opening another', () => {
     expect(boundPillSource).toContain('let activeBoundPopover: ActiveBoundPopover | null = null')
     expect(boundPillSource).toContain('activeBoundPopover?.close()')
-    expect(boundPillSource).toContain('activeBoundPopover = { token: instanceToken, close: closePopover }')
+    expect(boundPillSource).toContain(
+      'activeBoundPopover = { token: instanceToken, close: closePopover }',
+    )
   })
 
   it('only persists a bound draft from the explicit Save action', () => {
     expect(boundPillSource).toContain('onSave(draft)')
     expect(boundPillSource.match(/onSave\(/g)).toHaveLength(1)
     expect(boundPillSource).not.toContain('onSave(resolved)')
-    expect(boundPillSource).toContain('<button type="button" className="secondary-button" onClick={closePopover}>')
+    expect(boundPillSource).toContain(
+      '<button type="button" className="secondary-button" onClick={closePopover}>',
+    )
   })
 })

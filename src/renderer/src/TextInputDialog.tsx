@@ -3,12 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 export default function TextInputDialog({
   title,
   initialValue = '',
+  inputLabel = 'Preset name',
   confirmLabel,
   onCancel,
   onConfirm,
 }: {
   title: string
   initialValue?: string
+  inputLabel?: string
   confirmLabel: string
   onCancel: () => void
   onConfirm: (value: string) => void
@@ -41,7 +43,7 @@ export default function TextInputDialog({
           ref={inputRef}
           className="preset-name-dialog-input"
           value={value}
-          aria-label="Preset name"
+          aria-label={inputLabel}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter') submit()
@@ -49,8 +51,17 @@ export default function TextInputDialog({
           }}
         />
         <div className="confirmation-actions">
-          <button type="button" className="secondary-button" onClick={onCancel}>Cancel</button>
-          <button type="button" className="randomize-button" disabled={!value.trim()} onClick={submit}>{confirmLabel}</button>
+          <button type="button" className="secondary-button" onClick={onCancel}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="randomize-button"
+            disabled={!value.trim()}
+            onClick={submit}
+          >
+            {confirmLabel}
+          </button>
         </div>
       </div>
     </div>

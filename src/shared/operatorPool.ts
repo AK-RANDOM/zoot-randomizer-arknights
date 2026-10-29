@@ -1,10 +1,12 @@
 import type { RandomizerConstraints } from './constraints'
+import type { ImportedArknightsAccount } from './arknightsAccount'
+import { importedAccountOperatorState } from './arknightsAccountReconciliation'
 import type { GameLocale, Operator, ReleaseServer } from './operator'
 import { isGameLocale } from './gameLocalization'
 import { filterHigherLevelEligibleOperators } from './randomizer'
 import { operatorRaceIds } from './raceMetadata'
 
-export const OPERATOR_PREFERENCES_VERSION = 2 as const
+export const OPERATOR_PREFERENCES_VERSION = 7 as const
 
 export const poolPresentationModes = [
   'imageGrid',
@@ -15,13 +17,32 @@ export const poolPresentationModes = [
 
 export type PoolPresentationMode = (typeof poolPresentationModes)[number]
 
+export type OperatorAppearanceChoice = 'e1' | 'e2' | 'random' | 'account' | `skin:${string}`
+
+export type AccountOperatorFilterMode = 'ignore' | 'owned' | 'progression'
+
+export interface AccountProgressionBound {
+  elite: 0 | 1 | 2
+  level: number
+}
+
 export interface OperatorPreferences {
   version: typeof OPERATOR_PREFERENCES_VERSION
   metadataRegion: ReleaseServer
   gameLocale: GameLocale
   poolPresentation: PoolPresentationMode
+  /** Account-aware Global Filter mode. */
+  accountFilterMode: AccountOperatorFilterMode
+  accountProgressionMin: AccountProgressionBound
+  accountProgressionMax: AccountProgressionBound
+  /** Whether synced E/L progression is shown on operator cards. */
+  showAccountProgression: boolean
   /** Explicit exclusions only. Any ID not listed is enabled by default. */
   excludedOperatorIds: string[]
+  /** Per-operator presentation choice. Missing IDs fall back to the legacy/default promotion choice. */
+  operatorAppearances: Record<string, OperatorAppearanceChoice>
+  /** Stable seed used when an operator appearance is set to random. */
+  appearanceRandomSeed: number
 }
 
 export function createDefaultOperatorPreferences(): OperatorPreferences {
@@ -30,7 +51,13 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
     metadataRegion: 'global',
     gameLocale: 'en',
     poolPresentation: 'imageGrid',
+    accountFilterMode: 'ignore',
+    accountProgressionMin: { elite: 0, level: 1 },
+    accountProgressionMax: { elite: 2, level: 90 },
+    showAccountProgression: false,
     excludedOperatorIds: [],
+    operatorAppearances: {},
+    appearanceRandomSeed: 1,
   }
 }
 
@@ -48,11 +75,55 @@ function normalizeIds(value: unknown): string[] {
   return result
 }
 
+function isAccountOperatorFilterMode(value: unknown): value is AccountOperatorFilterMode {
+  return value === 'ignore' || value === 'owned' || value === 'progression'
+}
+
+export function accountProgressionMaxLevel(elite: 0 | 1 | 2): number {
+  return elite === 0 ? 50 : elite === 1 ? 80 : 90
+}
+
+function normalizeAccountProgressionBound(
+  value: unknown,
+  fallback: AccountProgressionBound,
+): AccountProgressionBound {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback
+  const candidate = value as { elite?: unknown; level?: unknown }
+  const elite =
+    candidate.elite === 0 || candidate.elite === 1 || candidate.elite === 2
+      ? candidate.elite
+      : fallback.elite
+  const level =
+    typeof candidate.level === 'number' && Number.isFinite(candidate.level)
+      ? Math.min(accountProgressionMaxLevel(elite), Math.max(1, Math.trunc(candidate.level)))
+      : fallback.level
+  return { elite, level }
+}
+
+export function accountProgressionRank(bound: AccountProgressionBound): number {
+  return bound.elite * 100 + bound.level
+}
+
+function normalizeAppearanceMap(value: unknown): Record<string, OperatorAppearanceChoice> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  const result: Record<string, OperatorAppearanceChoice> = {}
+  for (const [operatorId, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (!operatorId || typeof raw !== 'string') continue
+    if (
+      raw === 'e1' ||
+      raw === 'e2' ||
+      raw === 'random' ||
+      raw === 'account' ||
+      raw.startsWith('skin:')
+    ) {
+      result[operatorId] = raw as OperatorAppearanceChoice
+    }
+  }
+  return result
+}
+
 function isPoolPresentationMode(value: unknown): value is PoolPresentationMode {
-  return (
-    typeof value === 'string' &&
-    (poolPresentationModes as readonly string[]).includes(value)
-  )
+  return typeof value === 'string' && (poolPresentationModes as readonly string[]).includes(value)
 }
 
 /**
@@ -66,8 +137,17 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
 
   const candidate = value as Partial<Record<keyof OperatorPreferences, unknown>> & {
     version?: unknown
+    ownedOperatorsOnly?: unknown
   }
-  if (candidate.version !== 1 && candidate.version !== OPERATOR_PREFERENCES_VERSION) {
+  if (
+    candidate.version !== 1 &&
+    candidate.version !== 2 &&
+    candidate.version !== 3 &&
+    candidate.version !== 4 &&
+    candidate.version !== 5 &&
+    candidate.version !== 6 &&
+    candidate.version !== OPERATOR_PREFERENCES_VERSION
+  ) {
     return defaults
   }
 
@@ -81,7 +161,30 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
     poolPresentation: isPoolPresentationMode(candidate.poolPresentation)
       ? candidate.poolPresentation
       : defaults.poolPresentation,
+    accountFilterMode: isAccountOperatorFilterMode(candidate.accountFilterMode)
+      ? candidate.accountFilterMode
+      : candidate.ownedOperatorsOnly === true
+        ? 'owned'
+        : defaults.accountFilterMode,
+    accountProgressionMin: normalizeAccountProgressionBound(
+      candidate.accountProgressionMin,
+      defaults.accountProgressionMin,
+    ),
+    accountProgressionMax: normalizeAccountProgressionBound(
+      candidate.accountProgressionMax,
+      defaults.accountProgressionMax,
+    ),
+    showAccountProgression:
+      typeof candidate.showAccountProgression === 'boolean'
+        ? candidate.showAccountProgression
+        : defaults.showAccountProgression,
     excludedOperatorIds: normalizeIds(candidate.excludedOperatorIds),
+    operatorAppearances: normalizeAppearanceMap(candidate.operatorAppearances),
+    appearanceRandomSeed:
+      typeof candidate.appearanceRandomSeed === 'number' &&
+      Number.isFinite(candidate.appearanceRandomSeed)
+        ? Math.trunc(candidate.appearanceRandomSeed)
+        : defaults.appearanceRandomSeed,
   }
 }
 
@@ -94,9 +197,19 @@ export function reconcileOperatorPreferences(
   operators: readonly Operator[],
 ): OperatorPreferences {
   const existingIds = new Set(operators.map((operator) => operator.id))
+  const operatorAppearances = Object.fromEntries(
+    Object.entries(preferences.operatorAppearances).filter(([id, choice]) => {
+      if (!existingIds.has(id)) return false
+      if (!choice.startsWith('skin:')) return true
+      const operator = operators.find((item) => item.id === id)
+      const skinId = choice.slice(5)
+      return operator?.skins?.some((skin) => skin.id === skinId) ?? false
+    }),
+  )
   return {
     ...preferences,
     excludedOperatorIds: preferences.excludedOperatorIds.filter((id) => existingIds.has(id)),
+    operatorAppearances,
   }
 }
 
@@ -152,6 +265,29 @@ export function applyManualOperatorExclusions(
   return operators.filter((operator) => !excluded.has(operator.id))
 }
 
+export function applyAccountFilter(
+  operators: readonly Operator[],
+  snapshot: ImportedArknightsAccount | null | undefined,
+  mode: AccountOperatorFilterMode,
+  minimum: AccountProgressionBound,
+  maximum: AccountProgressionBound,
+): Operator[] {
+  if (!snapshot || mode === 'ignore') return [...operators]
+
+  const minimumRank = accountProgressionRank(minimum)
+  const maximumRank = accountProgressionRank(maximum)
+  const lower = Math.min(minimumRank, maximumRank)
+  const upper = Math.max(minimumRank, maximumRank)
+
+  return operators.filter((operator) => {
+    const state = importedAccountOperatorState(snapshot, operator.id)
+    if (!state) return false
+    if (mode === 'owned') return true
+    const rank = accountProgressionRank({ elite: state.elite, level: state.level })
+    return rank >= lower && rank <= upper
+  })
+}
+
 export function applyRaceExclusions(
   operators: readonly Operator[],
   excludedRaceIds: readonly string[],
@@ -171,11 +307,20 @@ export function applyRaceExclusions(
 export function buildGlobalFilterOperatorPool(
   operators: Operator[],
   constraints: RandomizerConstraints,
+  account?: {
+    snapshot: ImportedArknightsAccount | null | undefined
+    mode: AccountOperatorFilterMode
+    minimum: AccountProgressionBound
+    maximum: AccountProgressionBound
+  },
 ): Operator[] {
-  return applyRaceExclusions(
+  const filtered = applyRaceExclusions(
     filterHigherLevelEligibleOperators(operators, constraints),
     constraints.race?.excludedIds ?? [],
   )
+  return account
+    ? applyAccountFilter(filtered, account.snapshot, account.mode, account.minimum, account.maximum)
+    : filtered
 }
 
 /**
@@ -187,9 +332,15 @@ export function buildFinalOperatorPool(
   operators: Operator[],
   constraints: RandomizerConstraints,
   excludedOperatorIds: readonly string[],
+  account?: {
+    snapshot: ImportedArknightsAccount | null | undefined
+    mode: AccountOperatorFilterMode
+    minimum: AccountProgressionBound
+    maximum: AccountProgressionBound
+  },
 ): Operator[] {
   return applyManualOperatorExclusions(
-    buildGlobalFilterOperatorPool(operators, constraints),
+    buildGlobalFilterOperatorPool(operators, constraints, account),
     excludedOperatorIds,
   )
 }

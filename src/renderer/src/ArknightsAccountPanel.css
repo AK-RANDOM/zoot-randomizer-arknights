@@ -1,0 +1,157 @@
+.arknights-account {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.arknights-account__compact {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.6fr) minmax(210px, 0.8fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid #34343a;
+  border-radius: 5px;
+  background: #151517;
+}
+
+.arknights-account__account-info,
+.arknights-account__operator-info {
+  min-width: 0;
+}
+
+.arknights-account__account-info {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.arknights-account__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #0d0d0f;
+}
+
+.arknights-account__account-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.arknights-account__account-copy span,
+.arknights-account__account-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arknights-account__account-copy small,
+.arknights-account__server,
+.arknights-account__operator-info small {
+  color: #8c8c92;
+  font-size: 0.68rem;
+}
+
+.arknights-account__operator-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
+  padding-left: 12px;
+  border-left: 1px solid #34343a;
+}
+
+.arknights-account__operator-info > span {
+  display: grid;
+  gap: 3px;
+}
+
+.arknights-account__operator-info strong {
+  font-size: 1.05rem;
+}
+
+.arknights-account .danger-button {
+  border: 1px solid #8e3f46;
+  color: #ffd9dc;
+  background: #3a171b;
+  font-weight: 800;
+}
+
+.arknights-account .danger-button:hover:not(:disabled) {
+  border-color: #c95863;
+  background: #552027;
+}
+
+.arknights-account__auth,
+.arknights-account__status,
+.arknights-account__warnings {
+  display: grid;
+  gap: 12px;
+}
+
+.arknights-account__auth {
+  padding: 14px;
+  border: 1px solid #34343a;
+  border-radius: 5px;
+  background: #151517;
+}
+
+.arknights-account__auth-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.arknights-account__auth p {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  color: #aaa39a;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.arknights-account__fields {
+  display: grid;
+  grid-template-columns: 150px minmax(230px, 1fr) auto 170px auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.arknights-account .field input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.arknights-account__status {
+  color: #aaa39a;
+  font-size: 0.76rem;
+}
+
+.arknights-account__warnings {
+  padding: 11px 12px;
+  border: 1px solid #6b572a;
+  border-radius: 4px;
+  color: #e5c37e;
+  background: #171719;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 1100px) {
+  .arknights-account__auth p {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 980px) {
+  .arknights-account__compact,
+  .arknights-account__fields {
+    grid-template-columns: 1fr;
+  }
+}

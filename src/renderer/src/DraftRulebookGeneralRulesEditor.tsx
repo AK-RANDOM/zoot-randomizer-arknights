@@ -169,7 +169,7 @@ export default function DraftRulebookGeneralRulesEditor({
       .map((part) => part.trim())
       .filter((part) => part.length > 0)
       .map(Number)
-      .filter((cost) => Number.isFinite(cost) && cost >= 0)
+      .filter((cost) => Number.isFinite(cost) && cost <= 0)
     updateEconomy({
       holdUpkeep: {
         mode: 'schedule',
@@ -235,7 +235,7 @@ export default function DraftRulebookGeneralRulesEditor({
         <div className="rulebook-rarity-cost-grid">
           {operatorRarities.map((rarity) => (
             <label className="field" key={rarity}>
-              <span>{rarity}★ cost</span>
+              <span>{rarity}★ Budget delta (negative = spending)</span>
               <input type="number" disabled={disabled} value={rarityCost(rarity)} onChange={(event) => setRarityCost(rarity, Number(event.target.value))} />
             </label>
           ))}
@@ -258,7 +258,7 @@ export default function DraftRulebookGeneralRulesEditor({
           {economy.holdUpkeep.mode === 'static' && (
             <label className="field">
               <span>Upkeep per round</span>
-              <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.cost} onChange={(event) => updateEconomy({ holdUpkeep: { mode: 'static', cost: Math.max(0, Number(event.target.value) || 0) } })} />
+              <input type="number" max={0} disabled={disabled} value={economy.holdUpkeep.cost} onChange={(event) => updateEconomy({ holdUpkeep: { mode: 'static', cost: Math.min(0, Number(event.target.value) || 0) } })} />
             </label>
           )}
           {economy.holdUpkeep.mode === 'escalating' && (
@@ -267,7 +267,7 @@ export default function DraftRulebookGeneralRulesEditor({
                 <span>Upkeep base</span>
                 <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.baseCost} onChange={(event) => updateEconomy({ holdUpkeep: {
                   mode: 'escalating',
-                  baseCost: Math.max(0, Number(event.target.value) || 0),
+                  baseCost: Math.min(0, Number(event.target.value) || 0),
                   escalation: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.escalation : 0,
                 } })} />
               </label>
@@ -276,7 +276,7 @@ export default function DraftRulebookGeneralRulesEditor({
                 <input type="number" min={0} disabled={disabled} value={economy.holdUpkeep.escalation} onChange={(event) => updateEconomy({ holdUpkeep: {
                   mode: 'escalating',
                   baseCost: economy.holdUpkeep.mode === 'escalating' ? economy.holdUpkeep.baseCost : 0,
-                  escalation: Math.max(0, Number(event.target.value) || 0),
+                  escalation: Math.min(0, Number(event.target.value) || 0),
                 } })} />
               </label>
             </>

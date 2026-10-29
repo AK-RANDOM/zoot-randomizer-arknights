@@ -267,7 +267,7 @@ export default function SquadConstraintEditor({
         operatorMatchesSlotConstraint(operator, draftWithoutOperator),
       ),
     )
-    if (matchingAmiyaForms.length > 0 && !reservedMandatoryGroups.has(AMIYA_MANDATORY_GROUP)) {
+    if (matchingAmiyaForms.length > 0) {
       options.push({
         key: `group:${AMIYA_MANDATORY_GROUP}`,
         label: 'Amiya',
@@ -282,22 +282,27 @@ export default function SquadConstraintEditor({
           operator.subclass.name,
         ]),
         classIcons: matchingAmiyaForms.map((operator) => operator.class),
+        disabled: reservedMandatoryGroups.has(AMIYA_MANDATORY_GROUP),
+        disabledReason: reservedMandatoryGroups.has(AMIYA_MANDATORY_GROUP)
+          ? 'Another slot already has Amiya'
+          : undefined,
       })
     }
 
     for (const operator of eligiblePool) {
       if (operator.mandatoryExclusivityGroup === AMIYA_MANDATORY_GROUP) continue
       if (!operatorMatchesSlotConstraint(operator, draftWithoutOperator)) continue
-      if (
+      const reservedIdentity = Boolean(
         operator.mandatoryExclusivityGroup &&
-        reservedMandatoryGroups.has(operator.mandatoryExclusivityGroup)
+        reservedMandatoryGroups.has(operator.mandatoryExclusivityGroup),
       )
-        continue
       options.push({
         key: `operator:${operator.id}`,
         label: operator.name,
         operator,
         aliases: [operator.subclass.name],
+        disabled: reservedIdentity,
+        disabledReason: reservedIdentity ? 'Already in squad' : undefined,
       })
     }
     return options.sort(
@@ -346,6 +351,7 @@ export default function SquadConstraintEditor({
       setDraft((current) => ({ ...current, operatorId: null, mandatoryExclusivityGroup: null }))
       return
     }
+    if (option.disabled) return
     setSelectedClass(null)
     if (option.key === `group:${AMIYA_MANDATORY_GROUP}`) {
       setDraft((current) => ({

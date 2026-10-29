@@ -1,5 +1,11 @@
-import type { OperatorClass, OperatorDataset, OperatorDatasetSources } from './operator'
+import type { GameLocale, OperatorClass, OperatorDataset, OperatorDatasetSources, ReleaseServer } from './operator'
 import type { PromotionArt } from './portraits'
+import type { GarrisonEvent } from './garrisonEventCatalog'
+import type {
+  ArknightsAccountServer,
+  ArknightsAccountSyncResult,
+  ImportedArknightsAccount,
+} from './arknightsAccount'
 
 export interface OperatorDataInfo {
   origin: 'bundled' | 'downloaded'
@@ -31,19 +37,49 @@ export interface PortraitSyncProgress {
   message: string
 }
 
+export interface ArtworkStorageInfo {
+  path: string
+  warning?: string
+  categories: Array<{ name: string; files: number; bytes: number }>
+  totalFiles: number
+  totalBytes: number
+}
+
 export interface DesktopApi {
   platform: NodeJS.Platform
   getOperatorDataset(): Promise<OperatorDataset>
+  getGarrisonEvents(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]>
+  /** Track unsaved edits so the native window close guard can offer Save/Discard/Cancel. */
+  setGarrisonCloseDirty(dirty: boolean): void
+  onGarrisonCloseSaveRequested(listener: () => void): () => void
+  completeGarrisonCloseSave(success: boolean): void
   getOperatorDataInfo(): Promise<OperatorDataInfo>
   getOperatorImage(operatorId: string): Promise<string | null>
   getOperatorPortrait(operatorId: string, promotionArt: PromotionArt): Promise<string | null>
+  getOperatorPromotionAvatar(operatorId: string, promotionArt: PromotionArt): Promise<string | null>
+  getOperatorAvatarAsset(avatarId: string): Promise<string | null>
+  getOperatorSkinPortrait(operatorId: string, skinId: string): Promise<string | null>
+  getOperatorSkinAvatar(operatorId: string, skinId: string): Promise<string | null>
+  getArknightsProfileAvatar(avatarId: string): Promise<string | null>
   getClassIcon(operatorClass: OperatorClass): Promise<string | null>
   getSubclassIcon(subclassId: string): Promise<string | null>
   getFactionIcon(factionId: string): Promise<string | null>
   checkOperatorUpdates(): Promise<OperatorUpdateCheck>
   updateOperatorData(): Promise<OperatorUpdateResult>
+  getArtworkStorageInfo(): Promise<ArtworkStorageInfo>
+  openArtworkStorageFolder(): Promise<void>
+  clearDownloadedArtwork(): Promise<ArtworkStorageInfo>
+  startCompleteArtworkDownload(): Promise<PortraitSyncProgress>
   getPortraitSyncProgress(): Promise<PortraitSyncProgress>
   startPortraitSync(): Promise<PortraitSyncProgress>
   cancelPortraitSync(): Promise<PortraitSyncProgress>
   onPortraitSyncProgress(listener: (progress: PortraitSyncProgress) => void): () => void
+  requestArknightsLoginCode(server: ArknightsAccountServer, email: string): Promise<void>
+  syncArknightsAccount(
+    server: ArknightsAccountServer,
+    email: string,
+    code: string,
+  ): Promise<ArknightsAccountSyncResult>
+  getImportedArknightsAccount(): Promise<ImportedArknightsAccount | null>
+  clearImportedArknightsAccount(): Promise<void>
 }

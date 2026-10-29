@@ -19,12 +19,7 @@ export const limitedAcquisitionGroups = [
   'collab',
 ] as const
 
-export const welfareAcquisitionGroups = [
-  'eventStory',
-  'redCert',
-  'cc',
-  'isRa',
-] as const
+export const welfareAcquisitionGroups = ['eventStory', 'redCert', 'cc', 'isRa'] as const
 
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
@@ -69,6 +64,33 @@ export interface OperatorFaction {
   affiliations: string[]
 }
 
+export interface OperatorDefaultArt {
+  /** Native skin-table ID, including #1/#1+/#2 variants. */
+  id: string
+  /** Source-provided square avatar asset for this appearance. */
+  avatarId: string
+  /** Source-provided portrait asset used when this appearance is selected outside Curate. */
+  portraitId: string
+  /** Promotion phase from buildinEvolveMap when applicable. */
+  phase?: number
+  /** Compact Curate label such as Default, E0, E1, or E2. */
+  label: string
+}
+
+export interface OperatorSkin {
+  id: string
+  portraitId: string
+  /** Source-provided square avatar asset for this appearance. */
+  avatarId?: string
+  /** CN outfit release timestamp from displaySkin.getTime when available. */
+  releaseTime?: number
+  /** Internal marker for an additional native default art represented through the legacy skin choice path. */
+  isDefault?: boolean
+  names: Partial<Record<GameLocale, string>>
+  /** Source-provided localized outfit/collection brand. Retained for non-Curate consumers. */
+  brands?: Partial<Record<GameLocale, string>>
+}
+
 export interface Operator {
   id: string
   name: string
@@ -91,6 +113,10 @@ export interface Operator {
   alterGroup: string | null
   mandatoryExclusivityGroup: string | null
   imageFile: string
+  /** Source-driven default appearance list. Cardinality varies by operator/form. */
+  defaultArts?: OperatorDefaultArt[]
+  /** Optional source-driven alternate cosmetic appearances plus internal extra defaults. */
+  skins?: OperatorSkin[]
 }
 
 export interface OperatorDatasetSources {
@@ -124,6 +150,8 @@ export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
 
 export interface OperatorDataset {
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
+  /** Version of normalized cosmetic skin metadata embedded in operator records. */
+  skinMetadataVersion?: number
   generatedAt: string | null
   sources: OperatorDatasetSources
   /** Stable class ID -> current display label. Defaults to English in schema-v6 data. */

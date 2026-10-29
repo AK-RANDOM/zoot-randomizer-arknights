@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import type { OperatorDataset } from '../../shared/operator'
-import DraftRulebookGeneralRulesEditor from './DraftRulebookGeneralRulesEditor'
-import DraftRulebookIdentifierEditor from './DraftRulebookIdentifierEditor'
 import DraftRulebookInteractionsEditor from './DraftRulebookInteractionsEditor'
 import DraftRulebookLibrary from './DraftRulebookLibrary'
-import DraftRulebookOverridesEditor, {
-  draftRulebookOverrideCount,
-} from './DraftRulebookOverridesEditor'
+import DraftRulebookRulebookEditor from './DraftRulebookRulebookEditor'
+import DraftRulebookVariablesEditor from './DraftRulebookVariablesEditor'
+import DraftRulebookProbabilityEditor from './DraftRulebookProbabilityEditor'
+import DraftRulebookPricingEditor from './DraftRulebookPricingEditor'
+import { draftRulebookOverrideCount } from './DraftRulebookOverridesEditor'
 import DraftRulebookPoolEditor from './DraftRulebookPoolEditor'
-import DraftPricingProfileEditor from './DraftPricingProfileEditor'
 import useDraftRulebookLibrary from './useDraftRulebookLibrary'
 import useDraftPricingProfiles from './useDraftPricingProfiles'
 import './DraftRulebookPanel.css'
@@ -18,12 +17,12 @@ interface DraftRulebookPanelProps {
 }
 
 export const DRAFT_RULEBOOK_EDITOR_SECTIONS = [
-  { id: 'identifier', label: 'Identifier' },
-  { id: 'general', label: 'General Rules' },
+  { id: 'rulebook', label: 'Rulebook' },
   { id: 'pool', label: 'Pool' },
-  { id: 'overrides', label: 'Overrides' },
-  { id: 'interactions', label: 'Interactions' },
+  { id: 'variables', label: 'Variables' },
+  { id: 'probability', label: 'Probability' },
   { id: 'pricing', label: 'Pricing' },
+  { id: 'interactions', label: 'Interactions' },
 ] as const
 
 export type DraftRulebookEditorSection = (typeof DRAFT_RULEBOOK_EDITOR_SECTIONS)[number]['id']
@@ -34,25 +33,17 @@ export default function DraftRulebookPanel({
   const library = useDraftRulebookLibrary(dataset)
   const pricing = useDraftPricingProfiles()
   const selected = library.selected
-  const [activeSection, setActiveSection] = useState<DraftRulebookEditorSection>('identifier')
+  const [activeSection, setActiveSection] = useState<DraftRulebookEditorSection>('rulebook')
 
   const editor = (() => {
     switch (activeSection) {
-      case 'identifier':
+      case 'rulebook':
         return (
-          <DraftRulebookIdentifierEditor
-            rulebook={selected}
-            disabled={library.builtIn}
-            lastEditedAt={library.selectedEntry.editor.lastEditedAt}
-            onChange={library.updateSelected}
-          />
-        )
-      case 'general':
-        return (
-          <DraftRulebookGeneralRulesEditor
+          <DraftRulebookRulebookEditor
             rulebook={selected}
             dataset={dataset}
             disabled={library.builtIn}
+            lastEditedAt={library.selectedEntry.editor.lastEditedAt}
             onChange={library.updateSelected}
           />
         )
@@ -65,11 +56,23 @@ export default function DraftRulebookPanel({
             onChange={library.updateSelected}
           />
         )
-      case 'overrides':
+      case 'variables':
+        return <DraftRulebookVariablesEditor />
+      case 'probability':
         return (
-          <DraftRulebookOverridesEditor
+          <DraftRulebookProbabilityEditor
             rulebook={selected}
             dataset={dataset}
+            disabled={library.builtIn}
+            onChange={library.updateSelected}
+          />
+        )
+      case 'pricing':
+        return (
+          <DraftRulebookPricingEditor
+            dataset={dataset}
+            controller={pricing}
+            rulebook={selected}
             disabled={library.builtIn}
             onChange={library.updateSelected}
           />
@@ -81,16 +84,6 @@ export default function DraftRulebookPanel({
             dataset={dataset}
             disabled={library.builtIn}
             onChange={library.updateSelected}
-          />
-        )
-      case 'pricing':
-        return (
-          <DraftPricingProfileEditor
-            dataset={dataset}
-            controller={pricing}
-            rulebook={selected}
-            rulebookBuiltIn={library.builtIn}
-            onRulebookChange={library.updateSelected}
           />
         )
     }

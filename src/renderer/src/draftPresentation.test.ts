@@ -63,8 +63,8 @@ describe('Draft renderer presentation seam', () => {
       economyRules: {
         enabled: true,
         startingPoints: 100,
-        rarityCosts: { 1: 0, 2: 0, 3: 0, 4: 10, 5: 20, 6: 30 },
-        holdUpkeep: { mode: 'static', cost: 3 },
+        rarityCosts: { 1: 0, 2: 0, 3: 0, 4: -10, 5: -20, 6: -30 },
+        holdUpkeep: { mode: 'static', cost: -3 },
       },
     }
     const configuration = resolveDraftEngineConfiguration(options)
@@ -83,7 +83,7 @@ describe('Draft renderer presentation seam', () => {
       configuration,
     )
 
-    expect(presentation.resolvedCost).toBe(10)
+    expect(presentation.resolvedCost).toBe(-10)
     expect(presentation.price).toEqual({ pointDelta: -10, amount: 10, tone: 'cost' })
     expect(presentation.pick.economy.pointDelta).toBe(-13)
     expect(resolveDraftHoldPresentation(state, configuration)).toEqual({

@@ -37,7 +37,7 @@
 
 .preset-toolbar {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 16px;
@@ -45,6 +45,15 @@
   border: 1px solid #2c2c31;
   border-radius: 5px;
   background: #111113;
+}
+
+.preset-toolbar-label {
+  flex: 0 0 auto;
+  color: #a7a7ad;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .preset-select {
@@ -69,14 +78,23 @@
 
 .preset-actions {
   display: flex;
+  flex: 1 1 auto;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 7px;
 }
 
+.preset-actions-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
+}
+
 .current-constraint-summary {
-  display: grid;
-  gap: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin: -7px 0 14px;
   padding: 10px 12px;
   border: 1px solid #2c2c31;
@@ -84,14 +102,21 @@
   background: #111113;
 }
 
-.current-constraint-summary > strong {
+.current-constraint-summary-content {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 7px;
+}
+
+.current-constraint-summary-content > strong {
   color: #a7a7ad;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.current-constraint-summary > div {
+.current-constraint-summary-content > div {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -107,7 +132,7 @@
   font-weight: 700;
 }
 
-.current-constraint-summary p {
+.current-constraint-summary-content p {
   margin: 0;
   color: #727279;
   font-size: 0.68rem;

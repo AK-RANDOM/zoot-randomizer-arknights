@@ -11,7 +11,7 @@ describe('portable storage', () => {
         isPackaged: true,
         executablePath: '/opt/Randomizer/Arknights Randomizer.exe',
       }),
-    ).toBe('/opt/Randomizer/Arknights-Randomizer-Data')
+    ).toBe(join('/opt/Randomizer', 'Arknights-Randomizer-Data'))
   })
 
   it('uses the provided portable executable directory when present', () => {
@@ -21,7 +21,7 @@ describe('portable storage', () => {
         executablePath: '/other/app',
         portableExecutableDir: '/portable',
       }),
-    ).toBe('/portable/Arknights-Randomizer-Data')
+    ).toBe(join('/portable', 'Arknights-Randomizer-Data'))
   })
 
   it('does not redirect development builds', () => {

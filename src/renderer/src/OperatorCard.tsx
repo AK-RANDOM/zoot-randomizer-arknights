@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import { useOperatorArtworkPreference } from './presentationPreferences'
+import { useOperatorAppearanceImage } from './operatorAppearance'
+import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
+import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -37,9 +40,24 @@ export default function OperatorCard({
   overlay,
   animationKey = 0,
 }: OperatorCardProps): React.JSX.Element {
-  const artworkPreference = useOperatorArtworkPreference()
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [usingPortrait, setUsingPortrait] = useState(false)
+  const {
+    imageUrl,
+    usingPortrait,
+    choice: artworkPreference,
+  } = useOperatorAppearanceImage(operator)
+  const importedAccount = useImportedArknightsAccount() ?? null
+  const preferences = loadOperatorPreferences()
+  const showAccountProgression = preferences.showAccountProgression && importedAccount !== null
+  const progression = showAccountProgression
+    ? importedAccountOperatorState(importedAccount, operator.id)
+    : null
+  const progressionLabel = showAccountProgression
+    ? progression
+      ? `E${progression.elite} L${progression.level}`
+      : 'Not Owned'
+    : null
+  const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
+  const cardRef = useRef<HTMLElement | null>(null)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
   const nameViewportRef = useRef<HTMLDivElement | null>(null)
   const nameTextRef = useRef<HTMLSpanElement | null>(null)
@@ -68,38 +86,16 @@ export default function OperatorCard({
   }, [operator.name])
 
   useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    setUsingPortrait(false)
-
-    void window.desktop
-      .getOperatorPortrait(operator.id, artworkPreference)
-      .then(async (portraitUrl) => {
-        if (!active) return
-        if (portraitUrl) {
-          setUsingPortrait(true)
-          setImageUrl(portraitUrl)
-          return
-        }
-
-        const avatarUrl = await window.desktop.getOperatorImage(operator.id)
-        if (active) {
-          setUsingPortrait(false)
-          setImageUrl(avatarUrl)
-        }
-      })
-      .catch(async () => {
-        const avatarUrl = await window.desktop.getOperatorImage(operator.id)
-        if (active) {
-          setUsingPortrait(false)
-          setImageUrl(avatarUrl)
-        }
-      })
-
-    return () => {
-      active = false
+    const replayOnRandomize = (event: MouseEvent): void => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (!target.closest('.squad-panel .randomize-button')) return
+      if (!cardRef.current?.closest('.squad-panel')) return
+      setRandomizeReplayKey((current) => current + 1)
     }
-  }, [artworkPreference, operator.id])
+    document.addEventListener('click', replayOnRandomize)
+    return () => document.removeEventListener('click', replayOnRandomize)
+  }, [])
 
   const hasInteractions = (interactionDetails?.interactions.length ?? 0) > 0
   const showInteractionTooltip = (): void => {
@@ -118,10 +114,11 @@ export default function OperatorCard({
 
   return (
     <article
+      ref={cardRef}
       className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
-      title={`${operator.name} — ${artworkPreference.toUpperCase()} artwork`}
+      title={`${operator.name} — selected artwork`}
     >
       <div className="operator-card__art">
         {operator.faction.main && (
@@ -129,7 +126,7 @@ export default function OperatorCard({
         )}
         {imageUrl ? (
           <img
-            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}`}
+            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
             className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
             src={imageUrl}
             alt=""
@@ -216,6 +213,11 @@ export default function OperatorCard({
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
       <div className="operator-card__caption">
+        {progressionLabel && (
+          <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
+            {progressionLabel}
+          </span>
+        )}
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
           {'★'.repeat(operator.rarity)}
         </span>

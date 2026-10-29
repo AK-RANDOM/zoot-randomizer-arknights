@@ -148,7 +148,7 @@ export function resolveDraftOperatorPresentation(
   return {
     operatorId: operator.id,
     resolvedCost,
-    price: resolvedCost === null ? null : draftEconomyValue(-resolvedCost),
+    price: resolvedCost === null ? null : draftEconomyValue(resolvedCost),
     pick,
     hold,
   }
@@ -162,7 +162,7 @@ export function resolveDraftHoldPresentation(
   const upkeepCost = getDraftHoldUpkeepCostWithConfiguration(state, configuration)
   return {
     operatorId: state.heldOperatorId,
-    currentUpkeep: draftEconomyValue(-upkeepCost),
+    currentUpkeep: draftEconomyValue(upkeepCost),
   }
 }
 

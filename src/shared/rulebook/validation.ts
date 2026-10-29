@@ -251,18 +251,18 @@ function validateHoldUpkeep(value: unknown, path: string, errors: string[]): voi
   }
   if (value.mode === 'static') {
     checkKeys(value, ['mode', 'cost'], path, errors)
-    if (!finiteNumber(value.cost) || value.cost < 0) {
-      errors.push(`${path}.cost must be a non-negative finite number.`)
+    if (!finiteNumber(value.cost) || value.cost > 0) {
+      errors.push(`${path}.cost must be a non-positive finite number.`)
     }
     return
   }
   if (value.mode === 'escalating') {
     checkKeys(value, ['mode', 'baseCost', 'escalation'], path, errors)
-    if (!finiteNumber(value.baseCost) || value.baseCost < 0) {
-      errors.push(`${path}.baseCost must be a non-negative finite number.`)
+    if (!finiteNumber(value.baseCost) || value.baseCost > 0) {
+      errors.push(`${path}.baseCost must be a non-positive finite number.`)
     }
-    if (!finiteNumber(value.escalation) || value.escalation < 0) {
-      errors.push(`${path}.escalation must be a non-negative finite number.`)
+    if (!finiteNumber(value.escalation) || value.escalation > 0) {
+      errors.push(`${path}.escalation must be a non-positive finite number.`)
     }
     return
   }
@@ -272,8 +272,8 @@ function validateHoldUpkeep(value: unknown, path: string, errors: string[]): voi
       errors.push(`${path}.costs must be a non-empty array.`)
     } else {
       value.costs.forEach((cost, index) => {
-        if (!finiteNumber(cost) || cost < 0) {
-          errors.push(`${path}.costs[${index}] must be a non-negative finite number.`)
+        if (!finiteNumber(cost) || cost > 0) {
+          errors.push(`${path}.costs[${index}] must be a non-positive finite number.`)
         }
       })
     }
@@ -316,8 +316,8 @@ function validateEconomyRules(value: unknown, errors: string[]): void {
     'slotExpansionCost',
   ] as const) {
     const amount = value[key]
-    if (amount !== undefined && (!finiteNumber(amount) || amount < 0)) {
-      errors.push(`${path}.${key} must be a non-negative finite number.`)
+    if (amount !== undefined && (!finiteNumber(amount) || (key === 'startingPoints' || key === 'forfeitRebate' ? amount < 0 : amount > 0))) {
+      errors.push(`${path}.${key} has an invalid signed Budget value.`)
     }
   }
   if (value.holdUpkeep !== undefined) {
@@ -443,8 +443,8 @@ function validateInteractions(value: unknown, errors: string[]): void {
       checkKeys(interaction, ['id', 'type', 'source', 'target', 'modifier'], path, errors)
       validateDraftRulebookSelector(interaction.source, `${path}.source`, errors)
       validateDraftRulebookSelector(interaction.target, `${path}.target`, errors)
-      if (!finiteNumber(interaction.modifier) || interaction.modifier < 0) {
-        errors.push(`${path}.modifier must be a non-negative finite number.`)
+      if (!finiteNumber(interaction.modifier)) {
+        errors.push(`${path}.modifier must be a finite number.`)
       }
       return
     }
@@ -466,8 +466,8 @@ function validateInteractions(value: unknown, errors: string[]): void {
         if (!Number.isInteger(step.memberCount) || (step.memberCount as number) <= previousCount) {
           errors.push(`${stepPath}.memberCount must be a positive, strictly increasing integer.`)
         } else previousCount = step.memberCount as number
-        if (!finiteNumber(step.modifier) || step.modifier < 0) {
-          errors.push(`${stepPath}.modifier must be a non-negative finite number.`)
+        if (!finiteNumber(step.modifier)) {
+          errors.push(`${stepPath}.modifier must be a finite number.`)
         }
       })
       return
@@ -483,8 +483,8 @@ function validateInteractions(value: unknown, errors: string[]): void {
       if (!Number.isInteger(interaction.threshold) || (interaction.threshold as number) < 1) {
         errors.push(`${path}.threshold must be a positive integer.`)
       }
-      if (!finiteNumber(interaction.modifier) || interaction.modifier < 0) {
-        errors.push(`${path}.modifier must be a non-negative finite number.`)
+      if (!finiteNumber(interaction.modifier)) {
+        errors.push(`${path}.modifier must be a finite number.`)
       }
       if (interaction.anchor !== undefined)
         validateDraftRulebookSelector(interaction.anchor, `${path}.anchor`, errors)

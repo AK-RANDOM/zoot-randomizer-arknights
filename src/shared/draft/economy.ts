@@ -34,9 +34,9 @@ export function getDraftOperatorCostForStateWithConfiguration(
   state: Pick<DraftState, 'draftedOperatorIds'>,
   configuration: ResolvedDraftConfiguration,
 ): number {
-  return (
+  return Math.ceil(
     getDraftOperatorCostWithConfiguration(operator, configuration) +
-    getDraftInteractionCostModifierWithConfiguration(state, operator.id, configuration)
+    getDraftInteractionCostModifierWithConfiguration(state, operator.id, configuration),
   )
 }
 
@@ -52,12 +52,12 @@ export function getDraftOperatorCostForState(
   )
 }
 
+/** Returns whether this action advances a Held operator through a paid upkeep carry. */
 export function draftActionCarriesHoldForward(
   state: DraftHoldEconomyState,
   action: DraftAction,
 ): boolean {
   if (!state.heldOperatorId) return false
-  if (action.type === 'forfeit') return true
   return action.type === 'pick' && action.operatorId !== state.heldOperatorId
 }
 
@@ -83,10 +83,7 @@ export function getDraftHoldUpkeepCost(
   state: DraftHoldEconomyState,
   options: Pick<DraftEngineOptions, 'configuration' | 'economyRules'> = {},
 ): number {
-  return getDraftHoldUpkeepCostWithConfiguration(
-    state,
-    resolveDraftEngineConfiguration(options),
-  )
+  return getDraftHoldUpkeepCostWithConfiguration(state, resolveDraftEngineConfiguration(options))
 }
 
 export function getDraftActionPointDeltaWithConfiguration(
@@ -102,24 +99,21 @@ export function getDraftActionPointDeltaWithConfiguration(
   switch (action.type) {
     case 'pick': {
       const operator = draftOperatorById(pool, action.operatorId)
-      delta = -(
-        state
-          ? getDraftOperatorCostForStateWithConfiguration(operator, state, configuration)
-          : getDraftOperatorCostWithConfiguration(operator, configuration)
-      )
+      delta = getDraftOperatorCostWithConfiguration(operator, configuration) +
+        (state ? getDraftInteractionCostModifierWithConfiguration(state, operator.id, configuration) : 0)
       break
     }
     case 'forfeit':
       delta = economy.forfeitRebate
       break
     case 'reroll':
-      delta = -economy.rerollCost
+      delta = economy.rerollCost
       break
     case 'hold':
-      delta = -economy.holdCost
+      delta = economy.holdCost
       break
     case 'slot-expansion':
-      delta = -economy.slotExpansionCost
+      delta = economy.slotExpansionCost
       break
     case 'release-hold':
       delta = 0
@@ -127,9 +121,9 @@ export function getDraftActionPointDeltaWithConfiguration(
   }
 
   if (state && draftActionCarriesHoldForward(state, action)) {
-    delta -= getDraftHoldUpkeepCostWithConfiguration(state, configuration)
+    delta += getDraftHoldUpkeepCostWithConfiguration(state, configuration)
   }
-  return delta
+  return Math.ceil(delta)
 }
 
 export function getDraftActionPointDelta(

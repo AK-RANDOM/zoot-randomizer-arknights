@@ -24,6 +24,7 @@ function state(completionReason: DraftState['completionReason']): DraftState {
     pullsSinceSixStar: 0,
     generatedCandidateCount: 0,
     actualFiveStarGeneratedInFirstTen: false,
+    history: [],
     actionUsage: {
       pick: { total: 2, round: 0, lastUsedRound: 2 },
       forfeit: { total: 0, round: 0, lastUsedRound: null },

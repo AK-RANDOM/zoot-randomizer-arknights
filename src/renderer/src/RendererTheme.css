@@ -1,5 +1,5 @@
 :root {
-  --app-accent: #4099C2;
+  --app-accent: #4099c2;
   --app-accent-hover: #65b5d8;
   --app-accent-light: #78c4e5;
   --rarity-6: #f28c28;
@@ -10,12 +10,30 @@
   --rarity-1: #979797;
 }
 
-[data-rarity='6'] { --rarity-border-color: var(--rarity-6); --rarity-color: var(--rarity-6); }
-[data-rarity='5'] { --rarity-border-color: var(--rarity-5); --rarity-color: var(--rarity-5); }
-[data-rarity='4'] { --rarity-border-color: var(--rarity-4); --rarity-color: var(--rarity-4); }
-[data-rarity='3'] { --rarity-border-color: var(--rarity-3); --rarity-color: var(--rarity-3); }
-[data-rarity='2'] { --rarity-border-color: var(--rarity-2); --rarity-color: var(--rarity-2); }
-[data-rarity='1'] { --rarity-border-color: var(--rarity-1); --rarity-color: var(--rarity-1); }
+[data-rarity='6'] {
+  --rarity-border-color: var(--rarity-6);
+  --rarity-color: var(--rarity-6);
+}
+[data-rarity='5'] {
+  --rarity-border-color: var(--rarity-5);
+  --rarity-color: var(--rarity-5);
+}
+[data-rarity='4'] {
+  --rarity-border-color: var(--rarity-4);
+  --rarity-color: var(--rarity-4);
+}
+[data-rarity='3'] {
+  --rarity-border-color: var(--rarity-3);
+  --rarity-color: var(--rarity-3);
+}
+[data-rarity='2'] {
+  --rarity-border-color: var(--rarity-2);
+  --rarity-color: var(--rarity-2);
+}
+[data-rarity='1'] {
+  --rarity-border-color: var(--rarity-1);
+  --rarity-color: var(--rarity-1);
+}
 
 .operator-card[data-rarity],
 .pool-entry[data-rarity],
@@ -82,7 +100,9 @@
 .squad-grid .operator-card--portrait {
   border: 3px solid var(--rarity-color, #66666e);
   border-radius: 4px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.05), 0 8px 20px rgba(0,0,0,.28);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 8px 20px rgba(0, 0, 0, 0.28);
 }
 
 .squad-grid .slot-config-card:not(.is-constrained),
@@ -95,31 +115,6 @@
   position: relative;
 }
 
-.squad-grid .slot-config-number {
-  position: absolute;
-  z-index: 8;
-  top: 8px;
-  left: 8px;
-  display: grid;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  place-items: center;
-  border: 1px solid rgba(255,255,255,.24);
-  border-radius: 6px;
-  color: #e8e8eb;
-  background: rgba(7,7,9,.76);
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  font-size: .61rem;
-  font-weight: 900;
-  letter-spacing: 0;
-  line-height: 1;
-}
-
-.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card .slot-config-number {
-  display: none;
-}
-
 .squad-grid .operator-card--portrait .operator-card__art img.is-portrait {
   object-fit: cover;
   object-position: top center;
@@ -129,15 +124,6 @@
 .operators-panel > .release-group + .operator-filter-layout {
   margin-top: 1rem;
 }
-
-/* Canonical Standard slot badge geometry: selected class icon, constraint class icon, and slot number. */
-.squad-grid .slot-class-constraint-indicator { top: 8px; max-height: calc(100% - 16px); }
-.squad-grid .slot-class-constraint-indicator.is-left { left: 8px; }
-.squad-grid .slot-class-constraint-indicator.is-right { right: 8px; }
-.squad-grid .slot-class-constraint-item,
-.squad-grid .slot-class-constraint-item .class-icon { width: 30px; height: 30px; }
-.squad-grid .slot-class-constraint-item .class-icon img { width: 23px; height: 23px; }
-.squad-grid .slot-class-constraint-overflow { min-width: 30px; height: 30px; }
 
 /* Global app accent. Keep rarity, economy, validation, and destructive colors independent. */
 body {
@@ -193,9 +179,13 @@ body {
   background: var(--app-accent);
 }
 
+/* Constrained slots always keep a neutral interior. Constraint state only colors
+   the border/badges; !important also overrides rarity-specific inline backgrounds. */
 .slot-config-card.is-constrained {
   border-color: rgba(64, 153, 194, 0.5);
-  background: linear-gradient(180deg, rgba(64, 153, 194, 0.07), transparent 52%), #111113;
+  background:
+    linear-gradient(#111113, #111113) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box !important;
 }
 
 .artwork-choice.is-selected {
@@ -249,20 +239,14 @@ body {
 .draft-squad-expand {
   border-color: var(--app-accent);
   color: #d9f2ff;
-  background:
-    radial-gradient(circle, rgba(64, 153, 194, 0.42) 1.2px, transparent 1.4px) 0 0 / 9px 9px,
-    linear-gradient(180deg, rgba(64, 153, 194, 0.18), rgba(64, 153, 194, 0.08)),
-    #17171a;
+  background: linear-gradient(180deg, rgba(64, 153, 194, 0.18), rgba(64, 153, 194, 0.08)), #17171a;
   box-shadow: inset 0 0 0 1px rgba(64, 153, 194, 0.12);
 }
 
 .draft-squad-expand:hover:not(:disabled),
 .draft-squad-expand:focus-visible {
   border-color: var(--app-accent-light);
-  background:
-    radial-gradient(circle, rgba(120, 196, 229, 0.56) 1.2px, transparent 1.4px) 0 0 / 9px 9px,
-    linear-gradient(180deg, rgba(64, 153, 194, 0.26), rgba(64, 153, 194, 0.12)),
-    #1d1d21;
+  background: linear-gradient(180deg, rgba(64, 153, 194, 0.26), rgba(64, 153, 194, 0.12)), #1d1d21;
   box-shadow:
     inset 0 0 0 1px rgba(64, 153, 194, 0.2),
     0 0 0 1px rgba(64, 153, 194, 0.16);
@@ -275,12 +259,47 @@ body {
 .draft-squad-expand:disabled {
   color: #6f777c;
   border-color: #46545b;
-  background:
-    radial-gradient(circle, rgba(82, 105, 116, 0.24) 1.1px, transparent 1.3px) 0 0 / 9px 9px,
-    #121214;
+  background: #121214;
   box-shadow: none;
 }
 
 .draft-squad-expand:disabled .draft-squad-expand__icon {
   color: #65747b;
+}
+
+/* Follow-up card/filter polish. */
+.operator-card--portrait .operator-card__faction-logo {
+  inset: -20% 0 auto;
+  height: 120%;
+  object-position: center;
+}
+
+.squad-panel .bound-grid--classes .bound-class-icon {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.squad-panel .bound-grid--classes .bound-class-icon img {
+  filter: brightness(0) saturate(100%) invert(100%) contrast(140%)
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
+}
+
+/* The slot wrapper supplies the same 3px frame as a finalized operator card. */
+.squad-grid .slot-locked-card .operator-card--portrait {
+  border: 0;
+  border-radius: 1px;
+  box-shadow: none;
+}
+
+/* Shared locked-capacity artwork: Draft locked slots and Standard unavailable slots use the same asset. */
+.squad-grid .disabled-slot::before {
+  width: 40px;
+  max-width: 44%;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  content: '';
+  background: url('./assets/draft/locked-slot-icon.png') center / contain no-repeat;
+  opacity: 0.42;
+  pointer-events: none;
 }

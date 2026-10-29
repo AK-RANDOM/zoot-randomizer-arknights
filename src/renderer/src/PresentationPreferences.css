@@ -23,6 +23,13 @@
     0 8px 20px rgba(0, 0, 0, 0.24);
 }
 
+/* Selected Standard and Draft offer cards tint the artwork background only.
+   Keep the rarity wash behind faction art and operator artwork. */
+.squad-grid .operator-card--portrait .operator-card__art,
+.draft-decision-offer-grid .operator-card--portrait .operator-card__art {
+  background: color-mix(in srgb, var(--rarity-color) 8%, #171719);
+}
+
 .operator-card--portrait::after {
   position: absolute;
   z-index: 1;
@@ -42,7 +49,8 @@
 }
 
 .operator-card--portrait .operator-card__art {
-  background: #171719;
+  z-index: 1;
+  background: transparent;
 }
 
 .operator-card--portrait .operator-card__faction-logo {
@@ -52,7 +60,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 50%;
+  object-position: center 30%;
   opacity: 0.5;
   filter: grayscale(0.15);
   pointer-events: none;
@@ -73,40 +81,64 @@
   object-position: center;
 }
 
-.operator-card--portrait .operator-card__class-icon {
-  top: 8px;
-  left: 8px;
+/* The selected operator class icon is the Standard-mode reference marker.
+   Empty-slot numbers and class constraints share this exact shell. */
+.operator-card--portrait .operator-card__class-icon,
+.random-operator-card > .slot-config-number,
+.squad-grid .disabled-slot > .slot-config-number,
+.slot-class-constraint-item .class-icon,
+.slot-class-constraint-overflow {
+  display: grid;
   width: 30px;
   height: 30px;
-  border-color: rgba(255, 255, 255, 0.24);
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
   border-radius: 6px;
   background: rgba(7, 7, 9, 0.58);
   box-shadow: 0 2px 9px rgba(0, 0, 0, 0.26);
   backdrop-filter: blur(5px);
 }
 
-.operator-card--portrait .operator-card__class-icon img {
+.operator-card--portrait .operator-card__class-icon {
+  top: 8px;
+  left: 8px;
+}
+
+.operator-card--portrait .operator-card__class-icon img,
+.slot-class-constraint-item .class-icon img {
   width: 23px;
   height: 23px;
 }
 
-.operator-card--portrait .operator-card__caption {
-  z-index: 3;
+.operator-card--portrait .operator-card__caption,
+.random-operator-card__caption,
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
   right: 10px;
   bottom: 10px;
   left: 10px;
+}
+
+.operator-card--portrait .operator-card__caption {
+  z-index: 3;
   gap: 3px;
 }
 
 .operator-card--portrait .operator-card__caption strong,
-.operator-card--portrait .operator-card__rarity {
+.operator-card--portrait .operator-card__rarity,
+.random-operator-card__caption strong,
+.random-operator-card__rarity,
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
   -webkit-text-stroke: 0;
   paint-order: normal;
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.92);
 }
 
-.operator-card--portrait .operator-card__caption strong {
+.operator-card--portrait .operator-card__caption strong,
+.random-operator-card__caption strong,
+.squad-grid .disabled-slot > span:not(.slot-config-number) {
   font-size: clamp(0.72rem, 1.2vw, 0.94rem);
+  font-weight: 900;
   line-height: 1.12;
 }
 
@@ -187,6 +219,13 @@
 }
 
 .option-setting__copy p,
+.bulk-appearance-control {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+
 .option-note {
   margin: 7px 0 0;
   color: #929299;
@@ -293,6 +332,40 @@
   font-size: 0.7rem;
 }
 
+
+/* Compact artwork controls: one toolbar, expandable details. */
+.artwork-download-status {
+  gap: 7px;
+  margin-top: 10px;
+  padding: 10px 12px;
+}
+.artwork-download-status .bulk-appearance-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.artwork-download-status .bulk-appearance-control button {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.artwork-download-status details {
+  color: #929299;
+  font-size: 0.76rem;
+}
+.artwork-download-status details summary {
+  cursor: pointer;
+}
+.artwork-download-status details > small {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 5px 0;
+}
+.artwork-download-status__heading small {
+  color: #929299;
+  font-size: 0.76rem;
+}
+
 @keyframes operator-art-in {
   from {
     opacity: 0.35;
@@ -315,7 +388,8 @@
     min-width: 880px;
   }
 
-  .option-setting {
+  .option-setting,
+  .bulk-appearance-control {
     grid-template-columns: 1fr;
   }
 }
@@ -353,4 +427,13 @@
   width: 16px;
   height: 16px;
   accent-color: #f5ad2f;
+}
+
+/* Account progression is an inline Global Filter control, not a boxed option card. */
+.option-toggle.account-global-filter__progression-toggle {
+  min-height: 42px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-weight: 400;
 }

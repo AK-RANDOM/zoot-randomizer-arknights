@@ -13,12 +13,9 @@ import {
 import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import type {
-  OperatorDataInfo,
-  OperatorUpdateCheck,
-  OperatorUpdateResult,
-} from '../shared/desktop'
+import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
 import type { OperatorDataset } from '../shared/operator'
+import { operatorDatasetNeedsSkinMetadataRefresh } from '../shared/skinMetadata'
 import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
 import {
   UPSTREAM,
@@ -26,14 +23,19 @@ import {
   upgradeLegacyOperatorDataset,
 } from '../shared/operatorData'
 import {
+  fetchAndApplySkinMetadata,
   fetchAndBuildOperatorDataset,
   fetchLatestOperatorDatasetSources,
   operatorDatasetSourcesEqual,
 } from '../shared/operatorDataPipeline'
 
 const imageCache = new Map<string, string>()
+export function clearOperatorImageMemoryCaches(): void {
+  imageCache.clear()
+}
 const avatarDownloadPromises = new Map<string, Promise<boolean>>()
 const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer' } as const
+let skinMetadataRefreshPromise: Promise<OperatorDataset | null> | null = null
 
 function bundledRoot(): string {
   return app.isPackaged
@@ -98,8 +100,31 @@ async function datasetWithOrigin(): Promise<{
   return { dataset: bundled, origin: 'bundled' }
 }
 
+async function refreshSkinMetadata(dataset: OperatorDataset): Promise<OperatorDataset> {
+  const refreshed = await fetchAndApplySkinMetadata(dataset, PIPELINE_FETCH_OPTIONS)
+  const validation = validateOperatorDataset(refreshed, { requireSourceCommits: true })
+  if (!validation.valid) {
+    throw new Error(`Refreshed skin metadata failed validation: ${validation.errors.join(' ')}`)
+  }
+
+  const stageRoot = await mkdtemp(join(tmpdir(), 'arknights-randomizer-skins-'))
+  const stageDataset = join(stageRoot, 'operators.json')
+  try {
+    await writeFile(stageDataset, `${JSON.stringify(refreshed, null, 2)}\n`, 'utf8')
+    await mkdir(downloadedRoot(), { recursive: true })
+    await activateStagedData(stageRoot, stageDataset)
+  } finally {
+    await rm(stageRoot, { recursive: true, force: true })
+  }
+  return refreshed
+}
+
 export async function getOperatorDataset(): Promise<OperatorDataset> {
-  return (await datasetWithOrigin()).dataset
+  const dataset = (await datasetWithOrigin()).dataset
+  if (!operatorDatasetNeedsSkinMetadataRefresh(dataset)) return dataset
+
+  skinMetadataRefreshPromise ??= refreshSkinMetadata(dataset).catch(() => null)
+  return (await skinMetadataRefreshPromise) ?? dataset
 }
 
 export async function getOperatorDataInfo(): Promise<OperatorDataInfo> {
@@ -128,10 +153,7 @@ async function readOperatorImage(operatorId: string): Promise<string | null> {
   return null
 }
 
-async function downloadAvatarToCache(
-  operatorId: string,
-  signal?: AbortSignal,
-): Promise<boolean> {
+async function downloadAvatarToCache(operatorId: string, signal?: AbortSignal): Promise<boolean> {
   if (await exists(downloadedImagePath(operatorId))) return true
 
   const current = avatarDownloadPromises.get(operatorId)
@@ -150,10 +172,7 @@ async function downloadAvatarToCache(
       if (!response.ok) return false
 
       await mkdir(join(downloadedRoot(), 'images'), { recursive: true })
-      await writeFile(
-        downloadedImagePath(operatorId),
-        Buffer.from(await response.arrayBuffer()),
-      )
+      await writeFile(downloadedImagePath(operatorId), Buffer.from(await response.arrayBuffer()))
       imageCache.delete(operatorId)
       return true
     } catch (error) {
@@ -227,15 +246,16 @@ export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
 
   try {
     const latest = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
-    const updateAvailable = !operatorDatasetSourcesEqual(current, latest)
+    const dataset = await getOperatorDataset()
+    const updateAvailable =
+      operatorDatasetNeedsSkinMetadataRefresh(dataset) ||
+      !operatorDatasetSourcesEqual(current, latest)
     return {
       online: true,
       updateAvailable,
       current,
       latest,
-      message: updateAvailable
-        ? 'New operator data is available.'
-        : 'Operator data is up to date.',
+      message: updateAvailable ? 'New operator data is available.' : 'Operator data is up to date.',
     }
   } catch {
     return {
@@ -248,10 +268,7 @@ export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
   }
 }
 
-async function downloadAvatar(
-  operatorId: string,
-  destination: string,
-): Promise<boolean> {
+async function downloadAvatar(operatorId: string, destination: string): Promise<boolean> {
   const response = await fetch(
     `${UPSTREAM.avatarBaseUrl}/${operatorAvatarSourceFilename(operatorId)}`,
     {
@@ -301,10 +318,7 @@ async function stageMissingImages(
   return warnings
 }
 
-async function activateStagedData(
-  stageRoot: string,
-  stageDataset: string,
-): Promise<void> {
+async function activateStagedData(stageRoot: string, stageDataset: string): Promise<void> {
   const targetRoot = downloadedRoot()
   const targetImages = join(targetRoot, 'images')
   await mkdir(targetImages, { recursive: true })
@@ -338,7 +352,8 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
   const current = await getOperatorDataset()
   const latestSources = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
 
-  if (operatorDatasetSourcesEqual(current.sources, latestSources)) {
+  const needsSkinMetadata = operatorDatasetNeedsSkinMetadataRefresh(current)
+  if (!needsSkinMetadata && operatorDatasetSourcesEqual(current.sources, latestSources)) {
     return { updated: false, dataset: current, warnings: [] }
   }
 
@@ -348,9 +363,7 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     PIPELINE_FETCH_OPTIONS,
   )
   if (!validation.valid) {
-    throw new Error(
-      `Downloaded operator data failed validation: ${validation.errors.join(' ')}`,
-    )
+    throw new Error(`Downloaded operator data failed validation: ${validation.errors.join(' ')}`)
   }
 
   const stageRoot = await mkdtemp(join(tmpdir(), 'arknights-randomizer-data-'))

@@ -1,4 +1,5 @@
 import type { DraftRulebook } from '../../shared/draftRulebook'
+import { cloneGarrison, type Garrison, type GarrisonStage } from '../../shared/garrison'
 import {
   DRAFT_PRICING_PROFILE_SCHEMA_VERSION,
   validateDraftPricingProfile,
@@ -41,6 +42,7 @@ export interface RendererPersistenceState {
   version: typeof RENDERER_PERSISTENCE_VERSION
   operatorPreferences: OperatorPreferences
   squadPresets: StoredSquadPreset[]
+  garrisons: Garrison[]
   dismissedWarnings: string[]
   selectedDraftRulebookId: string
   raceExcludedIds: string[]
@@ -101,6 +103,61 @@ function normalizeSquadPresets(value: unknown): StoredSquadPreset[] {
       builtIn: false,
       configuration: cloneSquadConfiguration(candidate.configuration),
     })
+  }
+  return result
+}
+
+function normalizeGarrisons(value: unknown): Garrison[] {
+  if (!Array.isArray(value)) return []
+  const seenGarrisons = new Set<string>()
+  const result: Garrison[] = []
+  for (const candidate of value) {
+    if (!isRecord(candidate)) continue
+    if (typeof candidate.id !== 'string' || !candidate.id.trim() || seenGarrisons.has(candidate.id))
+      continue
+    if (
+      typeof candidate.name !== 'string' ||
+      typeof candidate.duplicateOperatorsAllowed !== 'boolean'
+    )
+      continue
+    if (!Array.isArray(candidate.stages)) continue
+
+    const seenStages = new Set<string>()
+    const stages: GarrisonStage[] = []
+    let valid = true
+    for (const stageCandidate of candidate.stages) {
+      if (!isRecord(stageCandidate)) {
+        valid = false
+        break
+      }
+      if (
+        typeof stageCandidate.id !== 'string' ||
+        !stageCandidate.id.trim() ||
+        seenStages.has(stageCandidate.id) ||
+        typeof stageCandidate.name !== 'string' ||
+        !Array.isArray(stageCandidate.operatorIds)
+      ) {
+        valid = false
+        break
+      }
+      seenStages.add(stageCandidate.id)
+      stages.push({
+        id: stageCandidate.id,
+        name: stageCandidate.name,
+        operatorIds: stringList(stageCandidate.operatorIds),
+      })
+    }
+    if (!valid) continue
+
+    seenGarrisons.add(candidate.id)
+    result.push(
+      cloneGarrison({
+        id: candidate.id,
+        name: candidate.name,
+        duplicateOperatorsAllowed: candidate.duplicateOperatorsAllowed,
+        stages,
+      }),
+    )
   }
   return result
 }
@@ -192,6 +249,7 @@ export function createDefaultRendererPersistenceState(): RendererPersistenceStat
     version: RENDERER_PERSISTENCE_VERSION,
     operatorPreferences: createDefaultOperatorPreferences(),
     squadPresets: [],
+    garrisons: [],
     dismissedWarnings: [],
     selectedDraftRulebookId: STANDARD_DRAFT_RULEBOOK_ID,
     raceExcludedIds: [],
@@ -211,6 +269,7 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
     version: RENDERER_PERSISTENCE_VERSION,
     operatorPreferences: normalizeOperatorPreferences(candidate.operatorPreferences),
     squadPresets: normalizeSquadPresets(candidate.squadPresets),
+    garrisons: normalizeGarrisons(candidate.garrisons),
     dismissedWarnings: stringList(candidate.dismissedWarnings),
     selectedDraftRulebookId:
       typeof candidate.selectedDraftRulebookId === 'string' &&
@@ -331,6 +390,14 @@ export function loadUserSquadPresets(): StoredSquadPreset[] {
 
 export function saveUserSquadPresets(presets: readonly StoredSquadPreset[]): void {
   updateRendererPersistence((state) => ({ ...state, squadPresets: normalizeSquadPresets(presets) }))
+}
+
+export function loadSavedGarrisons(): Garrison[] {
+  return loadRendererPersistence().garrisons.map(cloneGarrison)
+}
+
+export function saveSavedGarrisons(garrisons: readonly Garrison[]): void {
+  updateRendererPersistence((state) => ({ ...state, garrisons: normalizeGarrisons(garrisons) }))
 }
 
 export function warningIsDismissed(key: string): boolean {

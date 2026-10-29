@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from './constraints'
+import type { ImportedArknightsAccount } from './arknightsAccount'
 import type { Operator } from './operator'
 import {
+  applyAccountFilter,
   applyManualOperatorExclusions,
   applyRaceExclusions,
   buildFinalOperatorPool,
@@ -14,11 +16,7 @@ import {
 import { filterHigherLevelEligibleOperators } from './randomizer'
 import { RACE_UNAVAILABLE_ID } from './raceMetadata'
 
-function operator(
-  id: string,
-  date: string,
-  extras: Partial<Operator> = {},
-): Operator {
+function operator(id: string, date: string, extras: Partial<Operator> = {}): Operator {
   return {
     id,
     name: id,
@@ -49,11 +47,17 @@ const roster = [
 describe('Iteration 6 Pool persistence model', () => {
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
     expect(createDefaultOperatorPreferences()).toEqual({
-      version: 2,
+      version: 7,
       metadataRegion: 'global',
       gameLocale: 'en',
       poolPresentation: 'imageGrid',
+      accountFilterMode: 'ignore',
+      accountProgressionMin: { elite: 0, level: 1 },
+      accountProgressionMax: { elite: 2, level: 90 },
+      showAccountProgression: false,
       excludedOperatorIds: [],
+      operatorAppearances: {},
+      appearanceRandomSeed: 1,
     })
   })
 
@@ -66,28 +70,50 @@ describe('Iteration 6 Pool persistence model', () => {
         excludedOperatorIds: ['char_a', 'char_a', '', 7, ' char_b '],
       }),
     ).toEqual({
-      version: 2,
+      version: 7,
       metadataRegion: 'cn',
       gameLocale: 'en',
       poolPresentation: 'detailedList',
+      accountFilterMode: 'ignore',
+      accountProgressionMin: { elite: 0, level: 1 },
+      accountProgressionMax: { elite: 2, level: 90 },
+      showAccountProgression: false,
       excludedOperatorIds: ['char_a', 'char_b'],
+      operatorAppearances: {},
+      appearanceRandomSeed: 1,
     })
   })
 
   it('persists a supported game localization independently from metadata region', () => {
     expect(
       normalizeOperatorPreferences({
-        version: 2,
+        version: 5,
         metadataRegion: 'global',
         gameLocale: 'jp',
         poolPresentation: 'compactCard',
+        ownedOperatorsOnly: true,
         excludedOperatorIds: [],
       }),
     ).toMatchObject({
-      version: 2,
+      version: 7,
       metadataRegion: 'global',
       gameLocale: 'jp',
       poolPresentation: 'compactCard',
+      accountFilterMode: 'owned',
+    })
+  })
+
+  it('clamps saved progression bounds to valid generic elite-stage levels', () => {
+    expect(
+      normalizeOperatorPreferences({
+        version: 6,
+        accountProgressionMin: { elite: 0, level: 90 },
+        accountProgressionMax: { elite: 1, level: 90 },
+      }),
+    ).toMatchObject({
+      version: 7,
+      accountProgressionMin: { elite: 0, level: 50 },
+      accountProgressionMax: { elite: 1, level: 80 },
     })
   })
 
@@ -111,9 +137,10 @@ describe('Iteration 6 Pool persistence model', () => {
     expect(reconcileOperatorPreferences(preferences, roster).excludedOperatorIds).toEqual([
       'char_old',
     ])
-    expect(
-      applyManualOperatorExclusions(roster, ['char_old']).map(({ id }) => id),
-    ).toEqual(['char_tragodia', 'char_new'])
+    expect(applyManualOperatorExclusions(roster, ['char_old']).map(({ id }) => id)).toEqual([
+      'char_tragodia',
+      'char_new',
+    ])
   })
 
   it('preserves a manual exclusion while higher-level filters temporarily hide that operator', () => {
@@ -143,6 +170,61 @@ describe('Iteration 6 Pool persistence model', () => {
       'char_old',
       'char_new',
     ])
+  })
+
+  it('applies account ownership and progression inside the Global Filter before Curate exclusions', () => {
+    const constraints = createDefaultConstraints()
+    const snapshot: ImportedArknightsAccount = {
+      schemaVersion: 1,
+      server: 'en',
+      operators: [
+        { operatorId: 'char_old', elite: 0, level: 60 },
+        { operatorId: 'char_tragodia', elite: 2, level: 30 },
+      ],
+      ownedSkinIds: [],
+      fetchedAt: '2026-10-17T00:00:00.000Z',
+    }
+
+    expect(
+      applyAccountFilter(
+        roster,
+        snapshot,
+        'owned',
+        { elite: 0, level: 1 },
+        { elite: 2, level: 90 },
+      ).map(({ id }) => id),
+    ).toEqual(['char_old', 'char_tragodia'])
+
+    expect(
+      applyAccountFilter(
+        roster,
+        snapshot,
+        'progression',
+        { elite: 1, level: 1 },
+        { elite: 2, level: 90 },
+      ).map(({ id }) => id),
+    ).toEqual(['char_tragodia'])
+
+    expect(
+      buildFinalOperatorPool(roster, constraints, ['char_tragodia'], {
+        snapshot,
+        mode: 'owned',
+        minimum: { elite: 0, level: 1 },
+        maximum: { elite: 2, level: 90 },
+      }).map(({ id }) => id),
+    ).toEqual(['char_old'])
+  })
+
+  it('leaves the pool unchanged when account filtering has no saved account snapshot', () => {
+    const constraints = createDefaultConstraints()
+    expect(
+      buildFinalOperatorPool(roster, constraints, [], {
+        snapshot: null,
+        mode: 'owned',
+        minimum: { elite: 0, level: 1 },
+        maximum: { elite: 2, level: 90 },
+      }).map(({ id }) => id),
+    ).toEqual(['char_old', 'char_tragodia', 'char_new'])
   })
 
   it('applies stable Race exclusions to the same final pool used by Standard and Draft', () => {
@@ -177,6 +259,25 @@ describe('Iteration 6 Pool persistence model', () => {
     ])
   })
 
+  it('persists explicit account appearance mode while migrating older preference versions', () => {
+    expect(
+      normalizeOperatorPreferences({
+        version: 4,
+        metadataRegion: 'global',
+        gameLocale: 'en',
+        poolPresentation: 'imageGrid',
+        ownedOperatorsOnly: true,
+        excludedOperatorIds: [],
+        operatorAppearances: { char_old: 'account' },
+        appearanceRandomSeed: 1,
+      }),
+    ).toMatchObject({
+      version: 7,
+      accountFilterMode: 'owned',
+      operatorAppearances: { char_old: 'account' },
+    })
+  })
+
   it('toggles one operator without rewriting unrelated exclusions', () => {
     expect(setOperatorExcluded(['char_a'], 'char_b', true)).toEqual(['char_a', 'char_b'])
     expect(setOperatorExcluded(['char_a', 'char_b'], 'char_a', false)).toEqual(['char_b'])
@@ -184,11 +285,7 @@ describe('Iteration 6 Pool persistence model', () => {
 
   it('bulk add/remove acts only on the displayed IDs', () => {
     const initial = ['char_hidden', 'char_a']
-    const removedDisplayed = setDisplayedOperatorsExcluded(
-      initial,
-      ['char_a', 'char_b'],
-      true,
-    )
+    const removedDisplayed = setDisplayedOperatorsExcluded(initial, ['char_a', 'char_b'], true)
     expect(removedDisplayed).toEqual(['char_hidden', 'char_a', 'char_b'])
 
     const addedDisplayed = setDisplayedOperatorsExcluded(

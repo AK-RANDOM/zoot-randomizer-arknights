@@ -432,3 +432,134 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.draft-history {
+  margin: 28px 0 20px;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  background: #101012;
+}
+
+.draft-history__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #303036;
+}
+
+.draft-history__heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.draft-history__heading .eyebrow {
+  margin: 0;
+}
+
+.draft-history__heading > span {
+  color: #85858b;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.draft-history__table-shell {
+  overflow-x: auto;
+}
+
+.draft-history__table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.draft-history__table th,
+.draft-history__table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #27272b;
+  vertical-align: top;
+}
+
+.draft-history__table thead th {
+  color: #85858b;
+  background: #151518;
+  font-size: 0.64rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.draft-history__table tbody > tr:last-child > * {
+  border-bottom: 0;
+}
+
+.draft-history__table tbody > tr > th {
+  width: 76px;
+  color: #f3f3f3;
+  font-variant-numeric: tabular-nums;
+}
+
+.draft-history__stack {
+  display: grid;
+  gap: 7px;
+}
+
+.draft-history__entry {
+  display: grid;
+  gap: 5px;
+}
+
+.draft-history__operator-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.draft-history__operator-icon {
+  flex: 0 0 42px;
+}
+
+.draft-history__entry--action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.draft-history__table th:last-child,
+.draft-history__table td:last-child {
+  text-align: right;
+}
+
+.draft-history__table td:last-child .draft-history__stack {
+  justify-items: end;
+}
+
+.draft-history__missing-operator {
+  color: #9b9ba2;
+  font-size: 0.68rem;
+}
+
+.draft-history__entry strong {
+  color: #e8e8eb;
+  font-size: 0.72rem;
+}
+
+.draft-history__entry span,
+.draft-history__muted,
+.draft-history__empty {
+  color: #9b9ba2;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.draft-history__empty {
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .draft-history__table {
+    min-width: 620px;
+  }
+}

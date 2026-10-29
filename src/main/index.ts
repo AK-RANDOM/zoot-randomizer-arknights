@@ -1,14 +1,20 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
-import { mkdirSync } from 'node:fs'
 import type { PortraitSyncProgress } from '../shared/desktop'
 import {
   DESKTOP_IPC_CHANNELS,
   isAllowedExternalUrl,
+  requireArknightsAccountAvatarId,
+  requireArknightsAccountServer,
+  requireMetadataRegion,
+  requireGameLocale,
+  requireArknightsAccountString,
+  requireAvatarAssetId,
   requireMetadataId,
   requireOperatorClass,
   requireOperatorId,
   requirePromotionArt,
+  requireSkinId,
 } from '../shared/desktopIpc'
 import {
   checkOperatorUpdates,
@@ -16,14 +22,27 @@ import {
   getOperatorDataset,
   getOperatorImage,
   syncOperatorAvatars,
+  clearOperatorImageMemoryCaches,
   updateOperatorData,
 } from './operatorDataService'
-import { getOperatorPortrait, syncOperatorPortraits } from './operatorPortraitService'
 import {
-  getBundledClassIcon,
-  getFactionIcon,
-  getSubclassIcon,
-} from './operatorUiAssetService'
+  getOperatorPortrait,
+  getOperatorSkinAvatar,
+  getOperatorSkinPortrait,
+  syncOperatorPortraits,
+  clearPortraitMemoryCaches,
+} from './operatorPortraitService'
+import { getOperatorAvatarAsset, getOperatorPromotionAvatar, clearAvatarMemoryCaches } from './operatorAvatarService'
+import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
+import { ArknightsAccountService } from './arknightsAccount/service'
+import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
+import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
+import { getGarrisonEventCatalog } from './garrisonEventCatalogService'
+import {
+  clearDownloadedArtwork, downloadAdditionalArtwork, getArtworkStorageInfo,
+  openArtworkStorageFolder, enumerateAdditionalArtwork,
+} from './artworkStorage'
+import { ensureWritableDirectory, resolvePortableDataPath } from './portableStorage'
 
 let portraitSyncProgress: PortraitSyncProgress = {
   status: 'idle',
@@ -34,21 +53,52 @@ let portraitSyncProgress: PortraitSyncProgress = {
 let portraitSyncController: AbortController | null = null
 let portraitSyncPromise: Promise<PortraitSyncProgress> | null = null
 
+let activeImageRequests = 0
+let clearingArtwork = false
+
+async function guardedImageRequest<T>(request: () => Promise<T>): Promise<T> {
+  if (clearingArtwork) throw new Error('Artwork cache is being cleared.')
+  activeImageRequests++
+  try {
+    return await request()
+  } finally {
+    activeImageRequests--
+  }
+}
+
 function configurePortableUserData(): void {
-  const portableDir = process.env['PORTABLE_EXECUTABLE_DIR']
-  if (!portableDir) return
+  const portableData = resolvePortableDataPath({
+    isPackaged: app.isPackaged,
+    executablePath: process.execPath,
+    portableExecutableDir: process.env['PORTABLE_EXECUTABLE_DIR'],
+  })
+  if (!portableData) return
 
   try {
-    const portableData = join(portableDir, 'Arknights-Randomizer-Data')
-    mkdirSync(portableData, { recursive: true })
+    ensureWritableDirectory(portableData)
     app.setPath('userData', portableData)
-  } catch {
-    // A read-only portable location should never prevent the app from launching.
-    // Electron will fall back to its normal per-user application-data directory.
+  } catch (error) {
+    // Retain the normal userData directory rather than preventing launch.
+    // Do not delete or move existing user data automatically.
+    console.warn(
+      `Portable data directory unavailable (${portableData}). Falling back to user profile storage.`,
+      error,
+    )
   }
 }
 
 configurePortableUserData()
+
+let arknightsAccountService: ArknightsAccountService | null = null
+
+function getArknightsAccountService(): ArknightsAccountService {
+  if (!arknightsAccountService) {
+    arknightsAccountService = new ArknightsAccountService(
+      new AccountSnapshotStore(join(app.getPath('userData'), 'arknights-account-snapshot.json')),
+    )
+  }
+  return arknightsAccountService
+}
 
 function publishPortraitProgress(progress: PortraitSyncProgress): PortraitSyncProgress {
   portraitSyncProgress = progress
@@ -58,7 +108,8 @@ function publishPortraitProgress(progress: PortraitSyncProgress): PortraitSyncPr
   return progress
 }
 
-async function startPortraitSync(): Promise<PortraitSyncProgress> {
+async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgress> {
+  if (clearingArtwork) throw new Error('Artwork cache is being cleared.')
   if (portraitSyncPromise) return portraitSyncPromise
 
   const controller = new AbortController()
@@ -67,7 +118,7 @@ async function startPortraitSync(): Promise<PortraitSyncProgress> {
     try {
       const dataset = await getOperatorDataset()
       const operatorIds = dataset.operators.map((operator) => operator.id)
-      const total = operatorIds.length * 2
+      const total = operatorIds.length * 2 + (includeAll ? enumerateAdditionalArtwork(dataset).length : 0)
       publishPortraitProgress({
         status: 'downloading',
         completed: 0,
@@ -96,7 +147,18 @@ async function startPortraitSync(): Promise<PortraitSyncProgress> {
             message: progress.message,
           }),
       })
-      const warnings = [...avatarWarnings, ...portraitWarnings]
+      const additionalWarnings = includeAll
+        ? await downloadAdditionalArtwork(dataset, {
+            signal: controller.signal,
+            onProgress: (completed, additionalTotal) => publishPortraitProgress({
+              status: 'downloading',
+              completed: operatorIds.length * 2 + completed,
+              total: operatorIds.length * 2 + additionalTotal,
+              message: `Downloading appearance and skin artwork… ${completed}/${additionalTotal}`,
+            }),
+          })
+        : []
+      const warnings = [...avatarWarnings, ...portraitWarnings, ...additionalWarnings]
       return publishPortraitProgress({
         status: 'complete',
         completed: total,
@@ -140,14 +202,35 @@ function cancelPortraitSync(): PortraitSyncProgress {
 
 function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataGet, () => getOperatorDataset())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.garrisonEventsGet, (_event, region: unknown, locale: unknown) =>
+    getGarrisonEventCatalog(requireMetadataRegion(region), requireGameLocale(locale)),
+  )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataInfo, () => getOperatorDataInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorImage, (_event, operatorId: unknown) =>
-    getOperatorImage(requireOperatorId(operatorId)),
+    guardedImageRequest(() => getOperatorImage(requireOperatorId(operatorId))),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorPortrait,
     (_event, operatorId: unknown, promotionArt: unknown) =>
-      getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+      guardedImageRequest(() => getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt))),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.operatorPromotionAvatar,
+    (_event, operatorId: unknown, promotionArt: unknown) =>
+      guardedImageRequest(() => getOperatorPromotionAvatar(requireOperatorId(operatorId), requirePromotionArt(promotionArt))),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorAvatarAsset, (_event, avatarId: unknown) =>
+    guardedImageRequest(() => getOperatorAvatarAsset(requireAvatarAssetId(avatarId))),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.operatorSkinPortrait,
+    (_event, operatorId: unknown, skinId: unknown) =>
+      guardedImageRequest(() => getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId))),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.operatorSkinAvatar,
+    (_event, operatorId: unknown, skinId: unknown) =>
+      guardedImageRequest(() => getOperatorSkinAvatar(requireOperatorId(operatorId), requireSkinId(skinId))),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.classIcon, (_event, operatorClass: unknown) =>
     getBundledClassIcon(requireOperatorClass(operatorClass)),
@@ -160,9 +243,56 @@ function registerIpc(): void {
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.checkUpdates, () => checkOperatorUpdates())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.updateData, () => updateOperatorData())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkStorageInfo, () => getArtworkStorageInfo())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkOpenFolder, () => openArtworkStorageFolder())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkClear, async () => {
+    if (clearingArtwork || portraitSyncPromise || activeImageRequests > 0)
+      throw new Error('Artwork is still being downloaded or displayed. Retry after activity finishes.')
+    clearingArtwork = true
+    try {
+      const result = await clearDownloadedArtwork()
+      clearPortraitMemoryCaches()
+      clearAvatarMemoryCaches()
+      clearOperatorImageMemoryCaches()
+      return result
+    } finally {
+      clearingArtwork = false
+    }
+  })
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkDownloadAll, async () => {
+    // A startup normal-art sync must not silently swallow a full-art request.
+    if (portraitSyncPromise) await portraitSyncPromise
+    return startPortraitSync(true)
+  })
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitProgress, () => portraitSyncProgress)
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitStart, () => startPortraitSync())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitCancel, () => cancelPortraitSync())
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.arknightsAccountRequestCode,
+    (_event, server: unknown, email: unknown) =>
+      getArknightsAccountService().requestLoginCode(
+        requireArknightsAccountServer(server),
+        requireArknightsAccountString(email, 'email'),
+      ),
+  )
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.arknightsAccountSync,
+    (_event, server: unknown, email: unknown, code: unknown) =>
+      getArknightsAccountService().syncWithEmailCode(
+        requireArknightsAccountServer(server),
+        requireArknightsAccountString(email, 'email'),
+        requireArknightsAccountString(code, 'verification code'),
+      ),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountGet, () =>
+    getArknightsAccountService().getSnapshot(),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountClear, () =>
+    getArknightsAccountService().clearSnapshot(),
+  )
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.arknightsAccountAvatar, (_event, avatarId: unknown) =>
+    getArknightsProfileAvatar(requireArknightsAccountAvatarId(avatarId)),
+  )
 }
 
 function createWindow(): void {
@@ -180,6 +310,60 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: true,
     },
+  })
+
+  // Renderer unload handlers cannot synchronously persist a React working
+  // copy. Keep close ownership in Electron, and wait for the renderer to write
+  // the Garrison before honoring the user's Save choice.
+  let garrisonDirty = false
+  let waitingForSave = false
+  let allowClose = false
+  const onDirty = (event: Electron.IpcMainEvent, dirty: unknown): void => {
+    if (event.sender === mainWindow.webContents) garrisonDirty = dirty === true
+  }
+  const onSaveResult = (event: Electron.IpcMainEvent, success: unknown): void => {
+    if (event.sender !== mainWindow.webContents || !waitingForSave) return
+    waitingForSave = false
+    if (success === true) {
+      garrisonDirty = false
+      allowClose = true
+      mainWindow.close()
+    } else {
+      dialog.showMessageBoxSync(mainWindow, {
+        type: 'warning',
+        title: 'Garrison was not saved',
+        message: 'The Garrison could not be saved. Resolve unfinished edits or conflicts, then try again.',
+        buttons: ['Return to Garrison'],
+      })
+    }
+  }
+  ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, onDirty)
+  ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, onSaveResult)
+  mainWindow.on('closed', () => {
+    ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, onDirty)
+    ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, onSaveResult)
+  })
+  mainWindow.on('close', (event) => {
+    if (smokeTest || allowClose || !garrisonDirty) return
+    event.preventDefault()
+    if (waitingForSave) return
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'question',
+      title: 'Unsaved Garrison',
+      message: 'Save your Garrison before closing the application?',
+      detail: 'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
+      buttons: ['Save Garrison', 'Discard Changes', 'Cancel'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+    })
+    if (choice === 1) {
+      allowClose = true
+      mainWindow.close()
+    } else if (choice === 0) {
+      waitingForSave = true
+      mainWindow.webContents.send(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest)
+    }
   })
 
   if (smokeTest) {

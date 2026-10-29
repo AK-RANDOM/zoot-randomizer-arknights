@@ -14,55 +14,55 @@
 .slot-class-constraint-indicator.is-right { right: 8px; }
 .slot-class-constraint-item {
   position: relative;
-  display: grid;
+  display: block;
   width: 30px;
   height: 30px;
-  place-items: center;
-  flex: 0 0 auto;
-}
-.slot-class-constraint-item .class-icon {
-  width: 30px;
-  height: 30px;
-}
-.slot-class-constraint-item .class-icon img {
-  width: 23px;
-  height: 23px;
-}
-.slot-class-constraint-item.is-subfiltered .class-icon {
-  border-color: #c49138;
-  box-shadow: 0 0 0 1px rgba(240, 198, 109, 0.34), 0 2px 8px rgba(0,0,0,.35);
+  flex: 0 0 30px;
+  line-height: 0;
 }
 .slot-class-constraint-subcount {
   position: absolute;
   right: -4px;
   bottom: -4px;
+  z-index: 1;
   display: grid;
   min-width: 15px;
   height: 15px;
   padding: 0 3px;
   place-items: center;
-  border: 1px solid #8b6a2d;
+  border: 1px solid var(--app-accent);
   border-radius: 999px;
-  color: #17120a;
-  background: #f0c66d;
-  box-shadow: 0 1px 5px rgba(0,0,0,.45);
-  font-size: .48rem;
+  color: #071014;
+  background: var(--app-accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--app-accent) 24%, transparent),
+    0 1px 5px rgba(0, 0, 0, 0.45);
+  font-size: 0.48rem;
   font-weight: 900;
   line-height: 1;
 }
 .slot-class-constraint-overflow {
   display: grid;
-  min-width: 34px;
-  height: 34px;
-  padding: 0 5px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   place-items: center;
-  border: 1px solid rgba(255,255,255,.26);
-  border-radius: 6px;
   color: #e8e8eb;
-  background: rgba(12,12,14,.86);
-  box-shadow: 0 2px 8px rgba(0,0,0,.35);
-  font-size: .62rem;
+  font-size: 0.62rem;
   font-weight: 900;
+}
+
+/* A generated/locked card has a 3px Standard frame and places its marker 8px
+   inside that frame. External constraint stacks have no card border of their own,
+   so 11px from the squad-slot edge is the same physical marker position. */
+.squad-slot > .slot-class-constraint-indicator {
+  top: 11px;
+}
+.squad-slot > .slot-class-constraint-indicator.is-left {
+  left: 11px;
+}
+.squad-slot > .slot-class-constraint-indicator.is-right {
+  right: 11px;
 }
 
 .squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card.is-constrained {
@@ -70,4 +70,9 @@
   background:
     linear-gradient(#17140e, #17140e) padding-box,
     var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box;
+}
+
+/* A class constraint replaces, rather than overlaps, the numbered marker. */
+.squad-slot:has(> .slot-class-constraint-indicator) > .slot-config-card .slot-config-number {
+  display: none;
 }

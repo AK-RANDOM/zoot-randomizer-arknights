@@ -56,6 +56,12 @@ describe('operator selector search', () => {
     ])
   })
 
+  it('can disable stable-ID matching without losing display-name or alias matching', () => {
+    expect(filterOperatorSelectorOptions(options, 'angel', 60, false)).toEqual([])
+    expect(filterOperatorSelectorOptions(options, 'Exusiai', 60, false)).toHaveLength(1)
+    expect(filterOperatorSelectorOptions(options, 'penguin', 60, false)).toHaveLength(1)
+  })
+
   it('caps the unfiltered result list for the full operator dataset', () => {
     const many = Array.from({ length: 75 }, (_, index) => ({
       ...options[0],

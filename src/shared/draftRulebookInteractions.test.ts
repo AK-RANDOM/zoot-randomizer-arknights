@@ -92,31 +92,31 @@ function interactionRulebook(): DraftRulebook {
   rulebook.generalRules.economyRules = {
     enabled: true,
     startingPoints: 100,
-    rarityCosts: { 4: 0, 5: 12, 6: 32 },
+    rarityCosts: { 4: 0, 5: -12, 6: -32 },
   }
-  rulebook.overrides.operatorCosts.char_ulpianus = 36
+  rulebook.overrides.operatorCosts.char_ulpianus = -36
   rulebook.interactions = [
     {
       id: 'abyssal-anchor',
       type: 'anchor',
       source: { type: 'operators', operatorIds: [gladiia.id] },
       target: { type: 'factions', factionIds: ['team_abyssal'] },
-      modifier: 6,
+      modifier: -6,
     },
     {
       id: 'gladiia-ulpianus-pair',
       type: 'anchor',
       source: { type: 'operators', operatorIds: [gladiia.id] },
       target: { type: 'operators', operatorIds: [ulpianus.id] },
-      modifier: 2,
+      modifier: -2,
     },
     {
       id: 'abyssal-progressive',
       type: 'progressive',
       group: { type: 'operators', operatorIds: [gladiia.id, ulpianus.id, specter.id] },
       steps: [
-        { memberCount: 2, modifier: 3 },
-        { memberCount: 3, modifier: 7 },
+        { memberCount: 2, modifier: -3 },
+        { memberCount: 3, modifier: -7 },
       ],
     },
     {
@@ -127,7 +127,7 @@ function interactionRulebook(): DraftRulebook {
         operatorIds: [shu.id, nian.id, ling.id, dusk.id, chongyue.id],
       },
       threshold: 4,
-      modifier: 10,
+      modifier: -10,
       anchor: { type: 'operators', operatorIds: [shu.id] },
     },
   ]
@@ -145,7 +145,7 @@ describe('Draft Rulebook interaction execution', () => {
       type: 'anchor',
       sourceOperatorIds: [gladiia.id],
       targetOperatorIds: [gladiia.id, ulpianus.id, specter.id],
-      modifier: 6,
+      modifier: -6,
     })
     expect(serializeDraftRulebook(rulebook)).toBe(before)
   })
@@ -178,9 +178,9 @@ describe('Draft Rulebook interaction execution', () => {
       configuration,
     )
 
-    expect(ulpianusSecond).toBe(36 + 6 + 2 + 3)
-    expect(gladiiaSecond).toBe(32 + 6 + 2 + 3)
-    expect(32 + ulpianusSecond).toBe(36 + gladiiaSecond)
+    expect(ulpianusSecond).toBe(-(36 + 6 + 2 + 3))
+    expect(gladiiaSecond).toBe(-(32 + 6 + 2 + 3))
+    expect(36 + ulpianusSecond).toBe(32 + gladiiaSecond)
     expect(
       getDraftInteractionCostContributionsWithConfiguration(
         { draftedOperatorIds: [gladiia.id] },
@@ -188,9 +188,9 @@ describe('Draft Rulebook interaction execution', () => {
         configuration,
       ),
     ).toEqual([
-      { interactionId: 'abyssal-anchor', type: 'anchor', modifier: 6 },
-      { interactionId: 'gladiia-ulpianus-pair', type: 'anchor', modifier: 2 },
-      { interactionId: 'abyssal-progressive', type: 'progressive', modifier: 3 },
+      { interactionId: 'abyssal-anchor', type: 'anchor', modifier: -6 },
+      { interactionId: 'gladiia-ulpianus-pair', type: 'anchor', modifier: -2 },
+      { interactionId: 'abyssal-progressive', type: 'progressive', modifier: -3 },
     ])
   })
 
@@ -204,14 +204,14 @@ describe('Draft Rulebook interaction execution', () => {
         { draftedOperatorIds: [specter.id] },
         configuration,
       ),
-    ).toBe(32 + 3)
+    ).toBe(-(32 + 3))
     expect(
       getDraftOperatorCostForStateWithConfiguration(
         ulpianus,
         { draftedOperatorIds: [specter.id, gladiia.id] },
         configuration,
       ),
-    ).toBe(32 + 6 + 2 + 7)
+    ).toBe(-(32 + 6 + 2 + 7))
   })
 
   it('charges a Threshold exactly when the candidate completes it, including when the anchor arrives last', () => {
@@ -224,21 +224,21 @@ describe('Draft Rulebook interaction execution', () => {
         { draftedOperatorIds: [shu.id, nian.id, ling.id] },
         configuration,
       ),
-    ).toBe(32 + 10)
+    ).toBe(-(32 + 10))
     expect(
       getDraftOperatorCostForStateWithConfiguration(
         shu,
         { draftedOperatorIds: [nian.id, ling.id, dusk.id] },
         configuration,
       ),
-    ).toBe(32 + 10)
+    ).toBe(-(32 + 10))
     expect(
       getDraftOperatorCostForStateWithConfiguration(
         chongyue,
         { draftedOperatorIds: [shu.id, nian.id, ling.id, dusk.id] },
         configuration,
       ),
-    ).toBe(32)
+    ).toBe(-32)
   })
 
   it('uses interaction-adjusted pick cost for the canonical affordability preflight', () => {
@@ -250,8 +250,8 @@ describe('Draft Rulebook interaction execution', () => {
       economyRules: {
         enabled: true,
         startingPoints: 39,
-        rarityCosts: { 6: 32 },
-        operatorCostOverrides: { [ulpianus.id]: 32 },
+        rarityCosts: { 6: -32 },
+        operatorCostOverrides: { [ulpianus.id]: -32 },
       },
       interactions,
     })
@@ -263,7 +263,7 @@ describe('Draft Rulebook interaction execution', () => {
 
     expect(
       getDraftOperatorCostForStateWithConfiguration(ulpianus, state, configuration),
-    ).toBe(40)
+    ).toBe(-40)
     expect(
       evaluateDraftAction(state, pool, { type: 'pick', operatorId: ulpianus.id }, { configuration }),
     ).toEqual({ available: false, reason: 'insufficient-points' })

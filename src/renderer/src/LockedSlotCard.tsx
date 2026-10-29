@@ -74,13 +74,15 @@ export default function LockedSlotCard({
   constraint,
   operators,
   slot,
-  onClick,
+  onModify,
+  onReset,
 }: {
   presentation: LockedSlotPresentation
   constraint: SlotConstraint
   operators: readonly Operator[]
   slot: number
-  onClick: () => void
+  onModify: () => void
+  onReset: () => void
 }): React.JSX.Element {
   const [animationKey, setAnimationKey] = useState(0)
   const showClassIndicator =
@@ -98,15 +100,37 @@ export default function LockedSlotCard({
   }, [])
 
   return (
-    <button
-      type="button"
+    <div
       className={`slot-locked-card${showClassIndicator ? ' has-class-indicator' : ''}`}
       data-rarity={presentation.operator.rarity}
       style={slotConstraintFrameStyle(presentation.rarities, 'transparent')}
-      aria-label={`Configure squad slot ${slot}, locked to ${presentation.operator.name}`}
-      onClick={onClick}
+      aria-label={`Squad slot ${slot}, locked to ${presentation.operator.name}`}
     >
-      <OperatorCard operator={presentation.operator} animationKey={animationKey} />
+      <OperatorCard
+        operator={presentation.operator}
+        animationKey={animationKey}
+        overlay={
+          <div
+            className="draft-operator-actions"
+            aria-label={`Actions for squad slot ${slot}, locked to ${presentation.operator.name}`}
+          >
+            <button
+              type="button"
+              className="draft-operator-action draft-operator-action--pick"
+              onClick={onModify}
+            >
+              Modify
+            </button>
+            <button
+              type="button"
+              className="draft-operator-action draft-operator-action--hold-cost"
+              onClick={onReset}
+            >
+              Reset
+            </button>
+          </div>
+        }
+      />
       {showClassIndicator && (
         <SlotClassConstraintIndicator
           constraint={constraint}
@@ -115,6 +139,6 @@ export default function LockedSlotCard({
           side="left"
         />
       )}
-    </button>
+    </div>
   )
 }

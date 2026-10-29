@@ -1,14 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import {
   resolveDraftActionPresentation,
   resolveDraftSquadPresentation,
   type DraftActionPresentation,
 } from './draftPresentation'
 import './DraftSquadGrid.css'
+
+const openSlotIconUrl = new URL('./assets/draft/open-slot-icon.png', import.meta.url).href
+const overflowSlotIconUrl = new URL('./assets/draft/overflow-slot-icon.png', import.meta.url).href
+const lockedSlotIconUrl = new URL('./assets/draft/locked-slot-icon.png', import.meta.url).href
 
 interface DraftSquadGridProps {
   state: DraftState
@@ -17,30 +22,57 @@ interface DraftSquadGridProps {
   onAction: (action: DraftAction) => void
 }
 
-function DraftRosterAvatar({
+export function DraftEmptySlotFrame({
+  slotNumber,
+  variant,
+}: {
+  slotNumber: number
+  variant: 'valid' | 'expandable' | 'invalid'
+}): React.JSX.Element {
+  const title = variant === 'valid' ? 'Open' : variant === 'expandable' ? 'Locked' : 'Unavailable'
+  const iconUrl = variant === 'valid' ? openSlotIconUrl : lockedSlotIconUrl
+
+  return (
+    <div className={`draft-squad-slot__frame draft-squad-slot__frame--${variant}`}>
+      <span className="draft-squad-slot__number">{slotNumber}</span>
+      <img
+        className="draft-squad-slot__icon"
+        src={iconUrl}
+        alt=""
+        aria-hidden="true"
+        onError={(event) => {
+          if (variant === 'valid' && event.currentTarget.src !== overflowSlotIconUrl) {
+            event.currentTarget.src = overflowSlotIconUrl
+          }
+        }}
+      />
+      <strong>{title}</strong>
+    </div>
+  )
+}
+
+function EmptyOverflowFrame(): React.JSX.Element {
+  return (
+    <div className="draft-squad-overflow__empty">
+      <img
+        className="draft-squad-overflow__icon"
+        src={overflowSlotIconUrl}
+        alt=""
+        aria-hidden="true"
+      />
+      <strong>Overflow</strong>
+    </div>
+  )
+}
+
+export function DraftRosterAvatar({
   operator,
   overflow = false,
 }: {
   operator: Operator
   overflow?: boolean
 }): React.JSX.Element {
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    setImageUrl(null)
-    void window.desktop
-      .getOperatorImage(operator.id)
-      .then((avatarUrl) => {
-        if (active) setImageUrl(avatarUrl)
-      })
-      .catch(() => {
-        if (active) setImageUrl(null)
-      })
-    return () => {
-      active = false
-    }
-  }, [operator.id])
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
 
   return (
     <div
@@ -74,12 +106,9 @@ function ExpandControl({
   presentation: DraftActionPresentation
   onExpand: () => void
 }): React.JSX.Element {
-  const economyLabel =
-    presentation.economy.pointDelta === 0
-      ? 'Free'
-      : presentation.economy.pointDelta > 0
-        ? `+${presentation.economy.amount} pts`
-        : `${presentation.economy.amount} pts`
+  const economyLabel = presentation.economy.pointDelta === 0
+    ? 'Free'
+    : `${presentation.economy.amount} pts`
 
   return (
     <button
@@ -87,13 +116,19 @@ function ExpandControl({
       className="draft-squad-expand"
       disabled={!presentation.available}
       title={presentation.blockReasonLabel ?? undefined}
+      aria-label={`Expand capacity, ${economyLabel}`}
       onClick={onExpand}
     >
+      <span
+        className={`draft-operator-price draft-operator-price--${presentation.economy.tone} draft-squad-expand__price`}
+        aria-label={economyLabel}
+        title={economyLabel}
+      >
+        {presentation.economy.amount}
+      </span>
       <span className="draft-squad-expand__icon" aria-hidden="true">
         +
       </span>
-      <strong>Expand</strong>
-      <span>{economyLabel}</span>
     </button>
   )
 }
@@ -120,15 +155,20 @@ export default function DraftSquadGrid({
     ? resolveDraftActionPresentation(state, operators, { type: 'slot-expansion' }, configuration)
     : null
   const showContextualColumn = squad.overflowVisible || expand !== null
+  const finalized = state.status === 'complete'
 
   return (
     <section className="draft-selected-squad" aria-labelledby="draft-selected-squad-heading">
       <div className="draft-roster-heading">
         <div>
-          <strong id="draft-selected-squad-heading">Current Draft</strong>
-          <span className="draft-roster-heading__capacity">
-            {squad.permanentCapacity} permanent / {squad.maximum} max
-          </span>
+          <strong id="draft-selected-squad-heading">
+            {finalized ? 'Finalized Draft' : 'Current Draft'}
+          </strong>
+          {!finalized && (
+            <span className="draft-roster-heading__capacity">
+              {squad.permanentCapacity} permanent / {squad.maximum} max
+            </span>
+          )}
         </div>
       </div>
 
@@ -155,16 +195,7 @@ export default function DraftSquadGrid({
                 {operator ? (
                   <DraftRosterAvatar operator={operator} />
                 ) : (
-                  <div className={`draft-squad-slot__frame draft-squad-slot__frame--${slot.state}`}>
-                    <span className="draft-squad-slot__number">{slot.slotNumber}</span>
-                    <strong>
-                      {slot.state === 'valid'
-                        ? 'Open'
-                        : slot.state === 'expandable'
-                          ? 'Locked'
-                          : 'Unavailable'}
-                    </strong>
-                  </div>
+                  <DraftEmptySlotFrame slotNumber={slot.slotNumber} variant={slot.state} />
                 )}
               </div>
             )
@@ -180,14 +211,13 @@ export default function DraftSquadGrid({
                   overflowOperator ? `Overflow: ${overflowOperator.name}` : 'Overflow: empty'
                 }
               >
-                <span className="draft-squad-capacity-label">Overflow</span>
                 {overflowOperator ? (
-                  <DraftRosterAvatar operator={overflowOperator} overflow />
+                  <>
+                    <span className="draft-squad-capacity-label">Overflow</span>
+                    <DraftRosterAvatar operator={overflowOperator} overflow />
+                  </>
                 ) : (
-                  <div className="draft-squad-overflow__empty">
-                    <strong>Empty</strong>
-                    <span>Temporary slot</span>
-                  </div>
+                  <EmptyOverflowFrame />
                 )}
               </div>
             )}

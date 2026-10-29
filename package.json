@@ -21,12 +21,12 @@
     "build": "npm run typecheck && electron-vite build",
     "build:unpack": "npm run data:update && npm run build && electron-builder --dir --publish never",
     "build:win": "npm run data:update && npm run build && electron-builder --win portable --publish never",
-    "data:update": "node scripts/update-operator-data.mts",
-    "data:update:images": "node scripts/update-operator-data.mts --download-images",
-    "data:validate": "node scripts/validate-bundled-data.mts",
+    "data:update": "node --experimental-transform-types scripts/update-operator-data.mts",
+    "data:update:images": "node --experimental-transform-types scripts/update-operator-data.mts --download-images",
+    "data:validate": "node --experimental-transform-types scripts/validate-bundled-data.mts",
     "build:portable": "npm run build:win",
-    "data:images": "node scripts/update-operator-data.mts --download-images-only",
-    "data:portraits": "node scripts/update-operator-portraits.mts",
+    "data:images": "node --experimental-transform-types scripts/update-operator-data.mts --download-images-only",
+    "data:portraits": "node --experimental-transform-types scripts/update-operator-portraits.mts",
     "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
   },
   "dependencies": {
@@ -43,12 +43,12 @@
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
-    "electron-vite": "^5.0.0",
+    "electron-vite": "^6.0.0",
     "eslint": "^9.39.1",
     "prettier": "^3.9.9",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.70.0",
-    "vite": "^7.2.6",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.3",
     "vitest": "^5.0.3"
   },
   "build": {

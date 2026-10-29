@@ -12,9 +12,136 @@ import DraftConfirmationDialog from './DraftConfirmationDialog'
 import OperatorCard from './OperatorCard'
 import DraftSquadGrid from './DraftSquadGrid'
 import { resolveDraftStatusPresentation } from './draftPresentation'
-import { draftCompletionMessage } from './draftSessionMessages'
+import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
+
+function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
+
+  return (
+    <span
+      className="release-representative draft-history__operator-icon"
+      data-rarity={operator.rarity}
+      title={`${operator.name} — ${operator.rarity}★`}
+      aria-label={`${operator.name}, ${operator.rarity} star`}
+    >
+      {imageUrl ? (
+        <img src={imageUrl} alt="" draggable={false} />
+      ) : (
+        <span aria-hidden="true">{operator.name.slice(0, 1)}</span>
+      )}
+    </span>
+  )
+}
+
+function DraftHistoryTable({
+  state,
+  operatorById,
+}: {
+  state: DraftState
+  operatorById: ReadonlyMap<string, Operator>
+}): React.JSX.Element {
+  const rounds = buildDraftHistoryRounds(state.history)
+
+  return (
+    <section className="draft-history" aria-labelledby="draft-history-heading">
+      <div className="draft-history__heading">
+        <div>
+          <span className="eyebrow">Completed Run</span>
+          <strong id="draft-history-heading">Draft History</strong>
+        </div>
+        <span>{rounds.length} rounds</span>
+      </div>
+      <div className="draft-history__table-shell">
+        <table className="draft-history__table">
+          <thead>
+            <tr>
+              <th scope="col">Round</th>
+              <th scope="col">Offers</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rounds.length === 0 ? (
+              <tr>
+                <td colSpan={3} className="draft-history__empty">
+                  No draft events were recorded.
+                </td>
+              </tr>
+            ) : (
+              rounds.map((round) => (
+                <tr key={round.roundNumber}>
+                  <th scope="row">{round.roundNumber}</th>
+                  <td>
+                    <div className="draft-history__stack">
+                      {round.offers.map((offer, offerIndex) => (
+                        <div
+                          className="draft-history__entry"
+                          key={`${round.roundNumber}-offer-${offerIndex}`}
+                        >
+                          <strong>
+                            Offer {offerIndex + 1}
+                            {offer.source === 'reroll' ? ' · Reroll' : ''}
+                          </strong>
+                          <div className="draft-history__operator-list">
+                            {offer.operatorIds.map((operatorId) => {
+                              const operator = operatorById.get(operatorId)
+                              return operator ? (
+                                <DraftHistoryOperatorIcon key={operatorId} operator={operator} />
+                              ) : (
+                                <span className="draft-history__missing-operator" key={operatorId}>
+                                  {operatorId}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="draft-history__stack">
+                      {round.actions.length === 0 ? (
+                        <span className="draft-history__muted">
+                          Finalized without a round action
+                        </span>
+                      ) : (
+                        round.actions.map((action, actionIndex) => {
+                          const operator = action.operatorId
+                            ? (operatorById.get(action.operatorId) ?? null)
+                            : null
+                          return (
+                            <div
+                              className="draft-history__entry draft-history__entry--action"
+                              key={`${round.roundNumber}-action-${actionIndex}`}
+                            >
+                              <strong>{draftHistoryActionLabel(action.action)}</strong>
+                              {operator ? (
+                                <DraftHistoryOperatorIcon operator={operator} />
+                              ) : (
+                                action.operatorId && (
+                                  <span className="draft-history__missing-operator">
+                                    {action.operatorId}
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
 
 interface PendingDraftConfirmation {
   intent: DraftConfirmationIntent
@@ -27,18 +154,15 @@ export interface DraftSessionViewProps {
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
-  distributionLabel: string
   rulebook: DraftRulebook
-  poolSourceLabel: string
   dataset?: OperatorDataset
   configuration?: ResolvedDraftConfiguration
   validationErrors?: readonly string[]
-  statusMessage?: string | null
   statusError?: string | null
   onStart: () => void
   onPick: (operatorId: string) => void
   onAction?: (action: DraftAction) => void
-  onAbandon?: () => void
+  onFinalize?: () => void
   rulebookControl?: ReactNode
 }
 export default function DraftSessionView({
@@ -46,18 +170,15 @@ export default function DraftSessionView({
   operators,
   targetSize,
   ready,
-  distributionLabel,
   rulebook,
-  poolSourceLabel,
   dataset,
   configuration,
   validationErrors = [],
-  statusMessage,
   statusError,
   onStart,
   onPick,
   onAction,
-  onAbandon,
+  onFinalize,
   rulebookControl,
 }: DraftSessionViewProps): React.JSX.Element {
   const operatorById = useMemo(
@@ -65,9 +186,7 @@ export default function DraftSessionView({
     [operators],
   )
   const canStart =
-    ready &&
-    validationErrors.length === 0 &&
-    operators.length >= rulebook.generalRules.offerSize
+    ready && validationErrors.length === 0 && operators.length >= rulebook.generalRules.offerSize
   const status = resolveDraftStatusPresentation(state, targetSize)
   const draftOngoing = state?.status === 'active'
   const confirmationsEnabled = useDraftActionConfirmationPreference()
@@ -123,6 +242,20 @@ export default function DraftSessionView({
     setPendingConfirmation({ intent: { type: 'new-draft' }, execute: onStart, mandatory: false })
   }
 
+  const requestFinalize = (): void => {
+    if (!onFinalize || !draftOngoing) return
+    if (!confirmationsEnabled || sessionConfirmationsSuppressed) {
+      onFinalize()
+      return
+    }
+    setSuppressPendingSession(false)
+    setPendingConfirmation({
+      intent: { type: 'finalize-draft' },
+      execute: onFinalize,
+      mandatory: false,
+    })
+  }
+
   const cancelPendingConfirmation = (): void => {
     setPendingConfirmation(null)
     setSuppressPendingSession(false)
@@ -171,23 +304,14 @@ export default function DraftSessionView({
           </div>
         </div>
         <button
-          className={draftOngoing ? 'danger-button draft-status-abandon' : 'randomize-button draft-status-new'}
+          className="randomize-button draft-status-new"
           type="button"
-          disabled={draftOngoing ? false : !canStart}
-          onClick={draftOngoing ? onAbandon : requestStart}
+          disabled={draftOngoing ? !onFinalize : !canStart}
+          onClick={draftOngoing ? requestFinalize : requestStart}
         >
-          {draftOngoing ? 'Abandon' : 'Start Draft'}
+          {draftOngoing ? 'Finalize' : 'Start Draft'}
         </button>
       </div>
-      <div className="draft-status-context" aria-label="Draft Rulebook context">
-        <span>Revision {rulebook.identifier.revision}</span>
-        <span>{poolSourceLabel}</span>
-        <span>{distributionLabel}</span>
-        <span>{operators.length} eligible operators</span>
-      </div>
-      {rulebook.identifier.description && (
-        <p className="draft-rulebook-description">{rulebook.identifier.description}</p>
-      )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>
@@ -202,13 +326,6 @@ export default function DraftSessionView({
         <div className="validation-box" role="alert">
           <strong>{statusError}</strong>
         </div>
-      )}
-      {statusMessage && !statusError && <p className="draft-session-note">{statusMessage}</p>}
-      {state && (
-        <p className="draft-session-note">
-          This Draft is tied to its starting pool, target size, and Draft Rulebook. Changing any of
-          them resets the session.
-        </p>
       )}
       {!state ? (
         <div className="draft-empty-state">
@@ -231,12 +348,7 @@ export default function DraftSessionView({
                   : `A Draft offer requires ${rulebook.generalRules.offerSize} distinct eligible operators. Adjust the Rulebook or Global Pool before starting.`}
           </p>
         </div>
-      ) : state.status === 'complete' ? (
-        <div className="draft-complete" role="status">
-          <strong>{draftCompletionMessage(state)}</strong>
-          <span>Start a new draft to generate a fresh first offer.</span>
-        </div>
-      ) : configuration && onAction ? (
+      ) : state.status === 'complete' ? null : configuration && onAction ? (
         <DraftDecisionPlane
           state={state}
           operators={operators}
@@ -273,6 +385,9 @@ export default function DraftSessionView({
           configuration={configuration}
           onAction={requestEngineAction}
         />
+      )}
+      {state?.status === 'complete' && (
+        <DraftHistoryTable state={state} operatorById={operatorById} />
       )}
       {pendingConfirmation && (
         <DraftConfirmationDialog

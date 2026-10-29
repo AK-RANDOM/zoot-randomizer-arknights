@@ -17,6 +17,7 @@
 }
 .draft-decision-side-rail {
   display: grid;
+  margin-left: 8px;
   min-width: 0;
   align-items: flex-start;
   gap: 12px;
@@ -61,9 +62,7 @@
   border: 1px dashed #55555e;
   border-radius: 6px;
   color: #8f8f96;
-  background:
-    linear-gradient(180deg, rgba(75, 85, 105, 0.12), rgba(21, 21, 24, 0.95)),
-    #151518;
+  background: linear-gradient(180deg, rgba(75, 85, 105, 0.12), rgba(21, 21, 24, 0.95)), #151518;
   text-align: center;
 }
 .draft-hold-surface__body {
@@ -116,7 +115,10 @@
   background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
   text-align: left;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
 }
 .draft-forfeit-surface:hover:not(:disabled),
 .draft-forfeit-surface:focus-visible {
@@ -155,45 +157,26 @@
   inset: 22px 12px 38px;
   width: calc(100% - 24px);
   height: calc(100% - 60px);
+  object-fit: contain;
+  object-position: center;
+  transform: scale(0.75);
+  transform-origin: center;
   opacity: 0.76;
   pointer-events: none;
-}
-.draft-action-artwork__wash {
-  fill: rgba(255, 255, 255, 0.025);
-}
-.draft-action-artwork__line,
-.draft-action-artwork__slash {
-  fill: none;
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.draft-action-artwork__line {
-  stroke-width: 5;
-  opacity: 0.6;
-}
-.draft-action-artwork__slash {
-  stroke-width: 7;
-  opacity: 0.32;
-}
-.draft-action-artwork__fill,
-.draft-action-artwork__dot {
-  fill: currentColor;
-  opacity: 0.46;
+  user-select: none;
 }
 .draft-hold-surface .draft-action-artwork {
-  color: #9ca3af;
+  opacity: 0.42;
 }
 .draft-forfeit-surface .draft-action-artwork {
-  color: #e96d74;
+  opacity: 0.64;
 }
 .draft-forfeit-surface:hover:not(:disabled) .draft-action-artwork,
 .draft-forfeit-surface:focus-visible .draft-action-artwork {
-  opacity: 0.9;
+  opacity: 0.8;
 }
 .draft-forfeit-surface:disabled .draft-action-artwork {
-  color: #666268;
-  opacity: 0.42;
+  opacity: 0.28;
 }
 .draft-decision-economy {
   position: absolute;

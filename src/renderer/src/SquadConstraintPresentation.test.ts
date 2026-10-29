@@ -2,17 +2,20 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const styles = readFileSync(new URL('./SquadConstraintEditor.css', import.meta.url), 'utf8')
+const source = readFileSync(new URL('./SquadConstraintEditorBase.tsx', import.meta.url), 'utf8')
 
 describe('Squad constraint presentation', () => {
-  it('shows the class name beside each class icon', () => {
-    expect(styles).toContain('.slot-constraint-class-icon-button .class-icon::after {')
-    expect(styles).toContain('content: attr(title);')
-    expect(styles).toContain('width: auto;')
+  it('keeps slot constraint class controls icon-only', () => {
+    expect(styles).not.toContain('.slot-constraint-class-icon-button .class-icon::after {')
+    expect(styles).not.toContain('content: attr(title);')
+    expect(styles).toContain('width: 42px;')
   })
 
-  it('renders the slot reset control as a red button labelled Reset', () => {
+  it('renders the full slot reset label as a red button at normal control text size', () => {
+    expect(source).toContain('Reset Constraint')
     expect(styles).toContain('.slot-editor-actions .danger-button {')
     expect(styles).toContain('background: #3a171b;')
-    expect(styles).toContain("content: 'Reset';")
+    expect(styles).toContain('font-size: inherit;')
+    expect(styles).not.toContain("content: 'Reset';")
   })
 })

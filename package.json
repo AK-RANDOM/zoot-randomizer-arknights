@@ -30,7 +30,7 @@
     "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
   },
   "dependencies": {
-    "react": "^19.2.1",
+    "react": "^19.3.1",
     "react-dom": "^19.2.1"
   },
   "devDependencies": {

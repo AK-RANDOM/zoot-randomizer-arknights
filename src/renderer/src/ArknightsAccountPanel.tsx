@@ -72,7 +72,6 @@ export default function ArknightsAccountPanel({
         setSnapshot(next)
         if (next) {
           setServer(next.server)
-        } else {
         }
       })
       .catch((nextError) => {

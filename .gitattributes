@@ -1,0 +1,2 @@
+# Keep source checks consistent on Windows and Unix.
+* text=auto eol=lf

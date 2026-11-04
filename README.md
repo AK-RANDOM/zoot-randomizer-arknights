@@ -150,9 +150,9 @@ Current builds are unsigned, so Windows may display its normal warning for unsig
 
 ## Automation
 
-Permanent GitHub Actions workflows are intentionally **manual-only**. The project does not automatically run CI, refresh data, or build releases on pushes, pull requests, schedules, or tags.
+CI runs automatically when a pull request targeting `main` is opened or updated, and can also be started manually. New PR updates cancel older CI runs for the same PR. Data refresh and Windows release workflows remain **manual-only**.
 
-Run a GitHub Actions workflow only when the project explicitly decides to use one for that task. Permanent workflows use read-only repository contents permissions; generated operator data/artwork is validation/build output rather than something an automated refresh workflow pushes directly to `main`.
+Auto-merge can be enabled per PR after review; it uses merge commits and waits for the required GitHub Actions `validate` check on an up-to-date branch. For example, run `gh pr merge <number> --auto --merge`. Starting CI does not itself enable auto-merge. Run data-refresh or release workflows only when the project explicitly decides to use one for that task. Permanent workflows use read-only repository contents permissions; generated operator data/artwork is validation/build output rather than something an automated refresh workflow pushes directly to `main`.
 
 ## Workboard and documentation
 

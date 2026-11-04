@@ -97,7 +97,7 @@ describe('Garrison Side Story deduplication by operation family', () => {
     }
     activities.act99mini = { name: 'Vignette', startTime: 1, displayType: 'BRANCHLINE' }
     zones.act99mini_zone1 = { type: 'ACTIVITY', zoneIndex: 0 }
-    stages[String(id++)] = {
+    stages[String(id)] = {
       code: 'SV-1', zoneId: 'act99mini_zone1', stageType: 'ACTIVITY', difficulty: 'NORMAL',
     }
 

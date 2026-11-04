@@ -234,3 +234,11 @@
   color: #79d99a;
   border-color: #4a765b;
 }
+
+.draft-hold-surface--empty {
+  text-align: left;
+  padding: 10px;
+}
+.draft-hold-surface--empty .draft-hold-surface__body {
+  gap: 0;
+}

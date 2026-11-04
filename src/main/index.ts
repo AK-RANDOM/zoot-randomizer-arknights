@@ -37,7 +37,7 @@ import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operator
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
-import { getGarrisonEventCatalog } from './garrisonEventCatalogService'
+import { getGarrisonEventCatalog, invalidateGarrisonEventCatalog } from './garrisonEventCatalogService'
 import {
   clearDownloadedArtwork, downloadAdditionalArtwork, getArtworkStorageInfo,
   openArtworkStorageFolder, enumerateAdditionalArtwork,
@@ -241,7 +241,10 @@ function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.factionIcon, (_event, factionId: unknown) =>
     getFactionIcon(requireMetadataId(factionId, 'faction')),
   )
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.checkUpdates, () => checkOperatorUpdates())
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.checkUpdates, () => {
+    invalidateGarrisonEventCatalog()
+    return checkOperatorUpdates()
+  })
   ipcMain.handle(DESKTOP_IPC_CHANNELS.updateData, () => updateOperatorData())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkStorageInfo, () => getArtworkStorageInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkOpenFolder, () => openArtworkStorageFolder())

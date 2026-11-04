@@ -5,8 +5,11 @@ import {
   type RandomizerConstraints,
 } from './constraints'
 import type { Operator } from './operator'
+import { operatorClasses, operatorRarities } from './operator'
+import { BUILT_IN_SQUAD_PRESETS, applySquadConfiguration } from './presets'
 import {
   filterEligibleOperators,
+  canSlotResolveTo,
   generateSquad,
   measureConstraintSearch,
   validateConstraints,
@@ -29,9 +32,7 @@ function operator(
     availableOn: { cn: true, global },
     release: {
       cn: { date: '2024-01-01', yearGroup: 5 },
-      global: global
-        ? { date: '2024-07-01', yearGroup: 4 }
-        : { date: null, yearGroup: null },
+      global: global ? { date: '2024-07-01', yearGroup: 4 } : { date: null, yearGroup: null },
     },
     acquisition: { family: 'standard', group: null },
     collaboration: null,
@@ -174,10 +175,7 @@ describe('constraints', () => {
         welfare: disabledWelfare(),
       },
     })
-    expect(limitedOnly.map((item) => item.id)).toEqual([
-      'char_limited',
-      'char_collab_gacha',
-    ])
+    expect(limitedOnly.map((item) => item.id)).toEqual(['char_limited', 'char_collab_gacha'])
 
     const nonCollabLimitedOnly = filterEligibleOperators(items, {
       ...DEFAULT_CONSTRAINTS,
@@ -345,6 +343,44 @@ describe('constraints', () => {
     expect(measured.solved).toBe(false)
     expect(measured.stats.exhausted).toBe(false)
     expect(measured.stats.visits).toBeLessThan(20)
+  })
+
+  it('keeps reset preset slots feasible while probing rarity and class choices', () => {
+    const items = operatorRarities.flatMap((rarity) =>
+      operatorClasses.flatMap((operatorClass) =>
+        Array.from(
+          { length: rarity === 3 && ['Guard', 'Specialist'].includes(operatorClass) ? 0 : 4 },
+          (_, index) => operator(`${rarity}-${operatorClass}-${index}`, rarity, operatorClass),
+        ),
+      ),
+    )
+    items.push(
+      ...(['Caster', 'Guard', 'Medic'] as const).map((operatorClass) =>
+        operator(`amiya-${operatorClass}`, 5, operatorClass, true, {
+          mandatoryExclusivityGroup: 'amiya-forms',
+        }),
+      ),
+    )
+    for (let slotIndex = 0; slotIndex < 12; slotIndex += 1) {
+      const constraints = applySquadConfiguration(
+        DEFAULT_CONSTRAINTS,
+        BUILT_IN_SQUAD_PRESETS[1].configuration,
+      )
+      const draft = { rarities: [], classes: [] }
+      constraints.slots[slotIndex] = draft
+      expect(validateConstraints(constraints, items).valid).toBe(true)
+      for (const operatorClass of operatorClasses) {
+        expect(canSlotResolveTo(items, constraints, slotIndex, draft, { operatorClass })).toBe(
+          operatorClass !== 'Supporter' &&
+            !(slotIndex >= 9 && ['Guard', 'Specialist'].includes(operatorClass)),
+        )
+      }
+      for (const rarity of operatorRarities) {
+        expect(canSlotResolveTo(items, constraints, slotIndex, draft, { rarity })).toBe(
+          rarity === BUILT_IN_SQUAD_PRESETS[1].configuration.slots[slotIndex].rarities[0],
+        )
+      }
+    }
   })
 
   it('fails cleanly instead of returning a partial squad', () => {

@@ -7,6 +7,7 @@ import {
   type OperatorRarity,
 } from '../operator'
 import { operatorRaceIds } from '../raceMetadata'
+import { buildSubclassFilterOptions } from '../operatorFilterCatalog'
 import type {
   DraftRulebookEligibility,
   DraftRulebookSelector,
@@ -56,10 +57,8 @@ function sortedLabelEntries(labels: Readonly<Record<string, string>>): DraftRule
 export function createDraftRulebookSelectorCatalog(
   dataset: OperatorDataset,
 ): DraftRulebookSelectorCatalog {
-  const subclasses = new Map<string, string>()
   const races = new Set<string>()
   for (const operator of dataset.operators) {
-    subclasses.set(operator.subclass.id, operator.subclass.name)
     for (const raceId of operator.raceIds ?? []) races.add(raceId)
   }
 
@@ -76,9 +75,10 @@ export function createDraftRulebookSelectorCatalog(
       id: operatorClass,
       label: dataset.classLabels?.[operatorClass] ?? operatorClass,
     })),
-    subclasses: [...subclasses.entries()]
-      .map(([id, label]) => ({ id, label }))
-      .sort((left, right) => left.label.localeCompare(right.label)),
+    subclasses: buildSubclassFilterOptions(dataset.operators).map(({ id, name }) => ({
+      id,
+      label: name,
+    })),
     factions: sortedLabelEntries(dataset.factionLabels),
     races: [...races]
       .map((id) => ({ id, label: dataset.raceLabels?.[id] ?? id }))

@@ -15,7 +15,6 @@ import {
   reconcileOperatorPreferences,
   type OperatorAppearanceChoice,
   type OperatorPreferences,
-  type PoolPresentationMode,
 } from '../../shared/operatorPool'
 import { releaseRangeIsValid, remapReleaseConstraintServer } from '../../shared/releaseBounds'
 import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPreferencesStorage'
@@ -130,8 +129,8 @@ export default function App(): React.JSX.Element {
   }
   const setGameLocale = (gameLocale: GameLocale): void =>
     setOperatorPreferences((current) => ({ ...current, gameLocale }))
-  const setPoolPresentation = (poolPresentation: PoolPresentationMode): void =>
-    setOperatorPreferences((current) => ({ ...current, poolPresentation }))
+  const setCurateNames = (showCurateNames: boolean): void =>
+    setOperatorPreferences((current) => ({ ...current, showCurateNames }))
   const setBulkAppearance = (choice: 'e1' | 'e2' | 'random' | 'account'): void => {
     if (!data.dataset) return
     if (choice === 'account' && !importedAccount) {
@@ -361,7 +360,7 @@ export default function App(): React.JSX.Element {
           preferences={operatorPreferences}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}
-          onPoolPresentationChange={setPoolPresentation}
+          onCurateNamesChange={setCurateNames}
           onBulkAppearanceChange={setBulkAppearance}
         />
       )}

@@ -167,7 +167,10 @@ export function operatorMatchesSlotConstraint(
   if (constraint.classes.length > 0 && !constraint.classes.includes(operator.class)) {
     return false
   }
-  if (constraint.subclasses !== undefined && !constraint.subclasses.includes(operator.subclass.id)) {
+  if (
+    constraint.subclasses !== undefined &&
+    !constraint.subclasses.includes(operator.subclass.id)
+  ) {
     return false
   }
   if (constraint.operatorId && operator.id !== constraint.operatorId) return false
@@ -524,7 +527,13 @@ function solveAssignment(
       return satisfiesMinimums(classCounts, rarityCounts, rarityGroupCounts, bounds)
     }
 
-    if (slotSelection === 'dynamic') selectMostConstrainedSlot(depth)
+    if (slotSelection === 'dynamic') {
+      selectMostConstrainedSlot(depth)
+      if (!randomizedCandidates[slotOrder[depth]].some(candidateIsViable)) {
+        prunedBranches += 1
+        return false
+      }
+    }
     const remainingSlots = slotOrder.slice(depth)
     if (
       !minimumsStillReachable(
@@ -656,8 +665,10 @@ export function validateConstraints(
 
   // Validation only needs a witness that a valid squad exists. Prefer candidates
   // that satisfy outstanding minimums so background checks avoid unnecessary
-  // backtracking; user-facing generation intentionally keeps random ordering.
-  const result = solveAssignment(eligible, constraints, validationRandom(), 'static', 'deficit')
+  // backtracking, and reselect the tightest slot as bounds/exclusivity change.
+  // A reset slot can otherwise defer an impossible choice behind millions of
+  // equivalent assignments. User-facing generation keeps its random ordering.
+  const result = solveAssignment(eligible, constraints, validationRandom(), 'dynamic', 'deficit')
   if (!result.squad) {
     errors.push(
       result.exhausted

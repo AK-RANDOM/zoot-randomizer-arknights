@@ -5,8 +5,8 @@ import type { ReleaseServer } from './operator'
  *
  * The upstream EN uniequip table currently carries untranslated Chinese
  * subProfessionName values, so IDs remain canonical and display labels are
- * maintained explicitly. Unknown IDs are rejected by dataset validation so a
- * newly-added branch cannot silently ship with a raw/internal label.
+ * maintained explicitly. New branches use upstream labels (or their stable ID)
+ * until an English label is maintained here, without blocking operator updates.
  */
 export const SUBCLASS_LABELS: Readonly<Record<string, string>> = {
   agent: 'Agent',
@@ -98,13 +98,14 @@ export type OperatorEra = 'kernel' | 'postKernel'
  * operator (including Limited, collaboration and Welfare), not only operators
  * literally obtainable from Kernel Headhunting.
  *
- * Global: Gnosis is the newest 6-star in the 2026 Celebration - Kernel pool;
- *         Global release 2022-06-30.
+ * Verified 2026-10-30: both regions have migrated the batch through Dorothy.
+ * Global: October 9, 2026 Kernel expansion; Dorothy released 2023-03-14.
+ *         https://www.arknights.global/news/4814 (October Kernel Locating).
  * CN:     Dorothy is in the current migrated Kernel range;
  *         CN release 2022-07-05.
  */
 export const KERNEL_CUTOFF_BY_SERVER: Readonly<Record<ReleaseServer, string>> = {
-  global: '2022-06-30',
+  global: '2023-03-14',
   cn: '2022-07-05',
 }
 

@@ -1,3 +1,5 @@
+import { limitedOperatorIdsInPool, type RawGachaTable } from './acquisitionMetadata'
+
 /** Event-stage quick-add catalog derived from region-specific game-data tables. */
 export type GarrisonEventStageType = 'standard' | 'h' | 'ex' | 's'
 export type GarrisonEventGroup = 'main' | 'side'
@@ -8,12 +10,42 @@ export interface GarrisonEvent {
   group: GarrisonEventGroup
   /** First release timestamp, from activity data (when available). */
   releaseTime: number | null
+  /** Headline limited operators from the source region's debut banner. */
+  limitedOperatorIds?: string[]
   stages: Record<GarrisonEventStageType, string[]>
 }
 
 const STAGE_TYPES: readonly GarrisonEventStageType[] = ['standard', 'h', 'ex', 's']
 const MAIN_TYPES: readonly GarrisonEventStageType[] = ['standard', 'h']
 const SIDE_TYPES: readonly GarrisonEventStageType[] = ['standard', 'ex', 's']
+
+/** Banner identity takes precedence over approximate operator first-seen dates. */
+export function withGarrisonEventBannerMetadata(
+  events: readonly GarrisonEvent[],
+  gachaTable: RawGachaTable,
+): GarrisonEvent[] {
+  const banners = Object.values(gachaTable.gachaPoolClient ?? {}).flatMap((pool) => {
+    const ids = limitedOperatorIdsInPool(pool)
+    return typeof pool.openTime === 'number' &&
+      Number.isFinite(pool.openTime) &&
+      pool.openTime > 0 &&
+      ids.length > 0
+      ? [{ openTime: pool.openTime, ids }]
+      : []
+  })
+  return events.map((event) => {
+    if (event.releaseTime === null) return event
+    const matches = banners
+      .map((banner) => ({ ...banner, distance: Math.abs(banner.openTime - event.releaseTime!) }))
+      .filter(({ distance }) => distance <= 86_400)
+      .sort((left, right) => left.distance - right.distance)
+    if (!matches.length) return event
+    const ids = matches
+      .filter(({ distance }) => distance === matches[0].distance)
+      .flatMap(({ ids }) => ids)
+    return { ...event, limitedOperatorIds: [...new Set(ids)] }
+  })
+}
 
 /** Stage categories are specific to story type, and empty ones are omitted. */
 export function availableGarrisonEventStageTypes(event: GarrisonEvent): GarrisonEventStageType[] {

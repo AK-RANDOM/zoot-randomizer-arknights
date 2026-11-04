@@ -144,6 +144,10 @@
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  width: 100%;
+}
+.operator-card--portrait .operator-card__caption {
+  grid-template-columns: minmax(0, 1fr);
 }
 .operator-card--portrait .operator-card__caption strong,
 .random-operator-card .operator-card__caption strong {

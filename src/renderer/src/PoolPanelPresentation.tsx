@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ScrollingOutfitName } from './PoolAppearancePicker'
 import { operatorClasses } from '../../shared/operator'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
@@ -152,6 +153,7 @@ function OperatorEntry({
   classLabel,
   included,
   presentation,
+  showName,
   appearanceChoice,
   appearanceRandomSeed,
   accountAppearance,
@@ -184,6 +186,11 @@ function OperatorEntry({
         className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}
       >
         {avatar}
+        {showName && (
+          <span className="pool-card-name">
+            <ScrollingOutfitName text={operator.name} />
+          </span>
+        )}
       </button>
     )
   } else if (presentation === 'compactCard') {
@@ -232,15 +239,26 @@ function OperatorEntry({
   return (
     <div className={`pool-entry-shell pool-entry-shell--${presentation}`}>
       {entry}
-      <button
-        type="button"
-        className="pool-appearance-button"
-        onClick={onAppearance}
-        aria-label={`Choose artwork for ${operator.name}`}
-        title={`${operator.name} artwork: ${appearanceName}`}
-      >
-        Art
-      </button>
+      <div className="pool-card-actions">
+        <button
+          type="button"
+          className="draft-operator-action draft-operator-action--pick"
+          onClick={onToggle}
+          aria-label={`Toggle ${operator.name}`}
+          aria-pressed={included}
+        >
+          Toggle
+        </button>
+        <button
+          type="button"
+          className="pool-outfits-button draft-operator-action"
+          onClick={onAppearance}
+          aria-label={`Choose artwork for ${operator.name}`}
+          title={`${operator.name} artwork: ${appearanceName}`}
+        >
+          Outfits
+        </button>
+      </div>
     </div>
   )
 }

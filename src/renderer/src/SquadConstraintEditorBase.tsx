@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import OperatorSelector, { type OperatorSelectorOption } from './OperatorSelector'
 import ClassIcon from './ClassIcon'
-import { SubclassIcon } from './FilterAssetIcon'
+import SlotSubclassSelector from './SlotSubclassSelector'
+import { buildSubclassFilterGroups } from '../../shared/operatorFilterCatalog'
 import {
   rarityGroupDefinitions,
   type RandomizerConstraints,
@@ -101,6 +102,7 @@ export default function SquadConstraintEditor({
   value,
   constraints,
   operators,
+  subclassReferenceOperators = operators,
   classLabels,
   resetValue,
   onApply,
@@ -110,6 +112,7 @@ export default function SquadConstraintEditor({
   value: SlotConstraint
   constraints: RandomizerConstraints
   operators: Operator[]
+  subclassReferenceOperators?: readonly Operator[]
   classLabels?: Readonly<Record<OperatorClass, string>>
   resetValue: SlotConstraint
   onApply: (value: SlotConstraint) => void
@@ -154,22 +157,22 @@ export default function SquadConstraintEditor({
   )
 
   const subclassesByClass = useMemo(
+    () => buildSubclassFilterGroups({ operators: subclassReferenceOperators }),
+    [subclassReferenceOperators],
+  )
+  const availableSubclassIds = useMemo(
     () =>
-      operatorClasses.map((operatorClass) => {
-        const subclasses = new Map<string, string>()
-        for (const operator of eligiblePool) {
-          if (operator.class === operatorClass) {
-            subclasses.set(operator.subclass.id, operator.subclass.name)
-          }
-        }
-        return {
-          operatorClass,
-          subclasses: [...subclasses.entries()]
-            .map(([id, name]) => ({ id, name }))
-            .sort((left, right) => left.name.localeCompare(right.name)),
-        }
-      }),
-    [eligiblePool],
+      new Set(
+        eligiblePool
+          .filter((operator) =>
+            operatorMatchesSlotConstraint(operator, {
+              ...draft,
+              subclasses: undefined,
+            }),
+          )
+          .map((operator) => operator.subclass.id),
+      ),
+    [draft, eligiblePool],
   )
   const allSubclassIds = useMemo(
     () => subclassesByClass.flatMap(({ subclasses }) => subclasses.map(({ id }) => id)),
@@ -463,7 +466,7 @@ export default function SquadConstraintEditor({
               const active = draft.classes.includes(operatorClass)
               const open = !operatorLocked && selectedClass === operatorClass
               const availability = classAvailability.get(operatorClass)!
-              const disabled = !active && !availability.valid
+              const disabled = !availability.valid
               const displayClass = classLabels?.[operatorClass] ?? operatorClass
               const enabledSubclassCount = subclasses.filter(
                 ({ id }) => draft.subclasses === undefined || draft.subclasses.includes(id),
@@ -512,29 +515,13 @@ export default function SquadConstraintEditor({
             })}
           </div>
           {!operatorLocked && selectedClass && selectedClassLabel && (
-            <div
-              className="slot-constraint-subclass-selector"
-              role="group"
-              aria-label={`${selectedClassLabel} subclasses`}
-            >
-              {selectedSubclassOptions.map((subclass) => {
-                const enabled =
-                  draft.subclasses === undefined || draft.subclasses.includes(subclass.id)
-                return (
-                  <button
-                    key={subclass.id}
-                    type="button"
-                    className={`slot-constraint-subclass-icon-button${enabled ? ' is-active' : ''}`}
-                    aria-pressed={enabled}
-                    title={`${subclass.name} — ${enabled ? 'active' : 'inactive'}`}
-                    onClick={() => toggleSubclass(subclass.id)}
-                  >
-                    <SubclassIcon id={subclass.id} className="slot-constraint-subclass-icon" />
-                    <span className="sr-only">{subclass.name}</span>
-                  </button>
-                )
-              })}
-            </div>
+            <SlotSubclassSelector
+              classLabel={selectedClassLabel}
+              subclasses={selectedSubclassOptions}
+              allowedIds={draft.subclasses}
+              availableIds={availableSubclassIds}
+              onToggle={toggleSubclass}
+            />
           )}
         </div>
 

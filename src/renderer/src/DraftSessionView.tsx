@@ -17,6 +17,8 @@ import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConf
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
 
+const historyForfeitIconUrl = new URL('./assets/draft/forfeit-icon.png', import.meta.url).href
+
 function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
   const { imageUrl } = useOperatorAppearanceAvatar(operator)
 
@@ -78,13 +80,9 @@ function DraftHistoryTable({
                     <div className="draft-history__stack">
                       {round.offers.map((offer, offerIndex) => (
                         <div
-                          className="draft-history__entry"
+                          className="draft-history__entry draft-history__entry--offer"
                           key={`${round.roundNumber}-offer-${offerIndex}`}
                         >
-                          <strong>
-                            Offer {offerIndex + 1}
-                            {offer.source === 'reroll' ? ' · Reroll' : ''}
-                          </strong>
                           <div className="draft-history__operator-list">
                             {offer.operatorIds.map((operatorId) => {
                               const operator = operatorById.get(operatorId)
@@ -97,6 +95,19 @@ function DraftHistoryTable({
                               )
                             })}
                           </div>
+                          {offer.sidecarOperatorId &&
+                            offer.sidecarOperatorId !==
+                              round.offers[offerIndex - 1]?.sidecarOperatorId &&
+                            operatorById.get(offer.sidecarOperatorId) && (
+                              <span className="draft-history__sidecar" title="Sidecar">
+                                <DraftHistoryOperatorIcon
+                                  operator={operatorById.get(offer.sidecarOperatorId)!}
+                                />
+                              </span>
+                            )}
+                          {round.offers[offerIndex + 1]?.source === 'reroll' && (
+                            <span className="draft-history__muted">Reroll</span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -108,28 +119,55 @@ function DraftHistoryTable({
                           Finalized without a round action
                         </span>
                       ) : (
-                        round.actions.map((action, actionIndex) => {
-                          const operator = action.operatorId
-                            ? (operatorById.get(action.operatorId) ?? null)
-                            : null
-                          return (
-                            <div
-                              className="draft-history__entry draft-history__entry--action"
-                              key={`${round.roundNumber}-action-${actionIndex}`}
-                            >
-                              <strong>{draftHistoryActionLabel(action.action)}</strong>
-                              {operator ? (
-                                <DraftHistoryOperatorIcon operator={operator} />
-                              ) : (
-                                action.operatorId && (
-                                  <span className="draft-history__missing-operator">
-                                    {action.operatorId}
+                        round.actions
+                          .filter((action) => action.action !== 'reroll')
+                          .map((action, actionIndex) => {
+                            const operator = action.operatorId
+                              ? (operatorById.get(action.operatorId) ?? null)
+                              : null
+                            return (
+                              <div
+                                className="draft-history__entry draft-history__entry--action"
+                                key={`${round.roundNumber}-action-${actionIndex}`}
+                              >
+                                <strong>{draftHistoryActionLabel(action.action)}</strong>
+                                {(action.action === 'forfeit' ||
+                                  action.action === 'slot-expansion') && (
+                                  <span
+                                    className={`draft-history__action-box draft-history__action-box--${action.action}`}
+                                    aria-label={draftHistoryActionLabel(action.action)}
+                                  >
+                                    {action.action === 'forfeit' ? (
+                                      <img src={historyForfeitIconUrl} alt="" />
+                                    ) : (
+                                      <svg
+                                        width="22"
+                                        height="22"
+                                        viewBox="0 0 24 24"
+                                        aria-hidden="true"
+                                      >
+                                        <path
+                                          d="M12 4v16M4 12h16"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="3"
+                                        />
+                                      </svg>
+                                    )}
                                   </span>
-                                )
-                              )}
-                            </div>
-                          )
-                        })
+                                )}
+                                {operator ? (
+                                  <DraftHistoryOperatorIcon operator={operator} />
+                                ) : (
+                                  action.operatorId && (
+                                    <span className="draft-history__missing-operator">
+                                      {action.operatorId}
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            )
+                          })
                       )}
                     </div>
                   </td>

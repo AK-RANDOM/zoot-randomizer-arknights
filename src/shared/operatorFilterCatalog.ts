@@ -1,4 +1,9 @@
-import { operatorClasses, type OperatorClass, type OperatorDataset } from './operator'
+import {
+  operatorClasses,
+  type Operator,
+  type OperatorClass,
+  type OperatorDataset,
+} from './operator'
 import { operatorRaceIds } from './raceMetadata'
 
 export interface OperatorFilterOption {
@@ -44,20 +49,52 @@ export function factionNodeState(
   return { allEnabled, mixed: enabledCount > 0 && !allEnabled }
 }
 
-export function buildSubclassFilterGroups(dataset: OperatorDataset): SubclassFilterGroup[] {
-  return operatorClasses.map((operatorClass) => {
-    const subclasses = new Map<string, string>()
-    for (const operator of dataset.operators) {
-      if (operator.class === operatorClass)
-        subclasses.set(operator.subclass.id, operator.subclass.name)
-    }
-    return {
-      operatorClass,
-      subclasses: [...subclasses.entries()]
-        .map(([id, name]) => ({ id, name }))
-        .sort((left, right) => left.name.localeCompare(right.name)),
-    }
-  })
+/** Original CN debut; same-day branches (including launch) are alphabetical. */
+export function buildSubclassFilterOptions(
+  operators: readonly Operator[],
+  referenceOperators: readonly Operator[] = operators,
+): OperatorFilterOption[] {
+  const debutDates = new Map<string, string>()
+  for (const operator of referenceOperators) {
+    const date = operator.availableOn?.cn ? operator.release?.cn?.date : null
+    if (!date) continue
+    const id = operator.subclass.id
+    const previous = debutDates.get(id)
+    if (!previous || date < previous) debutDates.set(id, date)
+  }
+  const subclasses = new Map(
+    operators.map((operator) => [operator.subclass.id, operator.subclass.name]),
+  )
+  return [...subclasses]
+    .map(([id, name]) => ({ id, name }))
+    .sort((left, right) => {
+      const leftDate = debutDates.get(left.id)
+      const rightDate = debutDates.get(right.id)
+      if (leftDate !== rightDate) {
+        if (!leftDate) return 1
+        if (!rightDate) return -1
+        return leftDate.localeCompare(rightDate)
+      }
+      return left.name.localeCompare(right.name) || left.id.localeCompare(right.id)
+    })
+}
+
+export function buildSubclassFilterGroups(
+  dataset: { operators: readonly Operator[] },
+  referenceOperators: readonly Operator[] = dataset.operators,
+): SubclassFilterGroup[] {
+  return operatorClasses.map((operatorClass) => ({
+    operatorClass,
+    subclasses: buildSubclassFilterOptions(
+      dataset.operators.filter((operator) => operator.class === operatorClass),
+      referenceOperators,
+    ),
+  }))
+}
+
+/** Every race identity, including entries whose display labels are hidden. */
+export function buildRaceFilterIds(dataset: OperatorDataset): string[] {
+  return [...new Set(dataset.operators.flatMap((operator) => operatorRaceIds(operator)))]
 }
 
 export function buildRaceFilterOptions(dataset: OperatorDataset): RaceFilterOption[] {

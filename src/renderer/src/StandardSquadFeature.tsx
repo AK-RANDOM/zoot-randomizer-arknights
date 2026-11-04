@@ -718,6 +718,7 @@ export default function StandardSquadFeature({
             }
             constraints={constraints}
             operators={finalOperatorPool}
+            subclassReferenceOperators={dataset.operators}
             classLabels={dataset.classLabels}
             onApply={(value) => saveSlotConstraint(editingSlot, value)}
             onClose={() => setEditingSlot(null)}

@@ -86,18 +86,17 @@ const representativeEnglishExamples: Array<[string, string, string | null]> = [
     '[Code Name] Conviction\n[Race] Unknown (Suspected Liberi)',
     'Unknown (Suspected Liberi)',
   ],
-  [
-    'Lancet-2',
-    '[Model] Lancet-2\n[Gender Assignment] Female\n[Manufacturer] Raythean',
-    null,
-  ],
+  ['Lancet-2', '[Model] Lancet-2\n[Gender Assignment] Female\n[Manufacturer] Raythean', null],
   ['Laios', '[Code Name] Laios\n[Race] Tall-man (Self-declared)', 'Tall-man (Self-declared)'],
 ]
 
 describe('M6 race metadata', () => {
-  it.each(localizedExamples)('extracts source Race from %s Basic Info', (locale, text, expected) => {
-    expect(raceValueFromHandbookRecord(handbook(text), locale)).toBe(expected)
-  })
+  it.each(localizedExamples)(
+    'extracts source Race from %s Basic Info',
+    (locale, text, expected) => {
+      expect(raceValueFromHandbookRecord(handbook(text), locale)).toBe(expected)
+    },
+  )
 
   it.each(representativeEnglishExamples)(
     'handles representative source shape for %s',
@@ -110,9 +109,9 @@ describe('M6 race metadata', () => {
     expect(raceValueFromHandbookRecord(handbook('[Race] Lung.'), 'en')).toBe('Lung')
     expect(raceValueFromHandbookRecord(handbook('[Race] Sankta!?'), 'en')).toBe('Sankta')
     expect(raceValueFromHandbookRecord(handbook('【种族】龙。'), 'cn')).toBe('龙')
-    expect(
-      raceValueFromHandbookRecord(handbook('[Race] Unknown (Suspected Liberi).'), 'en'),
-    ).toBe('Unknown (Suspected Liberi)')
+    expect(raceValueFromHandbookRecord(handbook('[Race] Unknown (Suspected Liberi).'), 'en')).toBe(
+      'Unknown (Suspected Liberi)',
+    )
     expect(raceValueFromHandbookRecord(handbook('[Race] Tall-man (Self-declared)'), 'en')).toBe(
       'Tall-man (Self-declared)',
     )
@@ -156,7 +155,7 @@ describe('M6 race metadata', () => {
     expect(result.localizations?.kr.raceLabels?.[raceId]).toBe('오니')
   })
 
-  it('forces every Amiya form into the shared Cautus/Chimera race bucket', () => {
+  it('lists every Amiya form in separate Cautus and Chimera entries', () => {
     const source = dataset()
     const template = source.operators[0]
     source.operators = [
@@ -168,9 +167,9 @@ describe('M6 race metadata', () => {
     const result = applyOperatorRaceOverrides(source)
 
     expect(result.operators.map(({ raceIds }) => raceIds)).toEqual([
-      [AMIYA_RACE_ID],
-      [AMIYA_RACE_ID],
-      [AMIYA_RACE_ID],
+      [raceIdFromSourceValue('卡特斯'), AMIYA_RACE_ID],
+      [raceIdFromSourceValue('卡特斯'), AMIYA_RACE_ID],
+      [raceIdFromSourceValue('卡特斯'), AMIYA_RACE_ID],
     ])
     expect(result.raceLabels?.[AMIYA_RACE_ID]).toBe(AMIYA_RACE_LABEL)
   })

@@ -11,11 +11,7 @@ import {
 } from './operatorData'
 import { OPERATOR_DATASET_SCHEMA_VERSION, operatorClasses } from './operator'
 import { localizeOperatorDataset } from './gameLocalization'
-import {
-  KERNEL_CUTOFF_BY_SERVER,
-  SUBCLASS_LABELS,
-  operatorEraForRelease,
-} from './operatorMetadata'
+import { KERNEL_CUTOFF_BY_SERVER, SUBCLASS_LABELS, operatorEraForRelease } from './operatorMetadata'
 import { releaseYearGroup } from './releaseMetadata'
 
 const sources = {
@@ -38,7 +34,9 @@ const handbookTeams = {
 describe('operator data normalization', () => {
   it('maps an offline class icon for every operator class', () => {
     expect(Object.keys(CLASS_ICON_FILES).sort()).toEqual([...operatorClasses].sort())
-    expect(Object.values(CLASS_ICON_FILES).every((filename) => filename.endsWith('.png'))).toBe(true)
+    expect(Object.values(CLASS_ICON_FILES).every((filename) => filename.endsWith('.png'))).toBe(
+      true,
+    )
   })
 
   it('reads localized class labels from game text keys', () => {
@@ -81,9 +79,9 @@ describe('operator data normalization', () => {
   })
 
   it('classifies Kernel era inclusively at each region cutoff', () => {
-    expect(KERNEL_CUTOFF_BY_SERVER.global).toBe('2022-06-30')
-    expect(operatorEraForRelease('2022-06-30', 'global')).toBe('kernel')
-    expect(operatorEraForRelease('2022-07-01', 'global')).toBe('postKernel')
+    expect(KERNEL_CUTOFF_BY_SERVER.global).toBe('2023-03-14')
+    expect(operatorEraForRelease('2023-03-14', 'global')).toBe('kernel')
+    expect(operatorEraForRelease('2023-03-15', 'global')).toBe('postKernel')
 
     expect(KERNEL_CUTOFF_BY_SERVER.cn).toBe('2022-07-05')
     expect(operatorEraForRelease('2022-07-05', 'cn')).toBe('kernel')
@@ -346,9 +344,7 @@ describe('operator data normalization', () => {
       'Amiya (Medic)',
     ])
     expect(
-      dataset.operators.every(
-        (item) => item.mandatoryExclusivityGroup === 'amiya-forms',
-      ),
+      dataset.operators.every((item) => item.mandatoryExclusivityGroup === 'amiya-forms'),
     ).toBe(true)
   })
 
@@ -429,7 +425,11 @@ describe('operator data normalization', () => {
     expect(validation.valid).toBe(true)
   })
 
-  it('fails validation for an unmapped subclass instead of silently shipping it', () => {
+  it.each([
+    [{ en: { future_branch: 'New Branch' }, cn: { future_branch: '新分支' } }, 'New Branch'],
+    [{ cn: { future_branch: '新分支' } }, '新分支'],
+    [{ cn: { future_branch: '  ' } }, 'future_branch'],
+  ])('accepts a new subclass with upstream labels or a stable ID fallback (%j)', (labels, name) => {
     const dataset = normalizeCharacterTables(
       {
         char_test: {
@@ -445,6 +445,7 @@ describe('operator data normalization', () => {
       '2026-10-02T00:00:00.000Z',
       {
         releaseDates: { char_test: { cn: '2024-01-01', global: null } },
+        localizedSubclassLabels: labels,
       },
     )
 
@@ -452,7 +453,21 @@ describe('operator data normalization', () => {
       minimumOperators: 1,
       maximumOperators: 10,
     })
-    expect(validation.valid).toBe(false)
-    expect(validation.errors.some((error) => error.includes('unknown subclass'))).toBe(true)
+    expect(validation.errors).toEqual([])
+    expect(validation.valid).toBe(true)
+    expect(validation.warnings).toEqual([expect.stringContaining('New subclass future_branch')])
+    expect(dataset.operators[0].subclass).toEqual({ id: 'future_branch', name })
+
+    for (const invalidSubclass of [
+      { id: '', name },
+      { id: '  ', name },
+      { id: 'future_branch', name: '  ' },
+      { id: 'pioneer', name: 'Incorrect maintained label' },
+    ]) {
+      expect(validateOperatorDataset({
+        ...dataset,
+        operators: [{ ...dataset.operators[0], subclass: invalidSubclass }],
+      }, { minimumOperators: 1 }).valid).toBe(false)
+    }
   })
 })

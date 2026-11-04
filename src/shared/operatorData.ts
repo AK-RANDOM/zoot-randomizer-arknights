@@ -501,7 +501,11 @@ export function normalizeCharacterTables(
       class: operatorClass,
       subclass: {
         id: subclassId,
-        name: SUBCLASS_LABELS[subclassId] ?? subclassId,
+        name:
+          SUBCLASS_LABELS[subclassId] ??
+          cleanString(metadata.localizedSubclassLabels?.en?.[subclassId]) ??
+          cleanString(metadata.localizedSubclassLabels?.cn?.[subclassId]) ??
+          subclassId,
       },
       faction: normalizeFaction(reference),
       availableOn: {
@@ -766,6 +770,7 @@ export function validateOperatorDataset(
   const knownClasses = new Set<string>(operatorClasses)
   const knownLimitedGroups = new Set<string>(limitedAcquisitionGroups)
   const knownWelfareGroups = new Set<string>(welfareAcquisitionGroups)
+  const reportedSubclassFallbacks = new Set<string>()
 
   for (const operator of candidate.operators as Operator[]) {
     if (!operator || typeof operator !== 'object') {
@@ -797,12 +802,18 @@ export function validateOperatorDataset(
       errors.push(`Operator ${operator.id} has invalid class: ${String(operator.class)}`)
     }
 
-    const subclassId = operator.subclass?.id
+    const subclassId = cleanString(operator.subclass?.id)
+    const subclassName = cleanString(operator.subclass?.name)
     const expectedSubclassName = subclassId ? SUBCLASS_LABELS[subclassId] : undefined
-    if (!subclassId || !expectedSubclassName) {
-      errors.push(`Operator ${operator.id} has unknown subclass: ${String(subclassId)}.`)
-    } else if (operator.subclass.name !== expectedSubclassName) {
+    if (!subclassId || !subclassName) {
+      errors.push(`Operator ${operator.id} has invalid subclass metadata.`)
+    } else if (expectedSubclassName && operator.subclass.name !== expectedSubclassName) {
       errors.push(`Operator ${operator.id} has an invalid subclass display name.`)
+    } else if (!expectedSubclassName && !reportedSubclassFallbacks.has(subclassId)) {
+      reportedSubclassFallbacks.add(subclassId)
+      warnings.push(
+        `New subclass ${subclassId} uses the upstream label or ID until an English label is available.`,
+      )
     }
 
     const faction = operator.faction
@@ -848,7 +859,7 @@ export function validateOperatorDataset(
       ) {
         errors.push(`Operator ${operator.id} has an invalid ${server.toUpperCase()} release year group.`)
       } else if (operator.availableOn[server] && (!release.date || release.yearGroup === null)) {
-        errors.push(`Operator ${operator.id} is missing its ${server.toUpperCase()} release metadata.`)
+        warnings.push(`Operator ${operator.id} has no confirmed ${server.toUpperCase()} release date.`)
       }
     }
 

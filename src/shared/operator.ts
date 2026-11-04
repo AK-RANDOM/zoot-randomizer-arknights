@@ -24,6 +24,7 @@ export const welfareAcquisitionGroups = ['eventStory', 'redCert', 'cc', 'isRa'] 
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
 export const OPERATOR_DATASET_SCHEMA_VERSION = 6 as const
+export const OPERATOR_DATA_PIPELINE_VERSION = 2 as const
 
 export type OperatorClass = (typeof operatorClasses)[number]
 export type GameLocale = (typeof gameLocales)[number]
@@ -133,7 +134,7 @@ export interface OperatorDatasetSources {
   gamedataTwHandbookCommit?: string | null
   resourcesCommit: string | null
   releaseMetadataCommit: string | null
-  /** Optional source stamp for the per-operator CN first-seen fallback map. */
+  /** Legacy source stamp; preload metadata is no longer fetched or used. */
   releaseVersionCommit?: string | null
 }
 
@@ -150,6 +151,8 @@ export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
 
 export interface OperatorDataset {
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
+  /** Normalization revision, independent of upstream source commits. */
+  dataPipelineVersion?: number
   /** Version of normalized cosmetic skin metadata embedded in operator records. */
   skinMetadataVersion?: number
   generatedAt: string | null

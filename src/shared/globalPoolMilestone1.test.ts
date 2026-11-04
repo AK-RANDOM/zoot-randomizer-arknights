@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints } from './constraints'
 import { localizeOperatorDataset } from './gameLocalization'
 import type { GameStringCatalog, Operator, OperatorClass, OperatorDataset } from './operator'
-import { buildRaceFilterGroups } from './operatorFilterCatalog'
+import { buildRaceFilterGroups, buildRaceFilterIds } from './operatorFilterCatalog'
 import { buildFinalOperatorPool, buildGlobalFilterOperatorPool } from './operatorPool'
+import { RACE_UNAVAILABLE_ID, raceIdFromSourceValue } from './raceMetadata'
 
 const COMMON_RACE = 'race:cn:common'
 const RARE_RACE = 'race:cn:rare'
@@ -129,6 +130,54 @@ describe('#57 milestone 1 Global Pool foundation', () => {
 
     expect(raceIds).not.toContain(UNTRANSLATED_RACE)
   })
+
+  it.each(['en', 'cn', 'jp'] as const)(
+    'Race None excludes Persona 3 operators and every loaded race in %s',
+    (locale) => {
+      const source = localizationDataset()
+      const notRecorded = raceIdFromSourceValue('未录入')
+      const perroKin = raceIdFromSourceValue('佩洛兽亲(据称)')
+      source.raceLabels = {
+        ...source.raceLabels,
+        [notRecorded]: '未录入',
+        [perroKin]: '佩洛兽亲(据称)',
+      }
+      source.localizations!.cn.raceLabels = { ...source.raceLabels }
+      source.operators.push(
+        operator('char_4217_makoto', notRecorded),
+        operator('char_4218_aigis', notRecorded),
+        operator('char_4219_yukari', notRecorded),
+        operator('char_4220_kormr', perroKin),
+        { ...operator('legacy', RACE_UNAVAILABLE_ID), raceIds: undefined },
+        { ...operator('multiple_races', COMMON_RACE), raceIds: [COMMON_RACE, notRecorded] },
+      )
+      const localized = localizeOperatorDataset(source, locale)
+      if (locale === 'en') {
+        const visibleIds = buildRaceFilterGroups(localized).flatMap(({ races }) =>
+          races.map(({ id }) => id),
+        )
+        expect(visibleIds).not.toContain(notRecorded)
+        expect(visibleIds).not.toContain(perroKin)
+      }
+
+      const constraints = createDefaultConstraints()
+      constraints.release.server = 'cn'
+      const fullPool = buildGlobalFilterOperatorPool(localized.operators, constraints)
+      expect(fullPool.map(({ id }) => id)).toContain('char_4217_makoto')
+      const allRaceIds = buildRaceFilterIds(localized)
+      expect(allRaceIds).toContain(notRecorded)
+      expect(allRaceIds).toContain(perroKin)
+      expect(allRaceIds).toContain(RACE_UNAVAILABLE_ID)
+      expect(allRaceIds.length).toBe(new Set(allRaceIds).size)
+      expect(new Set(allRaceIds)).toEqual(new Set(buildRaceFilterIds(source)))
+      constraints.race = { excludedIds: allRaceIds }
+      expect(buildGlobalFilterOperatorPool(localized.operators, constraints)).toEqual([])
+      expect(buildFinalOperatorPool(localized.operators, constraints, [])).toEqual([])
+
+      constraints.race = { excludedIds: [] }
+      expect(buildGlobalFilterOperatorPool(localized.operators, constraints)).toEqual(fullPool)
+    },
+  )
 
   it('does not fall through to a CN Race string when English Race text is unavailable', () => {
     const source = localizationDataset()

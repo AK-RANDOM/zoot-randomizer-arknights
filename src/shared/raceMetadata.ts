@@ -8,7 +8,7 @@ import {
 export const RACE_UNAVAILABLE_ID = 'race:unavailable' as const
 
 export const AMIYA_RACE_ID = 'race:override:amiya-cautus-chimera' as const
-export const AMIYA_RACE_LABEL = 'Cautus/Chimera' as const
+export const AMIYA_RACE_LABEL = 'Chimera' as const
 const AMIYA_FORM_IDS = new Set(['char_002_amiya', 'char_1001_amiya2', 'char_1037_amiya3'])
 
 export interface RawHandbookStory {
@@ -119,9 +119,13 @@ function catalogWithRaceLabels(
 export function applyOperatorRaceOverrides(dataset: OperatorDataset): OperatorDataset {
   const hasAmiya = dataset.operators.some((operator) => AMIYA_FORM_IDS.has(operator.id))
   if (!hasAmiya) return dataset
+  const cautusId =
+    Object.entries(dataset.raceLabels ?? {}).find(([, label]) => label === 'Cautus')?.[0] ??
+    raceIdFromSourceValue('卡特斯')
 
   const raceLabels = {
     ...(dataset.raceLabels ?? {}),
+    [cautusId]: 'Cautus',
     [AMIYA_RACE_ID]: AMIYA_RACE_LABEL,
   }
   const localizations = dataset.localizations
@@ -142,7 +146,7 @@ export function applyOperatorRaceOverrides(dataset: OperatorDataset): OperatorDa
     localizations,
     operators: dataset.operators.map((operator) =>
       AMIYA_FORM_IDS.has(operator.id)
-        ? { ...operator, raceIds: [AMIYA_RACE_ID] }
+        ? { ...operator, raceIds: [cautusId, AMIYA_RACE_ID] }
         : operator,
     ),
   }
@@ -223,7 +227,5 @@ export function applyRaceMetadata(
 }
 
 export function operatorRaceIds(operator: { raceIds?: readonly string[] }): readonly string[] {
-  return operator.raceIds && operator.raceIds.length > 0
-    ? operator.raceIds
-    : [RACE_UNAVAILABLE_ID]
+  return operator.raceIds && operator.raceIds.length > 0 ? operator.raceIds : [RACE_UNAVAILABLE_ID]
 }

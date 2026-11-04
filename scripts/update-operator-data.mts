@@ -11,6 +11,7 @@ import {
   fetchAndBuildOperatorDataset,
   fetchLatestOperatorDatasetSources,
   operatorDatasetSourcesEqual,
+  operatorDatasetNeedsPipelineRefresh,
 } from '../src/shared/operatorDataPipeline.ts'
 import {
   CLASS_ICON_FILES,
@@ -37,14 +38,23 @@ const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer-data-updater' 
 
 async function currentDatasetState(): Promise<{
   schemaVersion: unknown
+  dataPipelineVersion: number | undefined
+  operators?: OperatorDataset['operators']
   sources: OperatorDatasetSources | null
 } | null> {
   try {
     const current = JSON.parse(await readFile(outputFile, 'utf8')) as {
       schemaVersion?: unknown
+      dataPipelineVersion?: number
+      operators?: OperatorDataset['operators']
       sources?: OperatorDatasetSources
     }
-    return { schemaVersion: current.schemaVersion, sources: current.sources ?? null }
+    return {
+      schemaVersion: current.schemaVersion,
+      dataPipelineVersion: current.dataPipelineVersion,
+      operators: current.operators,
+      sources: current.sources ?? null,
+    }
   } catch {
     return null
   }
@@ -170,6 +180,7 @@ async function main(): Promise<void> {
   const previousSources = previous?.sources ?? null
   const unchanged =
     previous?.schemaVersion === OPERATOR_DATASET_SCHEMA_VERSION &&
+    !operatorDatasetNeedsPipelineRefresh(previous) &&
     previousSources !== null &&
     operatorDatasetSourcesEqual(previousSources, versions)
 

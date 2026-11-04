@@ -5,6 +5,7 @@ import type {
 import type { OperatorReleaseCategory } from './releaseMetadata'
 
 export interface RawGachaPoolClientEntry {
+  openTime?: unknown
   limitParam?: {
     limitedCharId?: unknown
   } | null
@@ -103,16 +104,16 @@ export function isModeOnlyOperator(id: string): boolean {
   return /^char_6\d{2}_ac[a-z0-9_]*$/i.test(id)
 }
 
+export function limitedOperatorIdsInPool(pool: RawGachaPoolClientEntry): string[] {
+  const raw = pool.limitParam?.limitedCharId
+  const values: unknown[] = Array.isArray(raw) ? raw : [raw]
+  return values.filter(
+    (value): value is string => typeof value === 'string' && /^char_[a-z0-9_]+$/i.test(value),
+  )
+}
+
 export function limitedOperatorIds(gacha: RawGachaTable | undefined): Set<string> {
-  const result = new Set<string>()
-  for (const pool of Object.values(gacha?.gachaPoolClient ?? {})) {
-    const raw = pool.limitParam?.limitedCharId
-    if (!Array.isArray(raw)) continue
-    for (const value of raw) {
-      if (typeof value === 'string' && value.startsWith('char_')) result.add(value)
-    }
-  }
-  return result
+  return new Set(Object.values(gacha?.gachaPoolClient ?? {}).flatMap(limitedOperatorIdsInPool))
 }
 
 function limitedGroupFromCnDate(date: string | null): LimitedAcquisitionGroup {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ArtworkStorageInfo, PortraitSyncProgress } from '../../shared/desktop'
-import type { OperatorPreferences, PoolPresentationMode } from '../../shared/operatorPool'
+import type { OperatorPreferences } from '../../shared/operatorPool'
 import {
   gameLocales,
   type GameLocale,
@@ -14,33 +14,37 @@ import {
   useDraftActionConfirmationPreference,
 } from './draftConfirmationPreferences'
 
-const presentationLabels: Record<PoolPresentationMode, string> = {
-  imageGrid: 'Grid — Image only',
-  compactCard: 'Compact card',
-  simpleList: 'Simple list',
-  detailedList: 'Detailed list',
-}
-
 function ArtworkDownloadStatus(): React.JSX.Element {
   const [progress, setProgress] = useState<PortraitSyncProgress | null>(null)
   const [storage, setStorage] = useState<ArtworkStorageInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const refreshStorage = (): void => {
-    void window.desktop.getArtworkStorageInfo().then(setStorage).catch((e: unknown) => setError(String(e)))
+    void window.desktop
+      .getArtworkStorageInfo()
+      .then(setStorage)
+      .catch((e: unknown) => setError(String(e)))
   }
   const run = (task: () => Promise<unknown>): void => {
     setError(null)
-    void task().then(refreshStorage).catch((e: unknown) => setError(String(e)))
+    void task()
+      .then(refreshStorage)
+      .catch((e: unknown) => setError(String(e)))
   }
 
   useEffect(() => {
     let active = true
     refreshStorage()
     void window.desktop.getPortraitSyncProgress().then((next) => {
-      if (active) { setProgress(next); if (next.status !== 'downloading') refreshStorage() }
+      if (active) {
+        setProgress(next)
+        if (next.status !== 'downloading') refreshStorage()
+      }
     })
     const unsubscribe = window.desktop.onPortraitSyncProgress((next) => {
-      if (active) { setProgress(next); if (next.status !== 'downloading') refreshStorage() }
+      if (active) {
+        setProgress(next)
+        if (next.status !== 'downloading') refreshStorage()
+      }
     })
     return () => {
       active = false
@@ -60,19 +64,55 @@ function ArtworkDownloadStatus(): React.JSX.Element {
     <div className="artwork-download-status" aria-live="polite">
       <div className="artwork-download-status__heading">
         <strong>Data &amp; Storage</strong>
-        <small>{storage ? `${storage.totalFiles.toLocaleString()} cached images · ${(storage.totalBytes / 1024 ** 3).toFixed(2)} GiB` : 'Checking cache…'}</small>
+        <small>
+          {storage
+            ? `${storage.totalFiles.toLocaleString()} cached images · ${(storage.totalBytes / 1024 ** 3).toFixed(2)} GiB`
+            : 'Checking cache…'}
+        </small>
       </div>
       <div className="bulk-appearance-control">
-        <button type="button" className="secondary-button" disabled={downloading} onClick={() => run(() => window.desktop.startCompleteArtworkDownload())}>Download All / Resume</button>
-        <button type="button" className="secondary-button" onClick={() => run(() => window.desktop.openArtworkStorageFolder())}>Open Folder</button>
-        <button type="button" className="secondary-button" disabled={downloading} onClick={() => {
-          if (window.confirm('Delete downloaded artwork? Bundled assets and personal data will be preserved.')) run(() => window.desktop.clearDownloadedArtwork())
-        }}>Clear Cache</button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={downloading}
+          onClick={() => run(() => window.desktop.startCompleteArtworkDownload())}
+        >
+          Download All / Resume
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => run(() => window.desktop.openArtworkStorageFolder())}
+        >
+          Open Folder
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={downloading}
+          onClick={() => {
+            if (
+              window.confirm(
+                'Delete downloaded artwork? Bundled assets and personal data will be preserved.',
+              )
+            )
+              run(() => window.desktop.clearDownloadedArtwork())
+          }}
+        >
+          Clear Cache
+        </button>
       </div>
       <details>
         <summary>Storage details</summary>
         <small>Location: {storage?.path ?? 'Loading…'}</small>
-        {storage?.categories.map((category) => <div key={category.name}><small>{category.name}: {category.files.toLocaleString()} files · {(category.bytes / 1024 ** 2).toFixed(1)} MiB</small></div>)}
+        {storage?.categories.map((category) => (
+          <div key={category.name}>
+            <small>
+              {category.name}: {category.files.toLocaleString()} files ·{' '}
+              {(category.bytes / 1024 ** 2).toFixed(1)} MiB
+            </small>
+          </div>
+        ))}
       </details>
       {storage?.warning && <p role="alert">{storage.warning}</p>}
       {error && <p role="alert">{error}</p>}
@@ -117,14 +157,14 @@ export default function OptionsPanel({
   preferences,
   onMetadataRegionChange,
   onGameLocaleChange,
-  onPoolPresentationChange,
+  onCurateNamesChange,
   onBulkAppearanceChange,
 }: {
   dataset: OperatorDataset | null
   preferences: OperatorPreferences
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
-  onPoolPresentationChange: (mode: PoolPresentationMode) => void
+  onCurateNamesChange: (enabled: boolean) => void
   onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random' | 'account') => void
 }): React.JSX.Element {
   const confirmDraftActions = useDraftActionConfirmationPreference()
@@ -147,8 +187,8 @@ export default function OptionsPanel({
             <option value="cn">CN</option>
           </select>
           <small>
-            Controls operator and Garrison event availability, event release order, release-year grouping, Kernel-era
-            classification, and release previews.
+            Controls operator and Garrison event availability, event release order, release-year
+            grouping, Kernel-era classification, and release previews.
           </small>
         </label>
 
@@ -165,29 +205,25 @@ export default function OptionsPanel({
             ))}
           </select>
           <small>
-            Controls localized names (including Garrison events) and game terminology. App interface text remains English.
+            Controls localized names (including Garrison events) and game terminology. App interface
+            text remains English.
           </small>
         </label>
+      </div>
 
-        <label className="field">
-          <span>Pool presentation</span>
-          <select
-            value={preferences.poolPresentation}
-            onChange={(event) =>
-              onPoolPresentationChange(event.target.value as PoolPresentationMode)
-            }
-          >
-            {(Object.entries(presentationLabels) as Array<[PoolPresentationMode, string]>).map(
-              ([mode, label]) => (
-                <option key={mode} value={mode}>
-                  {label}
-                </option>
-              ),
-            )}
-          </select>
-          <small>
-            Presentation only. This never changes eligibility, grouping, search, or inclusion state.
-          </small>
+      <div className="option-setting option-setting--compact">
+        <div className="option-setting__copy">
+          <strong id="curate-names-heading">Show operator names in Curate</strong>
+          <p>Display operator names on tiles in Setup → Global Pool → Curate.</p>
+        </div>
+        <label className="option-toggle">
+          <input
+            type="checkbox"
+            aria-labelledby="curate-names-heading"
+            checked={preferences.showCurateNames ?? false}
+            onChange={(event) => onCurateNamesChange(event.target.checked)}
+          />
+          <span>Show names</span>
         </label>
       </div>
 

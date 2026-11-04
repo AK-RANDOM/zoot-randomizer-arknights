@@ -23,7 +23,7 @@ describe('Garrison review refinements', () => {
     const editor = read('./GarrisonStageEditor.tsx')
     expect(app).toContain('alterExclusivity={constraints.alterExclusivity}')
     expect(editor).toContain('reservedAlterGroups')
-    expect(editor).toContain('alterExclusivity && operator.alterGroup')
+    expect(editor).toMatch(/alterExclusivity\s*&&\s*operator\.alterGroup/)
     expect(editor).toContain('Alter in squad')
   })
 

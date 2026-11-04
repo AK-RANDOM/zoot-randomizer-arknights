@@ -7,10 +7,8 @@ import {
   type OperatorRarity,
 } from '../operator'
 import { operatorRaceIds } from '../raceMetadata'
-import type {
-  DraftRulebookEligibility,
-  DraftRulebookSelector,
-} from './types'
+import { buildSubclassFilterOptions } from '../operatorFilterCatalog'
+import type { DraftRulebookEligibility, DraftRulebookSelector } from './types'
 
 export const DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS: ReadonlyArray<{
   type: DraftRulebookSelector['type']
@@ -47,7 +45,9 @@ export interface DraftRulebookSelectorCatalog {
   races: DraftRulebookSelectorOption[]
 }
 
-function sortedLabelEntries(labels: Readonly<Record<string, string>>): DraftRulebookSelectorOption[] {
+function sortedLabelEntries(
+  labels: Readonly<Record<string, string>>,
+): DraftRulebookSelectorOption[] {
   return Object.entries(labels)
     .map(([id, label]) => ({ id, label }))
     .sort((left, right) => left.label.localeCompare(right.label))
@@ -56,10 +56,8 @@ function sortedLabelEntries(labels: Readonly<Record<string, string>>): DraftRule
 export function createDraftRulebookSelectorCatalog(
   dataset: OperatorDataset,
 ): DraftRulebookSelectorCatalog {
-  const subclasses = new Map<string, string>()
   const races = new Set<string>()
   for (const operator of dataset.operators) {
-    subclasses.set(operator.subclass.id, operator.subclass.name)
     for (const raceId of operator.raceIds ?? []) races.add(raceId)
   }
 
@@ -76,9 +74,10 @@ export function createDraftRulebookSelectorCatalog(
       id: operatorClass,
       label: dataset.classLabels?.[operatorClass] ?? operatorClass,
     })),
-    subclasses: [...subclasses.entries()]
-      .map(([id, label]) => ({ id, label }))
-      .sort((left, right) => left.label.localeCompare(right.label)),
+    subclasses: buildSubclassFilterOptions(dataset.operators).map(({ id, name }) => ({
+      id,
+      label: name,
+    })),
     factions: sortedLabelEntries(dataset.factionLabels),
     races: [...races]
       .map((id) => ({ id, label: dataset.raceLabels?.[id] ?? id }))
@@ -270,11 +269,7 @@ function checkKeys(
   }
 }
 
-function validateStringList(
-  value: unknown,
-  path: string,
-  errors: string[],
-): void {
+function validateStringList(value: unknown, path: string, errors: string[]): void {
   if (!Array.isArray(value)) {
     errors.push(`${path} must be an array.`)
     return
@@ -356,7 +351,9 @@ export function validateDraftRulebookEligibility(
   for (const key of ['allOf', 'anyOf', 'noneOf'] as const) {
     const selectors = value[key]
     if (!Array.isArray(selectors)) errors.push(`${path}.${key} must be an array.`)
-    else selectors.forEach((selector, index) =>
-      validateDraftRulebookSelector(selector, `${path}.${key}[${index}]`, errors))
+    else
+      selectors.forEach((selector, index) =>
+        validateDraftRulebookSelector(selector, `${path}.${key}[${index}]`, errors),
+      )
   }
 }

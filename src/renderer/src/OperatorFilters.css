@@ -265,3 +265,7 @@
     grid-template-columns: 1fr;
   }
 }
+
+.operator-filter-race-chip.is-standalone {
+  grid-template-columns: minmax(0, 1fr) auto;
+}

@@ -10,7 +10,7 @@ import { appearanceChoiceForOperator, resolveAccountAppearance } from './operato
 const AMIYA_CASTER_ID = 'char_002_amiya'
 const AMIYA_E2_DEFAULT_FORM_IDS = new Set(['char_1001_amiya2', 'char_1037_amiya3'])
 
-function ScrollingOutfitName({ text }: { text: string }): React.JSX.Element {
+export function ScrollingOutfitName({ text }: { text: string }): React.JSX.Element {
   const viewportRef = useRef<HTMLSpanElement | null>(null)
   const textRef = useRef<HTMLSpanElement | null>(null)
   const [overflow, setOverflow] = useState(0)
@@ -123,6 +123,22 @@ function defaultArtDisplayLabel(operatorId, defaultArt, choice, fallbackLabel) {
   if (choice === 'e1') return 'Elite 1'
   if (choice === 'e2') return 'Elite 2'
   return fallbackLabel
+}
+export function randomOutfitChoice(operator, random: () => number = Math.random): string {
+  const arts = operator.defaultArts ?? []
+  const defaults =
+    arts.length > 0
+      ? arts.map((art, index) => defaultArtChoice(art, index, arts.length, operator.id))
+      : AMIYA_E2_DEFAULT_FORM_IDS.has(operator.id)
+        ? ['e2']
+        : ['e1', 'e2']
+  const choices = [
+    ...new Set([
+      ...defaults,
+      ...(operator.skins ?? []).filter((skin) => !skin.isDefault).map((skin) => `skin:${skin.id}`),
+    ]),
+  ]
+  return choices[Math.floor(random() * choices.length)]
 }
 function accountChoiceDescription(operator, accountResolution, preferences) {
   if (!accountResolution.equippedSkinId) return 'No equipped skin ID · uses E2 fallback'
@@ -269,10 +285,10 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
         </section>
         <button
           type="button"
-          className={`pool-appearance-random${selected === 'random' ? ' is-selected' : ''}`}
-          onClick={() => onChoose('random')}
+          className="pool-appearance-random"
+          onClick={() => onChoose(randomOutfitChoice(operator))}
         >
-          Random image
+          Random Outfit
         </button>
       </div>
     </div>

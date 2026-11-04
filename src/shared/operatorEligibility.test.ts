@@ -7,10 +7,7 @@ import {
   generateSquad,
 } from './randomizer'
 
-function operator(
-  id: string,
-  extras: Partial<Operator> = {},
-): Operator {
+function operator(id: string, extras: Partial<Operator> = {}): Operator {
   return {
     id,
     name: id,
@@ -53,23 +50,23 @@ describe('Iteration 6 higher-level operator eligibility', () => {
     const globalBoundary = operator('global-boundary', {
       release: {
         cn: { date: '2022-07-06', yearGroup: 4 },
-        global: { date: '2022-06-30', yearGroup: 3 },
+        global: { date: '2023-03-14', yearGroup: 4 },
       },
     })
 
     const global = createDefaultConstraints()
     global.release.server = 'global'
     global.era = 'kernel'
-    expect(filterHigherLevelEligibleOperators([cnAhead, globalBoundary], global).map(({ id }) => id)).toEqual([
-      'global-boundary',
-    ])
+    expect(
+      filterHigherLevelEligibleOperators([cnAhead, globalBoundary], global).map(({ id }) => id),
+    ).toEqual(['global-boundary'])
 
     const cn = createDefaultConstraints()
     cn.release.server = 'cn'
     cn.era = 'kernel'
-    expect(filterHigherLevelEligibleOperators([cnAhead, globalBoundary], cn).map(({ id }) => id)).toEqual([
-      'cn-ahead',
-    ])
+    expect(
+      filterHigherLevelEligibleOperators([cnAhead, globalBoundary], cn).map(({ id }) => id),
+    ).toEqual(['cn-ahead'])
   })
 
   it('keeps 1★–4★ operators eligible in both Kernel modes', () => {
@@ -150,9 +147,9 @@ describe('Iteration 6 higher-level operator eligibility', () => {
     const anyAffiliation = createDefaultConstraints()
     anyAffiliation.faction.excludedIds = ['rhodes']
     anyAffiliation.faction.matchMode = 'any'
-    expect(filterHigherLevelEligibleOperators([multiFaction], anyAffiliation).map(({ id }) => id)).toEqual([
-      'multi',
-    ])
+    expect(
+      filterHigherLevelEligibleOperators([multiFaction], anyAffiliation).map(({ id }) => id),
+    ).toEqual(['multi'])
 
     anyAffiliation.faction.excludedIds = ['columbia', 'rhodes', 'kazimierz']
     expect(filterHigherLevelEligibleOperators([multiFaction], anyAffiliation)).toEqual([])
@@ -178,20 +175,15 @@ describe('Iteration 6 higher-level operator eligibility', () => {
         }),
         operator('post-kernel', {
           release: {
-            cn: { date: '2023-01-01', yearGroup: 4 },
-            global: { date: '2023-01-01', yearGroup: 4 },
+            cn: { date: '2023-03-15', yearGroup: 4 },
+            global: { date: '2023-03-15', yearGroup: 4 },
           },
         }),
       ],
       constraints,
     )
 
-    expect(eligible.map(({ id }) => id)).toEqual([
-      'standard',
-      'limited',
-      'welfare',
-      'collab',
-    ])
+    expect(eligible.map(({ id }) => id)).toEqual(['standard', 'limited', 'welfare', 'collab'])
   })
 
   it('feeds the same higher-level eligibility into generation and feasibility', () => {

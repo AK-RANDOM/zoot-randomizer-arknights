@@ -241,8 +241,7 @@ export default function DraftDecisionPlane({
                 >
                   <DraftActionArtwork variant="hold" />
                   <span className="draft-hold-surface__body">
-                    <span>Hold</span>
-                    <strong>Empty</strong>
+                    <strong>Hold</strong>
                   </span>
                 </div>
               )}

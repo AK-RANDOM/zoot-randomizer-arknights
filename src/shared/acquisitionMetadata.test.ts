@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  classifyAcquisition,
-  isModeOnlyOperator,
-  limitedOperatorIds,
-} from './acquisitionMetadata'
+import { classifyAcquisition, isModeOnlyOperator, limitedOperatorIds } from './acquisitionMetadata'
 
 describe('acquisition metadata', () => {
   it('treats collab gacha as Limited / Collab', () => {
@@ -142,14 +138,16 @@ describe('acquisition metadata', () => {
     ).toEqual({ family: 'welfare', group: 'isRa' })
   })
 
-  it('extracts normal limited IDs from gacha metadata', () => {
+  it('extracts scalar and array limited IDs from gacha metadata', () => {
     expect(
       limitedOperatorIds({
         gachaPoolClient: {
           pool: { limitParam: { limitedCharId: ['char_a', 'char_b'] } },
+          live: { limitParam: { limitedCharId: 'char_4247_oxi' } },
+          invalid: { limitParam: { limitedCharId: [42, null, 'invalid'] } },
         },
       }),
-    ).toEqual(new Set(['char_a', 'char_b']))
+    ).toEqual(new Set(['char_a', 'char_b', 'char_4247_oxi']))
   })
 
   it('excludes temporary IS and Stronghold Protocol variants, not normal Raidian/Mechanist', () => {

@@ -1,4 +1,8 @@
-import type { OperatorDataset, OperatorDatasetSources } from './operator.ts'
+import {
+  OPERATOR_DATA_PIPELINE_VERSION,
+  type OperatorDataset,
+  type OperatorDatasetSources,
+} from './operator.ts'
 import {
   GAME_DATA_LOCALES,
   UPSTREAM,
@@ -20,12 +24,16 @@ import {
 } from './operatorData.ts'
 import { applyRaceMetadata, type RawHandbookInfoTable } from './raceMetadata.ts'
 import { applySkinMetadata, type RawSkinTable } from './skinMetadata.ts'
-import { buildReleaseDateMap, RELEASE_VERSION_UPSTREAM } from './releaseMetadata.ts'
+import {
+  buildReleaseDateMap,
+  CN_RELEASE_DATES_API,
+  publishedCnReleaseDates,
+  type PublishedCnReleaseRow,
+} from './releaseMetadata.ts'
 
 const GAMEDATA_BRANCH = 'master'
 const RESOURCES_BRANCH = 'main'
 const RELEASE_BRANCH = 'main'
-const RELEASE_VERSION_BRANCH = 'master'
 
 function githubRawUrl(repository: string, revision: string, path: string): string {
   return `https://raw.githubusercontent.com/${repository}/${revision}/${path}`
@@ -46,6 +54,48 @@ export interface OperatorDataFetchOptions {
 }
 
 export type OperatorDatasetValidation = ReturnType<typeof validateOperatorDataset>
+
+/** Rebuild cached data after normalization fixes even when upstream SHAs match. */
+export function operatorDatasetNeedsPipelineRefresh(
+  dataset: Pick<OperatorDataset, 'dataPipelineVersion'> &
+    Partial<Pick<OperatorDataset, 'operators'>>,
+): boolean {
+  return (
+    dataset.dataPipelineVersion !== OPERATOR_DATA_PIPELINE_VERSION ||
+    (dataset.operators?.some((operator) =>
+      (['cn', 'global'] as const).some(
+        (server) => operator.availableOn[server] && operator.release[server].date === null,
+      ),
+    ) ??
+      false)
+  )
+}
+
+async function fetchPublishedCnReleaseRows(
+  options: OperatorDataFetchOptions,
+): Promise<PublishedCnReleaseRow[]> {
+  const rows: PublishedCnReleaseRow[] = []
+  for (let offset = 0; ; offset += 500) {
+    const url = new URL(CN_RELEASE_DATES_API)
+    url.search = new URLSearchParams({
+      action: 'cargoquery',
+      format: 'json',
+      tables: 'char_obtain',
+      fields: '_pageName=name,cnOnlineTime=releaseDate',
+      limit: '500',
+      offset: String(offset),
+      order_by: '_pageName',
+    }).toString()
+    const response = await fetchJson<{ cargoquery?: Array<{ title?: PublishedCnReleaseRow }> }>(
+      url.toString(),
+      options,
+    )
+    if (!Array.isArray(response.cargoquery))
+      throw new Error('Published CN release dates are unavailable.')
+    rows.push(...response.cargoquery.flatMap((row) => (row.title ? [row.title] : [])))
+    if (response.cargoquery.length < 500) return rows
+  }
+}
 
 function fetchOptions(options: OperatorDataFetchOptions): Required<OperatorDataFetchOptions> {
   return {
@@ -99,13 +149,11 @@ async function latestBranchCommit(
 export async function fetchLatestOperatorDatasetSources(
   options: OperatorDataFetchOptions = {},
 ): Promise<OperatorDatasetSources> {
-  const [gamedataCommit, resourcesCommit, releaseMetadataCommit, releaseVersionCommit] =
-    await Promise.all([
-      latestBranchCommit(UPSTREAM.gamedataRepo, GAMEDATA_BRANCH, options),
-      latestBranchCommit(UPSTREAM.resourcesRepo, RESOURCES_BRANCH, options),
-      latestBranchCommit(UPSTREAM.releaseRepo, RELEASE_BRANCH, options),
-      latestBranchCommit(RELEASE_VERSION_UPSTREAM.repository, RELEASE_VERSION_BRANCH, options),
-    ])
+  const [gamedataCommit, resourcesCommit, releaseMetadataCommit] = await Promise.all([
+    latestBranchCommit(UPSTREAM.gamedataRepo, GAMEDATA_BRANCH, options),
+    latestBranchCommit(UPSTREAM.resourcesRepo, RESOURCES_BRANCH, options),
+    latestBranchCommit(UPSTREAM.releaseRepo, RELEASE_BRANCH, options),
+  ])
 
   return {
     gamedataCnCommit: gamedataCommit,
@@ -120,7 +168,6 @@ export async function fetchLatestOperatorDatasetSources(
     gamedataTwHandbookCommit: gamedataCommit,
     resourcesCommit,
     releaseMetadataCommit,
-    releaseVersionCommit,
   }
 }
 
@@ -140,43 +187,8 @@ export function operatorDatasetSourcesEqual(
     left.gamedataKrHandbookCommit === right.gamedataKrHandbookCommit &&
     left.gamedataTwHandbookCommit === right.gamedataTwHandbookCommit &&
     left.resourcesCommit === right.resourcesCommit &&
-    left.releaseMetadataCommit === right.releaseMetadataCommit &&
-    (left.releaseVersionCommit ?? null) === (right.releaseVersionCommit ?? null)
+    left.releaseMetadataCommit === right.releaseMetadataCommit
   )
-}
-
-export function alignAvailabilityWithReleaseMetadata(dataset: OperatorDataset): OperatorDataset {
-  const operators = dataset.operators.flatMap((operator) => {
-    const cnAvailable =
-      operator.availableOn.cn &&
-      operator.release.cn.date !== null &&
-      operator.release.cn.yearGroup !== null
-    const globalAvailable =
-      operator.availableOn.global &&
-      operator.release.global.date !== null &&
-      operator.release.global.yearGroup !== null
-
-    if (!cnAvailable && !globalAvailable) return []
-    if (
-      cnAvailable === operator.availableOn.cn &&
-      globalAvailable === operator.availableOn.global
-    ) {
-      return [operator]
-    }
-
-    return [
-      {
-        ...operator,
-        availableOn: { cn: cnAvailable, global: globalAvailable },
-        release: {
-          cn: cnAvailable ? operator.release.cn : { date: null, yearGroup: null },
-          global: globalAvailable ? operator.release.global : { date: null, yearGroup: null },
-        },
-      },
-    ]
-  })
-
-  return { ...dataset, operators }
 }
 
 export async function fetchAndApplySkinMetadata(
@@ -207,7 +219,6 @@ export async function fetchAndBuildOperatorDataset(
 ): Promise<{ dataset: OperatorDataset; validation: OperatorDatasetValidation }> {
   const gamedataRevision = sources.gamedataCnCommit ?? GAMEDATA_BRANCH
   const releaseRevision = sources.releaseMetadataCommit ?? RELEASE_BRANCH
-  const releaseVersionRevision = sources.releaseVersionCommit ?? RELEASE_VERSION_BRANCH
 
   const localeEntries = await Promise.all(
     GAME_DATA_LOCALES.map(async (locale) => {
@@ -250,7 +261,7 @@ export async function fetchAndBuildOperatorDataset(
     releaseInfoSource,
     releaseCandidateSource,
     releaseEventSource,
-    releaseVersionSource,
+    publishedCnRows,
   ] = await Promise.all([
     fetchJson<RawCharacterMetaTable>(
       githubRawUrl(UPSTREAM.gamedataRepo, gamedataRevision, UPSTREAM.cnCharMetaPath),
@@ -280,14 +291,7 @@ export async function fetchAndBuildOperatorDataset(
       githubRawUrl(UPSTREAM.releaseRepo, releaseRevision, UPSTREAM.releaseEventPath),
       options,
     ),
-    fetchText(
-      githubRawUrl(
-        RELEASE_VERSION_UPSTREAM.repository,
-        releaseVersionRevision,
-        RELEASE_VERSION_UPSTREAM.path,
-      ),
-      options,
-    ),
+    fetchPublishedCnReleaseRows(options).catch(() => null),
   ])
 
   const localizedCharacterTables = Object.fromEntries(
@@ -319,44 +323,46 @@ export async function fetchAndBuildOperatorDataset(
     releaseInfoSource,
     releaseCandidateSource,
     releaseEventSource,
-    releaseVersionSource,
+    cnGacha,
+    publishedCnReleaseDates(publishedCnRows ?? [], {
+      ...localeData.cn.characters,
+      ...localeData.cn.patch.patchChars,
+    }),
   )
   const releaseCategories = createReleaseCategoryMap(releaseInfoSource)
-  const dataset = alignAvailabilityWithReleaseMetadata(
-    applySkinMetadata(
-      applyRaceMetadata(
-        normalizeCharacterTables(
-          localeData.cn.characters,
-          localeData.en.characters,
-          sources,
-          generatedAt,
-          {
-            cnPatch: localeData.cn.patch,
-            enPatch: localeData.en.patch,
-            cnCharMeta,
-            enCharMeta,
-            cnGacha,
-            factionLabels: factionLabelsFromHandbooks(
-              localeData.cn.handbook,
-              localeData.en.handbook,
-            ),
-            localizedCharacterTables,
-            localizedPatchTables,
-            localizedFactionLabels,
-            localizedClassLabels,
-            localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
-            releaseDates,
-            releaseCategories,
-          },
-        ),
-        localizedHandbooks,
+  const dataset = applySkinMetadata(
+    applyRaceMetadata(
+      normalizeCharacterTables(
+        localeData.cn.characters,
+        localeData.en.characters,
+        sources,
+        generatedAt,
+        {
+          cnPatch: localeData.cn.patch,
+          enPatch: localeData.en.patch,
+          cnCharMeta,
+          enCharMeta,
+          cnGacha,
+          factionLabels: factionLabelsFromHandbooks(localeData.cn.handbook, localeData.en.handbook),
+          localizedCharacterTables,
+          localizedPatchTables,
+          localizedFactionLabels,
+          localizedClassLabels,
+          localizedSubclassLabels: { cn: subclassLabelsFromUniEquip(cnUniEquip) },
+          releaseDates,
+          releaseCategories,
+        },
       ),
-      localizedSkinTables,
+      localizedHandbooks,
     ),
+    localizedSkinTables,
   )
+  dataset.dataPipelineVersion = OPERATOR_DATA_PIPELINE_VERSION
 
-  return {
-    dataset,
-    validation: validateOperatorDataset(dataset, { requireSourceCommits: true }),
-  }
+  const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
+  if (publishedCnRows === null)
+    validation.warnings.push(
+      'Published CN release dates could not be fetched. Unconfirmed dates remain unknown.',
+    )
+  return { dataset, validation }
 }

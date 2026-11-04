@@ -17,7 +17,7 @@ describe('Curate operator appearance picker', () => {
     expect(panelSource).toContain('operator.defaultArts')
     expect(panelSource).toContain('Default Art')
     expect(panelSource).toContain('>Outfits<')
-    expect(panelSource).toContain('Random image')
+    expect(panelSource).toContain('Random Outfit')
     expect(panelSource).not.toContain('skinBrandName')
   })
 

@@ -32,7 +32,7 @@ describe('Garrison Squad M5 persistence and polish', () => {
   it('keeps stage confirmation explicit and separate from top-level Save Garrison', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     const editor = read('./GarrisonStageEditor.tsx')
-    expect(editor).toContain('Confirm Stage')
+    expect(editor).toContain('Confirm Squad')
     expect(editor).toContain('Cancel')
     expect(feature).toContain('Save Garrison to keep the change.')
     expect(feature).toContain('Save Garrison')

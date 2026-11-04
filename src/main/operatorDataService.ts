@@ -14,7 +14,7 @@ import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
-import type { OperatorDataset } from '../shared/operator'
+import { OPERATOR_DATA_PIPELINE_VERSION, type OperatorDataset } from '../shared/operator'
 import { operatorDatasetNeedsSkinMetadataRefresh } from '../shared/skinMetadata'
 import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
 import {
@@ -27,6 +27,7 @@ import {
   fetchAndBuildOperatorDataset,
   fetchLatestOperatorDatasetSources,
   operatorDatasetSourcesEqual,
+  operatorDatasetNeedsPipelineRefresh,
 } from '../shared/operatorDataPipeline'
 
 const imageCache = new Map<string, string>()
@@ -88,9 +89,43 @@ async function datasetWithOrigin(): Promise<{
   origin: 'bundled' | 'downloaded'
 }> {
   const downloaded = await readDataset(downloadedDatasetPath())
-  if (downloaded) return { dataset: downloaded, origin: 'downloaded' }
+  if (downloaded && !operatorDatasetNeedsPipelineRefresh(downloaded)) {
+    return { dataset: downloaded, origin: 'downloaded' }
+  }
 
   const bundled = await readDataset(join(bundledRoot(), 'operators.json'))
+  // A rebuilt app can correct an old cache offline when both datasets contain
+  // the same upstream content. Never replace a newer downloaded source revision.
+  if (
+    downloaded &&
+    (!bundled ||
+      operatorDatasetNeedsPipelineRefresh(bundled) ||
+      !operatorDatasetSourcesEqual(downloaded.sources, bundled.sources))
+  ) {
+    if (downloaded.dataPipelineVersion !== OPERATOR_DATA_PIPELINE_VERSION) {
+      const confirmed = new Map(
+        bundled && !operatorDatasetNeedsPipelineRefresh(bundled)
+          ? bundled.operators.map((operator) => [operator.id, operator.release.cn] as const)
+          : [],
+      )
+      return {
+        dataset: {
+          ...downloaded,
+          operators: downloaded.operators.map((operator) => ({
+            ...operator,
+            release: {
+              ...operator.release,
+              cn: operator.availableOn.cn
+                ? (confirmed.get(operator.id) ?? { date: null, yearGroup: null })
+                : { date: null, yearGroup: null },
+            },
+          })),
+        },
+        origin: 'downloaded',
+      }
+    }
+    return { dataset: downloaded, origin: 'downloaded' }
+  }
   if (!bundled) {
     throw new Error(
       'No valid operator dataset is available. Run the data updater or reinstall the application.',
@@ -248,6 +283,7 @@ export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
     const latest = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
     const dataset = await getOperatorDataset()
     const updateAvailable =
+      operatorDatasetNeedsPipelineRefresh(dataset) ||
       operatorDatasetNeedsSkinMetadataRefresh(dataset) ||
       !operatorDatasetSourcesEqual(current, latest)
     return {
@@ -353,7 +389,11 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
   const latestSources = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
 
   const needsSkinMetadata = operatorDatasetNeedsSkinMetadataRefresh(current)
-  if (!needsSkinMetadata && operatorDatasetSourcesEqual(current.sources, latestSources)) {
+  if (
+    !needsSkinMetadata &&
+    !operatorDatasetNeedsPipelineRefresh(current) &&
+    operatorDatasetSourcesEqual(current.sources, latestSources)
+  ) {
     return { updated: false, dataset: current, warnings: [] }
   }
 

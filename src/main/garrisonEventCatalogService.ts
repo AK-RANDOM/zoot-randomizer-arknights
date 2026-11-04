@@ -5,13 +5,21 @@ import type { GameLocale, ReleaseServer } from '../shared/operator'
 import {
   buildGarrisonEventCatalog,
   localizeGarrisonEventNames,
+  withGarrisonEventBannerMetadata,
   type GarrisonEvent,
 } from '../shared/garrisonEventCatalog'
 
 const BASE_URL = 'https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/master'
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
-const CATALOG_VERSION = 12
+const CATALOG_VERSION = 13
 const pending = new Map<string, Promise<GarrisonEvent[]>>()
+let refreshRevision = 0
+const refreshedRevisions = new Map<string, number>()
+
+/** Refresh each region/localization on its next use after a manual data check. */
+export function invalidateGarrisonEventCatalog(): void {
+  refreshRevision += 1
+}
 
 const gameDataLocale = (region: ReleaseServer): GameLocale => (region === 'cn' ? 'cn' : 'en')
 const catalogKey = (region: ReleaseServer, locale: GameLocale): string => `${region}-${locale}`
@@ -54,12 +62,16 @@ async function fetchGameTable(locale: GameLocale, file: string): Promise<Record<
 async function fetchCatalog(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]> {
   const sourceLocale = gameDataLocale(region)
   // Metadata Region owns which events/stages exist and their release order.
-  const [activities, zones, stages] = await Promise.all([
+  const [activities, zones, stages, gacha] = await Promise.all([
     fetchGameTable(sourceLocale, 'activity_table.json'),
     fetchGameTable(sourceLocale, 'zone_table.json'),
     fetchGameTable(sourceLocale, 'stage_table.json'),
+    fetchGameTable(sourceLocale, 'gacha_table.json'),
   ])
-  const sourceEvents = buildGarrisonEventCatalog(activities, zones, stages)
+  const sourceEvents = withGarrisonEventBannerMetadata(
+    buildGarrisonEventCatalog(activities, zones, stages),
+    gacha,
+  )
   if (!sourceEvents.length) throw new Error('No event stages were found in the downloaded data.')
 
   // App Localization owns labels ONLY. Missing localized records (for
@@ -96,14 +108,19 @@ export async function getGarrisonEventCatalog(
   locale: GameLocale,
 ): Promise<GarrisonEvent[]> {
   const key = catalogKey(region, locale)
-  const existing = pending.get(key)
+  const revision = refreshRevision
+  const requestKey = `${key}-${revision}`
+  const existing = pending.get(requestKey)
   if (existing) return existing
 
   const task = (async () => {
     const cache = await loadCache(region, locale)
-    if (cache && Date.now() - cache.fetchedAt < MAX_AGE_MS) return cache.events
+    const refreshRequested = revision > (refreshedRevisions.get(key) ?? 0)
+    if (!refreshRequested && cache && Date.now() - cache.fetchedAt < MAX_AGE_MS) return cache.events
     try {
-      return await fetchCatalog(region, locale)
+      const events = await fetchCatalog(region, locale)
+      refreshedRevisions.set(key, revision)
+      return events
     } catch {
       if (cache) return cache.events
       throw new Error(
@@ -111,8 +128,8 @@ export async function getGarrisonEventCatalog(
       )
     }
   })().finally(() => {
-    pending.delete(key)
+    pending.delete(requestKey)
   })
-  pending.set(key, task)
+  pending.set(requestKey, task)
   return task
 }

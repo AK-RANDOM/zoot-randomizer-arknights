@@ -1,10 +1,7 @@
 import type { ReleaseServer } from './operator'
+import { limitedOperatorIdsInPool, type RawGachaTable } from './acquisitionMetadata.ts'
 
-export const RELEASE_VERSION_UPSTREAM = {
-  repository: 'ArknightsAssets/releasever',
-  path: 'releasever.json',
-  url: 'https://raw.githubusercontent.com/ArknightsAssets/releasever/master/releasever.json',
-} as const
+export const CN_RELEASE_DATES_API = 'https://prts.wiki/api.php'
 
 export const RELEASE_METADATA_UPSTREAM = {
   repository: 'nadering/arknights-toolbox',
@@ -20,13 +17,7 @@ export const RELEASE_METADATA_UPSTREAM = {
 } as const
 
 export type OperatorReleaseCategory =
-  | 'main_story'
-  | 'side_story'
-  | 'mini_event'
-  | 'crisis'
-  | 'roguelike'
-  | 'server_open'
-  | 'other'
+  'main_story' | 'side_story' | 'mini_event' | 'crisis' | 'roguelike' | 'server_open' | 'other'
 
 export const SERVER_LAUNCH_DATES: Record<ReleaseServer, string> = {
   cn: '2019-05-01',
@@ -43,14 +34,7 @@ export const ANNIVERSARY_BOUNDARIES: Record<ReleaseServer, readonly string[]> = 
     '2025-05-01',
     '2026-05-01',
   ],
-  global: [
-    '2020-12-30',
-    '2022-01-14',
-    '2023-01-13',
-    '2024-01-16',
-    '2025-01-16',
-    '2026-01-16',
-  ],
+  global: ['2020-12-30', '2022-01-14', '2023-01-13', '2024-01-16', '2025-01-16', '2026-01-16'],
 }
 
 const MAIN_STORY_DATE_OVERRIDES: Record<string, { cn: string; global: string }> = {
@@ -169,8 +153,6 @@ interface ReleaseCandidateActivity {
 }
 
 interface ReleaseCandidate {
-  commitDate?: unknown
-  addedOperatorList?: Array<{ charId?: unknown }>
   addedActivityList?: ReleaseCandidateActivity[]
 }
 
@@ -178,6 +160,7 @@ interface ReleaseEvent {
   id?: unknown
   server?: unknown
   startDate?: unknown
+  operatorIds?: unknown
 }
 
 export interface OperatorReleaseDates {
@@ -272,9 +255,7 @@ class GeneratedDataLiteralParser {
   }
 
   private parseNumber(): number {
-    const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(
-      this.source.slice(this.index),
-    )
+    const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(this.source.slice(this.index))
     if (!match) this.fail()
     this.index += match[0].length
     return Number(match[0])
@@ -381,23 +362,15 @@ function generatedLiteral(source: string, marker: string, open: string, close: s
 }
 
 function releaseInfoMap(infoSource: string): Record<string, ReleaseInfoEntry> {
-  return generatedLiteral(
-    infoSource,
-    'operatorReleaseInfoByCharId',
-    '{',
-    '}',
-  ) as Record<string, ReleaseInfoEntry>
+  return generatedLiteral(infoSource, 'operatorReleaseInfoByCharId', '{', '}') as Record<
+    string,
+    ReleaseInfoEntry
+  >
 }
 
-function dateFromTimestamp(value: unknown): string | null {
+function dateFromTimestamp(value: unknown, utcOffsetHours = 0): string | null {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return null
-  return new Date(value * 1000).toISOString().slice(0, 10)
-}
-
-function dateFromCommit(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value)
-  return match?.[1] ?? null
+  return new Date(value * 1000 + utcOffsetHours * 3_600_000).toISOString().slice(0, 10)
 }
 
 export function releaseYearGroup(date: string | null, server: ReleaseServer): number | null {
@@ -439,41 +412,44 @@ export function buildReleaseCategoryMap(
   )
 }
 
-function cnDateFromReleaseVersion(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const match = /^(\d{2})-(\d{2})-(\d{2})(?:-|$)/.exec(value)
-  if (!match) return null
-
-  const date = `20${match[1]}-${match[2]}-${match[3]}`
-  const parsed = new Date(`${date}T00:00:00Z`)
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) return null
-  return date
+export interface PublishedCnReleaseRow {
+  name?: unknown
+  releaseDate?: unknown
 }
 
-export function buildCnFirstSeenDateMap(source: string): Record<string, string> {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(source)
-  } catch {
-    throw new Error('Release-version metadata payload is malformed.')
+/** Published CN availability dates are server-local dates, never asset/commit timestamps. */
+export function publishedCnReleaseDates(
+  rows: readonly PublishedCnReleaseRow[],
+  characters: Record<string, { name?: unknown }>,
+): Record<string, string> {
+  const byName = new Map<string, string>()
+  for (const row of rows) {
+    if (typeof row.name !== 'string' || typeof row.releaseDate !== 'string') continue
+    const date = /^(\d{4}-\d{2}-\d{2})(?: |$)/.exec(row.releaseDate)?.[1]
+    if (!date) continue
+    const parsed = new Date(`${date}T00:00:00Z`)
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date) continue
+    const name = row.name.normalize('NFKC').trim()
+    const previous = byName.get(name)
+    if (!previous || date < previous) byName.set(name, date)
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Release-version metadata payload is malformed.')
-  }
-
-  const result: Record<string, string> = {}
-  for (const [operatorId, value] of Object.entries(parsed as Record<string, unknown>)) {
-    const date = cnDateFromReleaseVersion(value)
-    if (date) result[operatorId] = date
-  }
-  return result
+  return Object.fromEntries(
+    Object.entries(characters).flatMap(([id, character]) => {
+      const date =
+        typeof character.name === 'string'
+          ? byName.get(character.name.normalize('NFKC').trim())
+          : undefined
+      return date ? [[id, date]] : []
+    }),
+  )
 }
 
 export function buildReleaseDateMap(
   infoSource: string,
   candidateSource: string,
   eventSource: string,
-  releaseVersionSource?: string,
+  cnGacha?: RawGachaTable,
+  publishedCnDates: Readonly<Record<string, string>> = {},
 ): Record<string, OperatorReleaseDates> {
   const info = releaseInfoMap(infoSource)
   const candidates = generatedLiteral(
@@ -500,19 +476,11 @@ export function buildReleaseDateMap(
   }
 
   const activityDates = new Map<string, { cn: string | null; global: string | null }>()
-  const cnFallbacks = new Map<string, string>()
 
   for (const candidate of candidates) {
-    const commitDate = dateFromCommit(candidate.commitDate)
-    for (const operator of candidate.addedOperatorList ?? []) {
-      if (typeof operator.charId !== 'string' || !commitDate) continue
-      const current = cnFallbacks.get(operator.charId)
-      if (!current || commitDate < current) cnFallbacks.set(operator.charId, commitDate)
-    }
-
     for (const activity of candidate.addedActivityList ?? []) {
       if (typeof activity.id !== 'string' || activity.isRerun === true) continue
-      const cn = dateFromTimestamp(activity.cnStartTime)
+      const cn = dateFromTimestamp(activity.cnStartTime, 8)
       const global = dateFromTimestamp(activity.globalStartTime)
       const current = activityDates.get(activity.id)
       activityDates.set(activity.id, {
@@ -523,6 +491,16 @@ export function buildReleaseDateMap(
   }
 
   const result: Record<string, OperatorReleaseDates> = {}
+  const limitedBannerDates = new Map<string, string>()
+  for (const pool of Object.values(cnGacha?.gachaPoolClient ?? {})) {
+    // CN banners use the server's UTC+8 calendar, including early-morning launches.
+    const date = dateFromTimestamp(pool.openTime, 8)
+    if (!date) continue
+    for (const id of limitedOperatorIdsInPool(pool)) {
+      const current = limitedBannerDates.get(id)
+      if (!current || date < current) limitedBannerDates.set(id, date)
+    }
+  }
 
   for (const [operatorId, releaseInfo] of Object.entries(info)) {
     const eventId = typeof releaseInfo.eventId === 'string' ? releaseInfo.eventId : null
@@ -537,22 +515,37 @@ export function buildReleaseDateMap(
     const eventDate = eventId ? eventDates.get(eventId) : undefined
     result[operatorId] = {
       cn:
-        override?.cn ??
-        activity?.cn ??
-        eventDate?.cn ??
-        cnFallbacks.get(operatorId) ??
-        null,
-      global: override?.global ?? activity?.global ?? eventDate?.global ?? null,
+        override?.cn ?? eventDate?.cn ?? activity?.cn ?? limitedBannerDates.get(operatorId) ?? null,
+      global: override?.global ?? eventDate?.global ?? activity?.global ?? null,
     }
   }
 
-  if (releaseVersionSource) {
-    for (const [operatorId, cnDate] of Object.entries(
-      buildCnFirstSeenDateMap(releaseVersionSource),
-    )) {
-      const current = result[operatorId] ?? { cn: null, global: null }
-      if (!current.cn) result[operatorId] = { ...current, cn: cnDate }
+  // One actual event release date applies to every mapped member, including
+  // operators absent from the separately generated per-operator info map.
+  for (const event of events) {
+    if (typeof event.id !== 'string' || !Array.isArray(event.operatorIds)) continue
+    const eventDate = eventDates.get(event.id)
+    const activity = activityDates.get(event.id)
+    const override = MAIN_STORY_DATE_OVERRIDES[event.id]
+    for (const id of event.operatorIds) {
+      if (typeof id !== 'string') continue
+      const current = result[id] ?? { cn: null, global: null }
+      result[id] = {
+        cn: override?.cn ?? eventDate?.cn ?? activity?.cn ?? current.cn,
+        global: override?.global ?? eventDate?.global ?? activity?.global ?? current.global,
+      }
     }
+  }
+
+  for (const [operatorId, date] of limitedBannerDates) {
+    const current = result[operatorId] ?? { cn: null, global: null }
+    if (!current.cn) result[operatorId] = { ...current, cn: date }
+  }
+
+  for (const [operatorId, date] of Object.entries(publishedCnDates)) {
+    const current = result[operatorId] ?? { cn: null, global: null }
+    // Keep the application's launch-day convention for launch operators.
+    if (info[operatorId]?.eventId !== 'server_open') result[operatorId] = { ...current, cn: date }
   }
 
   for (const [operatorId, dates] of Object.entries(AMIYA_FORM_RELEASES)) {

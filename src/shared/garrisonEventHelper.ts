@@ -85,6 +85,19 @@ export function garrisonEventHelperOperator(
     )
   }
 
+  // Live limited banners identify their headline operator even when a dataset
+  // still has a preload date or an outdated acquisition classification.
+  if (event.limitedOperatorIds?.length) {
+    for (const id of event.limitedOperatorIds) {
+      const operator = operators.find(
+        (candidate) =>
+          candidate.id === id && candidate.rarity === 6 && candidate.availableOn[region],
+      )
+      if (operator) return operator
+    }
+    return null
+  }
+
   if (event.releaseTime === null) return null
   const candidates = operators
     .filter((operator) => operator.rarity === 6 && operator.availableOn[region])
@@ -98,9 +111,9 @@ export function garrisonEventHelperOperator(
     )
     .sort(
       (a, b) =>
-        a.distance - b.distance ||
         Number(b.operator.acquisition.family === 'limited') -
           Number(a.operator.acquisition.family === 'limited') ||
+        a.distance - b.distance ||
         a.operator.id.localeCompare(b.operator.id),
     )
   return candidates[0]?.operator ?? null

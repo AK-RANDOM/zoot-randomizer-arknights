@@ -107,6 +107,6 @@ describe('Garrison Squad M2', () => {
     expect(editor).toContain('draft-squad-capacity-column garrison-stage-editor-side')
     expect(editor).toContain('garrison-stage-editor-actions')
     expect(editor).toContain('Cancel')
-    expect(editor).toContain('Confirm Stage')
+    expect(editor).toContain('Confirm Squad')
   })
 })

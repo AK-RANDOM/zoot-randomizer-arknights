@@ -71,19 +71,21 @@ export const UPSTREAM = {
   releaseInfoUrl: RELEASE_METADATA_UPSTREAM.infoUrl,
   releaseCandidateUrl: RELEASE_METADATA_UPSTREAM.candidateUrl,
   releaseEventUrl: RELEASE_METADATA_UPSTREAM.eventUrl,
-  avatarBaseUrl:
-    'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/avatar',
+  avatarBaseUrl: 'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/avatar',
   uiAssetRepo: OPERATOR_UI_ASSET_REPOSITORY,
   uiAssetRevision: OPERATOR_UI_ASSET_REVISION,
-  classIconBaseUrl:
-    `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/classes`,
-  subclassIconBaseUrl:
-    `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/ui/subclass`,
-  factionIconBaseUrl:
-    `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/factions`,
+  classIconBaseUrl: `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/classes`,
+  subclassIconBaseUrl: `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/ui/subclass`,
+  factionIconBaseUrl: `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/factions`,
 } as const
 
-export const GAME_DATA_LOCALES = ['en', 'jp', 'kr', 'tw', 'cn'] as const satisfies readonly GameLocale[]
+export const GAME_DATA_LOCALES = [
+  'en',
+  'jp',
+  'kr',
+  'tw',
+  'cn',
+] as const satisfies readonly GameLocale[]
 
 export function gameDataExcelPath(locale: GameLocale, filename: string): string {
   return `${locale}/gamedata/excel/${filename}`
@@ -461,7 +463,8 @@ export function normalizeCharacterTables(
   ])
   const familyById = alterGroups(metadata.enCharMeta, metadata.charMeta, metadata.cnCharMeta)
   const limitedIds = limitedOperatorIds(metadata.cnGacha)
-  const factionLabels = metadata.factionLabels ?? factionLabelsFromHandbook(metadata.enHandbookTeams)
+  const factionLabels =
+    metadata.factionLabels ?? factionLabelsFromHandbook(metadata.enHandbookTeams)
   const localizations = buildLocalizationCatalogs(ids, cn, en, metadata, factionLabels)
   const operators: Operator[] = []
 
@@ -501,7 +504,11 @@ export function normalizeCharacterTables(
       class: operatorClass,
       subclass: {
         id: subclassId,
-        name: SUBCLASS_LABELS[subclassId] ?? subclassId,
+        name:
+          SUBCLASS_LABELS[subclassId] ??
+          cleanString(metadata.localizedSubclassLabels?.en?.[subclassId]) ??
+          cleanString(metadata.localizedSubclassLabels?.cn?.[subclassId]) ??
+          subclassId,
       },
       faction: normalizeFaction(reference),
       availableOn: {
@@ -522,9 +529,7 @@ export function normalizeCharacterTables(
       collaboration,
       alterGroup: familyById.get(id) ?? null,
       mandatoryExclusivityGroup:
-        id.startsWith('char_002_amiya') ||
-        id === 'char_1001_amiya2' ||
-        id === 'char_1037_amiya3'
+        id.startsWith('char_002_amiya') || id === 'char_1001_amiya2' || id === 'char_1037_amiya3'
           ? 'amiya-forms'
           : null,
       imageFile: `operators/${id}.png`,
@@ -533,7 +538,8 @@ export function normalizeCharacterTables(
 
   operators.sort((left, right) => {
     if (left.rarity !== right.rarity) return right.rarity - left.rarity
-    const classDifference = operatorClasses.indexOf(left.class) - operatorClasses.indexOf(right.class)
+    const classDifference =
+      operatorClasses.indexOf(left.class) - operatorClasses.indexOf(right.class)
     if (classDifference !== 0) return classDifference
     return left.name.localeCompare(right.name)
   })
@@ -572,17 +578,20 @@ function upgradeLegacyFaction(value: unknown): OperatorFaction {
   const existingPrimary = Array.isArray(faction.primary)
     ? uniqueStrings(faction.primary.map(cleanString))
     : []
-  const primary = existingPrimary.length > 0
-    ? existingPrimary
-    : main
-      ? affiliations.includes(main)
-        ? affiliations.slice(0, affiliations.indexOf(main) + 1)
-        : [main]
-      : []
+  const primary =
+    existingPrimary.length > 0
+      ? existingPrimary
+      : main
+        ? affiliations.includes(main)
+          ? affiliations.slice(0, affiliations.indexOf(main) + 1)
+          : [main]
+        : []
 
   const nationId = cleanString(faction.nationId) ?? primary[0] ?? null
-  const teamId = cleanString(faction.teamId) ?? (primary.length >= 3 ? primary.at(-1) ?? null : null)
-  const groupId = cleanString(faction.groupId) ?? (primary.length >= 2 ? primary[primary.length - 2] : null)
+  const teamId =
+    cleanString(faction.teamId) ?? (primary.length >= 3 ? (primary.at(-1) ?? null) : null)
+  const groupId =
+    cleanString(faction.groupId) ?? (primary.length >= 2 ? primary[primary.length - 2] : null)
   const normalizedPrimary = uniqueStrings([nationId, groupId, teamId])
   const normalizedMain = normalizedPrimary.at(-1) ?? main ?? null
 
@@ -590,7 +599,8 @@ function upgradeLegacyFaction(value: unknown): OperatorFaction {
     nationId,
     groupId,
     teamId,
-    primary: normalizedPrimary.length > 0 ? normalizedPrimary : (normalizedMain ? [normalizedMain] : []),
+    primary:
+      normalizedPrimary.length > 0 ? normalizedPrimary : normalizedMain ? [normalizedMain] : [],
     main: normalizedMain,
     affiliations: uniqueStrings([...affiliations, normalizedMain]),
   }
@@ -766,6 +776,7 @@ export function validateOperatorDataset(
   const knownClasses = new Set<string>(operatorClasses)
   const knownLimitedGroups = new Set<string>(limitedAcquisitionGroups)
   const knownWelfareGroups = new Set<string>(welfareAcquisitionGroups)
+  const reportedSubclassFallbacks = new Set<string>()
 
   for (const operator of candidate.operators as Operator[]) {
     if (!operator || typeof operator !== 'object') {
@@ -797,12 +808,18 @@ export function validateOperatorDataset(
       errors.push(`Operator ${operator.id} has invalid class: ${String(operator.class)}`)
     }
 
-    const subclassId = operator.subclass?.id
+    const subclassId = cleanString(operator.subclass?.id)
+    const subclassName = cleanString(operator.subclass?.name)
     const expectedSubclassName = subclassId ? SUBCLASS_LABELS[subclassId] : undefined
-    if (!subclassId || !expectedSubclassName) {
-      errors.push(`Operator ${operator.id} has unknown subclass: ${String(subclassId)}.`)
-    } else if (operator.subclass.name !== expectedSubclassName) {
+    if (!subclassId || !subclassName) {
+      errors.push(`Operator ${operator.id} has invalid subclass metadata.`)
+    } else if (expectedSubclassName && operator.subclass.name !== expectedSubclassName) {
       errors.push(`Operator ${operator.id} has an invalid subclass display name.`)
+    } else if (!expectedSubclassName && !reportedSubclassFallbacks.has(subclassId)) {
+      reportedSubclassFallbacks.add(subclassId)
+      warnings.push(
+        `New subclass ${subclassId} uses the upstream label or ID until an English label is available.`,
+      )
     }
 
     const faction = operator.faction
@@ -835,7 +852,9 @@ export function validateOperatorDataset(
     }
 
     if (operator.availableOn?.global && !operator.availableOn?.cn) {
-      warnings.push(`Operator ${operator.id} is Global-visible but absent from the CN playable set.`)
+      warnings.push(
+        `Operator ${operator.id} is Global-visible but absent from the CN playable set.`,
+      )
     }
 
     for (const server of ['cn', 'global'] as const) {
@@ -846,9 +865,13 @@ export function validateOperatorDataset(
         release.yearGroup !== null &&
         (!Number.isInteger(release.yearGroup) || release.yearGroup < 0)
       ) {
-        errors.push(`Operator ${operator.id} has an invalid ${server.toUpperCase()} release year group.`)
+        errors.push(
+          `Operator ${operator.id} has an invalid ${server.toUpperCase()} release year group.`,
+        )
       } else if (operator.availableOn[server] && (!release.date || release.yearGroup === null)) {
-        errors.push(`Operator ${operator.id} is missing its ${server.toUpperCase()} release metadata.`)
+        warnings.push(
+          `Operator ${operator.id} has no confirmed ${server.toUpperCase()} release date.`,
+        )
       }
     }
 

@@ -27,6 +27,23 @@ function sampleGarrison(): Garrison {
 }
 
 describe('Garrison model', () => {
+  it('keeps only one Amiya form per squad in saved and imported assignments', () => {
+    const forms = ['char_002_amiya', 'char_1001_amiya2', 'char_1037_amiya3']
+    for (const first of forms) {
+      expect(normalizeGarrisonStageOperatorIds([first, 'char_other', ...forms])).toEqual([
+        first,
+        'char_other',
+      ])
+    }
+    const garrison = sampleGarrison()
+    garrison.stages[0].operatorIds = forms
+    garrison.stages[1].operatorIds = [forms[1]]
+    expect(
+      cloneGarrison(garrison)
+        .stages.map((stage) => stage.operatorIds)
+        .slice(0, 2),
+    ).toEqual([[forms[0]], [forms[1]]])
+  })
   it('normalizes a stage to at most 13 unique non-empty operator IDs', () => {
     const ids = [
       '',

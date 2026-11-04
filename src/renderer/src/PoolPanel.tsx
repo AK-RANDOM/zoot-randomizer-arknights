@@ -243,7 +243,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
         </div>
       )}
 
-      <div className={`pool-groups pool-presentation--${preferences.poolPresentation}`}>
+      <div className={`pool-groups pool-presentation--imageGrid`}>
         {groups.map(([label, operators]) => {
           const collapsed = collapsedGroups.has(label)
           const reversed = reversedGroups.has(label)
@@ -293,7 +293,8 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
                         raceLabel={operatorRaceLabel(operator, dataset.raceLabels)}
                         classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
                         included={!excludedIds.has(operator.id)}
-                        presentation={preferences.poolPresentation}
+                        presentation="imageGrid"
+                        showName={preferences.showCurateNames ?? false}
                         appearanceChoice={appearanceChoice}
                         appearanceRandomSeed={preferences.appearanceRandomSeed}
                         accountAppearance={

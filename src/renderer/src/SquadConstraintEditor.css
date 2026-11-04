@@ -54,19 +54,16 @@
 .slot-constraint-class-icon-button.is-active,
 .slot-constraint-subclass-icon-button.is-active {
   opacity: 1;
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.075);
+  border-color: var(--app-accent);
+  background: color-mix(in srgb, var(--app-accent) 16%, transparent);
 }
 
 .slot-constraint-class-icon-button.is-open {
-  border-color: rgba(240, 198, 109, 0.88);
+  border-color: var(--app-accent);
 }
 
-.slot-constraint-class-icon-button.is-unavailable:not(.is-active) {
-  opacity: 0.2;
-}
-
-.slot-constraint-class-icon-button:disabled {
+.slot-constraint-class-icon-button:disabled,
+.slot-constraint-subclass-icon-button:disabled {
   cursor: not-allowed;
 }
 
@@ -79,10 +76,10 @@
   height: 16px;
   padding: 0 3px;
   place-items: center;
-  border: 1px solid #8b6a2d;
+  border: 1px solid var(--app-accent);
   border-radius: 999px;
   color: #17120a;
-  background: #f0c66d;
+  background: var(--app-accent);
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
   font-size: 0.5rem;
   font-weight: 900;
@@ -109,6 +106,31 @@
 .slot-constraint-class-icon-button:hover:not(:disabled) {
   opacity: 1;
   border-color: rgba(255, 255, 255, 0.55);
+}
+
+.slot-constraint-class-icon-button.is-unavailable,
+.slot-constraint-subclass-icon-button.is-unavailable {
+  opacity: 0.46;
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: none;
+}
+
+.slot-constraint-class-icon-button.is-unavailable .class-icon img,
+.slot-constraint-subclass-icon-button.is-unavailable .slot-constraint-subclass-icon {
+  filter: brightness(0) saturate(100%) invert(54%) sepia(62%) saturate(1272%) hue-rotate(315deg)
+    brightness(97%) contrast(87%);
+  opacity: 0.9;
+}
+
+.slot-constraint-class-icon-button.is-unavailable .class-icon__fallback {
+  color: #e36c76;
+}
+
+.slot-constraint-class-icon-button.is-unavailable .slot-constraint-class-subcount {
+  border-color: #57575e;
+  background: #414147;
+  color: #c2c2c8;
 }
 
 @media (max-width: 760px) {

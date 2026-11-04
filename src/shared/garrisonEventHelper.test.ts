@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Operator } from './operator'
 import type { GarrisonEvent } from './garrisonEventCatalog'
 import { garrisonEventHelperOperator, GARRISON_CHAPTER_HELPER_IDS } from './garrisonEventHelper'
+import { withGarrisonEventBannerMetadata, localizeGarrisonEventNames } from './garrisonEventCatalog'
 
 const example = (
   id: string,
@@ -47,6 +48,53 @@ const operators = [
 ]
 
 describe('Garrison event helper icon selection', () => {
+  it('uses a limited banner identity despite preload dates and stale Standard classification', () => {
+    const talulah = example('char_4247_oxi', 'Talulah', 6, '2026-10-29', null)
+    const standard = example('char_4244_tocka', 'Tocka', 6, '2026-11-01', null)
+    const source = event('act55side', '2026-11-01')
+    const [enriched] = withGarrisonEventBannerMetadata([source], {
+      gachaPoolClient: {
+        limited: { openTime: source.releaseTime!, limitParam: { limitedCharId: talulah.id } },
+        unrelated: {
+          openTime: source.releaseTime! - 86400 * 10,
+          limitParam: { limitedCharId: standard.id },
+        },
+      },
+    })
+    const [localized] = localizeGarrisonEventNames(
+      [enriched],
+      {
+        basicInfo: { act55side: { name: 'A different label' } },
+      },
+      {},
+    )
+    expect(localized.limitedOperatorIds).toEqual([talulah.id])
+    expect(garrisonEventHelperOperator(localized, [standard, talulah], 'cn')?.id).toBe(talulah.id)
+    expect(garrisonEventHelperOperator(localized, [standard, talulah], 'global')).toBeNull()
+    expect(garrisonEventHelperOperator(localized, [standard], 'cn')).toBeNull()
+  })
+
+  it('prefers a limited 6★ at a one-day offset over a standard 6★ on the exact date', () => {
+    const limited = example('char_limited', 'Limited', 6, '2026-11-01', null, true)
+    const standard = example('char_standard', 'Standard', 6, '2026-11-02', null)
+    expect(
+      garrisonEventHelperOperator(event('act55side', '2026-11-02'), [standard, limited], 'cn')?.id,
+    ).toBe(limited.id)
+  })
+
+  it('does not link a distant limited banner to an unrelated event', () => {
+    const source = event('act55side', '2026-11-01')
+    const [enriched] = withGarrisonEventBannerMetadata([source], {
+      gachaPoolClient: {
+        distant: {
+          openTime: source.releaseTime! - 86400 * 3,
+          limitParam: { limitedCharId: 'char_4247_oxi' },
+        },
+      },
+    })
+    expect(enriched.limitedOperatorIds).toBeUndefined()
+  })
+
   it('uses caster Amiya for Chapters 1–4 (and prologue), regardless of other releases', () => {
     for (let chapter = 0; chapter <= 4; chapter += 1) {
       expect(

@@ -92,17 +92,29 @@ export default function GarrisonStageEditor({
         .map((operatorId) => operatorById.get(operatorId)?.alterGroup)
         .filter((group): group is string => Boolean(group)),
     )
+    const reservedMandatoryGroups = new Set(
+      [...reservedInStage]
+        .map((id) => operatorById.get(id)?.mandatoryExclusivityGroup)
+        .filter(Boolean),
+    )
 
     return eligibleOperators
       .map((operator) => {
         const conflictingStages = crossStageAssignments.get(operator.id) ?? []
-        const reason = reservedInStage.has(operator.id)
-          ? 'Already in squad'
-          : alterExclusivity && operator.alterGroup && reservedAlterGroups.has(operator.alterGroup)
-            ? 'Alter in squad'
-            : conflictingStages.length > 0
-              ? conflictReason(conflictingStages)
-              : undefined
+        const reason =
+          reservedInStage.has(operator.id) ||
+          Boolean(
+            operator.mandatoryExclusivityGroup &&
+            reservedMandatoryGroups.has(operator.mandatoryExclusivityGroup),
+          )
+            ? 'Already in squad'
+            : alterExclusivity &&
+                operator.alterGroup &&
+                reservedAlterGroups.has(operator.alterGroup)
+              ? 'Alter in squad'
+              : conflictingStages.length > 0
+                ? conflictReason(conflictingStages)
+                : undefined
         return {
           key: operator.id,
           label: operator.name,
@@ -126,6 +138,7 @@ export default function GarrisonStageEditor({
   ])
 
   const replaceSlot = (slotIndex: number, operatorId: string): void => {
+    if (operatorOptions.find((option) => option.operator.id === operatorId)?.disabled) return
     const next = [...stage.operatorIds]
     if (slotIndex < next.length) next[slotIndex] = operatorId
     else next.push(operatorId)
@@ -235,7 +248,7 @@ export default function GarrisonStageEditor({
                 Cancel
               </button>
               <button type="button" className="randomize-button" onClick={onConfirm}>
-                Confirm Stage
+                Confirm Squad
               </button>
             </div>
           </div>

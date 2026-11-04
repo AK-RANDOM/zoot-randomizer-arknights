@@ -1,5 +1,7 @@
 export const GARRISON_STAGE_CAPACITY = 13 as const
 
+const AMIYA_FORM_IDS = new Set(['char_002_amiya', 'char_1001_amiya2', 'char_1037_amiya3'])
+
 export interface GarrisonStage {
   id: string
   name: string
@@ -33,8 +35,9 @@ export function normalizeGarrisonStageOperatorIds(operatorIds: readonly string[]
   const normalized: string[] = []
   for (const operatorId of operatorIds) {
     const id = operatorId.trim()
-    if (!id || seen.has(id)) continue
-    seen.add(id)
+    const identity = AMIYA_FORM_IDS.has(id) ? 'amiya-forms' : id
+    if (!id || seen.has(identity)) continue
+    seen.add(identity)
     normalized.push(id)
     if (normalized.length === GARRISON_STAGE_CAPACITY) break
   }

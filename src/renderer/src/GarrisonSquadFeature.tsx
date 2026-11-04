@@ -796,7 +796,7 @@ export default function GarrisonSquadFeature({
                         ?
                       </span>
                     )}
-                    {working.duplicateOperatorsAllowed && (
+                    {stageCount >= 2 && (
                       <span
                         className="garrison-participant-count"
                         aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}

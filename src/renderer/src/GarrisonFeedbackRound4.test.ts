@@ -33,11 +33,10 @@ describe('Garrison operator picker and overview review refinements', () => {
     expect(css).toContain('.garrison-stage-actions .danger-button {\n  font-size: inherit;')
   })
 
-  it('only shows participation counts while duplicates are enabled', () => {
+  it('only shows participation badges for two or more stage appearances', () => {
     const code = source('./GarrisonSquadFeature.tsx')
-    expect(code).toContain('{working.duplicateOperatorsAllowed && (')
+    expect(code).toContain('{stageCount >= 2 && (')
     expect(code).toContain('className="garrison-participant-count"')
-    expect(code).toContain('{working.duplicateOperatorsAllowed && (')
     expect(code).toContain('{participation.length} unique')
   })
 })

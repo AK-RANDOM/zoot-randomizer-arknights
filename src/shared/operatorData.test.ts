@@ -464,10 +464,15 @@ describe('operator data normalization', () => {
       { id: 'future_branch', name: '  ' },
       { id: 'pioneer', name: 'Incorrect maintained label' },
     ]) {
-      expect(validateOperatorDataset({
-        ...dataset,
-        operators: [{ ...dataset.operators[0], subclass: invalidSubclass }],
-      }, { minimumOperators: 1 }).valid).toBe(false)
+      expect(
+        validateOperatorDataset(
+          {
+            ...dataset,
+            operators: [{ ...dataset.operators[0], subclass: invalidSubclass }],
+          },
+          { minimumOperators: 1 },
+        ).valid,
+      ).toBe(false)
     }
   })
 })

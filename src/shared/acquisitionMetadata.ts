@@ -1,7 +1,4 @@
-import type {
-  LimitedAcquisitionGroup,
-  OperatorAcquisition,
-} from './operator'
+import type { LimitedAcquisitionGroup, OperatorAcquisition } from './operator'
 import type { OperatorReleaseCategory } from './releaseMetadata'
 
 export interface RawGachaPoolClientEntry {
@@ -151,9 +148,7 @@ export function classifyAcquisition(input: {
   const approach = normalizedApproach(input.obtainApproach)
   const modeWelfare = IS_RA_WELFARE_OPERATOR_IDS.has(input.id)
   const welfare =
-    ALWAYS_WELFARE_OPERATOR_IDS.has(input.id) ||
-    modeWelfare ||
-    isWelfareApproach(approach)
+    ALWAYS_WELFARE_OPERATOR_IDS.has(input.id) || modeWelfare || isWelfareApproach(approach)
 
   if (welfare) {
     if (input.collaboration) return { family: 'welfare', group: 'eventStory' }

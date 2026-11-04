@@ -3,7 +3,7 @@ import prettier from '@electron-toolkit/eslint-config-prettier'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist', 'out', 'node_modules', 'coverage'] },
+  { ignores: ['dist', 'out', 'node_modules', 'coverage', '.tmp'] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,

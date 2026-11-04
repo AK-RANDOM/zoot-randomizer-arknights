@@ -69,7 +69,8 @@ async function fetchCatalog(region: ReleaseServer, locale: GameLocale): Promise<
     fetchGameTable(sourceLocale, 'gacha_table.json'),
   ])
   const sourceEvents = withGarrisonEventBannerMetadata(
-    buildGarrisonEventCatalog(activities, zones, stages), gacha,
+    buildGarrisonEventCatalog(activities, zones, stages),
+    gacha,
   )
   if (!sourceEvents.length) throw new Error('No event stages were found in the downloaded data.')
 

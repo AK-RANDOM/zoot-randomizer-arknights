@@ -2,10 +2,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import {
-  UPSTREAM,
-  validateOperatorDataset,
-} from '../src/shared/operatorData.ts'
+import { UPSTREAM, validateOperatorDataset } from '../src/shared/operatorData.ts'
 import { operatorAvatarSourceFilename } from '../src/shared/operatorAvatar.ts'
 import {
   fetchAndBuildOperatorDataset,
@@ -111,7 +108,8 @@ async function downloadNamedAssets(
     missing.push(...results.filter((result) => !result.ok).map((result) => result.filename))
   }
 
-  if (missing.length > 0) console.warn(`Missing ${label} (${missing.length}): ${missing.join(', ')}`)
+  if (missing.length > 0)
+    console.warn(`Missing ${label} (${missing.length}): ${missing.join(', ')}`)
   else console.log(`Downloaded/checked ${label}: ${uniqueFiles.length}/${uniqueFiles.length}`)
 }
 
@@ -130,7 +128,12 @@ async function downloadUiAssets(dataset: OperatorDataset): Promise<void> {
       UPSTREAM.classIconBaseUrl,
       Object.values(CLASS_ICON_FILES),
     ),
-    downloadNamedAssets('subclass icons', subclassIconDir, UPSTREAM.subclassIconBaseUrl, subclassFiles),
+    downloadNamedAssets(
+      'subclass icons',
+      subclassIconDir,
+      UPSTREAM.subclassIconBaseUrl,
+      subclassFiles,
+    ),
     downloadNamedAssets('faction icons', factionIconDir, UPSTREAM.factionIconBaseUrl, factionFiles),
   ])
 }

@@ -8,10 +8,7 @@ import {
 } from '../operator'
 import { operatorRaceIds } from '../raceMetadata'
 import { buildSubclassFilterOptions } from '../operatorFilterCatalog'
-import type {
-  DraftRulebookEligibility,
-  DraftRulebookSelector,
-} from './types'
+import type { DraftRulebookEligibility, DraftRulebookSelector } from './types'
 
 export const DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS: ReadonlyArray<{
   type: DraftRulebookSelector['type']
@@ -48,7 +45,9 @@ export interface DraftRulebookSelectorCatalog {
   races: DraftRulebookSelectorOption[]
 }
 
-function sortedLabelEntries(labels: Readonly<Record<string, string>>): DraftRulebookSelectorOption[] {
+function sortedLabelEntries(
+  labels: Readonly<Record<string, string>>,
+): DraftRulebookSelectorOption[] {
   return Object.entries(labels)
     .map(([id, label]) => ({ id, label }))
     .sort((left, right) => left.label.localeCompare(right.label))
@@ -270,11 +269,7 @@ function checkKeys(
   }
 }
 
-function validateStringList(
-  value: unknown,
-  path: string,
-  errors: string[],
-): void {
+function validateStringList(value: unknown, path: string, errors: string[]): void {
   if (!Array.isArray(value)) {
     errors.push(`${path} must be an array.`)
     return
@@ -356,7 +351,9 @@ export function validateDraftRulebookEligibility(
   for (const key of ['allOf', 'anyOf', 'noneOf'] as const) {
     const selectors = value[key]
     if (!Array.isArray(selectors)) errors.push(`${path}.${key} must be an array.`)
-    else selectors.forEach((selector, index) =>
-      validateDraftRulebookSelector(selector, `${path}.${key}[${index}]`, errors))
+    else
+      selectors.forEach((selector, index) =>
+        validateDraftRulebookSelector(selector, `${path}.${key}[${index}]`, errors),
+      )
   }
 }

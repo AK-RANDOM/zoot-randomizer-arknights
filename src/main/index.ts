@@ -32,15 +32,25 @@ import {
   syncOperatorPortraits,
   clearPortraitMemoryCaches,
 } from './operatorPortraitService'
-import { getOperatorAvatarAsset, getOperatorPromotionAvatar, clearAvatarMemoryCaches } from './operatorAvatarService'
+import {
+  getOperatorAvatarAsset,
+  getOperatorPromotionAvatar,
+  clearAvatarMemoryCaches,
+} from './operatorAvatarService'
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
-import { getGarrisonEventCatalog, invalidateGarrisonEventCatalog } from './garrisonEventCatalogService'
 import {
-  clearDownloadedArtwork, downloadAdditionalArtwork, getArtworkStorageInfo,
-  openArtworkStorageFolder, enumerateAdditionalArtwork,
+  getGarrisonEventCatalog,
+  invalidateGarrisonEventCatalog,
+} from './garrisonEventCatalogService'
+import {
+  clearDownloadedArtwork,
+  downloadAdditionalArtwork,
+  getArtworkStorageInfo,
+  openArtworkStorageFolder,
+  enumerateAdditionalArtwork,
 } from './artworkStorage'
 import { ensureWritableDirectory, resolvePortableDataPath } from './portableStorage'
 
@@ -118,7 +128,8 @@ async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgre
     try {
       const dataset = await getOperatorDataset()
       const operatorIds = dataset.operators.map((operator) => operator.id)
-      const total = operatorIds.length * 2 + (includeAll ? enumerateAdditionalArtwork(dataset).length : 0)
+      const total =
+        operatorIds.length * 2 + (includeAll ? enumerateAdditionalArtwork(dataset).length : 0)
       publishPortraitProgress({
         status: 'downloading',
         completed: 0,
@@ -150,12 +161,13 @@ async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgre
       const additionalWarnings = includeAll
         ? await downloadAdditionalArtwork(dataset, {
             signal: controller.signal,
-            onProgress: (completed, additionalTotal) => publishPortraitProgress({
-              status: 'downloading',
-              completed: operatorIds.length * 2 + completed,
-              total: operatorIds.length * 2 + additionalTotal,
-              message: `Downloading appearance and skin artwork… ${completed}/${additionalTotal}`,
-            }),
+            onProgress: (completed, additionalTotal) =>
+              publishPortraitProgress({
+                status: 'downloading',
+                completed: operatorIds.length * 2 + completed,
+                total: operatorIds.length * 2 + additionalTotal,
+                message: `Downloading appearance and skin artwork… ${completed}/${additionalTotal}`,
+              }),
           })
         : []
       const warnings = [...avatarWarnings, ...portraitWarnings, ...additionalWarnings]
@@ -202,8 +214,10 @@ function cancelPortraitSync(): PortraitSyncProgress {
 
 function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataGet, () => getOperatorDataset())
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.garrisonEventsGet, (_event, region: unknown, locale: unknown) =>
-    getGarrisonEventCatalog(requireMetadataRegion(region), requireGameLocale(locale)),
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.garrisonEventsGet,
+    (_event, region: unknown, locale: unknown) =>
+      getGarrisonEventCatalog(requireMetadataRegion(region), requireGameLocale(locale)),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorDataInfo, () => getOperatorDataInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorImage, (_event, operatorId: unknown) =>
@@ -212,12 +226,19 @@ function registerIpc(): void {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorPortrait,
     (_event, operatorId: unknown, promotionArt: unknown) =>
-      guardedImageRequest(() => getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt))),
+      guardedImageRequest(() =>
+        getOperatorPortrait(requireOperatorId(operatorId), requirePromotionArt(promotionArt)),
+      ),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorPromotionAvatar,
     (_event, operatorId: unknown, promotionArt: unknown) =>
-      guardedImageRequest(() => getOperatorPromotionAvatar(requireOperatorId(operatorId), requirePromotionArt(promotionArt))),
+      guardedImageRequest(() =>
+        getOperatorPromotionAvatar(
+          requireOperatorId(operatorId),
+          requirePromotionArt(promotionArt),
+        ),
+      ),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.operatorAvatarAsset, (_event, avatarId: unknown) =>
     guardedImageRequest(() => getOperatorAvatarAsset(requireAvatarAssetId(avatarId))),
@@ -225,12 +246,16 @@ function registerIpc(): void {
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorSkinPortrait,
     (_event, operatorId: unknown, skinId: unknown) =>
-      guardedImageRequest(() => getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId))),
+      guardedImageRequest(() =>
+        getOperatorSkinPortrait(requireOperatorId(operatorId), requireSkinId(skinId)),
+      ),
   )
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.operatorSkinAvatar,
     (_event, operatorId: unknown, skinId: unknown) =>
-      guardedImageRequest(() => getOperatorSkinAvatar(requireOperatorId(operatorId), requireSkinId(skinId))),
+      guardedImageRequest(() =>
+        getOperatorSkinAvatar(requireOperatorId(operatorId), requireSkinId(skinId)),
+      ),
   )
   ipcMain.handle(DESKTOP_IPC_CHANNELS.classIcon, (_event, operatorClass: unknown) =>
     getBundledClassIcon(requireOperatorClass(operatorClass)),
@@ -250,7 +275,9 @@ function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkOpenFolder, () => openArtworkStorageFolder())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkClear, async () => {
     if (clearingArtwork || portraitSyncPromise || activeImageRequests > 0)
-      throw new Error('Artwork is still being downloaded or displayed. Retry after activity finishes.')
+      throw new Error(
+        'Artwork is still being downloaded or displayed. Retry after activity finishes.',
+      )
     clearingArtwork = true
     try {
       const result = await clearDownloadedArtwork()
@@ -335,7 +362,8 @@ function createWindow(): void {
       dialog.showMessageBoxSync(mainWindow, {
         type: 'warning',
         title: 'Garrison was not saved',
-        message: 'The Garrison could not be saved. Resolve unfinished edits or conflicts, then try again.',
+        message:
+          'The Garrison could not be saved. Resolve unfinished edits or conflicts, then try again.',
         buttons: ['Return to Garrison'],
       })
     }
@@ -354,7 +382,8 @@ function createWindow(): void {
       type: 'question',
       title: 'Unsaved Garrison',
       message: 'Save your Garrison before closing the application?',
-      detail: 'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
+      detail:
+        'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
       buttons: ['Save Garrison', 'Discard Changes', 'Cancel'],
       defaultId: 0,
       cancelId: 2,

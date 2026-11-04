@@ -129,10 +129,7 @@ export default function OperatorFilters({
     () => [...new Set(factionTree.flatMap(descendantFactionIds))],
     [factionTree],
   )
-  const allRaceIds = useMemo(
-    () => buildRaceFilterIds(dataset),
-    [dataset],
-  )
+  const allRaceIds = useMemo(() => buildRaceFilterIds(dataset), [dataset])
 
   useEffect(() => {
     const closeSubclassPanel = (event: Event): void => {

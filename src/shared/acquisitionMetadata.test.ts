@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  classifyAcquisition,
-  isModeOnlyOperator,
-  limitedOperatorIds,
-} from './acquisitionMetadata'
+import { classifyAcquisition, isModeOnlyOperator, limitedOperatorIds } from './acquisitionMetadata'
 
 describe('acquisition metadata', () => {
   it('treats collab gacha as Limited / Collab', () => {

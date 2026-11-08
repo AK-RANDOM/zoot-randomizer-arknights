@@ -8,7 +8,7 @@ describe('Draft execution polish', () => {
   it('adds semantic spacing before Hold and Forfeit', () => {
     const css = read('./DraftDecisionPlane.css')
     expect(css).toContain('.draft-decision-side-rail {')
-    expect(css).toContain('margin-left: 8px;')
+    expect(css).toContain('gap: var(--draft-card-gap) 20px;')
   })
 
   it('places Release inside the Held operator overlay below Pick', () => {

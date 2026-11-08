@@ -123,14 +123,14 @@ export const SIMPLE_WEIGHTED_DRAFT_RULEBOOK: DraftRulebook = {
   identifier: {
     id: SIMPLE_WEIGHTED_DRAFT_RULEBOOK_ID,
     name: 'Simple Weighted',
-    description: 'Pick 1 of 4 from the current Global Pool using Dev Lax pull odds.',
+    description: 'Pick 1 of 4 from the current Global Pool with custom rarity weights.',
     createdAt: '2026-11-08T00:00:00.000Z',
-    revision: '1',
+    revision: '2',
   },
   generalRules: {
     ...STANDARD_DRAFT_RULEBOOK.generalRules,
     offerSize: 4,
-    pullDistribution: weightedHeadhuntingBuckets(DEV_LAX_PULL_WEIGHTS),
+    pullDistribution: weightedHeadhuntingBuckets({ '3': 38, '4': 32, '5': 24, '6': 6 }),
   },
 }
 

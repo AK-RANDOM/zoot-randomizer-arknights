@@ -35,7 +35,7 @@ Current Draft features include:
 - completed-run Draft history;
 - selectable built-in presets: Simple Draft, Simple Weighted, Arknights Headhunting, Dev Lax, and Dev Strict.
 
-**Simple Draft** is pick-1-from-3 using the current Global Pool. **Simple Weighted** is pick-1-from-4 with Dev Lax pull odds. Both disable economy and special actions.
+**Simple Draft** is pick-1-from-3 using the current Global Pool. **Simple Weighted** is pick-1-from-4 with rarity bucket weights of 38% for 3★, 32% for 2★/4★, 24% for 1★/5★, and 6% for 6★. Both disable economy and special actions.
 
 ### Setup
 

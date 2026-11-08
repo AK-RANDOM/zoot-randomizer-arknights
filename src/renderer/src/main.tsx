@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import WebWidthGate from './WebWidthGate'
 import { browserApi } from './browserApi'
 import './styles.css'
 import './DraftPanel.css'
@@ -15,6 +16,12 @@ window.desktop ??= browserApi
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    {window.desktop.platform === 'browser' ? (
+      <WebWidthGate>
+        <App />
+      </WebWidthGate>
+    ) : (
+      <App />
+    )}
   </StrictMode>,
 )

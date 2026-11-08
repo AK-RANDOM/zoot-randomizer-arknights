@@ -7,8 +7,6 @@ import {
 
 const snapshotKey = 'arknights-randomizer:account-snapshot:v1'
 const accountApiOrigin = import.meta.env.VITE_WEB_ACCOUNT_API_ORIGIN
-export const browserAccountAvailable =
-  import.meta.env.VITE_WEB_STATIC_ONLY !== 'true' || Boolean(accountApiOrigin)
 
 async function accountRequest<T>(
   action: 'send-code' | 'sync',

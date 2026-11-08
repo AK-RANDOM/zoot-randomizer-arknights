@@ -27,9 +27,6 @@ jobs:
       - run: npm run data:update
       - run: npm run data:validate
       - run: npm run build:web
-        env:
-          VITE_WEB_STATIC_ONLY: 'true'
-          VITE_WEB_ACCOUNT_API_ORIGIN: ${{ vars.WEB_ACCOUNT_API_ORIGIN }}
       - run: cp LICENSE THIRD_PARTY_NOTICES.md dist/web/
       - uses: actions/upload-pages-artifact@v4
         with:

@@ -25,13 +25,20 @@ function cloneStandard(): DraftRulebook {
 }
 
 describe('Draft Rulebook foundation', () => {
-  it('runs Simple Weighted as a plain four-offer draft with Dev Lax odds', () => {
+  it('runs Simple Weighted as a plain four-offer draft with its own rarity weights', () => {
     const weighted = resolveDraftRulebook(SIMPLE_WEIGHTED_DRAFT_RULEBOOK)
-    const lax = resolveDraftRulebook(DEV_LAX_DRAFT_RULEBOOK)
     expect(weighted.configuration).toEqual({
       ...STANDARD_DRAFT_CONFIGURATION,
       offerSize: 4,
-      pullDistribution: lax.configuration.pullDistribution,
+      pullDistribution: {
+        type: 'custom',
+        buckets: [
+          { id: '3', weight: 38, rarities: [3] },
+          { id: '4', weight: 32, rarities: [2, 4] },
+          { id: '5', weight: 24, rarities: [1, 5] },
+          { id: '6', weight: 6, rarities: [6] },
+        ],
+      },
     })
     expect(weighted.pool).toEqual({ source: 'inherit-global' })
     expect(weighted.interactions).toEqual([])

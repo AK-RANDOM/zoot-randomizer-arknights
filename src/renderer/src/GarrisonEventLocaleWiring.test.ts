@@ -17,7 +17,8 @@ describe('Garrison event region vs App Localization integration', () => {
     expect(feature).toContain('getGarrisonEvents(metadataRegion, gameLocale)')
     expect(feature).toContain('}, [metadataRegion, gameLocale])')
     expect(feature).toContain("setEventId('')")
-    expect(feature).toMatch(/<option value="" disabled hidden>\s*Quick add event\s*<\/option>/)
+    expect(feature).toContain("'Quick add event'")
+    expect(feature).toContain('<EventSelectorDropdown')
   })
 
   it('calls Metadata Region and App Localization by their correct names', () => {

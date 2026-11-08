@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultConstraints, validateConstraintShape } from './constraints'
-import type { Operator } from './operator'
+import type { Operator, StandardAcquisitionGroup } from './operator'
 import {
   filterEligibleOperators,
   filterHigherLevelEligibleOperators,
@@ -29,7 +29,25 @@ function operator(id: string, extras: Partial<Operator> = {}): Operator {
   }
 }
 
+function enableOnlyStandardGroup(group: StandardAcquisitionGroup) {
+  return { kernel: false, postKernel: false, lowRarity: false, [group]: true }
+}
+
 describe('Iteration 6 higher-level operator eligibility', () => {
+  it('filters gender across stored metadata, legacy operators and unknown entries', () => {
+    const constraints = createDefaultConstraints()
+    const male = operator('char_4009_irene', { gender: 'male' })
+    const female = operator('char_4048_doroth')
+    const unknown = operator('unknown-gender')
+    const roster = [male, female, unknown]
+
+    expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual(roster)
+    constraints.gender = { excludedIds: ['male', 'other'] }
+    expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual([female])
+    constraints.gender = { excludedIds: ['male', 'female', 'other'] }
+    expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual([])
+  })
+
   it('keeps the legacy eligibility export delegated to the canonical higher-level stage', () => {
     const constraints = createDefaultConstraints()
     const operators = [operator('a'), operator('b')]
@@ -39,77 +57,58 @@ describe('Iteration 6 higher-level operator eligibility', () => {
     )
   })
 
-  it('uses the selected region for availability, release metadata, and Kernel classification', () => {
-    const cnAhead = operator('cn-ahead', {
+  it('uses the selected region for availability when filtering the Kernel roster', () => {
+    const cnOnly = operator('char_377_gdglow', {
       availableOn: { cn: true, global: false },
+    })
+    const dorothy = operator('char_4048_doroth', {
       release: {
-        cn: { date: '2022-07-05', yearGroup: 4 },
+        cn: { date: null, yearGroup: null },
         global: { date: null, yearGroup: null },
       },
     })
-    const globalBoundary = operator('global-boundary', {
-      release: {
-        cn: { date: '2022-07-06', yearGroup: 4 },
-        global: { date: '2023-03-14', yearGroup: 4 },
-      },
-    })
+    const constraints = createDefaultConstraints()
+    constraints.acquisition.standard = enableOnlyStandardGroup('kernel')
+    expect(filterHigherLevelEligibleOperators([cnOnly, dorothy], constraints)).toEqual([dorothy])
 
-    const global = createDefaultConstraints()
-    global.release.server = 'global'
-    global.era = 'kernel'
-    expect(
-      filterHigherLevelEligibleOperators([cnAhead, globalBoundary], global).map(({ id }) => id),
-    ).toEqual(['global-boundary'])
-
-    const cn = createDefaultConstraints()
-    cn.release.server = 'cn'
-    cn.era = 'kernel'
-    expect(
-      filterHigherLevelEligibleOperators([cnAhead, globalBoundary], cn).map(({ id }) => id),
-    ).toEqual(['cn-ahead'])
+    constraints.release.server = 'cn'
+    expect(filterHigherLevelEligibleOperators([cnOnly, dorothy], constraints)).toEqual([
+      cnOnly,
+      dorothy,
+    ])
   })
 
-  it('keeps 1★–4★ operators eligible in both Kernel modes', () => {
-    const earlyFourStar = operator('early-four', {
-      rarity: 4,
+  it('partitions Standard operators by actual Kernel membership and rarity', () => {
+    const dorothy = operator('char_4048_doroth')
+    const greyy = operator('char_1027_greyy2', { rarity: 5 })
+    const pozyomka = operator('char_4055_bgsnow', {
       release: {
-        cn: { date: '2020-01-01', yearGroup: 1 },
-        global: { date: '2020-01-01', yearGroup: 0 },
+        cn: { date: '2022-08-11', yearGroup: 4 },
+        global: { date: '2023-01-13', yearGroup: 4 },
       },
     })
-    const lateThreeStar = operator('late-three', {
-      rarity: 3,
-      release: {
-        cn: { date: '2024-01-01', yearGroup: 5 },
-        global: { date: '2024-01-01', yearGroup: 5 },
-      },
-    })
-    const earlySixStar = operator('early-six')
-    const lateFiveStar = operator('late-five', {
-      rarity: 5,
-      release: {
-        cn: { date: '2024-01-01', yearGroup: 5 },
-        global: { date: '2024-01-01', yearGroup: 5 },
-      },
-    })
+    const cantabile = operator('char_497_ctable', { rarity: 5, release: pozyomka.release })
+    const earlyFourStar = operator('early-four', { rarity: 4 })
+    const lateThreeStar = operator('late-three', { rarity: 3, release: pozyomka.release })
+    const roster = [dorothy, greyy, pozyomka, cantabile, earlyFourStar, lateThreeStar]
 
-    const kernel = createDefaultConstraints()
-    kernel.era = 'kernel'
-    expect(
-      filterHigherLevelEligibleOperators(
-        [earlyFourStar, lateThreeStar, earlySixStar, lateFiveStar],
-        kernel,
-      ).map(({ id }) => id),
-    ).toEqual(['early-four', 'late-three', 'early-six'])
+    for (const server of ['global', 'cn'] as const) {
+      const constraints = createDefaultConstraints()
+      constraints.release.server = server
+      expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual(roster)
 
-    const postKernel = createDefaultConstraints()
-    postKernel.era = 'postKernel'
-    expect(
-      filterHigherLevelEligibleOperators(
-        [earlyFourStar, lateThreeStar, earlySixStar, lateFiveStar],
-        postKernel,
-      ).map(({ id }) => id),
-    ).toEqual(['early-four', 'late-three', 'late-five'])
+      constraints.acquisition.standard = enableOnlyStandardGroup('kernel')
+      expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual([dorothy, greyy])
+
+      constraints.acquisition.standard = enableOnlyStandardGroup('postKernel')
+      expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual([pozyomka, cantabile])
+
+      constraints.acquisition.standard = enableOnlyStandardGroup('lowRarity')
+      expect(filterHigherLevelEligibleOperators(roster, constraints)).toEqual([
+        earlyFourStar,
+        lateThreeStar,
+      ])
+    }
   })
 
   it('filters subclasses by stable IDs while leaving new/unmentioned IDs enabled', () => {
@@ -155,14 +154,14 @@ describe('Iteration 6 higher-level operator eligibility', () => {
     expect(filterHigherLevelEligibleOperators([multiFaction], anyAffiliation)).toEqual([])
   })
 
-  it('treats Kernel era as a release-date classification for every 5★/6★ acquisition family', () => {
+  it('applies the Standard group toggles only to Standard operators', () => {
     const constraints = createDefaultConstraints()
     constraints.release.server = 'global'
-    constraints.era = 'kernel'
+    constraints.acquisition.standard = enableOnlyStandardGroup('kernel')
 
     const eligible = filterHigherLevelEligibleOperators(
       [
-        operator('standard'),
+        operator('char_4048_doroth'),
         operator('limited', {
           acquisition: { family: 'limited', group: 'anniversary' },
         }),
@@ -183,7 +182,7 @@ describe('Iteration 6 higher-level operator eligibility', () => {
       constraints,
     )
 
-    expect(eligible.map(({ id }) => id)).toEqual(['standard', 'limited', 'welfare', 'collab'])
+    expect(eligible.map(({ id }) => id)).toEqual(['char_4048_doroth', 'limited', 'welfare', 'collab'])
   })
 
   it('feeds the same higher-level eligibility into generation and feasibility', () => {

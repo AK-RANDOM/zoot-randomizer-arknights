@@ -358,6 +358,12 @@
   right: 8px;
 }
 
+.draft-squad-expand__wait {
+  color: #d5c5a4;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
 @media (max-width: 820px) {
   .draft-squad-layout,
   .draft-squad-layout--with-capacity {

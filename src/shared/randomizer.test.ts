@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { classifyAcquisition } from './acquisitionMetadata'
 import {
   DEFAULT_CONSTRAINTS,
   setNumericConstraintBound,
@@ -67,8 +68,17 @@ function seededRandom(): () => number {
 }
 
 function disabledWelfare(): RandomizerConstraints['acquisition']['welfare'] {
-  return { eventStory: false, redCert: false, cc: false, isRa: false }
+  return {
+    eventStory: false,
+    redCert: false,
+    cc: false,
+    isRa: false,
+    recruitment: false,
+    creditShop: false,
+  }
 }
+
+const disabledStandard = { postKernel: false, kernel: false, lowRarity: false }
 
 function disabledLimited(): RandomizerConstraints['acquisition']['limited'] {
   return {
@@ -148,6 +158,71 @@ describe('constraints', () => {
     expect(eligible.map((item) => item.id)).toEqual(['char_year_2'])
   })
 
+  it('lets 4★ and below bypass both release bounds while respecting other filters', () => {
+    const items = [
+      operator('four', 4, 'Guard'),
+      operator('one', 1, 'Guard'),
+      operator('five', 5, 'Guard'),
+      operator('cn_only', 4, 'Guard', false),
+      operator('excluded_subclass', 4, 'Guard', true, {
+        subclass: { id: 'excluded', name: 'Excluded' },
+      }),
+    ]
+    const constraints: RandomizerConstraints = {
+      ...DEFAULT_CONSTRAINTS,
+      subclass: { excludedIds: ['excluded'] },
+      release: {
+        server: 'global',
+        minYear: 5,
+        maxYear: 6,
+        minDate: '2025-01-01',
+        maxDate: '2026-01-01',
+      },
+    }
+
+    expect(filterEligibleOperators(items, constraints)).toEqual([])
+    constraints.release.ignoreBoundsForLowRarity = true
+    expect(filterEligibleOperators(items, constraints).map(({ id }) => id)).toEqual(['four', 'one'])
+  })
+
+  it('filters Recruitment welfare separately from Standard and other Welfare operators', () => {
+    const recruitment = operator('char_4227_gallus', 1, 'Caster', true, {
+      acquisition: classifyAcquisition({
+        id: 'char_4227_gallus',
+        obtainApproach: 'Login Reward',
+        releaseCategory: 'side_story',
+        cnReleaseDate: '2026-04-30',
+        collaboration: null,
+        limitedIds: new Set(),
+      }),
+    })
+    const standard = operator('char_standard', 5, 'Guard')
+    const story = operator('char_story', 5, 'Guard', true, {
+      acquisition: { family: 'welfare', group: 'eventStory' },
+    })
+    const items = [recruitment, standard, story]
+
+    expect(
+      filterEligibleOperators(items, {
+        ...DEFAULT_CONSTRAINTS,
+        acquisition: {
+          standard: disabledStandard,
+          limited: disabledLimited(),
+          welfare: { ...disabledWelfare(), recruitment: true },
+        },
+      }),
+    ).toEqual([recruitment])
+    expect(
+      filterEligibleOperators(items, {
+        ...DEFAULT_CONSTRAINTS,
+        acquisition: {
+          ...DEFAULT_CONSTRAINTS.acquisition,
+          welfare: { ...DEFAULT_CONSTRAINTS.acquisition.welfare, recruitment: false },
+        },
+      }),
+    ).toEqual([standard, story])
+  })
+
   it('treats acquisition and collaboration as independent overlapping dimensions', () => {
     const items = [
       operator('char_standard', 6, 'Guard'),
@@ -171,7 +246,7 @@ describe('constraints', () => {
       ...DEFAULT_CONSTRAINTS,
       acquisition: {
         ...DEFAULT_CONSTRAINTS.acquisition,
-        standard: false,
+        standard: disabledStandard,
         welfare: disabledWelfare(),
       },
     })
@@ -181,7 +256,7 @@ describe('constraints', () => {
       ...DEFAULT_CONSTRAINTS,
       acquisition: {
         ...DEFAULT_CONSTRAINTS.acquisition,
-        standard: false,
+        standard: disabledStandard,
         welfare: disabledWelfare(),
       },
       collaboration: {
@@ -195,8 +270,8 @@ describe('constraints', () => {
       ...DEFAULT_CONSTRAINTS,
       acquisition: {
         limited: disabledLimited(),
-        standard: false,
-        welfare: { eventStory: true, redCert: false, cc: false, isRa: false },
+        standard: disabledStandard,
+        welfare: { ...disabledWelfare(), eventStory: true },
       },
       collaboration: {
         includeNonCollab: false,

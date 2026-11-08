@@ -46,7 +46,7 @@ const MAIN_STORY_DATE_OVERRIDES: Record<string, { cn: string; global: string }> 
   dis_main_10: { cn: '2022-04-14', global: '2022-10-19' },
   dis_main_11: { cn: '2022-10-11', global: '2023-04-27' },
   dis_main_12: { cn: '2023-04-06', global: '2023-10-24' },
-  dis_main_13: { cn: '2023-10-08', global: '2024-04-30' },
+  dis_main_13: { cn: '2023-10-08', global: '2024-04-16' },
 }
 
 export const AMIYA_FORM_RELEASES: Record<string, { cn: string; global: string }> = {
@@ -68,6 +68,9 @@ export const RELEASE_DATE_OVERRIDES: Record<
   string,
   Partial<Record<ReleaseServer, string | null>>
 > = {
+  // Ancient Forge's banner opens after its activity start; keep the confirmed
+  // banner date even when the published CN date service is unavailable.
+  char_2014_nian: { cn: '2020-01-16' },
   // Critical Phase Transition / Episode 17 starts on 2026-05-01 CN; upstream candidates can surface the pre-event commit date.
   char_4227_gallus: { cn: '2026-05-01' }, // GALLUS²
   char_4225_tanya: { cn: '2026-05-01' }, // Crackborne
@@ -81,7 +84,7 @@ export const RELEASE_DATE_OVERRIDES: Record<
   char_274_astesi: { global: '2020-04-15' },
   char_344_beewax: { global: '2020-11-26' },
   char_252_bibeak: { global: '2020-09-10' },
-  char_275_breeze: { global: '2020-05-13' },
+  char_275_breeze: { global: '2020-05-20' },
   char_356_broca: { global: '2020-07-15' },
   char_349_chiave: { global: '2020-11-26' },
   char_4043_erato: { global: '2022-12-08' },
@@ -90,8 +93,8 @@ export const RELEASE_DATE_OVERRIDES: Record<
   char_379_sesa: { global: '2020-09-10' },
   char_343_tknogi: { global: '2020-11-11' },
   char_402_tuye: { global: '2021-07-13' },
-  char_260_durnar: { global: '2020-05-13' },
-  char_355_ethan: { global: '2020-05-13' },
+  char_260_durnar: { global: '2020-05-20' },
+  char_355_ethan: { global: '2020-05-20' },
   char_151_myrtle: { global: '2020-04-15' },
   char_337_utage: { global: '2020-09-10' },
 
@@ -157,10 +160,68 @@ interface ReleaseCandidate {
 }
 
 interface ReleaseEvent {
+  category?: string
+  name?: unknown
   id?: unknown
   server?: unknown
   startDate?: unknown
   operatorIds?: unknown
+}
+
+export function buildReleaseEventNames(
+  source: string,
+  operators: readonly import('./operator').Operator[],
+  activityNames: Partial<Record<import('./operator').ReleaseServer, Record<string, string>>> = {},
+): NonNullable<import('./operator').OperatorDataset['releaseEvents']> {
+  const events = generatedLiteral(
+    source,
+    'generatedOperatorReleaseEventList',
+    '[',
+    ']',
+  ) as ReleaseEvent[]
+  const byId = new Map(operators.map((operator) => [operator.id, operator]))
+  return events.flatMap((event) => {
+    if (typeof event.id !== 'string' || !Array.isArray(event.operatorIds)) return []
+    return (['cn', 'global'] as const).flatMap((server) => {
+      const byDate = new Map<string, string[]>()
+      for (const id of event.operatorIds as unknown[]) {
+        const operator = typeof id === 'string' ? byId.get(id) : undefined
+        const date = operator?.release[server].date
+        if (!operator?.availableOn[server] || !date) continue
+        byDate.set(date, [...(byDate.get(date) ?? []), operator.id])
+      }
+      const name =
+        activityNames.global?.[event.id as string] ?? activityNames[server]?.[event.id as string]
+      return [...byDate].flatMap(([date, operatorIds]) => {
+        const label =
+          /(?:sign|login|checkin)/i.test(event.id as string) && name ? `Login Event: ${name}` : name
+        const record = {
+          id: event.id as string,
+          category: event.category,
+          server,
+          date,
+          name: label ?? `${date} Operator Release`,
+          operatorIds,
+        }
+        const rerunIds: string[] =
+          event.id === 'dis_rune_2'
+            ? operatorIds.filter((id) => id === 'char_349_chiave' || id === 'char_344_beewax')
+            : []
+        if (!rerunIds.length) return [record]
+        const remaining = operatorIds.filter((id) => !rerunIds.includes(id))
+        return [
+          ...(remaining.length ? [{ ...record, operatorIds: remaining }] : []),
+          {
+            ...record,
+            id: 'act13d2',
+            category: 'side_story',
+            name: "Grani and the Knights' Treasure Rerun",
+            operatorIds: rerunIds,
+          },
+        ]
+      })
+    })
+  })
 }
 
 export interface OperatorReleaseDates {
@@ -562,5 +623,16 @@ export function buildReleaseDateMap(
     }
   }
 
+  if (result.char_383_snsant && result.char_2014_nian?.cn) {
+    result.char_383_snsant = { ...result.char_383_snsant, cn: result.char_2014_nian.cn }
+  }
+  // User-defined presentation dates follow the named operator on each server,
+  // after published dates and all other date overrides have been resolved.
+  for (const [operatorId, referenceId] of [
+    ['char_282_catap', 'char_263_skadi'],
+    ['char_284_spot', 'char_010_chen'],
+  ]) {
+    if (result[operatorId] && result[referenceId]) result[operatorId] = { ...result[referenceId] }
+  }
   return result
 }

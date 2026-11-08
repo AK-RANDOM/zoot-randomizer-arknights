@@ -71,6 +71,44 @@ const ALWAYS_WELFARE_OPERATOR_IDS = new Set([
   'char_159_peacok', // Conviction
 ])
 
+// Operators available from Recruitment with no Headhunting source.
+const RECRUITMENT_WELFARE_OPERATOR_IDS = new Set([
+  'char_155_tiger', // Indra
+  'char_163_hpsts', // Vulcan
+  'char_127_estell', // Estelle
+  'char_385_finlpp', // Purestream
+  'char_211_adnach', // Adnachiel
+  'char_009_12fce', // 12F
+  'char_501_durin', // Durin
+  'char_500_noirc', // Noir Corne
+  'char_503_rang', // Rangers
+  'char_502_nblade', // Yato
+  'char_286_cast3', // Castle-3
+  'char_4188_confes', // CONFESS-47
+  'char_4093_frston', // Friston-3
+  'char_4227_gallus', // GALLUS²
+  'char_4000_jnight', // Justice Knight
+  'char_285_medic2', // Lancet-2
+  'char_4136_phonor', // PhonoR-0
+  'char_376_therex', // THRM-EX
+])
+
+const CREDIT_SHOP_WELFARE_OPERATOR_IDS = new Set([
+  'char_198_blackd', // Courier
+  'char_187_ccheal', // Gavial
+  'char_260_durnar', // Dur-nar
+])
+
+export function welfareAcquisitionOverride(id: string): OperatorAcquisition | undefined {
+  if (RECRUITMENT_WELFARE_OPERATOR_IDS.has(id)) {
+    return { family: 'welfare', group: 'recruitment' }
+  }
+  if (CREDIT_SHOP_WELFARE_OPERATOR_IDS.has(id)) {
+    return { family: 'welfare', group: 'creditShop' }
+  }
+  return undefined
+}
+
 export const MODE_ONLY_OPERATOR_IDS = new Set([
   // Integrated Strategies temporary Elite / Reserve recruitment operators.
   'char_504_rguard',
@@ -145,6 +183,9 @@ export function classifyAcquisition(input: {
   collaboration: string | null
   limitedIds: ReadonlySet<string>
 }): OperatorAcquisition {
+  const welfareOverride = welfareAcquisitionOverride(input.id)
+  if (welfareOverride) return welfareOverride
+
   const approach = normalizedApproach(input.obtainApproach)
   const modeWelfare = IS_RA_WELFARE_OPERATOR_IDS.has(input.id)
   const welfare =

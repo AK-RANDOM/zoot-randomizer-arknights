@@ -6,7 +6,9 @@ import {
   type DraftEngineOptions,
 } from '../../shared/draft'
 import {
+  capacityExpansionWaitLabel,
   draftEconomyValue,
+  resolveDraftActionPresentation,
   resolveDraftHoldPresentation,
   resolveDraftOperatorPresentation,
   resolveDraftSquadPresentation,
@@ -50,6 +52,20 @@ const pool = [
 ]
 
 describe('Draft renderer presentation seam', () => {
+  it('shows the longer cooldown when Capacity Expansion also hit its per-round limit', () => {
+    const options: DraftEngineOptions = {
+      random: () => 0,
+      capacityRules: { enabled: true, startingActiveSlots: 3 },
+      actionRules: { slotExpansion: { enabled: true, perRoundLimit: 1, cooldownRounds: 2 } },
+    }
+    const configuration = resolveDraftEngineConfiguration(options)
+    const state = startDraft(pool, 6, options)
+    state.actionUsage['slot-expansion'] = { total: 1, round: 1, lastUsedRound: state.roundNumber }
+    const presentation = resolveDraftActionPresentation(state, pool, { type: 'slot-expansion' }, configuration)
+    expect(presentation.blockReason).toBe('per-round-limit')
+    expect(capacityExpansionWaitLabel(state, configuration, presentation)).toBe('In 3 rounds')
+  })
+
   it('maps signed point changes to absolute semantic economy values', () => {
     expect(draftEconomyValue(7)).toEqual({ pointDelta: 7, amount: 7, tone: 'rebate' })
     expect(draftEconomyValue(0)).toEqual({ pointDelta: 0, amount: 0, tone: 'neutral' })

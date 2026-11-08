@@ -3,8 +3,58 @@ import {
   type Operator,
   type OperatorClass,
   type OperatorDataset,
+  type ReleaseServer,
 } from './operator'
+import { SUBCLASS_LABELS } from './operatorMetadata'
 import { operatorRaceIds } from './raceMetadata'
+
+/** Filter visibility follows server availability, independently of user exclusions. */
+export function regionalFilterDataset(
+  dataset: OperatorDataset,
+  server: ReleaseServer,
+): OperatorDataset {
+  const operators = dataset.operators.filter((operator) => operator.availableOn[server])
+  const factionIds = new Set(
+    operators.flatMap((operator) => [
+      ...operator.faction.affiliations,
+      ...(operator.faction.primary ?? []),
+      ...(operator.faction.main ? [operator.faction.main] : []),
+    ]),
+  )
+  return {
+    ...dataset,
+    operators,
+    factionLabels: Object.fromEntries(
+      Object.entries(dataset.factionLabels).filter(([id]) => factionIds.has(id)),
+    ),
+  }
+}
+
+export function buildCollaborationSources(
+  operators: readonly Operator[],
+  server: ReleaseServer,
+): string[] {
+  const firstReleases = new Map<string, string | null>()
+  for (const operator of operators) {
+    const source = operator.collaboration
+    if (!source || !operator.availableOn[server]) continue
+
+    const date = operator.release[server].date
+    const earliest = firstReleases.get(source) ?? null
+    firstReleases.set(source, date && (!earliest || date < earliest) ? date : earliest)
+  }
+
+  return [...firstReleases]
+    .sort(([left, leftDate], [right, rightDate]) => {
+      if (leftDate !== rightDate) {
+        if (!leftDate) return 1
+        if (!rightDate) return -1
+        return leftDate.localeCompare(rightDate)
+      }
+      return left.localeCompare(right)
+    })
+    .map(([source]) => source)
+}
 
 export interface OperatorFilterOption {
   id: string
@@ -66,7 +116,18 @@ export function buildSubclassFilterOptions(
     operators.map((operator) => [operator.subclass.id, operator.subclass.name]),
   )
   return [...subclasses]
-    .map(([id, name]) => ({ id, name }))
+    .map(([id, name]) => ({
+      id,
+      name: Object.hasOwn(SUBCLASS_LABELS, id)
+        ? name
+        : name
+            .replaceAll('_', ' ')
+            .replace(
+              /(^|[\s-])(\p{L})([\p{L}\p{M}]*)/gu,
+              (_, separator, initial, rest) =>
+                separator + initial.toUpperCase() + rest.toLowerCase(),
+            ),
+    }))
     .sort((left, right) => {
       const leftDate = debutDates.get(left.id)
       const rightDate = debutDates.get(right.id)

@@ -157,8 +157,16 @@ export default function SquadConstraintEditor({
   )
 
   const subclassesByClass = useMemo(
-    () => buildSubclassFilterGroups({ operators: subclassReferenceOperators }),
-    [subclassReferenceOperators],
+    () =>
+      buildSubclassFilterGroups(
+        {
+          operators: subclassReferenceOperators.filter(
+            (operator) => operator.availableOn[constraints.release.server],
+          ),
+        },
+        subclassReferenceOperators,
+      ),
+    [subclassReferenceOperators, constraints.release.server],
   )
   const availableSubclassIds = useMemo(
     () =>
@@ -167,6 +175,7 @@ export default function SquadConstraintEditor({
           .filter((operator) =>
             operatorMatchesSlotConstraint(operator, {
               ...draft,
+              classes: [],
               subclasses: undefined,
             }),
           )
@@ -229,13 +238,23 @@ export default function SquadConstraintEditor({
     () =>
       new Map(
         operatorClasses.map((operatorClass) => {
-          const forced: SlotConstraint = { ...draft, classes: [operatorClass] }
+          const forced: SlotConstraint = {
+            ...draft,
+            classes: [operatorClass],
+            subclasses: undefined,
+          }
           const directCandidates = eligiblePool.filter((operator) =>
             operatorMatchesSlotConstraint(operator, forced),
           ).length
           const valid =
             directCandidates > 0 &&
-            canSlotResolveTo(operators, constraints, slotIndex, draft, { operatorClass })
+            canSlotResolveTo(
+              operators,
+              constraints,
+              slotIndex,
+              { ...draft, subclasses: undefined },
+              { operatorClass },
+            )
           return [
             operatorClass,
             {
@@ -345,7 +364,25 @@ export default function SquadConstraintEditor({
       return
     }
     const next = resolveSlotClassClick(draft.classes, selectedClass, operatorClass)
-    setDraft((current) => ({ ...current, classes: next.classes }))
+    setDraft((current) => {
+      const ids = subclassesByClass
+        .find((group) => group.operatorClass === operatorClass)!
+        .subclasses.map(({ id }) => id)
+      const restore =
+        next.classes.includes(operatorClass) &&
+        current.subclasses !== undefined &&
+        !ids.some((id) => current.subclasses!.includes(id) && availableSubclassIds.has(id))
+      return {
+        ...current,
+        classes: next.classes,
+        subclasses: restore
+          ? normalizeAllowedSubclasses(
+              [...current.subclasses!, ...ids.filter((id) => availableSubclassIds.has(id))],
+              allSubclassIds,
+            )
+          : current.subclasses,
+      }
+    })
     setSelectedClass(next.openClass)
   }
 
@@ -462,57 +499,86 @@ export default function SquadConstraintEditor({
             role="group"
             aria-label="Allowed classes and subclass parent"
           >
-            {subclassesByClass.map(({ operatorClass, subclasses }) => {
-              const active = draft.classes.includes(operatorClass)
-              const open = !operatorLocked && selectedClass === operatorClass
-              const availability = classAvailability.get(operatorClass)!
-              const disabled = !availability.valid
-              const displayClass = classLabels?.[operatorClass] ?? operatorClass
-              const enabledSubclassCount = subclasses.filter(
-                ({ id }) => draft.subclasses === undefined || draft.subclasses.includes(id),
-              ).length
-              const hasSubclassFilter = enabledSubclassCount < subclasses.length
-              const subclassSummary = hasSubclassFilter
-                ? ` · ${enabledSubclassCount} of ${subclasses.length} subclasses active`
-                : ''
-              const actionSummary = operatorLocked
-                ? active
-                  ? 'Click to deactivate this class.'
-                  : 'Click to activate this class.'
-                : open && active
-                  ? 'Click again to deactivate this class.'
-                  : active
-                    ? 'Click to view subclasses.'
-                    : 'Click to activate this class and view subclasses.'
+            <div className="slot-constraint-selector-icons">
+              {subclassesByClass.map(({ operatorClass, subclasses }) => {
+                const active = draft.classes.includes(operatorClass)
+                const open = !operatorLocked && selectedClass === operatorClass
+                const availability = classAvailability.get(operatorClass)!
+                const disabled = !availability.valid
+                const displayClass = classLabels?.[operatorClass] ?? operatorClass
+                const enabledSubclassCount = subclasses.filter(
+                  ({ id }) =>
+                    availableSubclassIds.has(id) &&
+                    (draft.subclasses === undefined || draft.subclasses.includes(id)),
+                ).length
+                const hasSubclassFilter = enabledSubclassCount < subclasses.length
+                const subclassSummary = hasSubclassFilter
+                  ? ` · ${enabledSubclassCount} of ${subclasses.length} subclasses active`
+                  : ''
+                const actionSummary = operatorLocked
+                  ? active
+                    ? 'Click to deactivate this class.'
+                    : 'Click to activate this class.'
+                  : open && active
+                    ? 'Click again to deactivate this class.'
+                    : active
+                      ? 'Click to view subclasses.'
+                      : 'Click to activate this class and view subclasses.'
 
-              return (
-                <button
-                  key={operatorClass}
-                  type="button"
-                  className={`slot-constraint-class-icon-button${active ? ' is-active' : ''}${
-                    open ? ' is-open' : ''
-                  }${!availability.valid ? ' is-unavailable' : ''}`}
-                  aria-pressed={active}
-                  aria-expanded={operatorLocked ? false : open}
-                  disabled={disabled}
-                  title={
-                    availability.reason || `${displayClass}${subclassSummary}. ${actionSummary}`
-                  }
-                  onClick={() => handleClassClick(operatorClass)}
-                >
-                  <ClassIcon operatorClass={operatorClass} />
-                  {hasSubclassFilter && (
-                    <span className="slot-constraint-class-subcount" aria-hidden="true">
-                      {enabledSubclassCount}
+                return (
+                  <button
+                    key={operatorClass}
+                    type="button"
+                    className={`slot-constraint-class-icon-button${active ? ' is-active' : ''}${
+                      open ? ' is-open' : ''
+                    }${!availability.valid ? ' is-unavailable' : ''}`}
+                    aria-pressed={active}
+                    aria-expanded={operatorLocked ? false : open}
+                    disabled={disabled}
+                    title={
+                      availability.reason || `${displayClass}${subclassSummary}. ${actionSummary}`
+                    }
+                    onClick={() => handleClassClick(operatorClass)}
+                  >
+                    <ClassIcon operatorClass={operatorClass} />
+                    {hasSubclassFilter && (
+                      <span className="slot-constraint-class-subcount" aria-hidden="true">
+                        {enabledSubclassCount}
+                      </span>
+                    )}
+                    <span className="sr-only">
+                      {displayClass}
+                      {subclassSummary}
                     </span>
-                  )}
-                  <span className="sr-only">
-                    {displayClass}
-                    {subclassSummary}
-                  </span>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="slot-constraint-selector-actions">
+              <button
+                type="button"
+                className="quick-select"
+                onClick={() => {
+                  setDraft((current) => ({
+                    ...current,
+                    classes: operatorClasses.filter((id) => classAvailability.get(id)?.valid),
+                    subclasses: undefined,
+                  }))
+                }}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className="quick-select"
+                onClick={() => {
+                  setDraft((current) => ({ ...current, classes: [], subclasses: [] }))
+                  setSelectedClass(null)
+                }}
+              >
+                None
+              </button>
+            </div>
           </div>
           {!operatorLocked && selectedClass && selectedClassLabel && (
             <SlotSubclassSelector
@@ -521,6 +587,34 @@ export default function SquadConstraintEditor({
               allowedIds={draft.subclasses}
               availableIds={availableSubclassIds}
               onToggle={toggleSubclass}
+              onSelectAll={() =>
+                setDraft((current) => ({
+                  ...current,
+                  subclasses: normalizeAllowedSubclasses(
+                    [
+                      ...allSubclassIds.filter(
+                        (id) =>
+                          !selectedSubclassOptions.some((option) => option.id === id) &&
+                          (current.subclasses === undefined || current.subclasses.includes(id)),
+                      ),
+                      ...selectedSubclassOptions
+                        .filter(({ id }) => availableSubclassIds.has(id))
+                        .map(({ id }) => id),
+                    ],
+                    allSubclassIds,
+                  ),
+                }))
+              }
+              onSelectNone={() =>
+                setDraft((current) => ({
+                  ...current,
+                  subclasses: allSubclassIds.filter(
+                    (id) =>
+                      !selectedSubclassOptions.some((option) => option.id === id) &&
+                      (current.subclasses === undefined || current.subclasses.includes(id)),
+                  ),
+                }))
+              }
             />
           )}
         </div>
@@ -531,6 +625,7 @@ export default function SquadConstraintEditor({
             <span>Optional · searches the current eligible pool</span>
           </div>
           <OperatorSelector
+            allowShowAll
             options={operatorOptions}
             valueKey={operatorSelectionKey}
             onSelect={selectOperator}

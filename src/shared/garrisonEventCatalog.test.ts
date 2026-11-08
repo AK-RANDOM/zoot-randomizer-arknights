@@ -89,7 +89,7 @@ describe('Garrison event stage catalog', () => {
     expect(catalog.some((event) => event.name.includes('Vignette'))).toBe(false)
   })
 
-  it('sorts Side Stories by their original first-release timestamps and excludes mini/branchline vignettes', () => {
+  it('includes Intermezzi as Side Stories while excluding mini Vignettes', () => {
     const events = buildGarrisonEventCatalog(
       {
         basicInfo: {
@@ -124,9 +124,15 @@ describe('Garrison event stage catalog', () => {
         },
       },
     )
-    expect(events.map((event) => event.name)).toEqual(['Earlier Original', 'Later Original'])
-    expect(events.map((event) => event.releaseTime)).toEqual([100, 400])
-    expect(events[0].stages.standard).toEqual(['AA-1'])
+    expect(events.map((event) => event.name)).toEqual([
+      'Branchline Vignette',
+      'Earlier Original',
+      'Later Original',
+    ])
+    expect(events.map((event) => event.releaseTime)).toEqual([60, 100, 400])
+    expect(events[0].group).toBe('side')
+    expect(events[0].stages.standard).toEqual(['VN-1'])
+    expect(events[1].stages.standard).toEqual(['AA-1'])
   })
 
   it('includes crossover Side Stories even when their activity display type differs', () => {

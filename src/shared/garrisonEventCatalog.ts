@@ -148,16 +148,13 @@ function originalEventName(name: string): string {
 function isSideEvent(activityId: string, activity: GameActivity, zone: GameZone): boolean {
   if (zone.type && zone.type !== 'ACTIVITY') return false
   const displayType = activity.displayType?.trim().toUpperCase() ?? ''
-  // Vignettes are MINISTORY/BRANCHLINE; actXXmini is their record family.
-  if (
-    displayType === 'MINISTORY' ||
-    displayType === 'BRANCHLINE' ||
-    /(?:mini|vignette)/i.test(activityId)
-  )
-    return false
+  // MINISTORY/actXXmini are Vignettes; BRANCHLINE is Intermezzi.
+  if (displayType === 'MINISTORY' || /(?:mini|vignette)/i.test(activityId)) return false
   return (
     /^act\d+side$/i.test(activityId) ||
     displayType === 'SIDESTORY' ||
+    displayType === 'BRANCHLINE' ||
+    displayType === 'INTERMEZZI' ||
     /^TYPE_ACT\d+(?:D\d+|SIDE)$/i.test(displayType)
   )
 }

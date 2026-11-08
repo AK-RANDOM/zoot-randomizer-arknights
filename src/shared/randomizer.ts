@@ -18,7 +18,8 @@ import {
   type OperatorRarity,
   type WelfareAcquisitionGroup,
 } from './operator'
-import { operatorEraForRelease } from './operatorMetadata'
+import { standardAcquisitionGroup } from './operatorMetadata'
+import { operatorGender } from './genderMetadata'
 
 export interface ConstraintValidationResult {
   valid: boolean
@@ -73,7 +74,9 @@ function acquisitionEnabled(operator: Operator, constraints: RandomizerConstrain
         ? constraints.acquisition.limited[operator.acquisition.group as LimitedAcquisitionGroup]
         : false
     case 'standard':
-      return constraints.acquisition.standard
+      return constraints.acquisition.standard[
+        standardAcquisitionGroup(operator, constraints.release.server)
+      ]
     case 'welfare':
       return operator.acquisition.group !== null
         ? constraints.acquisition.welfare[operator.acquisition.group as WelfareAcquisitionGroup]
@@ -105,21 +108,24 @@ export function filterHigherLevelEligibleOperators(
   operators: Operator[],
   constraints: RandomizerConstraints,
 ): Operator[] {
-  const { server, minYear, maxYear, minDate, maxDate } = constraints.release
+  const { server, minYear, maxYear, minDate, maxDate, ignoreBoundsForLowRarity } = constraints.release
   const excludedSubclasses = new Set(constraints.subclass.excludedIds)
+  const excludedGenders = new Set(constraints.gender?.excludedIds)
 
   return operators.filter((operator) => {
     if (!operator.availableOn[server]) return false
 
     const release = operator.release[server]
-    if (minYear !== null && (release.yearGroup === null || release.yearGroup < minYear)) {
-      return false
+    if (!ignoreBoundsForLowRarity || operator.rarity >= 5) {
+      if (minYear !== null && (release.yearGroup === null || release.yearGroup < minYear)) {
+        return false
+      }
+      if (maxYear !== null && (release.yearGroup === null || release.yearGroup > maxYear)) {
+        return false
+      }
+      if (minDate && (!release.date || release.date < minDate)) return false
+      if (maxDate && (!release.date || release.date > maxDate)) return false
     }
-    if (maxYear !== null && (release.yearGroup === null || release.yearGroup > maxYear)) {
-      return false
-    }
-    if (minDate && (!release.date || release.date < minDate)) return false
-    if (maxDate && (!release.date || release.date > maxDate)) return false
 
     if (!acquisitionEnabled(operator, constraints)) return false
 
@@ -132,14 +138,8 @@ export function filterHigherLevelEligibleOperators(
     }
 
     if (excludedSubclasses.has(operator.subclass.id)) return false
+    if (excludedGenders.size && excludedGenders.has(operatorGender(operator))) return false
     if (!factionEnabled(operator, constraints)) return false
-
-    // Kernel classification is a historical 5★/6★ split. Lower rarities stay
-    // eligible in both modes when every other filter passes.
-    if (constraints.era !== 'all' && operator.rarity >= 5) {
-      const era = operatorEraForRelease(release.date, server)
-      if (era !== constraints.era) return false
-    }
 
     return true
   })

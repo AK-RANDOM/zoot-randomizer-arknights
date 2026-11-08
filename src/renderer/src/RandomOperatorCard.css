@@ -10,7 +10,24 @@
 .random-operator-card__art {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #19191c 0 50%, #141416 50% 100%);
+  background: #171719;
+}
+
+.random-operator-card__art::before,
+.squad-grid .disabled-slot::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 65%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  content: '';
+  pointer-events: none;
+}
+
+.random-operator-card__art::before {
+  background: url('./assets/draft/open-slot-icon.png') center / contain no-repeat;
+  opacity: 0.68;
 }
 
 .random-operator-card > .slot-config-number,
@@ -52,13 +69,16 @@
   position: relative;
   overflow: hidden;
   padding: 0;
-  border-color: rgba(207, 73, 79, 0.86);
   color: #f1d4d6;
   background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
   text-align: inherit;
 }
 
-.squad-grid .disabled-slot::before,
+.squad-grid .disabled-slot::before {
+  background: url('./assets/draft/locked-slot-icon.png') center / contain no-repeat;
+  opacity: 0.58;
+}
+
 .squad-grid .disabled-slot small {
   display: none;
 }

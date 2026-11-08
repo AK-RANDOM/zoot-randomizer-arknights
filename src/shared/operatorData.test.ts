@@ -11,7 +11,7 @@ import {
 } from './operatorData'
 import { OPERATOR_DATASET_SCHEMA_VERSION, operatorClasses } from './operator'
 import { localizeOperatorDataset } from './gameLocalization'
-import { KERNEL_CUTOFF_BY_SERVER, SUBCLASS_LABELS, operatorEraForRelease } from './operatorMetadata'
+import { SUBCLASS_LABELS } from './operatorMetadata'
 import { releaseYearGroup } from './releaseMetadata'
 
 const sources = {
@@ -76,17 +76,6 @@ describe('operator data normalization', () => {
     expect(releaseYearGroup('2020-01-16', 'global')).toBe(0)
     expect(releaseYearGroup('2020-01-17', 'global')).toBe(1)
     expect(releaseYearGroup('2020-12-30', 'global')).toBe(2)
-  })
-
-  it('classifies Kernel era inclusively at each region cutoff', () => {
-    expect(KERNEL_CUTOFF_BY_SERVER.global).toBe('2023-03-14')
-    expect(operatorEraForRelease('2023-03-14', 'global')).toBe('kernel')
-    expect(operatorEraForRelease('2023-03-15', 'global')).toBe('postKernel')
-
-    expect(KERNEL_CUTOFF_BY_SERVER.cn).toBe('2022-07-05')
-    expect(operatorEraForRelease('2022-07-05', 'cn')).toBe('kernel')
-    expect(operatorEraForRelease('2022-07-06', 'cn')).toBe('postKernel')
-    expect(operatorEraForRelease(null, 'cn')).toBeNull()
   })
 
   it('preserves the explicit primary faction hierarchy separately from all affiliations', () => {

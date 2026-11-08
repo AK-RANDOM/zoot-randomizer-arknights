@@ -36,6 +36,7 @@ export interface OperatorPreferences {
   accountFilterMode: AccountOperatorFilterMode
   accountProgressionMin: AccountProgressionBound
   accountProgressionMax: AccountProgressionBound
+  accountIncludeCappedLowRarity: boolean
   /** Whether synced E/L progression is shown on operator cards. */
   showAccountProgression: boolean
   /** Explicit exclusions only. Any ID not listed is enabled by default. */
@@ -56,6 +57,7 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
     accountFilterMode: 'ignore',
     accountProgressionMin: { elite: 0, level: 1 },
     accountProgressionMax: { elite: 2, level: 90 },
+    accountIncludeCappedLowRarity: false,
     showAccountProgression: false,
     excludedOperatorIds: [],
     operatorAppearances: {},
@@ -173,6 +175,7 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
       candidate.accountProgressionMin,
       defaults.accountProgressionMin,
     ),
+    accountIncludeCappedLowRarity: candidate.accountIncludeCappedLowRarity === true,
     accountProgressionMax: normalizeAccountProgressionBound(
       candidate.accountProgressionMax,
       defaults.accountProgressionMax,
@@ -274,6 +277,7 @@ export function applyAccountFilter(
   mode: AccountOperatorFilterMode,
   minimum: AccountProgressionBound,
   maximum: AccountProgressionBound,
+  includeCappedLowRarity = false,
 ): Operator[] {
   if (!snapshot || mode === 'ignore') return [...operators]
 
@@ -287,7 +291,14 @@ export function applyAccountFilter(
     if (!state) return false
     if (mode === 'owned') return true
     const rank = accountProgressionRank({ elite: state.elite, level: state.level })
-    return rank >= lower && rank <= upper
+    const bypassMinimum =
+      includeCappedLowRarity &&
+      operator.rarity <= 3 &&
+      lower >
+        accountProgressionRank(
+          operator.rarity === 3 ? { elite: 1, level: 55 } : { elite: 0, level: 30 },
+        )
+    return (rank >= lower || bypassMinimum) && rank <= upper
   })
 }
 
@@ -315,6 +326,7 @@ export function buildGlobalFilterOperatorPool(
     mode: AccountOperatorFilterMode
     minimum: AccountProgressionBound
     maximum: AccountProgressionBound
+    includeCappedLowRarity?: boolean
   },
 ): Operator[] {
   const filtered = applyRaceExclusions(
@@ -322,7 +334,14 @@ export function buildGlobalFilterOperatorPool(
     constraints.race?.excludedIds ?? [],
   )
   return account
-    ? applyAccountFilter(filtered, account.snapshot, account.mode, account.minimum, account.maximum)
+    ? applyAccountFilter(
+        filtered,
+        account.snapshot,
+        account.mode,
+        account.minimum,
+        account.maximum,
+        account.includeCappedLowRarity,
+      )
     : filtered
 }
 
@@ -340,6 +359,7 @@ export function buildFinalOperatorPool(
     mode: AccountOperatorFilterMode
     minimum: AccountProgressionBound
     maximum: AccountProgressionBound
+    includeCappedLowRarity?: boolean
   },
 ): Operator[] {
   return applyManualOperatorExclusions(

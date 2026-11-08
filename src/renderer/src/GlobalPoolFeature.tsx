@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createDefaultConstraints, type RandomizerConstraints } from '../../shared/constraints'
 import {
   limitedAcquisitionGroups,
+  standardAcquisitionGroups,
   welfareAcquisitionGroups,
   type LimitedAcquisitionGroup,
   type Operator,
   type OperatorDataset,
+  type StandardAcquisitionGroup,
   type WelfareAcquisitionGroup,
 } from '../../shared/operator'
 import {
@@ -16,9 +18,18 @@ import {
   type OperatorPreferences,
 } from '../../shared/operatorPool'
 import { validateConstraints } from '../../shared/randomizer'
-import { getReleaseBoundPreview, type ReleaseBoundPreview } from '../../shared/releasePreview'
 import {
-  applyCustomReleaseDate,
+  buildCollaborationSources,
+  regionalFilterDataset,
+} from '../../shared/operatorFilterCatalog'
+import {
+  getReleaseBoundPreview,
+  buildReleaseDateOptions,
+  type ReleaseBoundPreview,
+} from '../../shared/releasePreview'
+import ReleaseDateDropdown from './ReleaseDateDropdown'
+import type { GarrisonEvent } from '../../shared/garrisonEventCatalog'
+import {
   applyReleaseGroupSelection,
   releaseGroupLabel,
   releaseGroupSelectValue,
@@ -27,7 +38,8 @@ import {
 import type { OperatorUpdateCheck } from '../../shared/desktop'
 import OperatorFilters from './OperatorFilters'
 import PoolPanel from './PoolPanel'
-import { saveRaceExclusions } from './rendererPersistence'
+import type { CuratePresentation } from './useCuratePresentation'
+import { saveGenderExclusions, saveRaceExclusions } from './rendererPersistence'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 
 const INVALID_RELEASE_RANGE_MESSAGE =
@@ -42,11 +54,18 @@ const limitedLabels: Record<LimitedAcquisitionGroup, string> = {
   summer: 'Summer',
   collab: 'Collab',
 }
+const standardLabels: Record<StandardAcquisitionGroup, string> = {
+  postKernel: 'Post-Kernel 5★ / 6★',
+  kernel: 'Kernel 5★ / 6★',
+  lowRarity: '4★ and below',
+}
 const welfareLabels: Record<WelfareAcquisitionGroup, string> = {
   eventStory: 'Event / Story',
   redCert: 'Red Cert',
   cc: 'CC',
   isRa: 'IS / RA',
+  recruitment: 'Recruitment',
+  creditShop: 'Credit Shop',
 }
 
 function allAndSome(values: boolean[]): { all: boolean; some: boolean } {
@@ -156,7 +175,7 @@ function ReleasePreviewStrip({
 }): React.JSX.Element {
   if (!preview)
     return <div className="release-preview release-preview--empty">No matching release event</div>
-  const representatives = [...preview.sixStar, ...preview.fiveStar]
+  const representatives = preview.representatives ?? [...preview.sixStar, ...preview.fiveStar]
   return (
     <div className="release-preview">
       <div className="release-preview__meta">
@@ -190,6 +209,7 @@ function ValidationBox({ errors }: { errors: string[] }): React.JSX.Element {
 }
 
 export default function GlobalPoolFeature({
+  curatePresentation,
   dataset,
   constraints,
   finalOperatorPool,
@@ -204,6 +224,7 @@ export default function GlobalPoolFeature({
   onCheckUpdates,
   onInstallUpdate,
 }: {
+  curatePresentation: CuratePresentation
   dataset: OperatorDataset | null
   constraints: RandomizerConstraints
   finalOperatorPool: Operator[]
@@ -219,7 +240,37 @@ export default function GlobalPoolFeature({
   onInstallUpdate: () => Promise<void>
 }): React.JSX.Element {
   const [activeSection, setActiveSection] = useState<GlobalPoolSection>('filter')
+  const [releaseCatalog, setReleaseCatalog] = useState<{
+    server: string
+    locale: string
+    events: GarrisonEvent[]
+  } | null>(null)
+  useEffect(() => {
+    let active = true
+    const server = constraints.release.server
+    const locale = preferences.gameLocale
+    void window.desktop
+      .getGarrisonEvents(server, locale)
+      .then((events) => {
+        if (active) setReleaseCatalog({ server, locale, events })
+      })
+      .catch(() => {
+        if (active) setReleaseCatalog(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [constraints.release.server, preferences.gameLocale, dataset])
+  const releaseEvents =
+    releaseCatalog?.server === constraints.release.server &&
+    releaseCatalog?.locale === preferences.gameLocale
+      ? releaseCatalog.events
+      : undefined
   const importedAccount = useImportedArknightsAccount() ?? null
+  const regionalDataset = useMemo(
+    () => (dataset ? regionalFilterDataset(dataset, constraints.release.server) : null),
+    [dataset, constraints.release.server],
+  )
   const curateDataset = useMemo(() => {
     if (!dataset || !importedAccount || preferences.accountFilterMode === 'ignore') return dataset
     return {
@@ -230,6 +281,7 @@ export default function GlobalPoolFeature({
         preferences.accountFilterMode,
         preferences.accountProgressionMin,
         preferences.accountProgressionMax,
+        preferences.accountIncludeCappedLowRarity,
       ),
     }
   }, [
@@ -238,58 +290,91 @@ export default function GlobalPoolFeature({
     preferences.accountFilterMode,
     preferences.accountProgressionMin,
     preferences.accountProgressionMax,
+    preferences.accountIncludeCappedLowRarity,
   ])
   const collaborationSources = useMemo(
-    () =>
-      dataset
-        ? [...new Set(dataset.operators.flatMap((operator) => operator.collaboration ?? []))].sort(
-            (a, b) => a.localeCompare(b),
-          )
-        : [],
-    [dataset],
+    () => buildCollaborationSources(dataset?.operators ?? [], constraints.release.server),
+    [dataset, constraints.release.server],
   )
   const maxReleaseYear = useMemo(
     () =>
-      dataset
-        ? dataset.operators.reduce(
+      regionalDataset
+        ? regionalDataset.operators.reduce(
             (maximum, operator) =>
               Math.max(maximum, operator.release[constraints.release.server].yearGroup ?? 0),
             0,
           )
         : 0,
-    [constraints.release.server, dataset],
+    [constraints.release.server, regionalDataset],
   )
   const releaseYearOptions = useMemo(
     () => Array.from({ length: maxReleaseYear + 1 }, (_, index) => index),
     [maxReleaseYear],
   )
-  const minReleasePreview = useMemo(
-    () => (dataset ? getReleaseBoundPreview(dataset.operators, constraints.release, 'min') : null),
-    [constraints.release, dataset],
+  const minDateOptions = useMemo(
+    () =>
+      dataset ? buildReleaseDateOptions(dataset, constraints.release, 'min', releaseEvents) : [],
+    [dataset, constraints.release, releaseEvents],
   )
-  const maxReleasePreview = useMemo(
-    () => (dataset ? getReleaseBoundPreview(dataset.operators, constraints.release, 'max') : null),
-    [constraints.release, dataset],
+  const maxDateOptions = useMemo(
+    () =>
+      dataset ? buildReleaseDateOptions(dataset, constraints.release, 'max', releaseEvents) : [],
+    [dataset, constraints.release, releaseEvents],
   )
+  const minReleasePreview = useMemo(() => {
+    const preview = dataset
+      ? getReleaseBoundPreview(dataset.operators, constraints.release, 'min')
+      : null
+    return preview
+      ? (minDateOptions.find(
+          (option) => option.startDate <= preview.date && preview.date <= option.endDate,
+        ) ?? preview)
+      : null
+  }, [constraints.release, dataset, minDateOptions])
+  const maxReleasePreview = useMemo(() => {
+    const preview = dataset
+      ? getReleaseBoundPreview(dataset.operators, constraints.release, 'max')
+      : null
+    return preview
+      ? (maxDateOptions.find(
+          (option) => option.startDate <= preview.date && preview.date <= option.endDate,
+        ) ?? preview)
+      : null
+  }, [constraints.release, dataset, maxDateOptions])
   const validation = useMemo(
     () =>
       dataset ? validateConstraints(constraints, finalOperatorPool) : { valid: false, errors: [] },
     [constraints, dataset, finalOperatorPool],
   )
+  const visibleLimitedGroups = limitedAcquisitionGroups.filter((group) =>
+    regionalDataset?.operators.some(
+      (operator) =>
+        operator.acquisition.family === 'limited' && operator.acquisition.group === group,
+    ),
+  )
+  const visibleWelfareGroups = welfareAcquisitionGroups.filter((group) =>
+    regionalDataset?.operators.some(
+      (operator) =>
+        operator.acquisition.family === 'welfare' && operator.acquisition.group === group,
+    ),
+  )
   const limitedState = allAndSome(
-    limitedAcquisitionGroups.map((group) => constraints.acquisition.limited[group]),
+    visibleLimitedGroups.map((group) => constraints.acquisition.limited[group]),
   )
+  const standardState = allAndSome(Object.values(constraints.acquisition.standard))
   const welfareState = allAndSome(
-    welfareAcquisitionGroups.map((group) => constraints.acquisition.welfare[group]),
+    visibleWelfareGroups.map((group) => constraints.acquisition.welfare[group]),
   )
-  const collaborationState = allAndSome([
-    constraints.collaboration.includeNonCollab,
-    ...collaborationSources.map((source) => constraints.collaboration.sources[source] ?? true),
-  ])
+  const collaborationState = allAndSome(
+    collaborationSources.map((source) => constraints.collaboration.sources[source] ?? true),
+  )
 
   useEffect(() => {
     saveRaceExclusions(constraints.race?.excludedIds ?? [])
   }, [constraints.race?.excludedIds])
+  useEffect(() => {
+    saveGenderExclusions(constraints.gender?.excludedIds ?? [])
+  }, [constraints.gender?.excludedIds])
 
   const mutateFilters = (
     update: (current: RandomizerConstraints) => RandomizerConstraints,
@@ -327,8 +412,8 @@ export default function GlobalPoolFeature({
       collaboration: defaults.collaboration,
       subclass: defaults.subclass,
       race: defaults.race,
+      gender: defaults.gender,
       faction: defaults.faction,
-      era: defaults.era,
       alterExclusivity: defaults.alterExclusivity,
     }))
     updatePoolPreferences({
@@ -336,6 +421,7 @@ export default function GlobalPoolFeature({
       accountFilterMode: preferenceDefaults.accountFilterMode,
       accountProgressionMin: preferenceDefaults.accountProgressionMin,
       accountProgressionMax: preferenceDefaults.accountProgressionMax,
+      accountIncludeCappedLowRarity: preferenceDefaults.accountIncludeCappedLowRarity,
     })
     onMessage('Operator eligibility filters reset. Individual Pool exclusions were preserved.')
   }
@@ -345,6 +431,7 @@ export default function GlobalPoolFeature({
       next.excludedOperatorIds.some((id, index) => id !== preferences.excludedOperatorIds[index])
     const accountFilterChanged =
       next.accountFilterMode !== preferences.accountFilterMode ||
+      next.accountIncludeCappedLowRarity !== preferences.accountIncludeCappedLowRarity ||
       next.accountProgressionMin.elite !== preferences.accountProgressionMin.elite ||
       next.accountProgressionMin.level !== preferences.accountProgressionMin.level ||
       next.accountProgressionMax.elite !== preferences.accountProgressionMax.elite ||
@@ -377,9 +464,21 @@ export default function GlobalPoolFeature({
       ...current,
       acquisition: {
         ...current.acquisition,
-        limited: Object.fromEntries(
-          limitedAcquisitionGroups.map((group) => [group, checked]),
-        ) as RandomizerConstraints['acquisition']['limited'],
+        limited: {
+          ...current.acquisition.limited,
+          ...Object.fromEntries(visibleLimitedGroups.map((group) => [group, checked])),
+        },
+      },
+    }))
+  const setStandardAll = (checked: boolean): void =>
+    mutateFilters((current) => ({
+      ...current,
+      acquisition: {
+        ...current.acquisition,
+        standard: {
+          ...current.acquisition.standard,
+          ...Object.fromEntries(standardAcquisitionGroups.map((group) => [group, checked])),
+        },
       },
     }))
   const setWelfareAll = (checked: boolean): void =>
@@ -387,17 +486,21 @@ export default function GlobalPoolFeature({
       ...current,
       acquisition: {
         ...current.acquisition,
-        welfare: Object.fromEntries(
-          welfareAcquisitionGroups.map((group) => [group, checked]),
-        ) as RandomizerConstraints['acquisition']['welfare'],
+        welfare: {
+          ...current.acquisition.welfare,
+          ...Object.fromEntries(visibleWelfareGroups.map((group) => [group, checked])),
+        },
       },
     }))
   const setCollaborationAll = (checked: boolean): void =>
     mutateFilters((current) => ({
       ...current,
       collaboration: {
-        includeNonCollab: checked,
-        sources: Object.fromEntries(collaborationSources.map((source) => [source, checked])),
+        ...current.collaboration,
+        sources: {
+          ...current.collaboration.sources,
+          ...Object.fromEntries(collaborationSources.map((source) => [source, checked])),
+        },
       },
     }))
 
@@ -406,12 +509,35 @@ export default function GlobalPoolFeature({
       <fieldset className="constraint-group detail-group source-filter-group">
         <legend>Acquisition</legend>
         <TreeGroup
+          label="Standard"
+          checked={standardState.all}
+          indeterminate={!standardState.all && standardState.some}
+          onChange={setStandardAll}
+        >
+          {standardAcquisitionGroups.map((group) => (
+            <TriStateCheckbox
+              key={group}
+              label={standardLabels[group]}
+              checked={constraints.acquisition.standard[group]}
+              onChange={(checked) =>
+                mutateFilters((current) => ({
+                  ...current,
+                  acquisition: {
+                    ...current.acquisition,
+                    standard: { ...current.acquisition.standard, [group]: checked },
+                  },
+                }))
+              }
+            />
+          ))}
+        </TreeGroup>
+        <TreeGroup
           label="Limited"
           checked={limitedState.all}
           indeterminate={!limitedState.all && limitedState.some}
           onChange={setLimitedAll}
         >
-          {limitedAcquisitionGroups.map((group) => (
+          {visibleLimitedGroups.map((group) => (
             <TriStateCheckbox
               key={group}
               label={limitedLabels[group]}
@@ -428,25 +554,13 @@ export default function GlobalPoolFeature({
             />
           ))}
         </TreeGroup>
-        <div className="source-standalone">
-          <TriStateCheckbox
-            label={<strong>Standard</strong>}
-            checked={constraints.acquisition.standard}
-            onChange={(checked) =>
-              mutateFilters((current) => ({
-                ...current,
-                acquisition: { ...current.acquisition, standard: checked },
-              }))
-            }
-          />
-        </div>
         <TreeGroup
           label="Welfare"
           checked={welfareState.all}
           indeterminate={!welfareState.all && welfareState.some}
           onChange={setWelfareAll}
         >
-          {welfareAcquisitionGroups.map((group) => (
+          {visibleWelfareGroups.map((group) => (
             <TriStateCheckbox
               key={group}
               label={welfareLabels[group]}
@@ -466,14 +580,9 @@ export default function GlobalPoolFeature({
       </fieldset>
       <fieldset className="constraint-group detail-group source-filter-group">
         <legend>Collaboration source</legend>
-        <TreeGroup
-          label="Collaboration pool"
-          checked={collaborationState.all}
-          indeterminate={!collaborationState.all && collaborationState.some}
-          onChange={setCollaborationAll}
-        >
+        <div className="source-standalone">
           <TriStateCheckbox
-            label="Non-collab"
+            label={<strong>Non-Collab</strong>}
             checked={constraints.collaboration.includeNonCollab}
             onChange={(checked) =>
               mutateFilters((current) => ({
@@ -482,6 +591,13 @@ export default function GlobalPoolFeature({
               }))
             }
           />
+        </div>
+        <TreeGroup
+          label="Collaboration pool"
+          checked={collaborationState.all}
+          indeterminate={!collaborationState.all && collaborationState.some}
+          onChange={setCollaborationAll}
+        >
           {collaborationSources.map((source) => (
             <TriStateCheckbox
               key={source}
@@ -638,6 +754,21 @@ export default function GlobalPoolFeature({
                   })}
                 </div>
               )}
+              {preferences.accountFilterMode === 'progression' && (
+                <label className="option-toggle">
+                  <input
+                    type="checkbox"
+                    checked={preferences.accountIncludeCappedLowRarity}
+                    onChange={(event) =>
+                      updatePoolPreferences({
+                        ...preferences,
+                        accountIncludeCappedLowRarity: event.target.checked,
+                      })
+                    }
+                  />
+                  <span>Include 3★ and below when they can’t reach the minimum</span>
+                </label>
+              )}
               <p className="filter-note">
                 Progression filtering includes only operators present on the synced account and
                 compares their synced elite/level from E0 L1 through E2 L90.
@@ -670,19 +801,17 @@ export default function GlobalPoolFeature({
                     ))}
                   </select>
                 </label>
-                <label className="field">
-                  <span>Exact date floor</span>
-                  <input
-                    className="date-input"
-                    type="date"
-                    value={constraints.release.minDate}
-                    onChange={(event) =>
-                      commitReleaseChange(
-                        applyCustomReleaseDate(constraints.release, 'min', event.target.value),
-                      )
-                    }
-                  />
-                </label>
+                <ReleaseDateDropdown
+                  key={`min-${constraints.release.server}-${constraints.release.minYear}`}
+                  label="Release date floor"
+                  options={minDateOptions}
+                  value={constraints.release.minDate}
+                  side="min"
+                  server={constraints.release.server}
+                  onChange={(date) =>
+                    commitReleaseChange({ ...constraints.release, minDate: date })
+                  }
+                />
                 <ReleasePreviewStrip label="Starts at event" preview={minReleasePreview} />
               </div>
               <div className="release-bound-card">
@@ -707,28 +836,33 @@ export default function GlobalPoolFeature({
                     ))}
                   </select>
                 </label>
-                <label className="field">
-                  <span>Exact date ceiling</span>
-                  <input
-                    className="date-input"
-                    type="date"
-                    value={constraints.release.maxDate}
-                    onChange={(event) =>
-                      commitReleaseChange(
-                        applyCustomReleaseDate(constraints.release, 'max', event.target.value),
-                      )
-                    }
-                  />
-                </label>
+                <ReleaseDateDropdown
+                  key={`max-${constraints.release.server}-${constraints.release.maxYear}`}
+                  label="Release date ceiling"
+                  options={maxDateOptions}
+                  value={constraints.release.maxDate}
+                  side="max"
+                  server={constraints.release.server}
+                  onChange={(date) =>
+                    commitReleaseChange({ ...constraints.release, maxDate: date })
+                  }
+                />
                 <ReleasePreviewStrip label="Ends at event" preview={maxReleasePreview} />
               </div>
             </div>
-            <p className="filter-note">
-              Portraits come only from the exact operator-release event at each bound. Launch is
-              launch day only; later groups increment at anniversary release boundaries. Named
-              groups prefill their exact regional date bounds; manually editing a date changes that
-              side to Custom. Region comes from Options.
-            </p>
+            <label className="option-toggle">
+              <input
+                type="checkbox"
+                checked={constraints.release.ignoreBoundsForLowRarity ?? false}
+                onChange={(event) =>
+                  commitReleaseChange({
+                    ...constraints.release,
+                    ignoreBoundsForLowRarity: event.target.checked,
+                  })
+                }
+              />
+              <span>Ignore release bounds for 4★ and below</span>
+            </label>
           </fieldset>
 
           {dataset && (
@@ -736,7 +870,7 @@ export default function GlobalPoolFeature({
               dataset={dataset}
               constraints={constraints}
               onChange={mutateFilters}
-              afterEra={sourceFilters}
+              sourceFilters={sourceFilters}
             />
           )}
 
@@ -748,6 +882,7 @@ export default function GlobalPoolFeature({
 
       {activeSection === 'curate' && dataset && (
         <PoolPanel
+          presentation={curatePresentation}
           dataset={curateDataset ?? dataset}
           constraints={constraints}
           preferences={preferences}

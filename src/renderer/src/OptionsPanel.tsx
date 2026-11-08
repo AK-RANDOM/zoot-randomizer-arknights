@@ -188,7 +188,7 @@ export default function OptionsPanel({
           </select>
           <small>
             Controls operator and Garrison event availability, event release order, release-year
-            grouping, Kernel-era classification, and release previews.
+            grouping, Kernel pool membership, and release previews.
           </small>
         </label>
 

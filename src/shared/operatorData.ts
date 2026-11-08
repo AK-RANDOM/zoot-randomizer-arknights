@@ -32,7 +32,7 @@ import {
   type OperatorReleaseCategory,
   type OperatorReleaseDates,
 } from './releaseMetadata.ts'
-import { KERNEL_CUTOFF_BY_SERVER, SUBCLASS_LABELS } from './operatorMetadata.ts'
+import { SUBCLASS_LABELS } from './operatorMetadata.ts'
 
 export const UPSTREAM = {
   gamedataRepo: 'ArknightsAssets/ArknightsGamedata',
@@ -901,12 +901,6 @@ export function validateOperatorDataset(
 
     if (operator.imageFile !== `operators/${operator.id}.png`) {
       errors.push(`Operator ${operator.id} has an unexpected image path.`)
-    }
-  }
-
-  for (const [server, cutoff] of Object.entries(KERNEL_CUTOFF_BY_SERVER)) {
-    if (!validReleaseDate(cutoff)) {
-      errors.push(`Kernel cutoff for ${server} is not a valid release date.`)
     }
   }
 

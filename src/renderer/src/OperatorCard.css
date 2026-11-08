@@ -129,10 +129,17 @@
   transition: opacity 120ms ease;
 }
 
-.operator-card:hover .operator-card__overlay,
-.operator-card:focus-within .operator-card__overlay {
+.operator-card[data-touch-actions-open] .operator-card__overlay,
+.operator-card__overlay:focus-within {
   opacity: 1;
   pointer-events: auto;
+}
+
+@media (hover: hover) {
+  .operator-card:hover .operator-card__overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 .operator-card--draft-compact .operator-card__interaction-control {

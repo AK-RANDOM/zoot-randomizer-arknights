@@ -199,22 +199,33 @@
   min-height: 260px;
 }
 
-.options-windows {
-  display: grid;
-  justify-items: start;
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #2c2c31;
+.windows-download-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid #3b754e;
+  border-radius: 6px;
+  color: #c0f1cc;
+  background: #162c1e;
 }
 
-.options-windows__note p {
-  margin: 4px 0 10px;
+.windows-download-notice p {
+  margin: 0;
+}
+
+.options-windows {
+  margin-top: 14px;
 }
 
 .options-windows-download {
-  color: var(--app-accent-light);
-  text-underline-offset: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-self: end;
+  text-decoration: none;
 }
 
 .options-heading {

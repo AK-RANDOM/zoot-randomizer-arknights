@@ -19,9 +19,11 @@ import {
 import { releaseRangeIsValid, remapReleaseConstraintServer } from '../../shared/releaseBounds'
 import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPreferencesStorage'
 import {
+  dismissWarning,
   loadGenderExclusions,
   loadRaceExclusions,
   saveOperatorArtwork,
+  warningIsDismissed,
 } from './rendererPersistence'
 import { notifyOperatorAppearanceChanged } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
@@ -30,6 +32,7 @@ import { importedAccountOwnedOperatorIds } from '../../shared/arknightsAccountRe
 const INVALID_RELEASE_RANGE_MESSAGE =
   'Invalid operator release range\n\nThe maximum release bound cannot be earlier than the minimum release bound.\nPlease adjust one of the release bounds.'
 const DEFAULT_DRAFT_TARGET_SIZE = 12
+const WINDOWS_DOWNLOAD_NOTICE = 'web-windows-download-banner'
 
 type AppTab = 'squads' | 'setup' | 'options'
 type SquadMode = 'standard' | 'garrison' | 'draft'
@@ -59,6 +62,9 @@ export default function App(): React.JSX.Element {
   const [poolRevision, setPoolRevision] = useState(0)
   const [draftActive, setDraftActive] = useState(false)
   const [garrisonDirty, setGarrisonDirty] = useState(false)
+  const [showWindowsDownloadNotice, setShowWindowsDownloadNotice] = useState(
+    () => window.desktop.platform === 'browser' && !warningIsDismissed(WINDOWS_DOWNLOAD_NOTICE),
+  )
   const markPoolChanged = useCallback(() => setPoolRevision((current) => current + 1), [])
 
   useEffect(() => {
@@ -229,6 +235,25 @@ export default function App(): React.JSX.Element {
           <span>{data.dataInfo?.origin === 'downloaded' ? 'Updated data' : 'Bundled data'}</span>
         </div>
       </header>
+
+      {showWindowsDownloadNotice && (
+        <aside className="windows-download-notice" aria-label="Windows app available">
+          <p>
+            <strong>Windows app available.</strong> Download it from Options to sync your Arknights
+            account.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => {
+              dismissWarning(WINDOWS_DOWNLOAD_NOTICE)
+              setShowWindowsDownloadNotice(false)
+            }}
+          >
+            Dismiss
+          </button>
+        </aside>
+      )}
 
       <nav className="main-tabs" aria-label="Randomizer configuration">
         {(

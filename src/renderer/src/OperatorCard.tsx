@@ -58,6 +58,8 @@ export default function OperatorCard({
     : null
   const [randomizeReplayKey, setRandomizeReplayKey] = useState(0)
   const cardRef = useRef<HTMLElement | null>(null)
+  const touchPointer = useRef(false)
+  const [touchActionsOpen, setTouchActionsOpen] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
   const nameViewportRef = useRef<HTMLDivElement | null>(null)
   const nameTextRef = useRef<HTMLSpanElement | null>(null)
@@ -84,6 +86,17 @@ export default function OperatorCard({
 
     return () => observer.disconnect()
   }, [operator.name])
+
+  useEffect(() => {
+    if (!touchActionsOpen) return
+    const dismissOutsideCard = (event: PointerEvent): void => {
+      if (event.target instanceof Node && !cardRef.current?.contains(event.target)) {
+        setTouchActionsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', dismissOutsideCard)
+    return () => document.removeEventListener('pointerdown', dismissOutsideCard)
+  }, [touchActionsOpen])
 
   useEffect(() => {
     const replayOnRandomize = (event: MouseEvent): void => {
@@ -118,7 +131,31 @@ export default function OperatorCard({
       className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
+      data-touch-actions-open={touchActionsOpen || undefined}
       title={`${operator.name} — selected artwork`}
+      onPointerDownCapture={
+        overlay
+          ? (event) => {
+              touchPointer.current = event.pointerType === 'touch'
+            }
+          : undefined
+      }
+      onClickCapture={
+        overlay
+          ? (event) => {
+              if (event.detail === 0 || !touchPointer.current || touchActionsOpen) return
+              if (
+                event.target instanceof Element &&
+                event.target.closest('.operator-card__interaction-control')
+              )
+                return
+              // A synthesized hover can target an action on the same tap that reveals it.
+              event.preventDefault()
+              event.stopPropagation()
+              setTouchActionsOpen(true)
+            }
+          : undefined
+      }
     >
       <div className="operator-card__art">
         {operator.faction.main && (

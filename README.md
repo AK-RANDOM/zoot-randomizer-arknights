@@ -25,7 +25,7 @@ Current Standard features include:
 
 Current Draft features include:
 
-- built-in, imported, and locally-authored Rulebooks;
+- four built-in Rulebooks;
 - configurable offer size and pull distribution;
 - Rulebook-specific operator pools;
 - optional economy, points, and operator pricing;
@@ -33,9 +33,9 @@ Current Draft features include:
 - Rulebook-controlled actions such as Hold, Capacity Forfeit, Reroll, and Capacity Expansion;
 - action confirmation controls;
 - completed-run Draft history;
-- selectable built-in presets: Standard Draft, Dev Strict, Arknights Headhunting, and Dev Lax.
+- selectable built-in presets: Simple Draft, Arknights Headhunting, Dev Lax, and Dev Strict.
 
-The plain **Standard Draft** is pick-1-from-3 using the current Global Pool with the extra economy/action systems disabled. The other built-in Rulebooks are active balance/development presets and may change as Draft design work continues.
+**Simple Draft** is pick-1-from-3 using the current Global Pool with the extra economy/action systems disabled. The other built-in Rulebooks are active balance presets and may change as Draft design work continues.
 
 ### Setup
 
@@ -43,18 +43,7 @@ The plain **Standard Draft** is pick-1-from-3 using the current Global Pool with
 
 The Global Pool UI is split into **Global Filter** and **Curate**. It currently supports filtering and curation using release bounds/region, acquisition source, collaboration source, class/subclass, race, faction, Kernel-era metadata, Alter exclusivity, and individual operator inclusion/exclusion. Pool presentation and search/grouping tools are available without changing eligibility.
 
-**Draft Rulebooks** provides the current Rulebook library and editor. Built-in Rulebooks are read-only; custom Rulebooks can be created, duplicated, imported, exported, edited, and deleted.
-
-The editor currently exposes these sections:
-
-- Rulebook
-- Pool
-- Variables
-- Probability
-- Pricing
-- Interactions
-
-Rulebooks are currently imported/exported as portable JSON. The Variables section is intentionally read-only for now: authored constants, runtime state variables, derived values, and custom entities are part of the planned portable Rulebook runtime but are not exposed as authored backend data yet.
+The Rulebook editor, custom Rulebook picker, and manual artwork and data controls are available in development builds on the [development branch](https://github.com/AK-RANDOM/zoot-randomizer-arknights/tree/codex/draft-rulebook-development).
 
 ### Options
 
@@ -64,8 +53,7 @@ Current application preferences include:
 - game-data localization for game-provided names and terminology;
 - Global Pool presentation mode;
 - Draft action confirmations;
-- preferred E1/E2 operator artwork;
-- offline artwork-cache download status and controls.
+- preferred E1/E2 operator artwork.
 
 App-owned interface text is currently English; changing game localization only changes game-provided names and terminology.
 
@@ -122,6 +110,21 @@ npm run build:win
 ```
 
 `build:unpack` and `build:win` refresh bundled operator metadata before packaging. `build:portable` remains an alias for the portable Windows build.
+
+### Web preview with Arknights account sync
+
+With Node.js 24 and dependencies installed, run `npm run data:update` and
+`npm run build:web`, then run `npx wrangler dev --ip 127.0.0.1`. Open the URL
+printed by Wrangler. The Worker serves both the app and the account API.
+
+GitHub Actions publishes the web app from `main` to GitHub Pages. To enable
+account sync there, deploy the API with `npx wrangler deploy` from an
+authenticated Cloudflare account, set the GitHub Actions repository variable
+`WEB_ACCOUNT_API_ORIGIN` to the Worker's HTTPS origin, and rerun the Pages
+workflow. The account API needs the Worker runtime.
+The Worker sends the email and verification code to YoStar, then uses temporary
+tokens to fetch the account snapshot from Arknights. The browser stores the
+parsed snapshot.
 
 ## Data and artwork
 

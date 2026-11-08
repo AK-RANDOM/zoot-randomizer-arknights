@@ -110,7 +110,7 @@
   padding: 0 30px 0 9px;
   border: 1px solid #3b3b41;
   border-radius: 4px;
-  color: #f5ad2f;
+  color: #f2f2f2;
   background: #171719;
   font: inherit;
   font-size: 0.84rem;
@@ -121,6 +121,47 @@
   border-color: #5b5b62;
   outline: none;
   background: #1d1d20;
+}
+
+.draft-probability-summary {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #303036;
+  border-radius: 6px;
+  background: #111113;
+  color: #a7a7ac;
+  font-size: 0.78rem;
+}
+
+.draft-probability-summary h2 {
+  margin: 0;
+  color: #f2f2f2;
+  font-size: inherit;
+}
+
+.draft-probability-summary p,
+.draft-probability-summary dl,
+.draft-probability-summary dd {
+  margin: 0;
+}
+
+.draft-probability-summary dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.draft-probability-summary dl > div {
+  display: flex;
+  gap: 6px;
+}
+
+.draft-probability-summary dd {
+  color: #f2f2f2;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .draft-status-context {

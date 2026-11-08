@@ -51,6 +51,7 @@ export default function useOperatorDataset({
     void (async () => {
       try {
         const loaded = await loadData()
+        if (window.desktop.platform === 'browser') return
         if (!operatorDatasetNeedsSkinMetadataRefresh(loaded) || skinMetadataRefreshAttempted.current) return
 
         skinMetadataRefreshAttempted.current = true

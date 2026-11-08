@@ -10,13 +10,31 @@ vi.mock('electron', () => ({
 vi.mock('node:fs/promises', async (importOriginal) => ({
   ...(await importOriginal<typeof import('node:fs/promises')>()),
   readFile: vi.fn(),
+  access: vi.fn().mockResolvedValue(undefined),
+  mkdir: vi.fn().mockResolvedValue(undefined),
+  mkdtemp: vi.fn(),
+  readdir: vi.fn().mockResolvedValue([]),
+  rename: vi.fn().mockResolvedValue(undefined),
+  rm: vi.fn().mockResolvedValue(undefined),
+  writeFile: vi.fn().mockResolvedValue(undefined),
 }))
 
-import { readFile } from 'node:fs/promises'
+vi.mock('../shared/operatorDataPipeline', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../shared/operatorDataPipeline')>()),
+  fetchLatestOperatorDatasetSources: vi.fn(),
+  fetchAndBuildOperatorDataset: vi.fn(),
+}))
+
+import { mkdtemp, readFile, rename } from 'node:fs/promises'
+import { join } from 'node:path'
 import { normalizeCharacterTables } from '../shared/operatorData'
 import { OPERATOR_DATA_PIPELINE_VERSION } from '../shared/operator'
 import { OPERATOR_SKIN_METADATA_VERSION } from '../shared/skinMetadata'
-import { getOperatorDataset, getOperatorDataInfo } from './operatorDataService'
+import {
+  fetchAndBuildOperatorDataset,
+  fetchLatestOperatorDatasetSources,
+} from '../shared/operatorDataPipeline'
+import { getOperatorDataset, getOperatorDataInfo, updateOperatorData } from './operatorDataService'
 
 function fixture(version: number, date: string) {
   const ids = Array.from({ length: 300 }, (_, index) => `char_fixture_${index}`)
@@ -58,6 +76,28 @@ function fixture(version: number, date: string) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('operator dataset normalization upgrades', () => {
+  it('stages a validated update on the same volume as portable data before replacing it', async () => {
+    const current = fixture(OPERATOR_DATA_PIPELINE_VERSION, '2026-11-01')
+    const next = fixture(OPERATOR_DATA_PIPELINE_VERSION, '2026-11-02')
+    next.sources.gamedataCnCommit = 'updated-game'
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(current))
+    vi.mocked(fetchLatestOperatorDatasetSources).mockResolvedValue(next.sources)
+    vi.mocked(fetchAndBuildOperatorDataset).mockResolvedValue({
+      dataset: next,
+      validation: { valid: true, errors: [], warnings: [] },
+    })
+    vi.mocked(mkdtemp).mockImplementation(async (prefix) => `${prefix}fixture`)
+
+    expect((await updateOperatorData()).updated).toBe(true)
+
+    const targetRoot = join('/fixture-user', 'operator-data')
+    expect(mkdtemp).toHaveBeenCalledWith(join(targetRoot, '.update-'))
+    expect(rename).toHaveBeenCalledWith(
+      join(targetRoot, '.update-fixture', 'operators.json'),
+      join(targetRoot, 'operators.json'),
+    )
+  })
+
   it('corrects Recruitment and Credit Shop assignments in cached data offline', async () => {
     const cached = fixture(OPERATOR_DATA_PIPELINE_VERSION, '2026-11-01')
     const expectedGroups = {

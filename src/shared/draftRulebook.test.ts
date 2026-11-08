@@ -68,9 +68,9 @@ describe('Draft Rulebook foundation', () => {
     expect(strict.pullDistribution).toMatchObject({
       type: 'custom',
       buckets: [
-        { id: '3', weight: 20, rarities: [1, 2, 3] },
-        { id: '4', weight: 45, rarities: [4] },
-        { id: '5', weight: 25, rarities: [5] },
+        { id: '3', weight: 20, rarities: [3] },
+        { id: '4', weight: 45, rarities: [2, 4] },
+        { id: '5', weight: 25, rarities: [1, 5] },
         { id: '6', weight: 10, rarities: [6] },
       ],
     })
@@ -100,9 +100,9 @@ describe('Draft Rulebook foundation', () => {
     expect(lax.pullDistribution).toMatchObject({
       type: 'custom',
       buckets: [
-        { id: '3', weight: 15, rarities: [1, 2, 3] },
-        { id: '4', weight: 40, rarities: [4] },
-        { id: '5', weight: 30, rarities: [5] },
+        { id: '3', weight: 15, rarities: [3] },
+        { id: '4', weight: 40, rarities: [2, 4] },
+        { id: '5', weight: 30, rarities: [1, 5] },
         { id: '6', weight: 15, rarities: [6] },
       ],
     })
@@ -127,7 +127,7 @@ describe('Draft Rulebook foundation', () => {
   it('round-trips through the human-readable JSON interchange format', () => {
     const serialized = serializeDraftRulebook(STANDARD_DRAFT_RULEBOOK)
     expect(serialized).toContain('"schemaVersion": 4')
-    expect(serialized).toContain('"Standard Draft"')
+    expect(serialized).toContain('"Simple Draft"')
     expect(deserializeDraftRulebook(serialized)).toEqual(STANDARD_DRAFT_RULEBOOK)
   })
 

@@ -19,6 +19,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "npm run typecheck && electron-vite build",
+    "build:web": "npm run typecheck:web && vite build --config vite.web.config.ts",
+    "preview:web": "vite preview --config vite.web.config.ts",
     "build:unpack": "npm run data:update && npm run build && electron-builder --dir --publish never",
     "build:win": "npm run data:update && npm run build && electron-builder --win portable --publish never",
     "data:update": "node --experimental-transform-types scripts/update-operator-data.mts",

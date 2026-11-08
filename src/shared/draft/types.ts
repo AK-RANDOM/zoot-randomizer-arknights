@@ -188,7 +188,9 @@ export interface DraftState {
   poolKey: string
   draftedOperatorIds: string[]
   currentOfferIds: string[]
+  /** Permanently banished operators in the Graveyard. */
   discardedOperatorIds: string[]
+  discardPileOperatorIds?: string[]
   heldOperatorId: string | null
   holdUpkeepCharges: number
   roundNumber: number

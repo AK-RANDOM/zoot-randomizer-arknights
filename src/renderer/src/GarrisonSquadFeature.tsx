@@ -822,17 +822,10 @@ export default function GarrisonSquadFeature({
         </div>
 
         <section className="garrison-participants" aria-labelledby="garrison-participants-heading">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: 10,
-            }}
-          >
+          <div className="garrison-participant-heading">
             <strong id="garrison-participants-heading">Participating Operators</strong>
             {working.duplicateOperatorsAllowed && (
-              <span style={{ color: '#77777e', fontSize: '0.68rem' }}>
+              <span>
                 {participation.length} unique
               </span>
             )}
@@ -843,14 +836,6 @@ export default function GarrisonSquadFeature({
             <div
               className="garrison-participant-list"
               aria-label="Participating operators by stage count"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                padding: '9px 2px 3px',
-              }}
             >
               {participation.map(({ operatorId, stageCount }) => {
                 const operator = operatorById.get(operatorId)
@@ -860,7 +845,7 @@ export default function GarrisonSquadFeature({
                     className="garrison-participant-entry"
                     key={operatorId}
                     title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
-                    style={{ position: 'relative', display: 'inline-flex', flex: '0 0 auto' }}
+                    style={{ position: 'relative', display: 'inline-flex' }}
                   >
                     {operator ? (
                       <GarrisonStageOperatorIcon operator={operator} />

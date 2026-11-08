@@ -1,5 +1,5 @@
 import type { Operator } from '../operator'
-import { generateDraftDistributionCandidates } from '../draftDistribution'
+import { arknightsBucketForRarity, pullDraftCandidate, type DraftPullState } from '../draftDistribution'
 import { availableDraftOperators } from './pool'
 import type {
   DraftEngineOptions,
@@ -59,6 +59,7 @@ function validateGeneratedOffer(
 
 export interface GeneratedDraftOffer {
   ids: string[]
+  discardPileOperatorIds: string[]
   pullsSinceSixStar: number
   generatedCandidateCount: number
   actualFiveStarGeneratedInFirstTen: boolean
@@ -70,50 +71,69 @@ export function generateDraftOffer(
   options: DraftEngineOptions,
   configuration: ResolvedDraftConfiguration,
 ): GeneratedDraftOffer | null {
-  const candidates = availableDraftOperators(pool, state)
+  const eligible = availableDraftOperators(pool, state)
   const offerSize = configuration.offerSize
-  if (candidates.length < offerSize) return null
+  if (eligible.length < offerSize) return null
 
   const random = options.random ?? Math.random
+  const distribution = configuration.pullDistribution
+  const discardPile = new Set(state.discardPileOperatorIds)
+  const remaining = eligible.filter((operator) => !discardPile.has(operator.id))
+  const discarded = eligible.filter((operator) => discardPile.has(operator.id))
+  const bucketFor = (operator: Operator): string | undefined => {
+    if (options.candidateGenerator || distribution.type === 'equal') return 'equal'
+    if (distribution.type === 'arknights') return arknightsBucketForRarity(operator.rarity)
+    return distribution.buckets.find((bucket) => bucket.rarities.includes(operator.rarity))?.id
+  }
+  const refillEmptyBuckets = (): void => {
+    if (discardPile.size === 0) return
+    const stocked = new Set(remaining.map(bucketFor))
+    for (const operator of discarded) {
+      if (discardPile.has(operator.id) && !stocked.has(bucketFor(operator))) {
+        remaining.push(operator)
+        discardPile.delete(operator.id)
+      }
+    }
+  }
+
+  let offer: Operator[]
+  let pullState: DraftPullState = state
+  refillEmptyBuckets()
   if (options.candidateGenerator) {
-    const offer = options.candidateGenerator(candidates, offerSize, random)
-    validateGeneratedOffer(offer, candidates, offerSize)
-    return {
-      ids: offer.map((operator) => operator.id),
-      pullsSinceSixStar: state.pullsSinceSixStar,
-      generatedCandidateCount: state.generatedCandidateCount,
-      actualFiveStarGeneratedInFirstTen: state.actualFiveStarGeneratedInFirstTen,
+    // Replacement generators need enough candidates for the full offer in one call.
+    if (remaining.length < offerSize) {
+      remaining.push(...discarded)
+      discardPile.clear()
+    }
+    offer = [...options.candidateGenerator(remaining, offerSize, random)]
+    validateGeneratedOffer(offer, remaining, offerSize)
+    if (remaining.length === offerSize) discardPile.clear()
+  } else if (distribution.type === 'equal') {
+    const freshCount = Math.min(offerSize, remaining.length)
+    offer = generateEqualOpportunityCandidates(remaining, freshCount, random)
+    if (freshCount === remaining.length) {
+      remaining.length = 0
+      refillEmptyBuckets()
+      offer.push(...generateEqualOpportunityCandidates(remaining, offerSize - freshCount, random))
+    }
+  } else {
+    offer = []
+    for (let index = 0; index < offerSize; index += 1) {
+      const pulled = pullDraftCandidate(remaining, distribution, pullState, random)
+      offer.push(pulled.operator)
+      pullState = pulled.state
+      remaining.splice(remaining.indexOf(pulled.operator), 1)
+      refillEmptyBuckets()
     }
   }
 
-  if (configuration.pullDistribution.type === 'equal') {
-    const offer = generateEqualOpportunityCandidates(candidates, offerSize, random)
-    validateGeneratedOffer(offer, candidates, offerSize)
-    return {
-      ids: offer.map((operator) => operator.id),
-      pullsSinceSixStar: state.pullsSinceSixStar,
-      generatedCandidateCount: state.generatedCandidateCount,
-      actualFiveStarGeneratedInFirstTen: state.actualFiveStarGeneratedInFirstTen,
-    }
-  }
-
-  const generated = generateDraftDistributionCandidates(
-    candidates,
-    offerSize,
-    configuration.pullDistribution,
-    {
-      pullsSinceSixStar: state.pullsSinceSixStar,
-      generatedCandidateCount: state.generatedCandidateCount,
-      actualFiveStarGeneratedInFirstTen: state.actualFiveStarGeneratedInFirstTen,
-    },
-    random,
-  )
-  validateGeneratedOffer(generated.operators, candidates, offerSize)
+  validateGeneratedOffer(offer, eligible, offerSize)
   return {
-    ids: generated.operators.map((operator) => operator.id),
-    pullsSinceSixStar: generated.state.pullsSinceSixStar,
-    generatedCandidateCount: generated.state.generatedCandidateCount ?? state.generatedCandidateCount,
+    ids: offer.map((operator) => operator.id),
+    discardPileOperatorIds: [...discardPile],
+    pullsSinceSixStar: pullState.pullsSinceSixStar,
+    generatedCandidateCount: pullState.generatedCandidateCount ?? state.generatedCandidateCount,
     actualFiveStarGeneratedInFirstTen:
-      generated.state.actualFiveStarGeneratedInFirstTen ?? state.actualFiveStarGeneratedInFirstTen,
+      pullState.actualFiveStarGeneratedInFirstTen ?? state.actualFiveStarGeneratedInFirstTen,
   }
 }

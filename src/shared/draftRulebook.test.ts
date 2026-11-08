@@ -12,6 +12,7 @@ import {
   DEV_STRICT_DRAFT_RULEBOOK,
   DRAFT_RULEBOOK_SCHEMA_VERSION,
   STANDARD_DRAFT_RULEBOOK,
+  SIMPLE_WEIGHTED_DRAFT_RULEBOOK,
   deserializeDraftRulebook,
   resolveDraftRulebook,
   serializeDraftRulebook,
@@ -24,6 +25,18 @@ function cloneStandard(): DraftRulebook {
 }
 
 describe('Draft Rulebook foundation', () => {
+  it('runs Simple Weighted as a plain four-offer draft with Dev Lax odds', () => {
+    const weighted = resolveDraftRulebook(SIMPLE_WEIGHTED_DRAFT_RULEBOOK)
+    const lax = resolveDraftRulebook(DEV_LAX_DRAFT_RULEBOOK)
+    expect(weighted.configuration).toEqual({
+      ...STANDARD_DRAFT_CONFIGURATION,
+      offerSize: 4,
+      pullDistribution: lax.configuration.pullDistribution,
+    })
+    expect(weighted.pool).toEqual({ source: 'inherit-global' })
+    expect(weighted.interactions).toEqual([])
+  })
+
   it('represents Standard Draft as a portable built-in Rulebook', () => {
     expect(DRAFT_RULEBOOK_SCHEMA_VERSION).toBe(4)
     expect(validateDraftRulebook(STANDARD_DRAFT_RULEBOOK)).toEqual({ valid: true, errors: [] })

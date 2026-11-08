@@ -145,6 +145,7 @@
 }
 .garrison-stage-editor-inline {
   padding: 12px;
+  padding-inline: clamp(4px, calc((100% - 1082px) / 2), 12px);
   border-top: 1px solid #4a3b21;
   background: #131315;
 }
@@ -188,7 +189,7 @@
 }
 .garrison-stage-editor-title {
   display: block;
-  width: 87.5%;
+  width: min(100%, var(--draft-roster-with-capacity-width));
   margin: 0 auto 10px;
 }
 .garrison-stage-editor-title input {

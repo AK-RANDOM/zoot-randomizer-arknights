@@ -34,6 +34,30 @@ body {
   padding: 38px 0 28px;
 }
 
+.web-width-notice {
+  width: min(420px, calc(100% - 32px));
+  padding: 24px;
+  border: 1px solid #3a3a40;
+  border-radius: 8px;
+  color: #f3f3f3;
+  background: #171719;
+}
+
+.web-width-notice::backdrop {
+  background: #0c0c0d;
+}
+
+.web-width-notice h1 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.web-width-notice p {
+  margin: 0;
+  color: #bcbcc3;
+  line-height: 1.5;
+}
+
 .hero {
   display: flex;
   align-items: flex-end;

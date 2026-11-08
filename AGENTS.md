@@ -10,6 +10,10 @@ Use the connected GitHub account AK-RANDOM for this repository. Reference the re
 
 When we're on discussion, do not directly put things on Github workboard without my permission. When I said to make a workboard, it means creating a draft to be posted to chat thread for me to inspect and validate first.
 
+# Deployment
+
+Use the `dev` branch for Windows app and website previews. Serve website previews locally on `127.0.0.1`. Get my explicit approval for the specific changes before pushing or merging them to `main`, including through auto-merge. After an approved promotion, verify that the new Windows release and production website both came from the promoted `main` commit.
+
 When doing simulation analytics, I want you to additionally shows P1/P10/P25/P50/P75/P90/P99.
 
 "Premium operator" is defined as operator with base cost >= 40

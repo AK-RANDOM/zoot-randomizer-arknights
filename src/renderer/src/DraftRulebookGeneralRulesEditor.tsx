@@ -325,10 +325,10 @@ export default function DraftRulebookGeneralRulesEditor({
         <legend>Advanced Actions</legend>
         <div className="rulebook-action-grid">
           <LimitedActionEditor label="Hold" description="consumes the round and stores one offered operator" rule={actions.hold} disabled={disabled} onChange={(rule) => updateHold(rule)}>
-            <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.hold.enabled} checked={actions.hold.discardUnheldOffer} onChange={(event) => updateHold({ discardUnheldOffer: event.target.checked })} /><span>Discard the other offered operators when Hold resolves</span></label>
+            <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.hold.enabled} checked={actions.hold.discardUnheldOffer} onChange={(event) => updateHold({ discardUnheldOffer: event.target.checked })} /><span>Banish the other offered operators to the Graveyard when Hold resolves</span></label>
           </LimitedActionEditor>
           <LimitedActionEditor label="Forfeit" description="consumes the round and gives up one usable capacity opportunity" rule={actions.forfeit} disabled={disabled} onChange={(rule) => updateForfeit(rule)}>
-            <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.forfeit.enabled} checked={actions.forfeit.discardOffer} onChange={(event) => updateForfeit({ discardOffer: event.target.checked })} /><span>Discard the forfeited offer from the draft pool</span></label>
+            <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.forfeit.enabled} checked={actions.forfeit.discardOffer} onChange={(event) => updateForfeit({ discardOffer: event.target.checked })} /><span>Banish the forfeited offer to the Graveyard</span></label>
           </LimitedActionEditor>
           <div className="rulebook-action-card">
             <div className="rulebook-editor-subheading"><div><strong>Reroll</strong><small>Non-turn-consuming. Replaces the current offer.</small></div></div>
@@ -346,7 +346,7 @@ export default function DraftRulebookGeneralRulesEditor({
               </div>
             )}
             <label className="field"><span>Cooldown rounds</span><input type="number" min={0} disabled={disabled || !actions.reroll.enabled} value={actions.reroll.cooldownRounds} onChange={(event) => updateReroll({ cooldownRounds: Math.max(0, Number(event.target.value) || 0) })} /></label>
-            <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.reroll.enabled} checked={actions.reroll.discardOffer} onChange={(event) => updateReroll({ discardOffer: event.target.checked })} /><span>Discard rerolled operators from the draft pool</span></label>
+            <label className="rulebook-toggle"><input type="checkbox" disabled={disabled || !actions.reroll.enabled} checked={actions.reroll.discardOffer} onChange={(event) => updateReroll({ discardOffer: event.target.checked })} /><span>Banish rerolled operators to the Graveyard</span></label>
           </div>
           <LimitedActionEditor label="Slot Expansion" description="non-turn-consuming capacity purchase" rule={actions.slotExpansion} disabled={disabled} onChange={(rule) => updateSlotExpansion(rule)}>
             <small className="filter-note">The built-in advanced default allows {DEFAULT_DRAFT_ACTION_RULES.slotExpansion.perRoundLimit} expansion per round.</small>
@@ -356,6 +356,10 @@ export default function DraftRulebookGeneralRulesEditor({
 
       <fieldset className="constraint-group rulebook-editor-section">
         <legend>Pull Distribution</legend>
+        <small className="filter-note">
+          Unpicked operators go to the Discard Pile when a round resolves. An exhausted bucket
+          refills from its own discards. Banished operators stay in the Graveyard.
+        </small>
         <DraftRulebookDistributionEditor
           dataset={dataset}
           distribution={pullDistribution}

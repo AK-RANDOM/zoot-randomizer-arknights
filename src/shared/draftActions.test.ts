@@ -103,7 +103,7 @@ describe('Draft advanced execution mechanics', () => {
       {
         type: 'offer',
         roundNumber: 2,
-        operatorIds: ['char_4', 'char_6', 'char_7'],
+        operatorIds: ['char_7', 'char_8', 'char_9'],
         source: 'round-start',
       },
     ])

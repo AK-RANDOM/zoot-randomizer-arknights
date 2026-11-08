@@ -7,6 +7,8 @@ import RandomOperatorCard from './RandomOperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
+import { compareDefaultOperators } from './PoolPanelPresentation'
+import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -40,7 +42,12 @@ import {
   type OperatorDataset,
   type OperatorRarity,
 } from '../../shared/operator'
-import { generateSquad, validateConstraints } from '../../shared/randomizer'
+import {
+  filterEligibleOperators,
+  generateSquad,
+  operatorMatchesSlotConstraint,
+  validateConstraints,
+} from '../../shared/randomizer'
 import {
   dismissWarning,
   loadUserSquadPresets,
@@ -52,11 +59,31 @@ const slots = Array.from({ length: 12 }, (_, index) => index + 1)
 const BOUND_WARNING_KEY = 'arknights-randomizer:dismiss-bound-reset-warning'
 const PRESET_WARNING_KEY = 'arknights-randomizer:dismiss-preset-replace-warning'
 
+interface ChainSession {
+  pool: Operator[]
+  constraints: RandomizerConstraints
+  exhausted: Operator[]
+}
+
+function ExhaustedOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
+  const { imageUrl } = useOperatorAppearanceAvatar(operator)
+  return (
+    <span
+      className="release-representative draft-history__operator-icon"
+      data-rarity={operator.rarity}
+      title={`${operator.name} · ${operator.rarity}★`}
+      aria-label={`${operator.name}, ${operator.rarity} star`}
+    >
+      {imageUrl ? <img src={imageUrl} alt="" draggable={false} /> : operator.name.slice(0, 1)}
+    </span>
+  )
+}
+
 interface PendingConfirmation {
   title: string
   body: string
   confirmLabel: string
-  preferenceKey: string
+  preferenceKey?: string
   apply: () => void
 }
 
@@ -106,14 +133,16 @@ function ConfirmationDialog({
       >
         <h3 id="confirmation-title">{confirmation.title}</h3>
         <p>{confirmation.body}</p>
-        <label className="confirmation-checkbox">
-          <input
-            type="checkbox"
-            checked={dontShowAgain}
-            onChange={(event) => setDontShowAgain(event.target.checked)}
-          />
-          <span>Don&apos;t show this warning again</span>
-        </label>
+        {confirmation.preferenceKey && (
+          <label className="confirmation-checkbox">
+            <input
+              type="checkbox"
+              checked={dontShowAgain}
+              onChange={(event) => setDontShowAgain(event.target.checked)}
+            />
+            <span>Don&apos;t show this warning again</span>
+          </label>
+        )}
         <div className="confirmation-actions">
           <button type="button" className="secondary-button" onClick={onCancel}>
             Cancel
@@ -145,6 +174,8 @@ export default function StandardSquadFeature({
   onError: (message: string | null) => void
 }): React.JSX.Element {
   const [squad, setSquad] = useState<Operator[]>([])
+  const [chainMode, setChainMode] = useState(false)
+  const [chain, setChain] = useState<ChainSession | null>(null)
   const [editingSlot, setEditingSlot] = useState<number | null>(null)
   const [userPresets, setUserPresets] = useState<StoredSquadPreset[]>(() => loadUserSquadPresets())
   const [selectedPresetId, setSelectedPresetId] = useState('builtin:none')
@@ -160,21 +191,26 @@ export default function StandardSquadFeature({
     saveUserSquadPresets(userPresets)
   }, [userPresets])
   useEffect(() => {
-    if (!dataset || squad.length === 0) return
+    if (!dataset || chain) return
     const byId = new Map(dataset.operators.map((operator) => [operator.id, operator]))
     setSquad((current) => current.map((operator) => byId.get(operator.id) ?? operator))
-  }, [dataset])
+  }, [chain, dataset])
   useEffect(() => {
     if (lastResetRevision.current === resetRevision) return
     lastResetRevision.current = resetRevision
+    if (chain) return
     setSquad([])
     setEditingSlot(null)
-  }, [resetRevision])
+  }, [chain, resetRevision])
 
   const validation = useMemo(
-    () =>
-      dataset ? validateConstraints(constraints, finalOperatorPool) : { valid: false, errors: [] },
-    [constraints, dataset, finalOperatorPool],
+    () => {
+      if (chain) return { valid: true, errors: [] }
+      return dataset
+        ? validateConstraints(constraints, finalOperatorPool)
+        : { valid: false, errors: [] }
+    },
+    [chain, constraints, dataset, finalOperatorPool],
   )
   const currentSquadConfiguration = useMemo(
     () => squadConfigurationFromConstraints(constraints),
@@ -221,7 +257,9 @@ export default function StandardSquadFeature({
   const confirmPending = (): void => {
     if (!pendingConfirmation) return
     const action = pendingConfirmation.apply
-    if (dontShowAgain) dismissWarning(pendingConfirmation.preferenceKey)
+    if (dontShowAgain && pendingConfirmation.preferenceKey) {
+      dismissWarning(pendingConfirmation.preferenceKey)
+    }
     setPendingConfirmation(null)
     setDontShowAgain(false)
     action()
@@ -290,6 +328,10 @@ export default function StandardSquadFeature({
   const resetConstraints = (): void => {
     if (!canResetConstraints) return
     onConstraintsChange((current) => applySquadConfiguration(current, resetConfiguration))
+    if (chain) {
+      setSquad([])
+      setChain(null)
+    }
     setEditingSlot(null)
     if (!selectedPreset) setSelectedPresetId('custom')
     onError(null)
@@ -301,6 +343,7 @@ export default function StandardSquadFeature({
   }
   const clearSquad = (): void => {
     setSquad([])
+    setChain(null)
     onError(null)
     onMessage('Squad cleared. Slot constraints are ready to edit.')
   }
@@ -319,6 +362,7 @@ export default function StandardSquadFeature({
           slots: createEmptySlotConstraints(),
         }))
         setSquad([])
+        setChain(null)
         setEditingSlot(null)
         markCustom()
         onError(null)
@@ -359,6 +403,7 @@ export default function StandardSquadFeature({
     const apply = (): void => {
       onConstraintsChange((current) => applySquadConfiguration(current, preset.configuration))
       setSquad([])
+      setChain(null)
       setEditingSlot(null)
       setSelectedPresetId(preset.id)
       onError(null)
@@ -434,6 +479,84 @@ export default function StandardSquadFeature({
     setSelectedPresetId('custom')
     onMessage(`Deleted squad preset “${selectedPreset.name}”.`)
   }
+  const chainRerolls = useMemo(() => {
+    if (!chain) return null
+    const unavailableIds = new Set([...squad, ...chain.exhausted].map(({ id }) => id))
+    const available = chain.pool.filter(({ id }) => !unavailableIds.has(id))
+    const current = applySquadConfiguration(chain.constraints, currentSquadConfiguration)
+    const all =
+      available.length >= current.squadSize && validateConstraints(current, available).valid
+        ? { pool: available, constraints: current }
+        : null
+    const bySlot = squad.map((_, slotIndex) => {
+      const target = current.slots[slotIndex]
+      if (target?.operatorId) return null
+
+      const candidates = available.filter((operator) => operatorMatchesSlotConstraint(operator, target))
+      if (candidates.length === 0) return null
+
+      const kept = squad.filter((_, index) => index !== slotIndex)
+      if (squad.some((operator, index) =>
+        index !== slotIndex && !operatorMatchesSlotConstraint(operator, current.slots[index]),
+      )) return null
+
+      const constraints = {
+        ...current,
+        slots: current.slots.map((slot, index) => {
+          const operator = squad[index]
+          return index === slotIndex || !operator
+            ? slot
+            : { ...slot, operatorId: operator.id, mandatoryExclusivityGroup: null }
+        }),
+      }
+      const pool = [...candidates, ...kept]
+      return validateConstraints(constraints, pool).valid ? { pool, constraints } : null
+    })
+    return { available, all, bySlot }
+  }, [chain, currentSquadConfiguration, squad])
+  const availableChainCount = chainRerolls?.available.length ?? 0
+  const chainInitialPool = chainMode && !chain
+    ? filterEligibleOperators(finalOperatorPool, constraints)
+    : []
+
+  const toggleChainMode = (enabled: boolean): void => {
+    const apply = (): void => {
+      setChainMode(enabled)
+      setChain(null)
+      setSquad([])
+      onError(null)
+    }
+    if (squad.length === 0) {
+      apply()
+      return
+    }
+    setDontShowAgain(false)
+    setPendingConfirmation({
+      title: enabled ? 'Enable Chain Mode?' : 'Disable Chain Mode?',
+      body: 'Changing Chain Mode clears the current squad and any exhausted operators.',
+      confirmLabel: enabled ? 'Enable & Clear' : 'Disable & Clear',
+      apply,
+    })
+  }
+
+  const rerollChain = (slotIndex?: number): void => {
+    if (!chain || !chainRerolls) return
+    const reroll = slotIndex === undefined
+      ? chainRerolls.all
+      : chainRerolls.bySlot[slotIndex]
+    if (!reroll) return
+    onError(null)
+    try {
+      const next = generateSquad(reroll.pool, reroll.constraints)
+      const outgoing = slotIndex === undefined ? squad : [squad[slotIndex]]
+      setSquad(next)
+      setChain({ ...chain, exhausted: [...chain.exhausted, ...outgoing] })
+      onMessage(slotIndex === undefined ? 'Rerolled the squad.' : `Rerolled slot ${slotIndex + 1}.`)
+    } catch (reason) {
+      onError(reason instanceof Error ? reason.message : String(reason))
+    }
+  }
+
   const randomize = (): void => {
     if (!dataset) return
     onError(null)
@@ -443,7 +566,9 @@ export default function StandardSquadFeature({
       return
     }
     try {
-      setSquad(generateSquad(finalOperatorPool, constraints))
+      const next = generateSquad(finalOperatorPool, constraints)
+      setSquad(next)
+      if (chainMode) setChain({ pool: chainInitialPool, constraints, exhausted: [] })
       onMessage(`Generated a squad of ${constraints.squadSize} operators.`)
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : String(reason))
@@ -504,6 +629,14 @@ export default function StandardSquadFeature({
                 Duplicate
               </button>
             )}
+            <label className="confirmation-checkbox">
+              <input
+                type="checkbox"
+                checked={chainMode}
+                onChange={(event) => toggleChainMode(event.target.checked)}
+              />
+              <span>Chain Mode</span>
+            </label>
             {selectedPreset && !selectedPreset.builtIn && (
               <>
                 <button type="button" className="secondary-button" onClick={updateSelectedPreset}>
@@ -529,10 +662,10 @@ export default function StandardSquadFeature({
             <button
               className="randomize-button"
               type="button"
-              disabled={!dataset || !validation.valid}
-              onClick={randomize}
+              disabled={chain ? !chainRerolls?.all : !dataset || !validation.valid}
+              onClick={chain ? () => rerollChain() : randomize}
             >
-              Randomize
+              {chain ? 'Reroll All' : 'Randomize'}
             </button>
           </div>
         </div>
@@ -588,7 +721,22 @@ export default function StandardSquadFeature({
                     <small>Squad size {constraints.squadSize}</small>
                   </div>
                 ) : operator ? (
-                  <OperatorCard operator={operator} />
+                  <OperatorCard
+                    operator={operator}
+                    overlay={chain ? (
+                      <div className="draft-operator-actions">
+                        <button
+                          type="button"
+                          className="draft-operator-action draft-operator-action--pick"
+                          aria-label={`Reroll ${operator.name}`}
+                          disabled={!chainRerolls?.bySlot[index]}
+                          onClick={() => rerollChain(index)}
+                        >
+                          Reroll
+                        </button>
+                      </div>
+                    ) : undefined}
+                  />
                 ) : lockedPresentation ? (
                   <LockedSlotCard
                     presentation={lockedPresentation}
@@ -617,6 +765,35 @@ export default function StandardSquadFeature({
             )
           })}
         </div>
+
+        {chainMode && (
+          <details className="squad-filter-disclosure">
+            <summary>Exhausted operators</summary>
+            <div className="squad-filter-content">
+              <div className="draft-status-main" aria-label="Chain Mode pool counts">
+                <div className="draft-status-item">
+                  <span>Pool</span>
+                  <strong>{chain?.pool.length ?? chainInitialPool.length}</strong>
+                </div>
+                <div className="draft-status-item">
+                  <span>Exhausted</span>
+                  <strong>{chain?.exhausted.length ?? 0}</strong>
+                </div>
+                <div className="draft-status-item">
+                  <span>Available to draw</span>
+                  <strong>{chain ? availableChainCount : chainInitialPool.length}</strong>
+                </div>
+              </div>
+              {chain && chain.exhausted.length > 0 && (
+                <div className="garrison-participant-list">
+                  {[...chain.exhausted].sort(compareDefaultOperators).map((operator) => (
+                    <ExhaustedOperatorIcon key={operator.id} operator={operator} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </details>
+        )}
 
         <details className="squad-filter-disclosure">
           <summary>Squad filters</summary>

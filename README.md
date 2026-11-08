@@ -117,7 +117,17 @@ Run `npm run build:web` after generating the operator data, then run
 `npm run preview:web` and open the printed URL. GitHub Actions publishes the
 web app from `main` to GitHub Pages.
 
-For Arknights account sync, use the [Windows portable app](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/tag/v1.0.0).
+### Deployment branches
+
+Use `dev` for review. GitHub Actions publishes a Windows portable prerelease
+from `dev`. Promote the reviewed changes to `main` only
+after the project owner's explicit approval. A push to `main` publishes the
+production GitHub Pages build and a new stable Windows release.
+
+For a local web preview, build from `dev` with `npm run build:web`, then run
+`npm run preview:web -- --host 127.0.0.1` and open the printed URL.
+
+For Arknights account sync, use the [latest Windows portable release](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest).
 
 ## Data and artwork
 

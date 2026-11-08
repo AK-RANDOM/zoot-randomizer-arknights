@@ -280,8 +280,8 @@ export default function App(): React.JSX.Element {
           {(
             [
               ['standard', 'Standard'],
-              ['garrison', 'Garrison'],
               ['draft', 'Draft'],
+              ['garrison', 'Garrison'],
             ] as const
           ).map(([mode, label]) => (
             <button
@@ -363,7 +363,7 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'options' && (
         <OptionsPanel
-          dataset={data.dataset}
+          operatorData={data}
           preferences={operatorPreferences}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}

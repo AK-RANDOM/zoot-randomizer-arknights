@@ -182,6 +182,33 @@ describe('Draft pull distributions', () => {
     expect(state.actualFiveStarGeneratedInFirstTen).toBe(true)
   })
 
+  it('refills only the exhausted bucket and keeps banished cards in the Graveyard', () => {
+    const pool = [
+      ...['three-a', 'three-b', 'three-c', 'three-d'].map((id) => operator(id, 3)),
+      ...['four-a', 'four-b', 'four-c'].map((id) => operator(id, 4)),
+    ]
+    const rolls = [0, 0, 0.99, 0, 0, 0, 0.99, 0]
+    const options: DraftEngineOptions = {
+      random: () => rolls.shift() ?? 0,
+      configuration: {
+        offerSize: 2,
+        pullDistribution: { type: 'arknights' },
+        actionRules: { forfeit: { enabled: true }, reroll: { enabled: true, discardOffer: true } },
+      },
+    }
+    let state = startDraft(pool, 3, options)
+    expect(state.currentOfferIds).toEqual(['three-a', 'four-a'])
+    state = applyDraftAction(state, pool, { type: 'reroll' }, options)
+    expect(state.currentOfferIds).toEqual(['three-b', 'four-b'])
+    state = applyDraftAction(state, pool, { type: 'forfeit' }, options)
+    expect(state.currentOfferIds).toEqual(['three-c', 'three-d'])
+    expect(state.discardPileOperatorIds).toEqual(['four-b'])
+    state = applyDraftAction(state, pool, { type: 'pick', operatorId: 'three-c' }, options)
+    expect(state.currentOfferIds).toEqual(['three-b', 'three-d'])
+    expect(state.discardPileOperatorIds).toEqual(['four-b'])
+    expect(state.discardedOperatorIds).toEqual(['three-a', 'four-a'])
+  })
+
   it('counts rerolled displayed candidates as pulls', () => {
     const pool = Array.from({ length: 9 }, (_, index) => operator(`op${index}`, 4))
     const options: DraftEngineOptions = {

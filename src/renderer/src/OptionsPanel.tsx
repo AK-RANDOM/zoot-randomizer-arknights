@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import type { OperatorPreferences } from '../../shared/operatorPool'
-import {
-  gameLocales,
-  type GameLocale,
-  type OperatorDataset,
-  type ReleaseServer,
-} from '../../shared/operator'
+import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
 import ArknightsAccountPanel from './ArknightsAccountPanel'
+import ArtworkDownloadStatus from './ArtworkDownloadStatus'
+import type { OperatorDatasetController } from './useOperatorDataset'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
 import {
   setDraftActionConfirmationPreference,
@@ -14,17 +11,17 @@ import {
 } from './draftConfirmationPreferences'
 
 const WINDOWS_DOWNLOAD =
-  'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/download/v1.0.0/Arknights-Randomizer-1.0.0-x64-Portable.exe'
+  'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest'
 
 export default function OptionsPanel({
-  dataset,
+  operatorData,
   preferences,
   onMetadataRegionChange,
   onGameLocaleChange,
   onCurateNamesChange,
   onBulkAppearanceChange,
 }: {
-  dataset: OperatorDataset | null
+  operatorData: OperatorDatasetController
   preferences: OperatorPreferences
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
@@ -37,6 +34,8 @@ export default function OptionsPanel({
   >('e2')
 
   const isBrowser = window.desktop.platform === 'browser'
+  const { dataset, busy, updateCheck, checkUpdates, installUpdate } = operatorData
+  const updateAvailable = updateCheck?.updateAvailable
 
   return (
     <section className="panel options-panel" aria-label="Options">
@@ -149,6 +148,26 @@ export default function OptionsPanel({
         the bulk result without changing other operators.
       </p>
 
+      {!isBrowser && (
+        <>
+          <div className="option-setting option-setting--compact">
+            <div className="option-setting__copy">
+              <strong>Operator data</strong>
+              <p>Check for and install updated operator and event data.</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy || !dataset}
+              onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
+            >
+              {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
+            </button>
+          </div>
+          <ArtworkDownloadStatus />
+        </>
+      )}
+
       {isBrowser && (
         <div className="option-setting option-setting--compact options-windows">
           <div className="option-setting__copy">
@@ -156,7 +175,7 @@ export default function OptionsPanel({
             <p>Sync your Arknights roster, progression, and equipped outfits.</p>
           </div>
           <a className="secondary-button options-windows-download" href={WINDOWS_DOWNLOAD}>
-            Download for Windows (x64)
+            Windows downloads (x64)
           </a>
         </div>
       )}

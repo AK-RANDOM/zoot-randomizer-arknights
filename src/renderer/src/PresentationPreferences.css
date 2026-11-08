@@ -199,6 +199,24 @@
   min-height: 260px;
 }
 
+.options-windows {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #2c2c31;
+}
+
+.options-windows__note p {
+  margin: 4px 0 10px;
+}
+
+.options-windows-download {
+  color: var(--app-accent-light);
+  text-underline-offset: 3px;
+}
+
 .options-heading {
   margin-bottom: 24px;
 }
@@ -331,7 +349,6 @@
   color: #77777e;
   font-size: 0.7rem;
 }
-
 
 /* Compact artwork controls: one toolbar, expandable details. */
 .artwork-download-status {

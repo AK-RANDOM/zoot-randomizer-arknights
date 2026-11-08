@@ -7,12 +7,16 @@ import {
   type ReleaseServer,
 } from '../../shared/operator'
 import ArknightsAccountPanel from './ArknightsAccountPanel'
-import { browserAccountAvailable } from './browserAccount'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
+import { dismissWarning, warningIsDismissed } from './rendererPersistence'
 import {
   setDraftActionConfirmationPreference,
   useDraftActionConfirmationPreference,
 } from './draftConfirmationPreferences'
+
+const WINDOWS_SYNC_NOTE = 'web-windows-sync-note'
+const WINDOWS_DOWNLOAD =
+  'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/download/v1.0.0/Arknights-Randomizer-1.0.0-x64-Portable.exe'
 
 export default function OptionsPanel({
   dataset,
@@ -34,11 +38,14 @@ export default function OptionsPanel({
     'e1' | 'e2' | 'random' | 'account'
   >('e2')
 
-  const accountAvailable = window.desktop.platform !== 'browser' || browserAccountAvailable
+  const isBrowser = window.desktop.platform === 'browser'
+  const [syncNoteDismissed, setSyncNoteDismissed] = useState(
+    () => !isBrowser || warningIsDismissed(WINDOWS_SYNC_NOTE),
+  )
 
   return (
     <section className="panel options-panel" aria-label="Options">
-      {accountAvailable && <ArknightsAccountPanel dataset={dataset} />}
+      {!isBrowser && <ArknightsAccountPanel dataset={dataset} />}
 
       <div className="primary-settings">
         <label className="field">
@@ -129,7 +136,7 @@ export default function OptionsPanel({
               <option value="e1">Elite 1 for all</option>
               <option value="e2">Elite 2 for all</option>
               <option value="random">Randomize all</option>
-              {accountAvailable && <option value="account">Sync account outfits</option>}
+              {!isBrowser && <option value="account">Sync account outfits</option>}
             </select>
           </label>
           <button
@@ -146,6 +153,30 @@ export default function OptionsPanel({
         Bulk changes do not affect Pool inclusion. Later per-operator appearance changes override
         the bulk result without changing other operators.
       </p>
+
+      {isBrowser && (
+        <footer className="options-windows">
+          {!syncNoteDismissed && (
+            <div className="options-windows__note">
+              <strong>Arknights account sync</strong>
+              <p>Use the Windows app to sync your roster, progression, and equipped outfits.</p>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => {
+                  dismissWarning(WINDOWS_SYNC_NOTE)
+                  setSyncNoteDismissed(true)
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+          <a className="options-windows-download" href={WINDOWS_DOWNLOAD}>
+            Download for Windows (x64)
+          </a>
+        </footer>
+      )}
     </section>
   )
 }

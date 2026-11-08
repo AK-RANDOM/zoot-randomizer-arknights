@@ -111,20 +111,13 @@ npm run build:win
 
 `build:unpack` and `build:win` refresh bundled operator metadata before packaging. `build:portable` remains an alias for the portable Windows build.
 
-### Web preview with Arknights account sync
+### Web preview
 
-With Node.js 24 and dependencies installed, run `npm run data:update` and
-`npm run build:web`, then run `npx wrangler dev --ip 127.0.0.1`. Open the URL
-printed by Wrangler. The Worker serves both the app and the account API.
+Run `npm run build:web` after generating the operator data, then run
+`npm run preview:web` and open the printed URL. GitHub Actions publishes the
+web app from `main` to GitHub Pages.
 
-GitHub Actions publishes the web app from `main` to GitHub Pages. To enable
-account sync there, deploy the API with `npx wrangler deploy` from an
-authenticated Cloudflare account, set the GitHub Actions repository variable
-`WEB_ACCOUNT_API_ORIGIN` to the Worker's HTTPS origin, and rerun the Pages
-workflow. The account API needs the Worker runtime.
-The Worker sends the email and verification code to YoStar, then uses temporary
-tokens to fetch the account snapshot from Arknights. The browser stores the
-parsed snapshot.
+For Arknights account sync, use the [Windows portable app](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/tag/v1.0.0).
 
 ## Data and artwork
 

@@ -19,8 +19,22 @@ export default function WebWidthGate({ children }: { children: ReactNode }): Rea
   useLayoutEffect(() => {
     const dialog = notice.current
     if (!dialog) return
-    if (blocked && !dialog.open) dialog.showModal()
-    if (!blocked && dialog.open) dialog.close()
+    if (!blocked) {
+      if (dialog.open) dialog.close()
+      return
+    }
+
+    const preventDismissal = (event: Event): void => event.preventDefault()
+    const keepOpen = (): void => {
+      if (!dialog.open) dialog.showModal()
+    }
+    dialog.addEventListener('cancel', preventDismissal)
+    dialog.addEventListener('close', keepOpen)
+    keepOpen()
+    return () => {
+      dialog.removeEventListener('cancel', preventDismissal)
+      dialog.removeEventListener('close', keepOpen)
+    }
   }, [blocked])
 
   return (
@@ -31,7 +45,6 @@ export default function WebWidthGate({ children }: { children: ReactNode }): Rea
         className="web-width-notice"
         aria-labelledby="web-width-title"
         aria-describedby="web-width-description"
-        onCancel={(event) => event.preventDefault()}
       >
         <h1 id="web-width-title">This screen is too narrow</h1>
         <p id="web-width-description">

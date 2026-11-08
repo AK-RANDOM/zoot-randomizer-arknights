@@ -25,7 +25,7 @@ Current Standard features include:
 
 Current Draft features include:
 
-- four built-in Rulebooks;
+- five built-in Rulebooks;
 - configurable offer size and pull distribution;
 - Rulebook-specific operator pools;
 - optional economy, points, and operator pricing;
@@ -33,9 +33,9 @@ Current Draft features include:
 - Rulebook-controlled actions such as Hold, Capacity Forfeit, Reroll, and Capacity Expansion;
 - action confirmation controls;
 - completed-run Draft history;
-- selectable built-in presets: Simple Draft, Arknights Headhunting, Dev Lax, and Dev Strict.
+- selectable built-in presets: Simple Draft, Simple Weighted, Arknights Headhunting, Dev Lax, and Dev Strict.
 
-**Simple Draft** is pick-1-from-3 using the current Global Pool with the extra economy/action systems disabled. The other built-in Rulebooks are active balance presets and may change as Draft design work continues.
+**Simple Draft** is pick-1-from-3 using the current Global Pool. **Simple Weighted** is pick-1-from-4 with Dev Lax pull odds. Both disable economy and special actions.
 
 ### Setup
 

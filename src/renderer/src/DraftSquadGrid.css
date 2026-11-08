@@ -1,5 +1,6 @@
 .draft-selected-squad {
-  width: 90%;
+  --draft-roster-with-capacity-width: 1082px;
+  width: min(100%, 1236px);
   margin: 20px auto 0;
 }
 
@@ -23,7 +24,7 @@
 
 .draft-squad-layout {
   display: grid;
-  width: 75%;
+  width: min(100%, 928px);
   grid-template-columns: minmax(0, 1fr);
   gap: 9px;
   justify-content: center;
@@ -31,7 +32,7 @@
 }
 
 .draft-squad-layout--with-capacity {
-  width: 87.5%;
+  width: min(100%, var(--draft-roster-with-capacity-width));
   grid-template-columns: minmax(0, 1fr) minmax(0, calc(14.285714% - 7.714px));
 }
 

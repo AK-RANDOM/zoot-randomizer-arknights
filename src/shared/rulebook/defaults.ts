@@ -9,11 +9,13 @@ import {
 } from './types'
 
 export const STANDARD_DRAFT_RULEBOOK_ID = 'builtin:standard-draft' as const
+export const SIMPLE_WEIGHTED_DRAFT_RULEBOOK_ID = 'builtin:simple-weighted' as const
 export const DEV_STRICT_DRAFT_RULEBOOK_ID = 'builtin:dev-strict' as const
 export const ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK_ID = 'builtin:arknights-headhunting' as const
 export const DEV_LAX_DRAFT_RULEBOOK_ID = 'builtin:dev-lax' as const
 
 const BALANCE_PRESET_REVISION = '2026.10-fallback55'
+const DEV_LAX_PULL_WEIGHTS = { '3': 15, '4': 40, '5': 30, '6': 15 }
 const SHARED_BALANCE_RARITY_COSTS: DraftEconomyRules['rarityCosts'] = {
   1: 7,
   2: 4,
@@ -116,6 +118,22 @@ export const STANDARD_DRAFT_RULEBOOK: DraftRulebook = {
   interactions: [],
 }
 
+export const SIMPLE_WEIGHTED_DRAFT_RULEBOOK: DraftRulebook = {
+  ...STANDARD_DRAFT_RULEBOOK,
+  identifier: {
+    id: SIMPLE_WEIGHTED_DRAFT_RULEBOOK_ID,
+    name: 'Simple Weighted',
+    description: 'Pick 1 of 4 from the current Global Pool using Dev Lax pull odds.',
+    createdAt: '2026-11-08T00:00:00.000Z',
+    revision: '1',
+  },
+  generalRules: {
+    ...STANDARD_DRAFT_RULEBOOK.generalRules,
+    offerSize: 4,
+    pullDistribution: weightedHeadhuntingBuckets(DEV_LAX_PULL_WEIGHTS),
+  },
+}
+
 export const DEV_STRICT_DRAFT_RULEBOOK: DraftRulebook = {
   schemaVersion: DRAFT_RULEBOOK_SCHEMA_VERSION,
   identifier: {
@@ -196,7 +214,7 @@ export const DEV_LAX_DRAFT_RULEBOOK: DraftRulebook = {
       maxActiveSlots: 12,
     },
     economyRules: balanceEconomy(70),
-    pullDistribution: weightedHeadhuntingBuckets({ '3': 15, '4': 40, '5': 30, '6': 15 }),
+    pullDistribution: weightedHeadhuntingBuckets(DEV_LAX_PULL_WEIGHTS),
   },
   pool: { source: 'inherit-global' },
   overrides: { operatorCosts: {} },
@@ -205,6 +223,7 @@ export const DEV_LAX_DRAFT_RULEBOOK: DraftRulebook = {
 
 export const BUILT_IN_DRAFT_RULEBOOKS: readonly DraftRulebook[] = [
   STANDARD_DRAFT_RULEBOOK,
+  SIMPLE_WEIGHTED_DRAFT_RULEBOOK,
   ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
   DEV_LAX_DRAFT_RULEBOOK,
   DEV_STRICT_DRAFT_RULEBOOK,

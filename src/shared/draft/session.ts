@@ -101,8 +101,11 @@ function completeIfNoValidMove(
     : completeState(state, 'no-valid-move')
 }
 
-function appendDiscarded(current: readonly string[], additions: readonly string[]): string[] {
-  return [...new Set([...current, ...additions])]
+function resolveUnpickedOffer(state: DraftState, keptId: string | null, banish = false) {
+  const unpickedIds = state.currentOfferIds.filter((id) => id !== keptId)
+  return banish
+    ? { discardedOperatorIds: [...state.discardedOperatorIds, ...unpickedIds] }
+    : { discardPileOperatorIds: [...(state.discardPileOperatorIds ?? []), ...unpickedIds] }
 }
 
 function beginNextRound(
@@ -151,6 +154,7 @@ function beginNextRound(
     {
       ...nextBase,
       currentOfferIds: offer.ids,
+      discardPileOperatorIds: offer.discardPileOperatorIds,
       history: recordHistoryOffer(nextBase.history, nextBase.roundNumber, offer.ids, 'round-start'),
       pullsSinceSixStar: offer.pullsSinceSixStar,
       generatedCandidateCount: offer.generatedCandidateCount,
@@ -187,6 +191,7 @@ export function startDraft(
     draftedOperatorIds: [],
     currentOfferIds: [],
     discardedOperatorIds: [],
+    discardPileOperatorIds: [],
     heldOperatorId: null,
     holdUpkeepCharges: 0,
     roundNumber: 1,
@@ -213,6 +218,7 @@ export function startDraft(
         {
           ...base,
           currentOfferIds: offer.ids,
+          discardPileOperatorIds: offer.discardPileOperatorIds,
           history: recordHistoryOffer(base.history, base.roundNumber, offer.ids, 'initial'),
           pullsSinceSixStar: offer.pullsSinceSixStar,
           generatedCandidateCount: offer.generatedCandidateCount,
@@ -256,6 +262,7 @@ export function applyDraftAction(
       return beginNextRound(
         {
           ...state,
+          ...resolveUnpickedOffer(state, action.operatorId),
           draftedOperatorIds: [...state.draftedOperatorIds, action.operatorId],
           heldOperatorId: fromHold ? null : state.heldOperatorId,
           holdUpkeepCharges: fromHold ? 0 : retainedHoldUpkeepCharges,
@@ -269,18 +276,12 @@ export function applyDraftAction(
       )
     }
     case 'hold': {
-      const discarded = actionRules.hold.discardUnheldOffer
-        ? appendDiscarded(
-            state.discardedOperatorIds,
-            state.currentOfferIds.filter((id) => id !== action.operatorId),
-          )
-        : state.discardedOperatorIds
       return beginNextRound(
         {
           ...state,
+          ...resolveUnpickedOffer(state, action.operatorId, actionRules.hold.discardUnheldOffer),
           heldOperatorId: action.operatorId,
           holdUpkeepCharges: 0,
-          discardedOperatorIds: discarded,
           points,
           actionUsage,
           history,
@@ -304,13 +305,10 @@ export function applyDraftAction(
         configuration,
       )
     case 'forfeit': {
-      const discarded = actionRules.forfeit.discardOffer
-        ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds)
-        : state.discardedOperatorIds
       return beginNextRound(
         {
           ...state,
-          discardedOperatorIds: discarded,
+          ...resolveUnpickedOffer(state, null, actionRules.forfeit.discardOffer),
           forfeitedCapacityCount: capacityRules.enabled
             ? state.forfeitedCapacityCount + 1
             : state.forfeitedCapacityCount,
@@ -325,12 +323,9 @@ export function applyDraftAction(
       )
     }
     case 'reroll': {
-      const discarded = actionRules.reroll.discardOffer
-        ? appendDiscarded(state.discardedOperatorIds, state.currentOfferIds)
-        : state.discardedOperatorIds
       const next: DraftState = {
         ...state,
-        discardedOperatorIds: discarded,
+        ...(actionRules.reroll.discardOffer && resolveUnpickedOffer(state, null, true)),
         points,
         actionUsage,
         history,
@@ -342,6 +337,7 @@ export function applyDraftAction(
             {
               ...next,
               currentOfferIds: offer.ids,
+              discardPileOperatorIds: offer.discardPileOperatorIds,
               history: recordHistoryOffer(next.history, next.roundNumber, offer.ids, 'reroll'),
               pullsSinceSixStar: offer.pullsSinceSixStar,
               generatedCandidateCount: offer.generatedCandidateCount,

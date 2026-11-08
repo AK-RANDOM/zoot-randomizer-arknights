@@ -20,6 +20,56 @@ import { useOperatorAppearanceAvatar } from './operatorAppearance'
 
 const historyForfeitIconUrl = new URL('./assets/draft/forfeit-icon.png', import.meta.url).href
 
+function DraftPilesDebug({
+  state,
+  operatorById,
+}: {
+  state: DraftState
+  operatorById: ReadonlyMap<string, Operator>
+}): React.JSX.Element {
+  const piles = [
+    { label: 'Graveyard', ids: state.discardedOperatorIds },
+    { label: 'Discard Pile', ids: state.discardPileOperatorIds ?? [] },
+  ]
+
+  return (
+    <details className="draft-piles-debug">
+      <summary>Debug: Inspect piles</summary>
+      <div className="draft-piles-debug__contents">
+        {piles.map(({ label, ids }) => (
+          <section className="garrison-participants" key={label} aria-label={label}>
+            <div className="garrison-participant-heading">
+              <strong>{label}</strong>
+              <span>{ids.length} {ids.length === 1 ? 'operator' : 'operators'}</span>
+            </div>
+            {ids.length === 0 ? (
+              <p>Empty</p>
+            ) : (
+              <div className="garrison-participant-list">
+                {ids.map((id) => {
+                  const operator = operatorById.get(id)
+                  return operator ? (
+                    <DraftHistoryOperatorIcon key={id} operator={operator} />
+                  ) : (
+                    <span
+                      className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
+                      key={id}
+                      title={id}
+                      aria-label={id}
+                    >
+                      ?
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
   const { imageUrl } = useOperatorAppearanceAvatar(operator)
 
@@ -355,6 +405,9 @@ export default function DraftSessionView({
         <DraftProbabilitySummary
           distribution={configuration?.pullDistribution ?? rulebook.generalRules.pullDistribution}
         />
+      )}
+      {import.meta.env.DEV && state && (
+        <DraftPilesDebug state={state} operatorById={operatorById} />
       )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">

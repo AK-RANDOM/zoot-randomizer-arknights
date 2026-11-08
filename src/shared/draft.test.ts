@@ -103,14 +103,15 @@ describe('Draft milestone 1 engine', () => {
     expect(state.draftedOperatorIds).toHaveLength(2)
   })
 
-  it('adds only the selected operator and allows unchosen candidates to return', () => {
+  it('draws fresh operators before recycling unpicked cards', () => {
     const pool = roster(6)
     const initial = startDraft(pool, 4, { random: () => 0 })
     const next = pickDraftOperator(initial, pool, 'char_2', { random: () => 0 })
 
     expect(next.draftedOperatorIds).toEqual(['char_2'])
-    expect(next.currentOfferIds).toEqual(['char_1', 'char_3', 'char_4'])
-    expect(next.currentOfferIds).not.toContain('char_2')
+    expect(next.currentOfferIds).toEqual(['char_4', 'char_5', 'char_6'])
+    const recycled = pickDraftOperator(next, pool, 'char_4', { random: () => 0 })
+    expect(recycled.currentOfferIds).toEqual(['char_1', 'char_3', 'char_5'])
   })
 
   it('reaches the configured squad size when enough operators remain for every offer', () => {
@@ -162,7 +163,7 @@ describe('Draft milestone 1 engine', () => {
     expect(next.draftedOperatorIds).toEqual(['char_5'])
     expect(observedCandidateIds).toEqual([
       ['char_1', 'char_2', 'char_3', 'char_4', 'char_5', 'char_6'],
-      ['char_1', 'char_2', 'char_3', 'char_4', 'char_6'],
+      ['char_1', 'char_2', 'char_3'],
     ])
   })
 

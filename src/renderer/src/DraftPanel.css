@@ -33,6 +33,15 @@
   margin: 0;
 }
 
+.draft-piles-debug > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.draft-piles-debug__contents {
+  margin-top: 8px;
+}
+
 .draft-status-shell {
   display: flex;
   align-items: stretch;

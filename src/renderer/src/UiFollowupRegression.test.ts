@@ -14,11 +14,8 @@ describe('Standard and Draft UI follow-up', () => {
     expect(standard).toContain('<TextInputDialog')
   })
 
-  it('shrinks the whole Draft decision strip uniformly and gives Forfeit operator-card hover motion', () => {
-    const view = read('./DraftDecisionPlane.tsx')
+  it('gives Forfeit operator-card hover motion', () => {
     const css = read('./DraftDecisionPlane.css')
-    expect(view).toContain('const stripCardCount = offerCardCount + sideCardCount')
-    expect(css).toContain('grid-template-columns: repeat(var(--draft-strip-count), minmax(0, 1fr))')
     expect(css).toContain('transform: translateY(-2px)')
     expect(css).not.toContain('outline: 2px solid #fff')
   })

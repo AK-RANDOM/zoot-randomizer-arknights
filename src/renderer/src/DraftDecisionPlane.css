@@ -1,33 +1,48 @@
 .draft-decision-plane {
-  --draft-play-card-width: auto;
-  display: grid;
+  --draft-card-gap: 12px;
+  --draft-min-card-width: 140px;
+  --draft-max-card-width: 174px;
+  display: flex;
+  flex-wrap: wrap;
   width: 100%;
-  grid-template-columns: repeat(var(--draft-strip-count), minmax(0, 1fr));
+  max-width: calc(
+    var(--draft-strip-count) * (var(--draft-max-card-width) + var(--draft-card-gap)) -
+      var(--draft-card-gap) + 8px
+  );
   align-items: flex-start;
   justify-content: center;
-  gap: 12px;
+  gap: var(--draft-card-gap) 20px;
   margin: 0 auto 12px;
 }
 
 .draft-decision-group {
   min-width: 0;
 }
-.draft-decision-group--offers {
-  width: 100%;
-}
+.draft-decision-group--offers,
 .draft-decision-side-rail {
-  display: grid;
-  margin-left: 8px;
-  min-width: 0;
-  align-items: flex-start;
-  gap: 12px;
+  /* The groups wrap as a unit when the cards would become too narrow. */
+  flex-grow: var(--draft-group-count);
+  flex-basis: calc(
+    var(--draft-group-count) * (var(--draft-min-card-width) + var(--draft-card-gap)) -
+      var(--draft-card-gap)
+  );
+  max-width: min(
+    100%,
+    calc(
+      var(--draft-group-count) * (var(--draft-max-card-width) + var(--draft-card-gap)) -
+        var(--draft-card-gap)
+    )
+  );
 }
+.draft-decision-side-rail,
 .draft-decision-offer-grid {
   display: grid;
+  grid-template-columns: repeat(var(--draft-group-count), minmax(0, 1fr));
   min-width: 0;
-  gap: 12px;
-  justify-content: center;
-  margin-inline: auto;
+  gap: var(--draft-card-gap);
+}
+.draft-decision-side-rail {
+  align-items: flex-start;
 }
 .draft-decision-offer-grid > *,
 .draft-decision-side-rail > * {

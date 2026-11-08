@@ -126,23 +126,9 @@ export default function DraftDecisionPlane({
   const sideCardCount = (configuration.actionRules.hold.enabled ? 1 : 0) + (forfeit ? 1 : 0)
   const offerCardCount = Math.max(1, offeredOperators.length)
   const stripCardCount = offerCardCount + sideCardCount
-  const stripGap = 12
-  const stripMaxWidth = stripCardCount * 174 + Math.max(0, stripCardCount - 1) * stripGap
-  const planeStyle = {
-    '--draft-strip-count': stripCardCount,
-    maxWidth: `${stripMaxWidth}px`,
-  } as CSSProperties
-  const offersGroupStyle = { gridColumn: `span ${offerCardCount}` } satisfies CSSProperties
-  const offerGridStyle = {
-    gridTemplateColumns: `repeat(${offerCardCount}, minmax(0, 1fr))`,
-  } satisfies CSSProperties
-  const sideRailStyle =
-    sideCardCount > 0
-      ? ({
-          gridColumn: `span ${sideCardCount}`,
-          gridTemplateColumns: `repeat(${sideCardCount}, minmax(0, 1fr))`,
-        } satisfies CSSProperties)
-      : undefined
+  const planeStyle = { '--draft-strip-count': stripCardCount } as CSSProperties
+  const offersGroupStyle = { '--draft-group-count': offerCardCount } as CSSProperties
+  const sideRailStyle = { '--draft-group-count': sideCardCount } as CSSProperties
 
   return (
     <div className="draft-decision-plane" style={planeStyle} aria-label="Current Draft decision">
@@ -151,7 +137,7 @@ export default function DraftDecisionPlane({
         aria-label="Current offers"
         style={offersGroupStyle}
       >
-        <div className="draft-decision-offer-grid" style={offerGridStyle}>
+        <div className="draft-decision-offer-grid">
           {offeredOperators.map((operator) => {
             const presentation = resolveDraftOperatorPresentation(
               state,

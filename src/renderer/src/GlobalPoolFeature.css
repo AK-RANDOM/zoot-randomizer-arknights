@@ -2,6 +2,10 @@
   margin-top: 14px;
 }
 
+.release-group > .option-toggle {
+  margin-top: 10px;
+}
+
 .release-bounds-grid,
 .source-filter-layout {
   display: grid;
@@ -37,6 +41,7 @@
 .release-preview {
   grid-column: 1 / -1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -77,6 +82,14 @@
   align-items: center;
   justify-content: flex-end;
   gap: 5px;
+  max-width: 100%;
+}
+
+.release-preview__portraits .release-representative {
+  flex: 0 1 42px;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
 }
 
 .release-representative {
@@ -114,10 +127,6 @@
   font-size: 0.68rem;
 }
 
-.source-filter-layout {
-  margin-top: 14px;
-}
-
 .source-filter-group {
   display: grid;
   align-content: start;
@@ -132,8 +141,10 @@
 }
 
 .source-standalone {
+  display: flex;
   min-height: 39px;
-  padding: 9px 11px;
+  align-items: center;
+  padding: 5px 8px 5px 36px;
 }
 
 .source-tree-heading {

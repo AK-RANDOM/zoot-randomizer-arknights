@@ -33,6 +33,33 @@ const operators: Operator[] = definitions.map(([id, name, date]) => ({
 }))
 
 describe('slot subclass catalog under Global Filter exclusions', () => {
+  it('counts only Curate-available subclasses after disabling one', () => {
+    const constraints = createDefaultConstraints()
+    constraints.squadSize = 1
+    const pool = operators.slice(0, 5)
+    const html = renderToStaticMarkup(
+      createElement(SquadConstraintEditor, {
+        slotIndex: 0,
+        value: {
+          classes: ['Vanguard'],
+          rarities: [],
+          subclasses: definitions.slice(1).map(([id]) => id),
+        },
+        constraints,
+        operators: pool,
+        subclassReferenceOperators: operators,
+        resetValue: { rarities: [], classes: [] },
+        onApply: () => {},
+        onClose: () => {},
+      }),
+    )
+    expect(html).toContain('4 of 6 subclasses active')
+    expect(html).not.toContain('5 of 6 subclasses active')
+    expect(html).toContain('Show all eligible')
+    expect(html).toContain('>All</button>')
+    expect(html).toContain('>None</button>')
+  })
+
   it('uses all six Vanguard branches even when the effective pool contains only two', () => {
     const constraints = createDefaultConstraints()
     constraints.squadSize = 1
@@ -83,7 +110,7 @@ describe('slot subclass catalog under Global Filter exclusions', () => {
     expect(positions.every((position) => position >= 0)).toBe(true)
     expect(positions).toEqual([...positions].sort((left, right) => left - right))
     expect(html).toContain(
-      'Agent — active. No eligible operators with the current filters and slot criteria.',
+      'Agent — inactive. No eligible operators with the current filters and slot criteria.',
     )
     expect(html).toContain('Charger — active')
     expect(html).toContain('Tactician — inactive')

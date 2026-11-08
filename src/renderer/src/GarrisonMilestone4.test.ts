@@ -24,7 +24,7 @@ describe('Garrison Squad M4 cross-stage duplicate policy', () => {
     expect(editor).toContain('crossStageAssignments')
     expect(editor).toContain('disabled: Boolean(reason)')
     expect(editor).toContain('Assigned to')
-    expect(editor).toContain('remain visible but unavailable')
+    expect(editor).toContain('appear in search but are unavailable')
     expect(editor).toContain('if (!option || option.disabled) return')
   })
 

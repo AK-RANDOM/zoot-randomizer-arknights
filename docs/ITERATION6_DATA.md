@@ -26,17 +26,8 @@ Character records expose `nationId`, `groupId`, `teamId`, and a `mainPower` obje
 - Display labels come from `handbook_team_table.json`.
 - CN and EN handbook catalogs are merged because CN can contain factions for operators not yet available globally. EN entries override matching CN entries so localized Global labels are preferred when available.
 
-## Kernel era cutoff
+## Standard acquisition groups
 
-Kernel-era is a release-date classification, not literal Kernel Headhunting membership. It applies equally to Standard, Limited, collaboration, and Welfare operators.
+The selected metadata region determines which Kernel roster applies. Standard 5★ and 6★ operators in that roster appear under Kernel, and the rest appear under Post-Kernel. Standard operators of lower rarity have their own toggle.
 
-Current maintained inclusive cutoffs:
-
-- EN / Global: `2023-03-14` — Dorothy / Dorothy's Vision release boundary, following the October 9, 2026 Kernel expansion. The [official October event notice](https://www.arknights.global/news/4814) confirms Dorothy and Goldenglow in Kernel Locating.
-- CN: `2022-07-05` — Dorothy / Dorothy's Vision release boundary in the current migrated Kernel range.
-
-Operators released on the cutoff date are `kernel`; operators released after it are `postKernel`.
-
-Verified on October 30, 2026. CN remains at the existing Dorothy boundary. These are era cutoffs rather than exact banner rosters: Global's different release order can place operators from other banners within the same era.
-
-The selected metadata region will choose the corresponding release date and cutoff when the Iteration 6 eligibility layer is implemented.
+As of November 7, 2026, CN and Global share the same 5★ and 6★ Kernel roster through the Dorothy migration. The app tracks membership by operator ID so Global's release order and missing release dates do not affect the split. [Global Kernel update](https://www.arknights.global/news/4814), [CN migration notice](https://ak.hypergryph.com/news/6252)

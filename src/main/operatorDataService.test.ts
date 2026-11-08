@@ -58,6 +58,36 @@ function fixture(version: number, date: string) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('operator dataset normalization upgrades', () => {
+  it('corrects Recruitment and Credit Shop assignments in cached data offline', async () => {
+    const cached = fixture(OPERATOR_DATA_PIPELINE_VERSION, '2026-11-01')
+    const expectedGroups = {
+      char_385_finlpp: 'recruitment',
+      char_198_blackd: 'creditShop',
+      char_187_ccheal: 'creditShop',
+      char_260_durnar: 'creditShop',
+    }
+    for (const [index, id] of Object.keys(expectedGroups).entries()) {
+      cached.operators[index] = {
+        ...cached.operators[index],
+        id,
+        imageFile: `operators/${id}.png`,
+        acquisition:
+          id === 'char_385_finlpp'
+            ? { family: 'standard', group: null }
+            : { family: 'welfare', group: 'eventStory' },
+      }
+    }
+    vi.mocked(readFile).mockResolvedValue(JSON.stringify(cached))
+
+    const { operators } = await getOperatorDataset()
+    for (const [id, group] of Object.entries(expectedGroups)) {
+      expect(operators.find((operator) => operator.id === id)?.acquisition).toEqual({
+        family: 'welfare',
+        group,
+      })
+    }
+  })
+
   it('uses corrected bundled dates offline instead of the same-source preload cache', async () => {
     const old = fixture(1, '2026-10-29')
     const corrected = fixture(OPERATOR_DATA_PIPELINE_VERSION, '2026-11-01')

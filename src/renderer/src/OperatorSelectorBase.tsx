@@ -77,6 +77,7 @@ export default function OperatorSelector({
   placeholder = 'Search operators…',
   disabled = false,
   includeInternalId = true,
+  allowShowAll = false,
 }: {
   options: readonly OperatorSelectorOption[]
   valueKey: string | null
@@ -84,27 +85,53 @@ export default function OperatorSelector({
   placeholder?: string
   disabled?: boolean
   includeInternalId?: boolean
+  allowShowAll?: boolean
 }): React.JSX.Element {
   const [search, setSearch] = useState('')
+  const [showAll, setShowAll] = useState(false)
   const selected = options.find((option) => option.key === valueKey) ?? null
   const hasSearch = search.trim().length > 0
   const visible = useMemo(
-    () => (hasSearch ? filterOperatorSelectorOptions(options, search, 60, includeInternalId) : []),
-    [hasSearch, includeInternalId, options, search],
+    () =>
+      showAll
+        ? options.filter((option) => !option.disabled)
+        : hasSearch
+          ? filterOperatorSelectorOptions(options, search, 60, includeInternalId)
+          : [],
+    [showAll, hasSearch, includeInternalId, options, search],
   )
 
   return (
     <div className="operator-selector">
-      <label className="operator-selector-search">
-        <span className="sr-only">Search operators</span>
-        <input
-          type="search"
-          value={search}
-          placeholder={placeholder}
-          disabled={disabled}
-          onChange={(event) => setSearch(event.target.value)}
-        />
-      </label>
+      <div className="operator-selector-search-row">
+        <label className="operator-selector-search">
+          <span className="sr-only">Search operators</span>
+          <input
+            type="search"
+            value={search}
+            placeholder={placeholder}
+            disabled={disabled}
+            onChange={(event) => {
+              setSearch(event.target.value)
+              setShowAll(false)
+            }}
+          />
+        </label>
+        {allowShowAll && (
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={disabled}
+            aria-pressed={showAll}
+            onClick={() => {
+              setSearch('')
+              setShowAll((current) => !current)
+            }}
+          >
+            Show all eligible
+          </button>
+        )}
+      </div>
       {selected && (
         <div className="operator-selector-selected" data-rarity={selected.operator.rarity}>
           <OperatorAvatar operator={selected.operator} />
@@ -123,7 +150,7 @@ export default function OperatorSelector({
           </button>
         </div>
       )}
-      {hasSearch && (
+      {(hasSearch || showAll) && (
         <div className="operator-selector-results" role="listbox" aria-label="Eligible operators">
           {visible.map((option) => (
             <button

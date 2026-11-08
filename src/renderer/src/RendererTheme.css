@@ -105,9 +105,12 @@
     0 8px 20px rgba(0, 0, 0, 0.28);
 }
 
-.squad-grid .slot-config-card:not(.is-constrained),
-.squad-grid .disabled-slot {
+.squad-grid .slot-config-card:not(.is-constrained) {
   border: 3px solid #66666e;
+}
+
+.squad-grid .disabled-slot {
+  border: 3px dashed #66666e;
 }
 
 .squad-grid .slot-config-card,
@@ -120,7 +123,7 @@
   object-position: top center;
 }
 
-/* Keep a normal panel gap between Release and the Kernel/Alter filter stack. */
+/* Keep a normal panel gap between Release and the filters below it. */
 .operators-panel > .release-group + .operator-filter-layout {
   margin-top: 1rem;
 }
@@ -154,6 +157,7 @@ body {
 }
 
 .randomize-button:hover:not(:disabled),
+.draft-operator-action--pick:hover:not(:disabled),
 .update-banner button:hover:not(:disabled) {
   background: var(--app-accent-hover);
 }
@@ -290,16 +294,4 @@ body {
   border: 0;
   border-radius: 1px;
   box-shadow: none;
-}
-
-/* Shared locked-capacity artwork: Draft locked slots and Standard unavailable slots use the same asset. */
-.squad-grid .disabled-slot::before {
-  width: 40px;
-  max-width: 44%;
-  aspect-ratio: 1 / 1;
-  margin-inline: auto;
-  content: '';
-  background: url('./assets/draft/locked-slot-icon.png') center / contain no-repeat;
-  opacity: 0.42;
-  pointer-events: none;
 }

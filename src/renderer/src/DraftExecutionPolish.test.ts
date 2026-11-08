@@ -91,7 +91,7 @@ describe('Draft execution polish', () => {
     expect(grid).not.toContain('<strong>Empty</strong>')
     expect(grid).not.toContain('Temporary slot')
     expect(grid).not.toContain('<strong>Expand</strong>')
-    expect(grid).toContain('aria-label={`Expand capacity, ${economyLabel}`}')
+    expect(grid).toContain('aria-label={`Expand capacity, ${economyLabel}${waitLabel')
     expect(css).toContain('font-size: 2.8rem;')
   })
 

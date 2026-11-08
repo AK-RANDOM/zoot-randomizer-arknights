@@ -15,6 +15,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
 import { OPERATOR_DATA_PIPELINE_VERSION, type OperatorDataset } from '../shared/operator'
+import { welfareAcquisitionOverride } from '../shared/acquisitionMetadata'
 import { operatorDatasetNeedsSkinMetadataRefresh } from '../shared/skinMetadata'
 import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
 import {
@@ -78,7 +79,17 @@ async function readDataset(path: string): Promise<OperatorDataset | null> {
       (parsed as { schemaVersion?: unknown }).schemaVersion === 4
     const upgraded = upgradeLegacyOperatorDataset(parsed)
     const validation = validateOperatorDataset(upgraded, { requireSourceCommits: !legacy })
-    return validation.valid ? (upgraded as OperatorDataset) : null
+    if (!validation.valid) return null
+
+    const dataset = upgraded as OperatorDataset
+    return {
+      ...dataset,
+      // Older bundled and downloaded data already contain these operators.
+      operators: dataset.operators.map((operator) => {
+        const acquisition = welfareAcquisitionOverride(operator.id)
+        return acquisition ? { ...operator, acquisition } : operator
+      }),
+    }
   } catch {
     return null
   }

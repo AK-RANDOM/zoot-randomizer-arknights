@@ -14,7 +14,7 @@ describe('Garrison event quick-add toolbar', () => {
   })
   it('uses an event select, category select and Add Event with spacer before a single history toggle', () => {
     const code = source('./GarrisonSquadFeature.tsx')
-    expect(code).toContain('aria-label="Event name"')
+    expect(code).toContain('label="Event name"')
     expect(code).toContain('aria-label="Stage type"')
     expect(code).toContain('Standard Stage')
     expect(code).toContain('EX Stage')
@@ -26,10 +26,10 @@ describe('Garrison event quick-add toolbar', () => {
     expect(code).not.toContain('onClick={undoEdit}')
     expect(code).not.toContain('onClick={redoEdit}')
   })
-  it('shows Main Story and Side Story optgroups in the event dropdown', () => {
+  it('preserves Main Story and Side Story groups in the shared dropdown', () => {
     const code = source('./GarrisonSquadFeature.tsx')
-    expect(code).toContain("label={group === 'main' ? 'Main Story' : 'Side Story'}")
-    expect(code).toContain('event.group === group')
+    expect(code).toContain("groups={['Main Story', 'Side Story']}")
+    expect(code).toContain("group: event.group === 'main' ? 'Main Story' : 'Side Story'")
     const service = source('../../main/garrisonEventCatalogService.ts')
     expect(service).toContain('cache.version === CATALOG_VERSION')
   })
@@ -51,7 +51,9 @@ describe('Garrison event quick-add toolbar', () => {
     expect(code).toContain('value={selectedStageType}')
   })
   it('loads the catalog through the desktop API and offers cached offline use', () => {
-    expect(source('./GarrisonSquadFeature.tsx')).toContain('window.desktop.getGarrisonEvents(metadataRegion, gameLocale)')
+    expect(source('./GarrisonSquadFeature.tsx')).toContain(
+      'window.desktop.getGarrisonEvents(metadataRegion, gameLocale)',
+    )
     expect(source('../../main/garrisonEventCatalogService.ts')).toContain(
       'if (cache) return cache.events',
     )

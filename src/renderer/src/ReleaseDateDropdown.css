@@ -1,0 +1,86 @@
+.release-bound-card .release-date-field {
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.release-date-dropdown {
+  position: relative;
+  min-width: 0;
+}
+.release-date-dropdown summary,
+.release-date-options button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 5px 8px;
+  border: 1px solid #3b3b41;
+  border-radius: 4px;
+  background: #0f0f11;
+  color: #ededf0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+.release-date-dropdown summary {
+  list-style: none;
+}
+.release-date-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+.release-date-chevron {
+  margin-left: auto;
+}
+.release-date-options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 360px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid #3b3b41;
+  background: #111113;
+  box-shadow: 0 8px 24px #0009;
+}
+.release-date-options button {
+  border-color: transparent;
+  border-radius: 0;
+}
+.release-date-options button:hover,
+.release-date-options button:focus-visible,
+.release-date-options button[aria-pressed='true'] {
+  background: #29292f;
+}
+.release-date-dropdown .garrison-event-helper-avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  overflow: hidden;
+  border-radius: 3px;
+}
+.release-date-dropdown .garrison-event-helper-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.garrison-event-picker .release-date-field {
+  width: 100%;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.event-selector-group-title {
+  display: block;
+  padding: 8px;
+  color: #aaaab2;
+  font-size: 0.72rem;
+}
+.release-date-dropdown summary[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

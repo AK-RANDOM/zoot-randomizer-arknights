@@ -62,6 +62,7 @@ describe('Iteration 6 Pool persistence model', () => {
       accountFilterMode: 'ignore',
       accountProgressionMin: { elite: 0, level: 1 },
       accountProgressionMax: { elite: 2, level: 90 },
+      accountIncludeCappedLowRarity: false,
       showAccountProgression: false,
       showCurateNames: false,
       excludedOperatorIds: [],
@@ -86,6 +87,7 @@ describe('Iteration 6 Pool persistence model', () => {
       accountFilterMode: 'ignore',
       accountProgressionMin: { elite: 0, level: 1 },
       accountProgressionMax: { elite: 2, level: 90 },
+      accountIncludeCappedLowRarity: false,
       showAccountProgression: false,
       showCurateNames: false,
       excludedOperatorIds: ['char_a', 'char_b'],
@@ -180,6 +182,38 @@ describe('Iteration 6 Pool persistence model', () => {
       'char_old',
       'char_new',
     ])
+  })
+
+  it('waives unattainable progression minimums only for owned low-rarity operators', () => {
+    const operators = [
+      operator('one', '2024-01-01', { rarity: 1 }),
+      operator('two', '2024-01-01', { rarity: 2 }),
+      operator('three', '2024-01-01', { rarity: 3 }),
+      operator('unowned', '2024-01-01', { rarity: 3 }),
+      operator('four', '2024-01-01', { rarity: 4 }),
+    ]
+    const snapshot: ImportedArknightsAccount = {
+      schemaVersion: 1,
+      server: 'en',
+      operators: [
+        { operatorId: 'one', elite: 0, level: 1 },
+        { operatorId: 'two', elite: 0, level: 1 },
+        { operatorId: 'three', elite: 1, level: 29 },
+        { operatorId: 'four', elite: 2, level: 1 },
+      ],
+      ownedSkinIds: [],
+      fetchedAt: '2026-10-17T00:00:00.000Z',
+    }
+    const filter = (minimum: { elite: 0 | 1 | 2; level: number }, enabled = true) =>
+      applyAccountFilter(operators, snapshot, 'progression', minimum, { elite: 2, level: 90 }, enabled)
+        .map(({ id }) => id)
+
+    expect(filter({ elite: 0, level: 30 })).toEqual(['three', 'four'])
+    expect(filter({ elite: 1, level: 1 })).toEqual(['one', 'two', 'three', 'four'])
+    expect(filter({ elite: 1, level: 30 })).toEqual(['one', 'two', 'four'])
+    expect(filter({ elite: 1, level: 55 })).toEqual(['one', 'two', 'four'])
+    expect(filter({ elite: 2, level: 1 })).toEqual(['one', 'two', 'three', 'four'])
+    expect(filter({ elite: 2, level: 1 }, false)).toEqual(['four'])
   })
 
   it('applies account ownership and progression inside the Global Filter before Curate exclusions', () => {

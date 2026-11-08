@@ -2,11 +2,14 @@ import {
   limitedAcquisitionGroups,
   operatorClasses,
   operatorRarities,
+  standardAcquisitionGroups,
   welfareAcquisitionGroups,
   type LimitedAcquisitionGroup,
   type OperatorClass,
+  type OperatorGender,
   type OperatorRarity,
   type ReleaseServer,
+  type StandardAcquisitionGroup,
   type WelfareAcquisitionGroup,
 } from './operator'
 
@@ -40,7 +43,6 @@ export type RarityGroupKey = keyof typeof rarityGroupDefinitions
 export const rarityGroupKeys = Object.keys(rarityGroupDefinitions) as RarityGroupKey[]
 
 export type FactionMatchMode = 'main' | 'any'
-export type OperatorEraFilter = 'all' | 'kernel' | 'postKernel'
 
 export interface ReleaseConstraint {
   /** Region-wide metadata source for all region-dependent eligibility. */
@@ -49,11 +51,12 @@ export interface ReleaseConstraint {
   maxYear: number | null
   minDate: string
   maxDate: string
+  ignoreBoundsForLowRarity?: boolean
 }
 
 export interface AcquisitionConstraint {
   limited: Record<LimitedAcquisitionGroup, boolean>
-  standard: boolean
+  standard: Record<StandardAcquisitionGroup, boolean>
   welfare: Record<WelfareAcquisitionGroup, boolean>
 }
 
@@ -95,7 +98,7 @@ export interface RandomizerConstraints extends SquadConfiguration {
   faction: FactionConstraint
   /** Optional only for backward compatibility with pre-M6 persisted/config objects. */
   race?: RaceConstraint
-  era: OperatorEraFilter
+  gender?: { excludedIds: OperatorGender[] }
   alterExclusivity: boolean
 }
 
@@ -131,7 +134,10 @@ export function createDefaultConstraints(): RandomizerConstraints {
         LimitedAcquisitionGroup,
         boolean
       >,
-      standard: true,
+      standard: Object.fromEntries(standardAcquisitionGroups.map((group) => [group, true])) as Record<
+        StandardAcquisitionGroup,
+        boolean
+      >,
       welfare: Object.fromEntries(welfareAcquisitionGroups.map((group) => [group, true])) as Record<
         WelfareAcquisitionGroup,
         boolean
@@ -151,7 +157,7 @@ export function createDefaultConstraints(): RandomizerConstraints {
     race: {
       excludedIds: [],
     },
-    era: 'all',
+    gender: { excludedIds: [] },
     alterExclusivity: false,
   }
 }
@@ -358,7 +364,7 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
   }
 
   const anyAcquisition =
-    constraints.acquisition.standard ||
+    Object.values(constraints.acquisition.standard).some(Boolean) ||
     Object.values(constraints.acquisition.limited).some(Boolean) ||
     Object.values(constraints.acquisition.welfare).some(Boolean)
   if (!anyAcquisition) errors.push('At least one acquisition category must be enabled.')
@@ -366,15 +372,9 @@ export function validateConstraintShape(constraints: RandomizerConstraints): str
   validateSparseIds('Subclass', constraints.subclass.excludedIds, errors)
   validateSparseIds('Faction', constraints.faction.excludedIds, errors)
   validateSparseIds('Race', constraints.race?.excludedIds ?? [], errors)
+  validateSparseIds('Gender', constraints.gender?.excludedIds ?? [], errors)
   if (constraints.faction.matchMode !== 'main' && constraints.faction.matchMode !== 'any') {
     errors.push('Faction match mode must be main or any affiliation.')
-  }
-  if (
-    constraints.era !== 'all' &&
-    constraints.era !== 'kernel' &&
-    constraints.era !== 'postKernel'
-  ) {
-    errors.push('Operator era filter must be all, kernel, or postKernel.')
   }
 
   return errors

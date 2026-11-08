@@ -286,6 +286,7 @@ export default function GarrisonStageEditor({
             </div>
             <div className="slot-editor-section garrison-operator-picker-search">
               <OperatorSelector
+                allowShowAll
                 options={operatorOptions}
                 valueKey={null}
                 includeInternalId={false}
@@ -298,7 +299,7 @@ export default function GarrisonStageEditor({
               />
               {!duplicateOperatorsAllowed && (
                 <small className="garrison-operator-picker-note">
-                  Operators already assigned to another stage remain visible but unavailable.
+                  Operators already assigned to another stage appear in search but are unavailable.
                 </small>
               )}
             </div>

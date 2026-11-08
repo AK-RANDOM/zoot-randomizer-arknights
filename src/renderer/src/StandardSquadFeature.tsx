@@ -581,7 +581,9 @@ export default function StandardSquadFeature({
               <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>
                 {!inRange ? (
                   <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}>
-                    <span className="slot-config-number">{slot}</span>
+                    <span className="slot-config-number" aria-hidden="true">
+                      /
+                    </span>
                     <span>Unavailable</span>
                     <small>Squad size {constraints.squadSize}</small>
                   </div>

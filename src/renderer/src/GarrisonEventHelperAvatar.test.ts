@@ -5,13 +5,11 @@ const feature = readFileSync(new URL('./GarrisonSquadFeature.tsx', import.meta.u
 const avatar = readFileSync(new URL('./GarrisonEventHelperAvatar.tsx', import.meta.url), 'utf8')
 
 describe('Garrison quick-add helper portrait', () => {
-  it('appears before the event select, but not inside the native dropdown', () => {
-    expect(feature.indexOf('<GarrisonEventHelperAvatar')).toBeLessThan(
-      feature.indexOf('aria-label="Event name"'),
-    )
-    expect(feature).toContain(
-      'garrisonEventHelperOperator(selectedEvent, operators, metadataRegion)',
-    )
+  it('uses the shared dropdown with a regional helper for each event', () => {
+    expect(feature).toContain('<EventSelectorDropdown')
+    const dropdown = readFileSync(new URL('./EventSelectorDropdown.tsx', import.meta.url), 'utf8')
+    expect(dropdown).toContain('<GarrisonEventHelperAvatar operator={option.representative}')
+    expect(feature).toContain('garrisonEventHelperOperator(event, operators, metadataRegion)')
   })
 
   it('uses the fixed default E0 avatar, not current appearance or elite artwork', () => {

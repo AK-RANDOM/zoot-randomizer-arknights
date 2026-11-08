@@ -13,6 +13,23 @@
   background: #0f0f11;
 }
 
+.operator-selector-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operator-selector-search-row .operator-selector-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.slot-editor .operator-selector-search input:focus {
+  border-color: #3b3b41;
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--app-accent) 30%, transparent);
+}
+
 .operator-selector-results {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

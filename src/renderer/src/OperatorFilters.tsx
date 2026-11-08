@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { RandomizerConstraints } from '../../shared/constraints'
-import { type OperatorClass, type OperatorDataset } from '../../shared/operator'
+import {
+  operatorGenders,
+  type OperatorClass,
+  type OperatorDataset,
+  type OperatorGender,
+} from '../../shared/operator'
 import {
   buildFactionTree,
   buildRaceFilterGroups,
@@ -8,27 +13,28 @@ import {
   buildSubclassFilterGroups,
   descendantFactionIds,
   factionNodeState,
+  regionalFilterDataset,
   type FactionNode,
 } from '../../shared/operatorFilterCatalog'
 import ClassIcon from './ClassIcon'
 import { FactionIcon, SubclassIcon } from './FilterAssetIcon'
 import './OperatorFilters.css'
 
-function withExclusion(current: readonly string[], id: string, enabled: boolean): string[] {
+function withExclusion<Id extends string>(current: readonly Id[], id: Id, enabled: boolean): Id[] {
   if (enabled) return current.filter((value) => value !== id)
   return current.includes(id) ? [...current] : [...current, id]
 }
 
-function FactionStateMark({
-  mixed,
-  enabled,
-}: {
-  mixed: boolean
-  enabled: boolean
-}): React.JSX.Element {
+const genderLabels: Record<OperatorGender, string> = {
+  male: 'Male',
+  female: 'Female',
+  other: 'Others',
+}
+
+function MixedFactionMark(): React.JSX.Element {
   return (
     <span className="operator-filter-faction-state" aria-hidden="true">
-      {mixed ? '−' : enabled ? '✓' : ''}
+      −
     </span>
   )
 }
@@ -54,7 +60,7 @@ function FactionChip({
     >
       <FactionIcon id={node.id} className="operator-filter-faction-chip-icon" />
       <span>{node.name}</span>
-      <FactionStateMark mixed={mixed} enabled={allEnabled} />
+      {mixed && <MixedFactionMark />}
     </button>
   )
 }
@@ -79,7 +85,7 @@ function FactionGroup({
       >
         <FactionIcon id={node.id} className="operator-filter-faction-icon" />
         <span className="operator-filter-faction-label">{node.name}</span>
-        <FactionStateMark mixed={mixed} enabled={allEnabled} />
+        {mixed && <MixedFactionMark />}
       </button>
       <div className="operator-filter-faction-child-chips">
         {node.children.map((child) => (
@@ -91,17 +97,24 @@ function FactionGroup({
 }
 
 export default function OperatorFilters({
-  dataset,
+  dataset: fullDataset,
   constraints,
   onChange,
-  afterEra,
+  sourceFilters,
 }: {
   dataset: OperatorDataset
   constraints: RandomizerConstraints
   onChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
-  afterEra?: ReactNode
+  sourceFilters?: ReactNode
 }): React.JSX.Element {
-  const subclassesByClass = useMemo(() => buildSubclassFilterGroups(dataset), [dataset])
+  const dataset = useMemo(
+    () => regionalFilterDataset(fullDataset, constraints.release.server),
+    [fullDataset, constraints.release.server],
+  )
+  const subclassesByClass = useMemo(
+    () => buildSubclassFilterGroups(dataset, fullDataset.operators),
+    [dataset, fullDataset],
+  )
   const raceGroups = useMemo(() => buildRaceFilterGroups(dataset), [dataset])
   const [selectedClass, setSelectedClass] = useState<OperatorClass | null>(null)
   const subclassFilterRef = useRef<HTMLFieldSetElement>(null)
@@ -149,17 +162,33 @@ export default function OperatorFilters({
   const setAllSubclassState = (enabled: boolean): void => {
     onChange((current) => ({
       ...current,
-      subclass: { excludedIds: enabled ? [] : [...allSubclassIds] },
+      subclass: {
+        excludedIds: enabled
+          ? current.subclass.excludedIds.filter((id) => !allSubclassIds.includes(id))
+          : [...new Set([...current.subclass.excludedIds, ...allSubclassIds])],
+      },
     }))
   }
   const setAllFactionState = (enabled: boolean): void => {
     onChange((current) => ({
       ...current,
-      faction: { ...current.faction, excludedIds: enabled ? [] : [...allFactionIds] },
+      faction: {
+        ...current.faction,
+        excludedIds: enabled
+          ? current.faction.excludedIds.filter((id) => !allFactionIds.includes(id))
+          : [...new Set([...current.faction.excludedIds, ...allFactionIds])],
+      },
     }))
   }
   const setAllRaceState = (enabled: boolean): void => {
-    onChange((current) => ({ ...current, race: { excludedIds: enabled ? [] : [...allRaceIds] } }))
+    onChange((current) => ({
+      ...current,
+      race: {
+        excludedIds: enabled
+          ? (current.race?.excludedIds ?? []).filter((id) => !allRaceIds.includes(id))
+          : [...new Set([...(current.race?.excludedIds ?? []), ...allRaceIds])],
+      },
+    }))
   }
   const setSelectedClassState = (enabled: boolean): void => {
     onChange((current) => {
@@ -194,31 +223,7 @@ export default function OperatorFilters({
 
   return (
     <div className="operator-filter-layout">
-      <fieldset className="constraint-group detail-group operator-filter-era-filter">
-        <legend>Kernel era</legend>
-        <label className="field">
-          <span>Release era</span>
-          <select
-            value={constraints.era}
-            onChange={(event) =>
-              onChange((current) => ({
-                ...current,
-                era: event.target.value as RandomizerConstraints['era'],
-              }))
-            }
-          >
-            <option value="all">All</option>
-            <option value="kernel">Kernel-era</option>
-            <option value="postKernel">Post-Kernel</option>
-          </select>
-        </label>
-        <p className="filter-note">
-          Kernel/Post-Kernel classifies 5★ and 6★ operators using the selected region&apos;s cutoff.
-          1★–4★ operators remain available in either mode when other filters pass.
-        </p>
-      </fieldset>
-
-      {afterEra}
+      {sourceFilters}
 
       <fieldset className="constraint-group detail-group special-rules-group">
         <legend>Alter Exclusivity</legend>
@@ -340,6 +345,57 @@ export default function OperatorFilters({
       </fieldset>
 
       <fieldset className="constraint-group detail-group operator-filter-faction-filter">
+        <legend>Gender</legend>
+        <div className="operator-filter-global-actions">
+          <span>All genders</span>
+          <div className="operator-filter-subclass-actions">
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => onChange((current) => ({ ...current, gender: { excludedIds: [] } }))}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() =>
+                onChange((current) => ({
+                  ...current,
+                  gender: { excludedIds: [...operatorGenders] },
+                }))
+              }
+            >
+              None
+            </button>
+          </div>
+        </div>
+        <div className="operator-filter-faction-standalone-chips">
+          {operatorGenders.map((id) => {
+            const enabled = !constraints.gender?.excludedIds.includes(id)
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`operator-filter-faction-chip operator-filter-race-chip is-standalone${enabled ? ' is-enabled' : ''}`}
+                aria-pressed={enabled}
+                onClick={() =>
+                  onChange((current) => ({
+                    ...current,
+                    gender: {
+                      excludedIds: withExclusion(current.gender?.excludedIds ?? [], id, !enabled),
+                    },
+                  }))
+                }
+              >
+                <span>{genderLabels[id]}</span>
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset className="constraint-group detail-group operator-filter-faction-filter">
         <legend>Race</legend>
         <div className="operator-filter-global-actions">
           <span>All races</span>
@@ -378,7 +434,6 @@ export default function OperatorFilters({
                         onClick={() => toggleRace(race.id, !enabled)}
                       >
                         <span>{race.name}</span>
-                        <FactionStateMark mixed={false} enabled={enabled} />
                       </button>
                     )
                   })}

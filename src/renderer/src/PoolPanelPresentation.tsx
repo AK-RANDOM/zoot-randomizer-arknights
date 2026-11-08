@@ -141,10 +141,10 @@ function comparePoolGroups(leftEntry, rightEntry, groupBy, constraints, directio
   return direction === 'asc' ? comparison : -comparison
 }
 function collapseAllPoolGroups(groups) {
-  return new Set(groups.map(([label]) => label))
+  return new Set<string>(groups.map(([label]) => label))
 }
 function expandAllPoolGroups() {
-  return new Set()
+  return new Set<string>()
 }
 function OperatorEntry({
   operator,

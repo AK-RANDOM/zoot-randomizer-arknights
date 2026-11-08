@@ -24,15 +24,30 @@ import {
   groupLabel,
 } from './PoolPanelPresentation'
 import './PoolPanel.css'
-function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
+import useCuratePresentation, { type CuratePresentation } from './useCuratePresentation'
+function PoolPanel({
+  dataset,
+  constraints,
+  preferences,
+  onPreferencesChange,
+  presentation = undefined as CuratePresentation | undefined,
+}) {
   const importedAccount = useImportedArknightsAccount() ?? null
   const [stateFilter, setStateFilter] = useState('all')
   const [search, setSearch] = useState('')
-  const [groupBy, setGroupBy] = useState('none')
-  const [groupDirection, setGroupDirection] = useState('asc')
-  const [operatorSort, setOperatorSort] = useState('default')
-  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
-  const [reversedGroups, setReversedGroups] = useState(() => new Set())
+  const localPresentation = useCuratePresentation()
+  const {
+    groupBy,
+    setGroupBy,
+    groupDirection,
+    setGroupDirection,
+    operatorSort,
+    setOperatorSort,
+    collapsedGroups,
+    setCollapsedGroups,
+    reversedGroups,
+    setReversedGroups,
+  } = presentation ?? localPresentation
   const [appearanceOperator, setAppearanceOperator] = useState(null)
   const globalFilterEligible = useMemo(
     () => buildGlobalFilterOperatorPool(dataset.operators, constraints),
@@ -75,12 +90,15 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       comparePoolGroups(left, right, groupBy, constraints, groupDirection),
     )
   }, [constraints, dataset, displayed, groupBy, groupDirection, importedAccount, operatorSort])
+  const visibleIds = groups
+    .filter(([label]) => groupBy === 'none' || !collapsedGroups.has(label))
+    .flatMap(([, operators]) => operators.map((operator) => operator.id))
   const setDisplayedExcluded = (excluded) => {
     onPreferencesChange({
       ...preferences,
       excludedOperatorIds: setDisplayedOperatorsExcluded(
         preferences.excludedOperatorIds,
-        displayed.map((operator) => operator.id),
+        visibleIds,
         excluded,
       ),
     })
@@ -129,7 +147,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
           <button
             className="secondary-button"
             type="button"
-            disabled={displayed.length === 0}
+            disabled={visibleIds.length === 0}
             onClick={() => setDisplayedExcluded(false)}
           >
             Add displayed to pool
@@ -137,7 +155,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
           <button
             className="secondary-button"
             type="button"
-            disabled={displayed.length === 0}
+            disabled={visibleIds.length === 0}
             onClick={() => setDisplayedExcluded(true)}
           >
             Remove displayed from pool
@@ -206,7 +224,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
       <div className="pool-information" role="status">
         <div className="pool-information-copy">
           <strong>{finalPool.length} operators eligible</strong>
-          <span>· {displayed.length} displayed</span>
+          <span>· {visibleIds.length} displayed</span>
           <span>· {globalFilterEligible.length} pass Global Filter</span>
         </div>
         {groupBy !== 'none' ? (
@@ -245,7 +263,7 @@ function PoolPanel({ dataset, constraints, preferences, onPreferencesChange }) {
 
       <div className={`pool-groups pool-presentation--imageGrid`}>
         {groups.map(([label, operators]) => {
-          const collapsed = collapsedGroups.has(label)
+          const collapsed = groupBy !== 'none' && collapsedGroups.has(label)
           const reversed = reversedGroups.has(label)
           const visibleOperators = reversed ? [...operators].reverse() : operators
           return (

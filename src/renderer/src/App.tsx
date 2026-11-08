@@ -3,6 +3,7 @@ import DraftPanel from './DraftPanel'
 import DraftRulebookPanel from './DraftRulebookPanel'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
+import useCuratePresentation from './useCuratePresentation'
 import OptionsPanel from './OptionsPanel'
 import StandardSquadFeature from './StandardSquadFeature'
 import useOperatorDataset from './useOperatorDataset'
@@ -18,7 +19,7 @@ import {
 } from '../../shared/operatorPool'
 import { releaseRangeIsValid, remapReleaseConstraintServer } from '../../shared/releaseBounds'
 import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPreferencesStorage'
-import { loadRaceExclusions, saveOperatorArtwork } from './rendererPersistence'
+import { loadGenderExclusions, loadRaceExclusions, saveOperatorArtwork } from './rendererPersistence'
 import { notifyOperatorAppearanceChanged } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOwnedOperatorIds } from '../../shared/arknightsAccountReconciliation'
@@ -38,6 +39,7 @@ function displayDate(value: string | null | undefined): string {
 }
 
 export default function App(): React.JSX.Element {
+  const curatePresentation = useCuratePresentation()
   const [operatorPreferences, setOperatorPreferences] = useState<OperatorPreferences>(() =>
     loadOperatorPreferences(),
   )
@@ -45,6 +47,7 @@ export default function App(): React.JSX.Element {
     const next = createDefaultConstraints()
     next.release.server = operatorPreferences.metadataRegion
     next.race = { excludedIds: loadRaceExclusions() }
+    next.gender = { excludedIds: loadGenderExclusions() }
     return next
   })
   const [message, setMessage] = useState('Loading operator data…')
@@ -92,6 +95,7 @@ export default function App(): React.JSX.Element {
               mode: operatorPreferences.accountFilterMode,
               minimum: operatorPreferences.accountProgressionMin,
               maximum: operatorPreferences.accountProgressionMax,
+              includeCappedLowRarity: operatorPreferences.accountIncludeCappedLowRarity,
             },
           )
         : [],
@@ -102,6 +106,7 @@ export default function App(): React.JSX.Element {
       operatorPreferences.accountFilterMode,
       operatorPreferences.accountProgressionMin,
       operatorPreferences.accountProgressionMax,
+      operatorPreferences.accountIncludeCappedLowRarity,
       importedAccount,
     ],
   )
@@ -320,6 +325,7 @@ export default function App(): React.JSX.Element {
       {activeTab === 'setup' && setupMode === 'global-pool' && (
         <>
           <GlobalPoolFeature
+            curatePresentation={curatePresentation}
             dataset={data.dataset}
             constraints={constraints}
             finalOperatorPool={finalOperatorPool}

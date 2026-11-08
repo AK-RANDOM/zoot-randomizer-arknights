@@ -19,19 +19,31 @@ export const limitedAcquisitionGroups = [
   'collab',
 ] as const
 
-export const welfareAcquisitionGroups = ['eventStory', 'redCert', 'cc', 'isRa'] as const
+export const standardAcquisitionGroups = ['postKernel', 'kernel', 'lowRarity'] as const
+
+export const welfareAcquisitionGroups = [
+  'eventStory',
+  'redCert',
+  'cc',
+  'isRa',
+  'recruitment',
+  'creditShop',
+] as const
 
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
 export const OPERATOR_DATASET_SCHEMA_VERSION = 6 as const
-export const OPERATOR_DATA_PIPELINE_VERSION = 2 as const
+export const OPERATOR_DATA_PIPELINE_VERSION = 9 as const
 
 export type OperatorClass = (typeof operatorClasses)[number]
 export type GameLocale = (typeof gameLocales)[number]
 export type OperatorRarity = (typeof operatorRarities)[number]
+export const operatorGenders = ['male', 'female', 'other'] as const
+export type OperatorGender = (typeof operatorGenders)[number]
 export type ReleaseServer = 'cn' | 'global'
 export type AcquisitionFamily = 'limited' | 'standard' | 'welfare'
 export type LimitedAcquisitionGroup = (typeof limitedAcquisitionGroups)[number]
+export type StandardAcquisitionGroup = (typeof standardAcquisitionGroups)[number]
 export type WelfareAcquisitionGroup = (typeof welfareAcquisitionGroups)[number]
 export type AcquisitionGroup = LimitedAcquisitionGroup | WelfareAcquisitionGroup | null
 
@@ -101,6 +113,7 @@ export interface Operator {
   faction: OperatorFaction
   /** Stable source-derived race identities. Absent only on pre-M6 schema-v6 datasets. */
   raceIds?: string[]
+  gender?: OperatorGender
   availableOn: {
     cn: boolean
     global: boolean
@@ -150,6 +163,14 @@ export interface GameStringCatalog {
 export type GameStringCatalogs = Record<GameLocale, GameStringCatalog>
 
 export interface OperatorDataset {
+  releaseEvents?: {
+    id?: string
+    category?: string
+    server: ReleaseServer
+    date: string
+    name: string
+    operatorIds: string[]
+  }[]
   schemaVersion: typeof OPERATOR_DATASET_SCHEMA_VERSION
   /** Normalization revision, independent of upstream source commits. */
   dataPipelineVersion?: number

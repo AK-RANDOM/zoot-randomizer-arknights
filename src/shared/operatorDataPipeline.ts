@@ -23,9 +23,16 @@ import {
   type RawUniEquipData,
 } from './operatorData.ts'
 import { applyRaceMetadata, type RawHandbookInfoTable } from './raceMetadata.ts'
+import { genderFromHandbooks } from './genderMetadata.ts'
 import { applySkinMetadata, type RawSkinTable } from './skinMetadata.ts'
 import {
+  releaseEventNameMap,
+  appendUnregisteredActivityReleases,
+  gameplayReleaseCandidates,
+} from './releaseEventNames.ts'
+import {
   buildReleaseDateMap,
+  buildReleaseEventNames,
   CN_RELEASE_DATES_API,
   publishedCnReleaseDates,
   type PublishedCnReleaseRow,
@@ -357,7 +364,63 @@ export async function fetchAndBuildOperatorDataset(
     ),
     localizedSkinTables,
   )
+  dataset.operators = dataset.operators.map((operator) => ({
+    ...operator,
+    gender: genderFromHandbooks(operator.id, localizedHandbooks),
+  }))
   dataset.dataPipelineVersion = OPERATOR_DATA_PIPELINE_VERSION
+  const activityNames: Partial<Record<'cn' | 'global', Record<string, string>>> = {}
+  const activityTables: Partial<Record<'cn' | 'global', Record<string, unknown>>> = {}
+  await Promise.all(
+    (['cn', 'en'] as const).map(async (locale) => {
+      try {
+        const tables = await Promise.all(
+          [
+            'activity_table',
+            'roguelike_topic_table',
+            'crisis_table',
+            'crisis_v2_table',
+            'sandbox_perm_table',
+            'zone_table',
+          ].map((file) =>
+            fetchJson<Record<string, unknown>>(
+              githubRawUrl(
+                UPSTREAM.gamedataRepo,
+                gamedataRevision,
+                `${locale}/gamedata/excel/${file}.json`,
+              ),
+              options,
+            ).catch(() => ({})),
+          ),
+        )
+        activityTables[locale === 'en' ? 'global' : 'cn'] = {
+          ...tables[0],
+          gameplayReleaseCandidates: gameplayReleaseCandidates(
+            tables[1],
+            tables[2],
+            tables[3],
+            tables[4],
+          ),
+        }
+        activityNames[locale === 'en' ? 'global' : 'cn'] = releaseEventNameMap(
+          tables[0],
+          tables[1],
+          tables[2],
+          tables[3],
+          tables[4],
+          tables[5],
+        )
+      } catch {
+        /* Source release-event names remain available when localized activity names cannot be fetched. */
+      }
+    }),
+  )
+  dataset.releaseEvents = buildReleaseEventNames(
+    releaseEventSource,
+    dataset.operators,
+    activityNames,
+  )
+  appendUnregisteredActivityReleases(dataset, activityTables, activityNames)
 
   const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
   if (publishedCnRows === null)

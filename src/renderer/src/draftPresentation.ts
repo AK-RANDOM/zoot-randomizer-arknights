@@ -118,6 +118,37 @@ export function resolveDraftActionPresentation(
   }
 }
 
+export function capacityExpansionWaitLabel(
+  state: DraftState,
+  configuration: ResolvedDraftConfiguration,
+  presentation: DraftActionPresentation,
+): string | null {
+  if (presentation.available) return null
+
+  const rule = configuration.actionRules.slotExpansion
+  const usage = state.actionUsage['slot-expansion']
+  if (
+    state.status !== 'active' ||
+    rule.perRoundLimit === 0 ||
+    (rule.perDraftLimit !== null && usage.total >= rule.perDraftLimit)
+  ) {
+    return null
+  }
+  if (presentation.blockReason === 'per-round-limit' || presentation.blockReason === 'cooldown') {
+    const rounds = Math.max(
+      1,
+      usage.lastUsedRound === null
+        ? 1
+        : usage.lastUsedRound + rule.cooldownRounds + 1 - state.roundNumber,
+    )
+    if (configuration.maxRounds !== null && state.roundNumber + rounds > configuration.maxRounds) {
+      return null
+    }
+    return rounds === 1 ? 'Next round' : `In ${rounds} rounds`
+  }
+  return null
+}
+
 export function resolveDraftOperatorPresentation(
   state: DraftState,
   pool: readonly Operator[],

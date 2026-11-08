@@ -6,6 +6,7 @@ import { FactionIcon } from './FilterAssetIcon'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import {
   resolveDraftActionPresentation,
+  capacityExpansionWaitLabel,
   resolveDraftSquadPresentation,
   type DraftActionPresentation,
 } from './draftPresentation'
@@ -101,9 +102,11 @@ export function DraftRosterAvatar({
 
 function ExpandControl({
   presentation,
+  waitLabel,
   onExpand,
 }: {
   presentation: DraftActionPresentation
+  waitLabel: string | null
   onExpand: () => void
 }): React.JSX.Element {
   const economyLabel = presentation.economy.pointDelta === 0
@@ -115,8 +118,7 @@ function ExpandControl({
       type="button"
       className="draft-squad-expand"
       disabled={!presentation.available}
-      title={presentation.blockReasonLabel ?? undefined}
-      aria-label={`Expand capacity, ${economyLabel}`}
+      aria-label={`Expand capacity, ${economyLabel}${waitLabel ? `, ${waitLabel}` : ''}`}
       onClick={onExpand}
     >
       <span
@@ -129,6 +131,7 @@ function ExpandControl({
       <span className="draft-squad-expand__icon" aria-hidden="true">
         +
       </span>
+      {waitLabel && <span className="draft-squad-expand__wait">{waitLabel}</span>}
     </button>
   )
 }
@@ -223,7 +226,11 @@ export default function DraftSquadGrid({
             )}
 
             {expand && (
-              <ExpandControl presentation={expand} onExpand={() => onAction(expand.action)} />
+              <ExpandControl
+                presentation={expand}
+                waitLabel={capacityExpansionWaitLabel(state, configuration, expand)}
+                onExpand={() => onAction(expand.action)}
+              />
             )}
           </div>
         )}

@@ -14,6 +14,7 @@ import {
   type OperatorPreferences,
 } from '../../shared/operatorPool'
 import type { PromotionArt } from '../../shared/portraits'
+import { operatorGenders, type OperatorGender } from '../../shared/operator'
 
 export const RENDERER_PERSISTENCE_KEY = 'arknights-randomizer:renderer-state:v1'
 export const RENDERER_PERSISTENCE_VERSION = 1 as const
@@ -46,6 +47,7 @@ export interface RendererPersistenceState {
   dismissedWarnings: string[]
   selectedDraftRulebookId: string
   raceExcludedIds: string[]
+  genderExcludedIds: OperatorGender[]
   operatorArtwork: PromotionArt
   confirmDraftActions: boolean
   rulebookLibrary: RulebookLibraryEntry[]
@@ -253,6 +255,7 @@ export function createDefaultRendererPersistenceState(): RendererPersistenceStat
     dismissedWarnings: [],
     selectedDraftRulebookId: STANDARD_DRAFT_RULEBOOK_ID,
     raceExcludedIds: [],
+    genderExcludedIds: [],
     operatorArtwork: 'e2',
     confirmDraftActions: true,
     rulebookLibrary: [],
@@ -277,6 +280,9 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
         ? candidate.selectedDraftRulebookId
         : STANDARD_DRAFT_RULEBOOK_ID,
     raceExcludedIds: stringList(candidate.raceExcludedIds),
+    genderExcludedIds: operatorGenders.filter((id) =>
+      stringList(candidate.genderExcludedIds).includes(id),
+    ),
     operatorArtwork: candidate.operatorArtwork === 'e1' ? 'e1' : 'e2',
     confirmDraftActions: candidate.confirmDraftActions !== false,
     rulebookLibrary: normalizeRulebookEntries(candidate.rulebookLibrary),
@@ -421,6 +427,17 @@ export function saveSelectedDraftRulebookId(selectedDraftRulebookId: string): vo
 
 export function loadRaceExclusions(): string[] {
   return loadRendererPersistence().raceExcludedIds
+}
+
+export function loadGenderExclusions(): OperatorGender[] {
+  return loadRendererPersistence().genderExcludedIds
+}
+
+export function saveGenderExclusions(genderExcludedIds: readonly OperatorGender[]): void {
+  updateRendererPersistence((state) => ({
+    ...state,
+    genderExcludedIds: operatorGenders.filter((id) => genderExcludedIds.includes(id)),
+  }))
 }
 
 export function saveRaceExclusions(raceExcludedIds: readonly string[]): void {

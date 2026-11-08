@@ -11,7 +11,7 @@ import {
 
 const BASE_URL = 'https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/master'
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
-const CATALOG_VERSION = 13
+const CATALOG_VERSION = 14
 const pending = new Map<string, Promise<GarrisonEvent[]>>()
 let refreshRevision = 0
 const refreshedRevisions = new Map<string, number>()

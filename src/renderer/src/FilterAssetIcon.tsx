@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { subclassIconFile } from '../../shared/operatorAssets'
+import { bundledIconUrl } from './bundledIcons'
 
 type AssetKind = 'subclass' | 'faction'
 
@@ -11,22 +13,26 @@ function FilterAssetIcon({
   id: string
   className?: string
 }): React.JSX.Element {
-  const [url, setUrl] = useState<string | null>(null)
+  const bundledUrl =
+    kind === 'subclass'
+      ? bundledIconUrl('subclass-icons', subclassIconFile(id))
+      : bundledIconUrl('faction-icons', `logo_${id}.png`)
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null)
+  const url = bundledUrl ?? fallbackUrl
 
   useEffect(() => {
     let active = true
-    setUrl(null)
+    if (bundledUrl) return
+    setFallbackUrl(null)
     const request =
-      kind === 'subclass'
-        ? window.desktop.getSubclassIcon(id)
-        : window.desktop.getFactionIcon(id)
+      kind === 'subclass' ? window.desktop.getSubclassIcon(id) : window.desktop.getFactionIcon(id)
     void request.then((next) => {
-      if (active) setUrl(next)
+      if (active) setFallbackUrl(next)
     })
     return () => {
       active = false
     }
-  }, [id, kind])
+  }, [bundledUrl, id, kind])
 
   return url ? (
     <img className={className} src={url} alt="" aria-hidden="true" draggable={false} />

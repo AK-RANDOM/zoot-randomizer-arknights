@@ -46,7 +46,7 @@ export interface ArtworkStorageInfo {
 }
 
 export interface DesktopApi {
-  platform: NodeJS.Platform
+  platform: NodeJS.Platform | 'browser'
   getOperatorDataset(): Promise<OperatorDataset>
   getGarrisonEvents(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]>
   /** Track unsaved edits so the native window close guard can offer Save/Discard/Cancel. */

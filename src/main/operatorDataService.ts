@@ -12,7 +12,6 @@ import {
 } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
 import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
 import { OPERATOR_DATA_PIPELINE_VERSION, type OperatorDataset } from '../shared/operator'
 import { welfareAcquisitionOverride } from '../shared/acquisitionMetadata'
@@ -146,6 +145,13 @@ async function datasetWithOrigin(): Promise<{
   return { dataset: bundled, origin: 'bundled' }
 }
 
+async function createUpdateStage(): Promise<string> {
+  const targetRoot = downloadedRoot()
+  await mkdir(targetRoot, { recursive: true })
+  // Portable data may be on a different volume from the system temp directory.
+  return mkdtemp(join(targetRoot, '.update-'))
+}
+
 async function refreshSkinMetadata(dataset: OperatorDataset): Promise<OperatorDataset> {
   const refreshed = await fetchAndApplySkinMetadata(dataset, PIPELINE_FETCH_OPTIONS)
   const validation = validateOperatorDataset(refreshed, { requireSourceCommits: true })
@@ -153,11 +159,10 @@ async function refreshSkinMetadata(dataset: OperatorDataset): Promise<OperatorDa
     throw new Error(`Refreshed skin metadata failed validation: ${validation.errors.join(' ')}`)
   }
 
-  const stageRoot = await mkdtemp(join(tmpdir(), 'arknights-randomizer-skins-'))
+  const stageRoot = await createUpdateStage()
   const stageDataset = join(stageRoot, 'operators.json')
   try {
     await writeFile(stageDataset, `${JSON.stringify(refreshed, null, 2)}\n`, 'utf8')
-    await mkdir(downloadedRoot(), { recursive: true })
     await activateStagedData(stageRoot, stageDataset)
   } finally {
     await rm(stageRoot, { recursive: true, force: true })
@@ -377,22 +382,7 @@ async function activateStagedData(stageRoot: string, stageDataset: string): Prom
     }
   }
 
-  const targetDataset = downloadedDatasetPath()
-  const backupDataset = `${targetDataset}.bak`
-  await rm(backupDataset, { force: true })
-
-  const hadCurrent = await exists(targetDataset)
-  if (hadCurrent) await rename(targetDataset, backupDataset)
-
-  try {
-    await rename(stageDataset, targetDataset)
-    await rm(backupDataset, { force: true })
-  } catch (error) {
-    if (hadCurrent && (await exists(backupDataset))) {
-      await rename(backupDataset, targetDataset)
-    }
-    throw error
-  }
+  await rename(stageDataset, downloadedDatasetPath())
 }
 
 export async function updateOperatorData(): Promise<OperatorUpdateResult> {
@@ -417,14 +407,13 @@ export async function updateOperatorData(): Promise<OperatorUpdateResult> {
     throw new Error(`Downloaded operator data failed validation: ${validation.errors.join(' ')}`)
   }
 
-  const stageRoot = await mkdtemp(join(tmpdir(), 'arknights-randomizer-data-'))
+  const stageRoot = await createUpdateStage()
   const stageDataset = join(stageRoot, 'operators.json')
   const warnings = [...validation.warnings]
 
   try {
     warnings.push(...(await stageMissingImages(dataset, join(stageRoot, 'images'))))
     await writeFile(stageDataset, `${JSON.stringify(dataset, null, 2)}\n`, 'utf8')
-    await mkdir(downloadedRoot(), { recursive: true })
     await activateStagedData(stageRoot, stageDataset)
   } finally {
     await rm(stageRoot, { recursive: true, force: true })

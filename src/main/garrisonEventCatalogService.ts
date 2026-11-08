@@ -2,14 +2,9 @@ import { app } from 'electron'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { GameLocale, ReleaseServer } from '../shared/operator'
-import {
-  buildGarrisonEventCatalog,
-  localizeGarrisonEventNames,
-  withGarrisonEventBannerMetadata,
-  type GarrisonEvent,
-} from '../shared/garrisonEventCatalog'
-
-const BASE_URL = 'https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/master'
+import type { GarrisonEvent } from '../shared/garrisonEventCatalog'
+import { loadGarrisonEvents } from '../shared/loadGarrisonEvents'
+import { gameDataExcelUrl } from '../shared/operatorData'
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000
 const CATALOG_VERSION = 14
 const pending = new Map<string, Promise<GarrisonEvent[]>>()
@@ -21,7 +16,6 @@ export function invalidateGarrisonEventCatalog(): void {
   refreshRevision += 1
 }
 
-const gameDataLocale = (region: ReleaseServer): GameLocale => (region === 'cn' ? 'cn' : 'en')
 const catalogKey = (region: ReleaseServer, locale: GameLocale): string => `${region}-${locale}`
 const cacheFile = (region: ReleaseServer, locale: GameLocale): string =>
   join(app.getPath('userData'), `garrison-event-catalog-${catalogKey(region, locale)}.json`)
@@ -49,7 +43,7 @@ async function loadCache(region: ReleaseServer, locale: GameLocale): Promise<Cat
 }
 
 async function fetchGameTable(locale: GameLocale, file: string): Promise<Record<string, unknown>> {
-  const response = await fetch(`${BASE_URL}/${locale}/gamedata/excel/${file}`, {
+  const response = await fetch(gameDataExcelUrl(locale, file), {
     headers: { 'User-Agent': 'arknights-randomizer' },
     signal: AbortSignal.timeout(30_000),
   })
@@ -60,36 +54,7 @@ async function fetchGameTable(locale: GameLocale, file: string): Promise<Record<
 }
 
 async function fetchCatalog(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]> {
-  const sourceLocale = gameDataLocale(region)
-  // Metadata Region owns which events/stages exist and their release order.
-  const [activities, zones, stages, gacha] = await Promise.all([
-    fetchGameTable(sourceLocale, 'activity_table.json'),
-    fetchGameTable(sourceLocale, 'zone_table.json'),
-    fetchGameTable(sourceLocale, 'stage_table.json'),
-    fetchGameTable(sourceLocale, 'gacha_table.json'),
-  ])
-  const sourceEvents = withGarrisonEventBannerMetadata(
-    buildGarrisonEventCatalog(activities, zones, stages),
-    gacha,
-  )
-  if (!sourceEvents.length) throw new Error('No event stages were found in the downloaded data.')
-
-  // App Localization owns labels ONLY. Missing localized records (for
-  // example unreleased CN events in EN metadata) retain source-region names.
-  let events = sourceEvents
-  let localized = locale === sourceLocale
-  if (locale !== sourceLocale) {
-    try {
-      const [localizedActivities, localizedZones] = await Promise.all([
-        fetchGameTable(locale, 'activity_table.json'),
-        fetchGameTable(locale, 'zone_table.json'),
-      ])
-      events = localizeGarrisonEventNames(sourceEvents, localizedActivities, localizedZones)
-      localized = true
-    } catch {
-      // A localization download failure must not hide otherwise valid events.
-    }
-  }
+  const { events, localized } = await loadGarrisonEvents(region, locale, fetchGameTable)
   await mkdir(app.getPath('userData'), { recursive: true })
   await writeFile(
     cacheFile(region, locale),

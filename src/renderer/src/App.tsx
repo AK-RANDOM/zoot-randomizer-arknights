@@ -19,7 +19,11 @@ import {
 } from '../../shared/operatorPool'
 import { releaseRangeIsValid, remapReleaseConstraintServer } from '../../shared/releaseBounds'
 import { loadOperatorPreferences, saveOperatorPreferences } from './operatorPreferencesStorage'
-import { loadGenderExclusions, loadRaceExclusions, saveOperatorArtwork } from './rendererPersistence'
+import {
+  loadGenderExclusions,
+  loadRaceExclusions,
+  saveOperatorArtwork,
+} from './rendererPersistence'
 import { notifyOperatorAppearanceChanged } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOwnedOperatorIds } from '../../shared/arknightsAccountReconciliation'
@@ -193,7 +197,7 @@ export default function App(): React.JSX.Element {
     return true
   }
   const confirmGarrisonExit = (): boolean => {
-    if (!garrisonDirty) return true
+    if (import.meta.env.PROD || !garrisonDirty) return true
     return window.confirm(
       'This Garrison has unsaved changes. Leaving will discard the working changes. Continue?',
     )
@@ -215,7 +219,11 @@ export default function App(): React.JSX.Element {
     <main className="app-shell">
       <header className="hero">
         <div>
-          <p className="eyebrow">ARKNIGHTS • OFFLINE SQUAD RANDOMIZER</p>
+          <p className="eyebrow">
+            {window.desktop.platform === 'browser'
+              ? 'ARKNIGHTS • SQUAD RANDOMIZER'
+              : 'ARKNIGHTS • OFFLINE SQUAD RANDOMIZER'}
+          </p>
           <h1>Arknights Randomizer</h1>
         </div>
         <div className="data-summary">
@@ -251,7 +259,7 @@ export default function App(): React.JSX.Element {
             [
               ['standard', 'Standard'],
               ['garrison', 'Garrison'],
-              ['draft', 'Drafts'],
+              ['draft', 'Draft'],
             ] as const
           ).map(([mode, label]) => (
             <button
@@ -267,7 +275,7 @@ export default function App(): React.JSX.Element {
         </nav>
       )}
 
-      {activeTab === 'setup' && (
+      {import.meta.env.DEV && activeTab === 'setup' && (
         <nav className="squad-mode-tabs" aria-label="Setup section">
           {(
             [
@@ -356,9 +364,10 @@ export default function App(): React.JSX.Element {
         </>
       )}
 
-      {activeTab === 'setup' && setupMode === 'draft-rulebooks' && data.dataset && (
-        <DraftRulebookPanel dataset={data.dataset} />
-      )}
+      {import.meta.env.DEV &&
+        activeTab === 'setup' &&
+        setupMode === 'draft-rulebooks' &&
+        data.dataset && <DraftRulebookPanel dataset={data.dataset} />}
 
       {activeTab === 'options' && (
         <OptionsPanel

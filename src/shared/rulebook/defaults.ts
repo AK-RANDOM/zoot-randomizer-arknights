@@ -1,5 +1,7 @@
 import { DRAFT_OFFER_SIZE, type DraftActionRules, type DraftEconomyRules } from '../draft'
+import { arknightsBucketForRarity, type DraftPullDistribution } from '../draftDistribution'
 import { SHARED_BALANCE_PRICING_PROFILE_ID } from '../draftPricingProfile'
+import { operatorRarities } from '../operator'
 import {
   DRAFT_RULEBOOK_SCHEMA_VERSION,
   type DraftRulebook,
@@ -75,11 +77,24 @@ function balanceEconomy(startingPoints: number): Omit<DraftEconomyRules, 'operat
   }
 }
 
+function weightedHeadhuntingBuckets(
+  weights: Record<'3' | '4' | '5' | '6', number>,
+): DraftPullDistribution {
+  return {
+    type: 'custom',
+    buckets: Object.entries(weights).map(([id, weight]) => ({
+      id,
+      weight,
+      rarities: operatorRarities.filter((rarity) => arknightsBucketForRarity(rarity) === id),
+    })),
+  }
+}
+
 export const STANDARD_DRAFT_RULEBOOK: DraftRulebook = {
   schemaVersion: DRAFT_RULEBOOK_SCHEMA_VERSION,
   identifier: {
     id: STANDARD_DRAFT_RULEBOOK_ID,
-    name: 'Standard Draft',
+    name: 'Simple Draft',
     description: 'Plain pick 1 of 3 using the current Global Pool.',
     createdAt: '2026-10-05T00:00:00.000Z',
     revision: '1',
@@ -122,16 +137,7 @@ export const DEV_STRICT_DRAFT_RULEBOOK: DraftRulebook = {
       maxActiveSlots: 12,
     },
     economyRules: balanceEconomy(45),
-    pullDistribution: {
-      type: 'custom',
-      buckets: [
-        // #58 only names 3★–6★ rates. For the first executable pass, 1★/2★ share the low-rarity bucket.
-        { id: '3', weight: 20, rarities: [1, 2, 3] },
-        { id: '4', weight: 45, rarities: [4] },
-        { id: '5', weight: 25, rarities: [5] },
-        { id: '6', weight: 10, rarities: [6] },
-      ],
-    },
+    pullDistribution: weightedHeadhuntingBuckets({ '3': 20, '4': 45, '5': 25, '6': 10 }),
   },
   pool: { source: 'inherit-global' },
   overrides: { operatorCosts: {} },
@@ -190,16 +196,7 @@ export const DEV_LAX_DRAFT_RULEBOOK: DraftRulebook = {
       maxActiveSlots: 12,
     },
     economyRules: balanceEconomy(70),
-    pullDistribution: {
-      type: 'custom',
-      buckets: [
-        // #58 only names 3★–6★ rates. For the first executable pass, 1★/2★ share the low-rarity bucket.
-        { id: '3', weight: 15, rarities: [1, 2, 3] },
-        { id: '4', weight: 40, rarities: [4] },
-        { id: '5', weight: 30, rarities: [5] },
-        { id: '6', weight: 15, rarities: [6] },
-      ],
-    },
+    pullDistribution: weightedHeadhuntingBuckets({ '3': 15, '4': 40, '5': 30, '6': 15 }),
   },
   pool: { source: 'inherit-global' },
   overrides: { operatorCosts: {} },
@@ -208,9 +205,9 @@ export const DEV_LAX_DRAFT_RULEBOOK: DraftRulebook = {
 
 export const BUILT_IN_DRAFT_RULEBOOKS: readonly DraftRulebook[] = [
   STANDARD_DRAFT_RULEBOOK,
-  DEV_STRICT_DRAFT_RULEBOOK,
   ARKNIGHTS_HEADHUNTING_DRAFT_RULEBOOK,
   DEV_LAX_DRAFT_RULEBOOK,
+  DEV_STRICT_DRAFT_RULEBOOK,
 ]
 
 export function createEmptyDraftRulebookEligibility(): DraftRulebookEligibility {

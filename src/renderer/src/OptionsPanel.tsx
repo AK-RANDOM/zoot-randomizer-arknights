@@ -283,7 +283,7 @@ export default function OptionsPanel({
         the bulk result without changing other operators.
       </p>
 
-      <ArtworkDownloadStatus />
+      {import.meta.env.DEV && window.desktop.platform !== 'browser' && <ArtworkDownloadStatus />}
     </section>
   )
 }

@@ -123,6 +123,19 @@ npm run build:win
 
 `build:unpack` and `build:win` refresh bundled operator metadata before packaging. `build:portable` remains an alias for the portable Windows build.
 
+### Web preview with Arknights account sync
+
+With Node.js 24 and dependencies installed, run `npm run data:update` and
+`npm run build:web`, then run `npx wrangler dev --ip 127.0.0.1`. Open the URL
+printed by Wrangler. The Worker serves both the app and the account API.
+
+Run `npx wrangler deploy` from an authenticated Cloudflare account to host both
+parts together. The account API needs the Worker runtime, so the static ZIP
+and the Vite-only preview can run the randomizer but cannot complete login.
+The Worker sends the email and verification code to YoStar, then uses temporary
+tokens to fetch the account snapshot from Arknights. The browser stores the
+parsed snapshot.
+
 ## Data and artwork
 
 The project consumes public Arknights community/game-data sources and normalizes them into its own application schema. Update scripts live in `scripts/`.

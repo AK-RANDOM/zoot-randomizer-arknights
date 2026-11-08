@@ -655,20 +655,22 @@ export default function GlobalPoolFeature({
               <button className="secondary-button" type="button" onClick={resetFilters}>
                 Reset operator filters
               </button>
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={busy || !dataset}
-                onClick={() =>
-                  void (updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates())
-                }
-              >
-                {busy
-                  ? 'Working…'
-                  : updateCheck?.updateAvailable
-                    ? 'Update data'
-                    : 'Check data updates'}
-              </button>
+              {import.meta.env.DEV && window.desktop.platform !== 'browser' && (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={busy || !dataset}
+                  onClick={() =>
+                    void (updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates())
+                  }
+                >
+                  {busy
+                    ? 'Working…'
+                    : updateCheck?.updateAvailable
+                      ? 'Update data'
+                      : 'Check data updates'}
+                </button>
+              )}
             </div>
           </div>
 

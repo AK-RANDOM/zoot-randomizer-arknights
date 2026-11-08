@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { DragEvent, KeyboardEvent } from 'react'
 import type { GameLocale, Operator, ReleaseServer } from '../../shared/operator'
 import {
@@ -38,6 +38,33 @@ type StageEditorState = {
 }
 
 type ConflictPurpose = 'stage-confirm' | 'disable-cross-stage-duplicates'
+
+const GARRISON_RECOVERY_KEY = 'arknights-randomizer:garrison-working-copy:v1'
+
+interface GarrisonRecovery {
+  working: Garrison
+  baseline: Garrison
+  selectedGarrisonId: string | null
+  stageEditor: StageEditorState | null
+  conflictDraft: Garrison | null
+  conflictPurpose: ConflictPurpose | null
+}
+
+function loadGarrisonRecovery(): GarrisonRecovery | null {
+  try {
+    const saved = localStorage.getItem(GARRISON_RECOVERY_KEY)
+    if (!saved) return null
+    const recovery = JSON.parse(saved) as GarrisonRecovery
+    return {
+      ...recovery,
+      working: cloneGarrison(recovery.working),
+      baseline: cloneGarrison(recovery.baseline),
+      conflictDraft: recovery.conflictDraft && cloneGarrison(recovery.conflictDraft),
+    }
+  } catch {
+    return null
+  }
+}
 
 function nextStageName(stages: readonly { name: string }[]): string {
   const used = new Set(stages.map((stage) => stage.name.trim().toLowerCase()))
@@ -87,12 +114,19 @@ export default function GarrisonSquadFeature({
   onMessage: (message: string) => void
 }): React.JSX.Element {
   const [library, setLibrary] = useState<Garrison[]>(() => loadSavedGarrisons())
-  const [working, setWorking] = useState<Garrison>(() => createGarrison())
-  const [baseline, setBaseline] = useState<Garrison>(() => cloneGarrison(working))
-  const [selectedGarrisonId, setSelectedGarrisonId] = useState<string | null>(null)
+  const [recovery] = useState(() => (import.meta.env.PROD ? loadGarrisonRecovery() : null))
+  const [working, setWorking] = useState<Garrison>(() => recovery?.working ?? createGarrison())
+  const [baseline, setBaseline] = useState<Garrison>(
+    () => recovery?.baseline ?? cloneGarrison(working),
+  )
+  const [selectedGarrisonId, setSelectedGarrisonId] = useState<string | null>(
+    recovery?.selectedGarrisonId ?? null,
+  )
   const [undoWorking, setUndoWorking] = useState<Garrison | null>(null)
   const [redoWorking, setRedoWorking] = useState<Garrison | null>(null)
-  const [stageEditor, setStageEditor] = useState<StageEditorState | null>(null)
+  const [stageEditor, setStageEditor] = useState<StageEditorState | null>(
+    recovery?.stageEditor ?? null,
+  )
   const [events, setEvents] = useState<GarrisonEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsError, setEventsError] = useState<string | null>(null)
@@ -103,8 +137,12 @@ export default function GarrisonSquadFeature({
     stageId: string
     placement: 'before' | 'after'
   } | null>(null)
-  const [conflictDraft, setConflictDraft] = useState<Garrison | null>(null)
-  const [conflictPurpose, setConflictPurpose] = useState<ConflictPurpose | null>(null)
+  const [conflictDraft, setConflictDraft] = useState<Garrison | null>(
+    recovery?.conflictDraft ?? null,
+  )
+  const [conflictPurpose, setConflictPurpose] = useState<ConflictPurpose | null>(
+    recovery?.conflictPurpose ?? null,
+  )
   const [nameDialog, setNameDialog] = useState<{
     mode: NameDialogMode
     initialValue: string
@@ -165,7 +203,7 @@ export default function GarrisonSquadFeature({
     }
   }, [metadataRegion, gameLocale])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     saveSavedGarrisons(library)
   }, [library])
 
@@ -175,12 +213,45 @@ export default function GarrisonSquadFeature({
 
   useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
+  useLayoutEffect(() => {
+    if (import.meta.env.DEV) return
+    try {
+      if (hasUnsavedChanges) {
+        const copy: GarrisonRecovery = {
+          working,
+          baseline,
+          selectedGarrisonId,
+          stageEditor,
+          conflictDraft,
+          conflictPurpose,
+        }
+        localStorage.setItem(GARRISON_RECOVERY_KEY, JSON.stringify(copy))
+      } else {
+        localStorage.removeItem(GARRISON_RECOVERY_KEY)
+      }
+    } catch {
+      onMessage('Could not store the Garrison working copy on this device.')
+    }
+  }, [
+    hasUnsavedChanges,
+    working,
+    baseline,
+    selectedGarrisonId,
+    stageEditor,
+    conflictDraft,
+    conflictPurpose,
+    onMessage,
+  ])
+
   // Native Electron close guard replaces the unresponsive beforeunload blocker.
   useEffect(() => {
-    window.desktop.setGarrisonCloseDirty(hasUnsavedChanges)
+    if (import.meta.env.DEV) window.desktop.setGarrisonCloseDirty(hasUnsavedChanges)
   }, [hasUnsavedChanges])
 
-  useEffect(() => () => window.desktop.setGarrisonCloseDirty(false), [])
+  useEffect(() => {
+    if (import.meta.env.PROD) return
+    return () => window.desktop.setGarrisonCloseDirty(false)
+  }, [])
 
   const resetHistory = (): void => {
     setUndoWorking(null)
@@ -264,51 +335,50 @@ export default function GarrisonSquadFeature({
 
   // Persist synchronously before acknowledging Electron's close request.
   // Include an open stage editor's draft instead of silently losing it.
-  useEffect(
-    () =>
-      window.desktop.onGarrisonCloseSaveRequested(() => {
-        if (conflictDraft) {
-          onMessage('Resolve or cancel the Garrison conflict before saving and closing.')
+  useEffect(() => {
+    if (import.meta.env.PROD) return
+    return window.desktop.onGarrisonCloseSaveRequested(() => {
+      if (conflictDraft) {
+        onMessage('Resolve or cancel the Garrison conflict before saving and closing.')
+        window.desktop.completeGarrisonCloseSave(false)
+        return
+      }
+      try {
+        const candidate = cloneGarrison(working)
+        if (stageEditor) {
+          const stage = cloneGarrisonStage({
+            ...stageEditor.stage,
+            name: stageEditor.stage.name.trim() || 'Untitled Stage',
+          })
+          candidate.stages =
+            stageEditor.mode === 'new'
+              ? [...candidate.stages, stage]
+              : candidate.stages.map((entry) => (entry.id === stage.id ? stage : entry))
+        }
+        if (!candidate.duplicateOperatorsAllowed && garrisonHasOperatorConflicts(candidate)) {
+          onMessage('Resolve duplicate assignments before saving and closing.')
           window.desktop.completeGarrisonCloseSave(false)
           return
         }
-        try {
-          const candidate = cloneGarrison(working)
-          if (stageEditor) {
-            const stage = cloneGarrisonStage({
-              ...stageEditor.stage,
-              name: stageEditor.stage.name.trim() || 'Untitled Stage',
-            })
-            candidate.stages =
-              stageEditor.mode === 'new'
-                ? [...candidate.stages, stage]
-                : candidate.stages.map((entry) => (entry.id === stage.id ? stage : entry))
-          }
-          if (!candidate.duplicateOperatorsAllowed && garrisonHasOperatorConflicts(candidate)) {
-            onMessage('Resolve duplicate assignments before saving and closing.')
-            window.desktop.completeGarrisonCloseSave(false)
-            return
-          }
-          const saved = cloneGarrison({
-            ...candidate,
-            name: candidate.name.trim() || 'Untitled Garrison',
-          })
-          const nextLibrary = library.some((item) => item.id === saved.id)
-            ? library.map((item) => (item.id === saved.id ? saved : item))
-            : [...library, saved]
-          saveSavedGarrisons(nextLibrary)
-          window.desktop.completeGarrisonCloseSave(true)
-        } catch (error) {
-          onMessage(
-            error instanceof Error
-              ? `Could not save Garrison: ${error.message}`
-              : 'Could not save Garrison.',
-          )
-          window.desktop.completeGarrisonCloseSave(false)
-        }
-      }),
-    [working, library, stageEditor, conflictDraft, onMessage],
-  )
+        const saved = cloneGarrison({
+          ...candidate,
+          name: candidate.name.trim() || 'Untitled Garrison',
+        })
+        const nextLibrary = library.some((item) => item.id === saved.id)
+          ? library.map((item) => (item.id === saved.id ? saved : item))
+          : [...library, saved]
+        saveSavedGarrisons(nextLibrary)
+        window.desktop.completeGarrisonCloseSave(true)
+      } catch (error) {
+        onMessage(
+          error instanceof Error
+            ? `Could not save Garrison: ${error.message}`
+            : 'Could not save Garrison.',
+        )
+        window.desktop.completeGarrisonCloseSave(false)
+      }
+    })
+  }, [working, library, stageEditor, conflictDraft, onMessage])
 
   const deleteSelectedGarrison = (): void => {
     if (!selectedGarrison || stageEditor || conflictDraft) return

@@ -8,6 +8,7 @@ const service = readFileSync(
   new URL('../../main/garrisonEventCatalogService.ts', import.meta.url),
   'utf8',
 )
+const loader = readFileSync(new URL('../../shared/loadGarrisonEvents.ts', import.meta.url), 'utf8')
 const main = readFileSync(new URL('../../main/index.ts', import.meta.url), 'utf8')
 
 describe('Garrison event region vs App Localization integration', () => {
@@ -28,9 +29,9 @@ describe('Garrison event region vs App Localization integration', () => {
   })
 
   it('uses CN game data to choose CN events/stages regardless of label language', () => {
-    expect(service).toContain("region === 'cn' ? 'cn' : 'en'")
-    expect(service).toContain("fetchGameTable(sourceLocale, 'stage_table.json')")
-    expect(service).toContain(
+    expect(loader).toContain("region === 'cn' ? 'cn' : 'en'")
+    expect(loader).toContain("fetchGameTable(sourceLocale, 'stage_table.json')")
+    expect(loader).toContain(
       'localizeGarrisonEventNames(sourceEvents, localizedActivities, localizedZones)',
     )
     expect(service).toContain('catalogKey(region, locale)')

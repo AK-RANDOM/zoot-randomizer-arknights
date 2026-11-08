@@ -9,6 +9,7 @@ import type { Operator, OperatorDataset } from '../../shared/operator'
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import DraftDecisionPlane from './DraftDecisionPlane'
 import DraftConfirmationDialog from './DraftConfirmationDialog'
+import DraftProbabilitySummary from './DraftProbabilitySummary'
 import OperatorCard from './OperatorCard'
 import DraftSquadGrid from './DraftSquadGrid'
 import { resolveDraftStatusPresentation } from './draftPresentation'
@@ -350,6 +351,11 @@ export default function DraftSessionView({
           {draftOngoing ? 'Finalize' : 'Start Draft'}
         </button>
       </div>
+      {validationErrors.length === 0 && (
+        <DraftProbabilitySummary
+          distribution={configuration?.pullDistribution ?? rulebook.generalRules.pullDistribution}
+        />
+      )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>

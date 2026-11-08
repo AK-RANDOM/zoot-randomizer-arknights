@@ -97,9 +97,12 @@ export default function DraftPanel({
   ready,
   onActiveDraftChange,
 }: DraftPanelProps): React.JSX.Element {
-  const customEntries = useMemo(() => loadDraftRulebookEntries(), [])
+  const customEntries = useMemo(() => (import.meta.env.DEV ? loadDraftRulebookEntries() : []), [])
   const pricingProfiles = useMemo(
-    () => [...BUILT_IN_DRAFT_PRICING_PROFILES, ...loadCustomDraftPricingProfiles()],
+    () =>
+      import.meta.env.DEV
+        ? [...BUILT_IN_DRAFT_PRICING_PROFILES, ...loadCustomDraftPricingProfiles()]
+        : BUILT_IN_DRAFT_PRICING_PROFILES,
     [],
   )
   const customRulebooks = useMemo(
@@ -126,7 +129,7 @@ export default function DraftPanel({
   useEffect(() => {
     if (selected.identifier.id !== selectedId) {
       setSelectedId(selected.identifier.id)
-      saveSelectedDraftRulebookId(selected.identifier.id)
+      if (import.meta.env.DEV) saveSelectedDraftRulebookId(selected.identifier.id)
     }
   }, [selected.identifier.id, selectedId])
 
@@ -142,6 +145,11 @@ export default function DraftPanel({
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
   }
 
+  const builtInOptions = BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => (
+    <option key={rulebook.identifier.id} value={rulebook.identifier.id}>
+      {rulebook.identifier.name}
+    </option>
+  ))
   const rulebookControl = (
     <select
       className="draft-rulebook-select"
@@ -149,13 +157,11 @@ export default function DraftPanel({
       aria-label="Draft Rulebook"
       onChange={(event) => selectRulebook(event.target.value)}
     >
-      <optgroup label="Built-in">
-        {BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => (
-          <option key={rulebook.identifier.id} value={rulebook.identifier.id}>
-            {rulebook.identifier.name}
-          </option>
-        ))}
-      </optgroup>
+      {customEntries.length > 0 ? (
+        <optgroup label="Built-in">{builtInOptions}</optgroup>
+      ) : (
+        builtInOptions
+      )}
       {importedEntries.length > 0 && (
         <optgroup label="Imported">
           {importedEntries.map((entry) => (

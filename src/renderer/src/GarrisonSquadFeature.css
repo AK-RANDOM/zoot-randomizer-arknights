@@ -89,6 +89,26 @@
   color: #d7d7da;
   font-size: 0.76rem;
 }
+.garrison-participant-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.garrison-participant-heading > span {
+  color: #77777e;
+  font-size: 0.68rem;
+}
+.garrison-participant-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 2px 3px;
+}
+.garrison-participant-list > * {
+  flex: 0 0 auto;
+}
 .garrison-participants p,
 .garrison-empty-stages {
   margin: 5px 0 0;

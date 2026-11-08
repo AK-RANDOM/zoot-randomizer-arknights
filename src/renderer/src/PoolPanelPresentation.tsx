@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ScrollingOutfitName } from './PoolAppearancePicker'
-import { operatorClasses } from '../../shared/operator'
+import { operatorClasses, type Operator } from '../../shared/operator'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
@@ -101,7 +101,7 @@ function groupLabel(
       return 'All operators'
   }
 }
-function compareDefaultOperators(left, right) {
+export function compareDefaultOperators(left: Operator, right: Operator): number {
   if (left.rarity !== right.rarity) return right.rarity - left.rarity
   const classDifference = operatorClasses.indexOf(left.class) - operatorClasses.indexOf(right.class)
   if (classDifference !== 0) return classDifference

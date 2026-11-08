@@ -3,16 +3,10 @@ import { describe, expect, it } from 'vitest'
 
 const source = readFileSync(new URL('./GlobalPoolFeature.tsx', import.meta.url), 'utf8')
 
-describe('Global Pool data update control', () => {
-  it('uses the top data update button for both checking and installing', () => {
-    expect(source).toContain('updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates()')
-    expect(source).toContain("? 'Update data'")
-    expect(source).toContain(": 'Check data updates'")
-  })
-
-  it('does not render a bottom data update status area', () => {
-    expect(source.match(/onInstallUpdate\(\)/g)).toHaveLength(1)
+describe('Public Global Pool', () => {
+  it('omits the manual data update controls', () => {
+    expect(source).not.toContain('Check data updates')
+    expect(source).not.toContain('onInstallUpdate')
     expect(source).not.toContain('className="update-box"')
-    expect(source).not.toContain('New operator data is available.')
   })
 })

@@ -35,7 +35,6 @@ import {
   releaseGroupSelectValue,
   releaseRangeIsValid,
 } from '../../shared/releaseBounds'
-import type { OperatorUpdateCheck } from '../../shared/desktop'
 import OperatorFilters from './OperatorFilters'
 import PoolPanel from './PoolPanel'
 import type { CuratePresentation } from './useCuratePresentation'
@@ -214,30 +213,22 @@ export default function GlobalPoolFeature({
   constraints,
   finalOperatorPool,
   preferences,
-  busy,
-  updateCheck,
   onConstraintsChange,
   onPreferencesChange,
   onPoolChanged,
   onMessage,
   onError,
-  onCheckUpdates,
-  onInstallUpdate,
 }: {
   curatePresentation: CuratePresentation
   dataset: OperatorDataset | null
   constraints: RandomizerConstraints
   finalOperatorPool: Operator[]
   preferences: OperatorPreferences
-  busy: boolean
-  updateCheck: OperatorUpdateCheck | null
   onConstraintsChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
   onPreferencesChange: (preferences: OperatorPreferences) => void
   onPoolChanged: () => void
   onMessage: (message: string) => void
   onError: (message: string | null) => void
-  onCheckUpdates: () => Promise<void>
-  onInstallUpdate: () => Promise<void>
 }): React.JSX.Element {
   const [activeSection, setActiveSection] = useState<GlobalPoolSection>('filter')
   const [releaseCatalog, setReleaseCatalog] = useState<{
@@ -655,22 +646,6 @@ export default function GlobalPoolFeature({
               <button className="secondary-button" type="button" onClick={resetFilters}>
                 Reset operator filters
               </button>
-              {import.meta.env.DEV && window.desktop.platform !== 'browser' && (
-                <button
-                  className="secondary-button"
-                  type="button"
-                  disabled={busy || !dataset}
-                  onClick={() =>
-                    void (updateCheck?.updateAvailable ? onInstallUpdate() : onCheckUpdates())
-                  }
-                >
-                  {busy
-                    ? 'Working…'
-                    : updateCheck?.updateAvailable
-                      ? 'Update data'
-                      : 'Check data updates'}
-                </button>
-              )}
             </div>
           </div>
 

@@ -12,8 +12,6 @@ import {
   type DraftPricingProfile,
 } from '../../shared/draftPricingProfile'
 import DraftSessionView from './DraftSessionView'
-import { loadDraftRulebookEntries } from './draftRulebookStorage'
-import { loadCustomDraftPricingProfiles } from './draftPricingProfileStorage'
 import { loadSelectedDraftRulebookId, saveSelectedDraftRulebookId } from './rendererPersistence'
 import useDraftSession, { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
 
@@ -97,41 +95,11 @@ export default function DraftPanel({
   ready,
   onActiveDraftChange,
 }: DraftPanelProps): React.JSX.Element {
-  const customEntries = useMemo(() => (import.meta.env.DEV ? loadDraftRulebookEntries() : []), [])
-  const pricingProfiles = useMemo(
-    () =>
-      import.meta.env.DEV
-        ? [...BUILT_IN_DRAFT_PRICING_PROFILES, ...loadCustomDraftPricingProfiles()]
-        : BUILT_IN_DRAFT_PRICING_PROFILES,
-    [],
-  )
-  const customRulebooks = useMemo(
-    () => customEntries.map((entry) => entry.document),
-    [customEntries],
-  )
-  const importedEntries = useMemo(
-    () => customEntries.filter((entry) => entry.origin === 'imported'),
-    [customEntries],
-  )
-  const localEntries = useMemo(
-    () => customEntries.filter((entry) => entry.origin === 'local'),
-    [customEntries],
-  )
-  const rulebooks = useMemo(
-    () => [...BUILT_IN_DRAFT_RULEBOOKS, ...customRulebooks],
-    [customRulebooks],
-  )
   const [selectedId, setSelectedId] = useState(() => loadSelectedDraftRulebookId())
   const [draftActive, setDraftActive] = useState(false)
   const selected =
-    rulebooks.find((rulebook) => rulebook.identifier.id === selectedId) ?? STANDARD_DRAFT_RULEBOOK
-
-  useEffect(() => {
-    if (selected.identifier.id !== selectedId) {
-      setSelectedId(selected.identifier.id)
-      if (import.meta.env.DEV) saveSelectedDraftRulebookId(selected.identifier.id)
-    }
-  }, [selected.identifier.id, selectedId])
+    BUILT_IN_DRAFT_RULEBOOKS.find((rulebook) => rulebook.identifier.id === selectedId) ??
+    STANDARD_DRAFT_RULEBOOK
 
   const selectRulebook = (rulebookId: string): void => {
     if (rulebookId === selected.identifier.id) return
@@ -157,29 +125,7 @@ export default function DraftPanel({
       aria-label="Draft Rulebook"
       onChange={(event) => selectRulebook(event.target.value)}
     >
-      {customEntries.length > 0 ? (
-        <optgroup label="Built-in">{builtInOptions}</optgroup>
-      ) : (
-        builtInOptions
-      )}
-      {importedEntries.length > 0 && (
-        <optgroup label="Imported">
-          {importedEntries.map((entry) => (
-            <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
-              {entry.document.identifier.name}
-            </option>
-          ))}
-        </optgroup>
-      )}
-      {localEntries.length > 0 && (
-        <optgroup label="Local">
-          {localEntries.map((entry) => (
-            <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
-              {entry.document.identifier.name}
-            </option>
-          ))}
-        </optgroup>
-      )}
+      {builtInOptions}
     </select>
   )
 
@@ -197,7 +143,7 @@ export default function DraftPanel({
         globalPool={operators}
         targetSize={targetSize}
         ready={ready}
-        pricingProfiles={pricingProfiles}
+        pricingProfiles={BUILT_IN_DRAFT_PRICING_PROFILES}
         rulebookControl={rulebookControl}
         onActiveDraftChange={handleActiveDraftChange}
       />

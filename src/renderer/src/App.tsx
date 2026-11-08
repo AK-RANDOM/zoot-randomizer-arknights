@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DraftPanel from './DraftPanel'
-import DraftRulebookPanel from './DraftRulebookPanel'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
 import useCuratePresentation from './useCuratePresentation'
@@ -34,7 +33,6 @@ const DEFAULT_DRAFT_TARGET_SIZE = 12
 
 type AppTab = 'squads' | 'setup' | 'options'
 type SquadMode = 'standard' | 'garrison' | 'draft'
-type SetupMode = 'global-pool' | 'draft-rulebooks'
 
 function displayDate(value: string | null | undefined): string {
   if (!value) return 'unknown'
@@ -58,7 +56,6 @@ export default function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<AppTab>('squads')
   const [squadMode, setSquadMode] = useState<SquadMode>('standard')
-  const [setupMode, setSetupMode] = useState<SetupMode>('global-pool')
   const [poolRevision, setPoolRevision] = useState(0)
   const [draftActive, setDraftActive] = useState(false)
   const [garrisonDirty, setGarrisonDirty] = useState(false)
@@ -275,27 +272,6 @@ export default function App(): React.JSX.Element {
         </nav>
       )}
 
-      {import.meta.env.DEV && activeTab === 'setup' && (
-        <nav className="squad-mode-tabs" aria-label="Setup section">
-          {(
-            [
-              ['global-pool', 'Global Pool'],
-              ['draft-rulebooks', 'Draft Rulebooks'],
-            ] as const
-          ).map(([mode, label]) => (
-            <button
-              key={mode}
-              type="button"
-              className={setupMode === mode ? 'is-active' : ''}
-              aria-selected={setupMode === mode}
-              onClick={() => setSetupMode(mode)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-      )}
-
       {activeTab === 'squads' && squadMode === 'standard' && (
         <StandardSquadFeature
           dataset={data.dataset}
@@ -330,7 +306,7 @@ export default function App(): React.JSX.Element {
         />
       )}
 
-      {activeTab === 'setup' && setupMode === 'global-pool' && (
+      {activeTab === 'setup' && (
         <>
           <GlobalPoolFeature
             curatePresentation={curatePresentation}
@@ -338,8 +314,6 @@ export default function App(): React.JSX.Element {
             constraints={constraints}
             finalOperatorPool={finalOperatorPool}
             preferences={operatorPreferences}
-            busy={data.busy}
-            updateCheck={data.updateCheck}
             onConstraintsChange={updateConstraints}
             onPreferencesChange={(next) => {
               if (
@@ -358,16 +332,9 @@ export default function App(): React.JSX.Element {
             onPoolChanged={markPoolChanged}
             onMessage={setMessage}
             onError={setError}
-            onCheckUpdates={data.checkUpdates}
-            onInstallUpdate={data.installUpdate}
           />
         </>
       )}
-
-      {import.meta.env.DEV &&
-        activeTab === 'setup' &&
-        setupMode === 'draft-rulebooks' &&
-        data.dataset && <DraftRulebookPanel dataset={data.dataset} />}
 
       {activeTab === 'options' && (
         <OptionsPanel

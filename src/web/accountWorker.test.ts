@@ -15,6 +15,26 @@ function syncRequest(requestOrigin = origin) {
 afterEach(() => vi.restoreAllMocks())
 
 describe('web account sync', () => {
+  it('allows the configured Pages origin to preflight and read API responses', async () => {
+    const pagesOrigin = 'https://ak-random.github.io'
+    const env = {
+      ACCOUNT_WEB_ORIGIN: pagesOrigin,
+      ACCOUNT_LIMIT: { limit: vi.fn().mockResolvedValue({ success: false }) },
+    }
+    const response = await worker.fetch(
+      new Request(`${origin}/api/arknights/sync`, {
+        method: 'OPTIONS',
+        headers: { Origin: pagesOrigin, 'Access-Control-Request-Method': 'POST' },
+      }),
+      env,
+    )
+    expect(response.status).toBe(204)
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(pagesOrigin)
+    const limited = await worker.fetch(syncRequest(pagesOrigin), env)
+    expect(limited.status).toBe(429)
+    expect(limited.headers.get('Access-Control-Allow-Origin')).toBe(pagesOrigin)
+  })
+
   it('returns only the parsed account snapshot and forbids caching', async () => {
     vi.spyOn(ArknightsAccountProtocol.prototype, 'fetchSyncDataWithEmailCode').mockResolvedValue({
       secret: 'upstream secret',

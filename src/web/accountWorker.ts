@@ -5,6 +5,7 @@ import { requireArknightsAccountServer } from '../shared/desktopIpc'
 
 interface AccountWorkerBindings {
   ACCOUNT_LIMIT: { limit(options: { key: string }): Promise<{ success: boolean }> }
+  ACCOUNT_WEB_ORIGIN?: string
 }
 
 const upstreamHosts = new Set([
@@ -70,59 +71,83 @@ async function readInput(request: Request): Promise<Record<string, unknown>> {
   return JSON.parse(new TextDecoder().decode(buffer.subarray(0, offset))) as Record<string, unknown>
 }
 
+async function handleAccountRequest(
+  request: Request,
+  env: AccountWorkerBindings,
+): Promise<Response> {
+  const url = new URL(request.url)
+  const sendCode = url.pathname === '/api/arknights/send-code'
+  if (!sendCode && url.pathname !== '/api/arknights/sync') return json({ error: 'Not found.' }, 404)
+  if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405)
+  if (request.headers.get('Content-Type')?.split(';')[0] !== 'application/json') {
+    return json({ error: 'Expected JSON.' }, 415)
+  }
+
+  const address = request.headers.get('CF-Connecting-IP') ?? 'local'
+  const ipLimit = await env.ACCOUNT_LIMIT.limit({ key: `ip:${address}` })
+  if (!ipLimit.success) return json({ error: 'Too many attempts. Try again in a minute.' }, 429)
+
+  let server, email, code
+  try {
+    const input = await readInput(request)
+    server = requireArknightsAccountServer(input.server)
+    email = typeof input.email === 'string' ? input.email.trim() : ''
+    code = typeof input.code === 'string' ? input.code.trim() : ''
+    if (
+      email.length > 320 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      (!sendCode && !/^\d{6}$/.test(code))
+    ) {
+      throw new Error('Invalid account input.')
+    }
+  } catch {
+    return json({ error: 'Check the server, email, and six-digit verification code.' }, 400)
+  }
+
+  const emailHash = createHash('sha256').update(email.toLowerCase()).digest('hex')
+  const emailLimit = await env.ACCOUNT_LIMIT.limit({ key: `email:${emailHash}` })
+  if (!emailLimit.success) return json({ error: 'Too many attempts. Try again in a minute.' }, 429)
+  try {
+    if (sendCode) {
+      await protocol.requestLoginCode(server, email)
+      return json({})
+    }
+    const payload = await protocol.fetchSyncDataWithEmailCode(server, email, code)
+    return json(parseArknightsSyncData(payload, server))
+  } catch {
+    return json(
+      {
+        error: sendCode
+          ? 'YoStar could not send a code. Check your server and email, then try again.'
+          : 'Account sync failed. Check your verification code and try again.',
+      },
+      502,
+    )
+  }
+}
+
 export default {
   async fetch(request: Request, env: AccountWorkerBindings): Promise<Response> {
-    const url = new URL(request.url)
-    const sendCode = url.pathname === '/api/arknights/send-code'
-    if (!sendCode && url.pathname !== '/api/arknights/sync')
-      return json({ error: 'Not found.' }, 404)
-    if (request.method !== 'POST') return json({ error: 'Use POST.' }, 405)
-    if (request.headers.get('Origin') !== url.origin) return json({ error: 'Invalid origin.' }, 403)
-    if (request.headers.get('Content-Type')?.split(';')[0] !== 'application/json') {
-      return json({ error: 'Expected JSON.' }, 415)
+    const origin = request.headers.get('Origin')
+    const crossOrigin = origin && origin === env.ACCOUNT_WEB_ORIGIN
+    if (!crossOrigin && origin !== new URL(request.url).origin) {
+      return json({ error: 'Invalid origin.' }, 403)
     }
+    if (!crossOrigin) return handleAccountRequest(request, env)
 
-    const address = request.headers.get('CF-Connecting-IP') ?? 'local'
-    const ipLimit = await env.ACCOUNT_LIMIT.limit({ key: `ip:${address}` })
-    if (!ipLimit.success) return json({ error: 'Too many attempts. Try again in a minute.' }, 429)
-
-    let server, email, code
-    try {
-      const input = await readInput(request)
-      server = requireArknightsAccountServer(input.server)
-      email = typeof input.email === 'string' ? input.email.trim() : ''
-      code = typeof input.code === 'string' ? input.code.trim() : ''
-      if (
-        email.length > 320 ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-        (!sendCode && !/^\d{6}$/.test(code))
-      ) {
-        throw new Error('Invalid account input.')
-      }
-    } catch {
-      return json({ error: 'Check the server, email, and six-digit verification code.' }, 400)
-    }
-
-    const emailHash = createHash('sha256').update(email.toLowerCase()).digest('hex')
-    const emailLimit = await env.ACCOUNT_LIMIT.limit({ key: `email:${emailHash}` })
-    if (!emailLimit.success)
-      return json({ error: 'Too many attempts. Try again in a minute.' }, 429)
-    try {
-      if (sendCode) {
-        await protocol.requestLoginCode(server, email)
-        return json({})
-      }
-      const payload = await protocol.fetchSyncDataWithEmailCode(server, email, code)
-      return json(parseArknightsSyncData(payload, server))
-    } catch {
-      return json(
-        {
-          error: sendCode
-            ? 'YoStar could not send a code. Check your server and email, then try again.'
-            : 'Account sync failed. Check your verification code and try again.',
-        },
-        502,
-      )
-    }
+    const response =
+      request.method === 'OPTIONS'
+        ? new Response(null, {
+            status: 204,
+            headers: {
+              'Access-Control-Allow-Methods': 'POST',
+              'Access-Control-Allow-Headers': 'Content-Type',
+              'Cache-Control': 'no-store',
+            },
+          })
+        : await handleAccountRequest(request, env)
+    response.headers.set('Access-Control-Allow-Origin', origin)
+    response.headers.append('Vary', 'Origin')
+    return response
   },
 }

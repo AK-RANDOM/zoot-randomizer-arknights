@@ -6,16 +6,25 @@ import {
 } from '../../shared/arknightsAccount'
 
 const snapshotKey = 'arknights-randomizer:account-snapshot:v1'
+const accountApiOrigin = import.meta.env.VITE_WEB_ACCOUNT_API_ORIGIN
+export const browserAccountAvailable =
+  import.meta.env.VITE_WEB_STATIC_ONLY !== 'true' || Boolean(accountApiOrigin)
 
 async function accountRequest<T>(
   action: 'send-code' | 'sync',
   input: { server: ArknightsAccountServer; email: string; code?: string },
 ): Promise<T> {
-  const response = await fetch(`/api/arknights/${action}`, {
+  const endpoint = `/api/arknights/${action}`
+  const url = accountApiOrigin ? new URL(endpoint, accountApiOrigin) : endpoint
+  if (url instanceof URL && url.protocol !== 'https:') {
+    throw new Error('The hosted account service requires HTTPS.')
+  }
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
     cache: 'no-store',
+    credentials: 'omit',
     signal: AbortSignal.timeout(65_000),
   })
   if (!response.headers.get('Content-Type')?.includes('application/json')) {

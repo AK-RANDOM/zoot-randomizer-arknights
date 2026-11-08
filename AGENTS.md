@@ -14,6 +14,8 @@ When we're on discussion, do not directly put things on Github workboard without
 
 Use the `dev` branch for Windows app and website previews. Serve website previews locally on `127.0.0.1`. Get my explicit approval for the specific changes before pushing or merging them to `main`, including through auto-merge. After an approved promotion, verify that the new Windows release and production website both came from the promoted `main` commit.
 
+For every approved release, also dispatch `gh workflow run pages.yml --repo AK-RANDOM/ak-random.github.io --ref main`. Wait for that Pages deployment to succeed and verify that `https://ak-random.github.io/source-revision.txt` contains the released application commit. The root website is deployed by its own repository.
+
 When doing simulation analytics, I want you to additionally shows P1/P10/P25/P50/P75/P90/P99.
 
 "Premium operator" is defined as operator with base cost >= 40

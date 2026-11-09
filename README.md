@@ -4,8 +4,6 @@ Build randomized Arknights squads, play pick-by-pick drafts, or plan separate sq
 
 [Play in your browser](https://ak-random.github.io/) · [Download for Windows (x64)](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest)
 
-The top-right summary shows the app version, operator count, data date, and whether the data is bundled or updated. In v1.2.1, the version appears as **App v1.2.1**.
-
 ## Squad modes
 
 ### Standard

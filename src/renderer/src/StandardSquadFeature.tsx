@@ -8,7 +8,7 @@ import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
 import { compareDefaultOperators } from './PoolPanelPresentation'
-import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import CompactOperatorAvatar from './CompactOperatorAvatar'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -63,20 +63,6 @@ interface ChainSession {
   pool: Operator[]
   constraints: RandomizerConstraints
   exhausted: Operator[]
-}
-
-function ExhaustedOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceAvatar(operator)
-  return (
-    <span
-      className="release-representative draft-history__operator-icon"
-      data-rarity={operator.rarity}
-      title={`${operator.name} · ${operator.rarity}★`}
-      aria-label={`${operator.name}, ${operator.rarity} star`}
-    >
-      {imageUrl ? <img src={imageUrl} alt="" draggable={false} /> : operator.name.slice(0, 1)}
-    </span>
-  )
 }
 
 interface PendingConfirmation {
@@ -595,9 +581,8 @@ export default function StandardSquadFeature({
   const randomize = (): void => {
     if (!dataset) return
     onError(null)
-    const result = validateConstraints(constraints, finalOperatorPool)
-    if (!result.valid) {
-      onError(result.errors.join(' '))
+    if (!validation.valid) {
+      onError(validation.errors.join(' '))
       return
     }
     try {
@@ -867,7 +852,7 @@ export default function StandardSquadFeature({
               {chain && chain.exhausted.length > 0 && (
                 <div className="garrison-participant-list">
                   {[...chain.exhausted].sort(compareDefaultOperators).map((operator) => (
-                    <ExhaustedOperatorIcon key={operator.id} operator={operator} />
+                    <CompactOperatorAvatar key={operator.id} operator={operator} />
                   ))}
                 </div>
               )}

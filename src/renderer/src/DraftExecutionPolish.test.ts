@@ -72,7 +72,10 @@ describe('Draft execution polish', () => {
 
     expect(view).not.toContain('draftCompletionMessage')
     expect(view).not.toContain('className="draft-complete"')
-    expect(view).toContain('release-representative draft-history__operator-icon')
+    expect(view).toContain('<CompactOperatorAvatar')
+    expect(read('./CompactOperatorAvatar.tsx')).toContain(
+      'release-representative draft-history__operator-icon',
+    )
     expect(view).toContain('draft-history__entry draft-history__entry--action')
     expect(grid).toContain("finalized ? 'Finalized Draft' : 'Current Draft'")
     expect(panelCss).toContain('margin: 28px 0 20px;')

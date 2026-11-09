@@ -8,13 +8,12 @@ import {
   type DraftRulebook,
 } from '../../shared/draftRulebook'
 import { analyzeDraftRulebookImport } from '../../shared/draftRulebookPortability'
+import { createLocalDraftRulebook, prepareImportedDraftRulebook } from './draftRulebookIdentity'
 import {
-  createLocalDraftRulebook,
-  loadDraftRulebookEntries,
-  prepareImportedDraftRulebook,
-  saveDraftRulebookEntries,
-} from './draftRulebookStorage'
-import type { RulebookLibraryEntry } from './rendererPersistence'
+  loadRulebookLibraryEntries,
+  saveRulebookLibraryEntries,
+  type RulebookLibraryEntry,
+} from './rendererPersistence'
 
 export type RulebookPortabilityStatus = {
   tone: 'success' | 'warning' | 'error'
@@ -56,11 +55,11 @@ export interface DraftRulebookLibraryController {
 }
 
 export default function useDraftRulebookLibrary(dataset: OperatorDataset): DraftRulebookLibraryController {
-  const [customEntries, setCustomEntries] = useState<RulebookLibraryEntry[]>(() => loadDraftRulebookEntries())
+  const [customEntries, setCustomEntries] = useState<RulebookLibraryEntry[]>(() => loadRulebookLibraryEntries())
   const [selectedId, setSelectedId] = useState<string>(STANDARD_DRAFT_RULEBOOK_ID)
   const [portabilityStatus, setPortabilityStatus] = useState<RulebookPortabilityStatus | null>(null)
 
-  useEffect(() => saveDraftRulebookEntries(customEntries), [customEntries])
+  useEffect(() => saveRulebookLibraryEntries(customEntries), [customEntries])
 
   const builtIns = useMemo(() => builtInEntries(), [])
   const standardBuiltIn = builtIns.find((entry) => entry.document.identifier.id === STANDARD_DRAFT_RULEBOOK_ID) ?? {

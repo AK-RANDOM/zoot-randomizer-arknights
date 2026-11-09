@@ -15,8 +15,6 @@ describe('release dropdown representative', () => {
         name,
         representative: null,
         representatives: [],
-        sixStar: [],
-        fiveStar: [],
       }) as ReleaseDateOption
     const options = [option('2020-01-01', 'First event'), option('2020-02-01', 'Last event')]
     const floor = renderToStaticMarkup(
@@ -53,8 +51,6 @@ describe('release dropdown representative', () => {
       name: 'Event name',
       representative: first,
       representatives: [first, second],
-      sixStar: [],
-      fiveStar: [first],
     } as ReleaseDateOption
     const html = renderToStaticMarkup(
       createElement(ReleaseDateDropdown, {

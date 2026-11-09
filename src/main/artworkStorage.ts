@@ -6,8 +6,10 @@ import type { ArtworkStorageInfo } from '../shared/desktop'
 import { UPSTREAM } from '../shared/operatorData'
 import { PORTRAIT_SOURCE, skinAvatarFilename, skinPortraitFilename } from '../shared/portraits'
 
-const CATEGORIES = ['images', 'portraits', 'appearance-avatars', 'skin-portraits', 'skin-avatars'] as const
-const isPng = (data: Uint8Array): boolean =>
+const AVATAR_CATEGORY = 'appearance-avatars'
+const LEGACY_SKIN_AVATAR_CATEGORY = 'skin-avatars'
+const CATEGORIES = ['images', 'portraits', AVATAR_CATEGORY, 'skin-portraits', LEGACY_SKIN_AVATAR_CATEGORY] as const
+export const isArtworkPng = (data: Uint8Array): boolean =>
   data.length >= 24 &&
   Buffer.from(data.subarray(0, 8)).toString('hex') === '89504e470d0a1a0a' &&
   Buffer.from(data.subarray(12, 16)).toString('ascii') === 'IHDR'
@@ -16,6 +18,13 @@ const validId = (value: string): boolean => /^[a-z0-9_@#+-]+$/i.test(value)
 
 export function artworkRoot(): string {
   return join(app.getPath('userData'), 'operator-data')
+}
+
+export function avatarArtworkPaths(filename: string): [string, string] {
+  return [
+    join(artworkRoot(), AVATAR_CATEGORY, filename),
+    join(artworkRoot(), LEGACY_SKIN_AVATAR_CATEGORY, filename),
+  ]
 }
 
 export async function getArtworkStorageInfo(): Promise<ArtworkStorageInfo> {
@@ -74,11 +83,11 @@ export function enumerateAdditionalArtwork(dataset: OperatorDataset): Asset[] {
   }
   for (const op of dataset.operators) {
     for (const art of op.defaultArts ?? [])
-      add('appearance-avatars', skinAvatarFilename(art.avatarId), UPSTREAM.avatarBaseUrl)
+      add(AVATAR_CATEGORY, skinAvatarFilename(art.avatarId), UPSTREAM.avatarBaseUrl)
     for (const skin of op.skins ?? []) {
       add('skin-portraits', skinPortraitFilename(skin.portraitId), PORTRAIT_SOURCE.baseUrl)
       if (skin.avatarId)
-        add('skin-avatars', skinAvatarFilename(skin.avatarId), UPSTREAM.avatarBaseUrl)
+        add(AVATAR_CATEGORY, skinAvatarFilename(skin.avatarId), UPSTREAM.avatarBaseUrl)
     }
   }
   return [...assets.values()]
@@ -100,10 +109,13 @@ export async function downloadAdditionalArtwork(
       const path = join(directory, asset.filename)
       let temporary: string | null = null
       try {
-        try {
-          if (isPng(await readFile(path))) return
-        } catch (e) {
-          if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e
+        const cachePaths = asset.category === AVATAR_CATEGORY ? avatarArtworkPaths(asset.filename) : [path]
+        for (const cachePath of cachePaths) {
+          try {
+            if (isArtworkPng(await readFile(cachePath))) return
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+          }
         }
         let data: Buffer | null = null
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -118,7 +130,7 @@ export async function downloadAdditionalArtwork(
             }
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
             const received = Buffer.from(await response.arrayBuffer())
-            if (!isPng(received)) throw new Error('Invalid PNG image')
+            if (!isArtworkPng(received)) throw new Error('Invalid PNG image')
             data = received
             break
           } catch (error) {

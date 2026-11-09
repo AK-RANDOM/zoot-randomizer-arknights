@@ -174,7 +174,7 @@ function ReleasePreviewStrip({
 }): React.JSX.Element {
   if (!preview)
     return <div className="release-preview release-preview--empty">No matching release event</div>
-  const representatives = preview.representatives ?? [...preview.sixStar, ...preview.fiveStar]
+  const representatives = preview.representatives
   return (
     <div className="release-preview">
       <div className="release-preview__meta">
@@ -187,7 +187,7 @@ function ReleasePreviewStrip({
             <RepresentativePortrait key={operator.id} operator={operator} />
           ))
         ) : (
-          <span className="release-preview__none">No 6★/5★ on this date</span>
+          <span className="release-preview__none">No representatives on this date</span>
         )}
       </div>
     </div>

@@ -30,7 +30,9 @@ describe('Garrison Squad M3', () => {
     const css = read('./GarrisonSquadFeature.css')
 
     expect(feature).toContain('className="garrison-stage-squad-icons"')
-    expect(feature).toContain('release-representative draft-history__operator-icon')
+    expect(read('./CompactOperatorAvatar.tsx')).toContain(
+      'release-representative draft-history__operator-icon',
+    )
     expect(css).toContain('.garrison-stage-squad-icons')
     expect(css).toContain('flex-wrap: nowrap')
   })
@@ -38,8 +40,8 @@ describe('Garrison Squad M3', () => {
   it('uses the latest selected-appearance avatar path for Garrison overview icons', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
 
-    expect(feature).toContain("import { useOperatorAppearanceAvatar } from './operatorAppearance'")
-    expect(feature).toContain('const { imageUrl } = useOperatorAppearanceAvatar(operator)')
+    expect(feature).toContain('<CompactOperatorAvatar')
+    expect(read('./CompactOperatorAvatar.tsx')).toContain('useOperatorAppearanceAvatar(operator)')
     expect(feature).not.toContain('.getOperatorImage(operator.id)')
   })
 })

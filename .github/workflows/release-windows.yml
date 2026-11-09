@@ -76,22 +76,34 @@ jobs:
           GH_REPO: ${{ github.repository }}
         shell: bash
         run: |
+          assets=(./*-x64-Portable.exe)
+          if [[ ${#assets[@]} -ne 1 || ! -f "${assets[0]}" ]]; then
+            echo "Expected exactly one Windows portable executable." >&2
+            exit 1
+          fi
           if [[ "$GITHUB_REF_NAME" == main ]]; then
-            channel=windows
+            version=${assets[0]#./Arknights-Randomizer-}
+            version=${version%-x64-Portable.exe}
+            tag="v$version"
+            tagged_sha=$(gh api "repos/$GH_REPO/commits/$tag" --jq .sha 2>/dev/null || true)
+            if [[ -n "$tagged_sha" && "$tagged_sha" != "$GITHUB_SHA" ]]; then
+              tag="$tag-build.${GITHUB_SHA:0:12}"
+            fi
+            title="Arknights Randomizer $tag"
             flags=(--latest=false)
           else
-            channel=windows-dev
+            tag="windows-dev-$GITHUB_SHA"
+            title="Windows dev build ${GITHUB_SHA:0:7}"
             flags=(--prerelease --latest=false)
           fi
-          tag="$channel-$GITHUB_SHA"
           if draft=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null); then
             if [[ "$draft" == true ]]; then
-              gh release upload "$tag" ./*-x64-Portable.exe --clobber
+              gh release upload "$tag" "${assets[0]}" --clobber
               gh release edit "$tag" --draft=false --latest=false
             fi
           else
-            gh release create "$tag" ./*-x64-Portable.exe \
-              --target "$GITHUB_SHA" --title "$channel build ${GITHUB_SHA:0:7}" \
+            gh release create "$tag" "${assets[0]}" \
+              --target "$GITHUB_SHA" --title "$title" \
               --generate-notes "${flags[@]}"
           fi
           if [[ "$GITHUB_REF_NAME" == main ]]; then

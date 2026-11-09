@@ -1,61 +1,50 @@
 # Arknights Randomizer
 
-Offline-first Windows desktop app for building randomized Arknights squads and running interactive drafts against a configurable operator pool.
+Build randomized Arknights squads, play pick-by-pick drafts, or plan separate squads for an entire event. Use the full operator pool, set your own eligibility rules, or sync your roster in the Windows app.
 
-The app combines standard squad randomization, detailed operator eligibility controls, operator-pool curation, and an evolving Draft Rulebook system in one Electron application.
+[Play in your browser](https://ak-random.github.io/) · [Download for Windows (x64)](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest)
 
-## Current state
+## Squad modes
 
-The current `main` branch is organized around three primary areas.
+### Standard
 
-### Get Squad
+Generate a squad in one roll. Set the squad size, limit how many operators of each class or rarity can appear, and constrain individual slots. Use a built-in preset or save your own setup for repeat runs.
 
-**Standard** generates a squad from the current Global Pool.
+Use **Keep** to protect individual operators while rerolling other slots, or **Keep All** to mark the entire squad. In **Chain Mode**, operators you reroll out are exhausted for the rest of the chain. Open **Exhausted operators** to see who is out and how many are still available.
 
-Current Standard features include:
+![Standard squad results showing the rolled operators](docs/screenshots/standard.gif)
 
-- configurable squad size;
-- rarity and class composition bounds;
-- per-slot constraints;
-- built-in and user-created squad presets;
-- validation before generation;
-- operator cards using cached E1/E2 artwork when available.
+### Draft
 
-**Drafts** runs an interactive Draft Session using a selected Draft Rulebook.
+Build a squad one pick at a time. Start with **Simple Draft** for a pick of one from three offers or **Simple Weighted** for four offers with weighted rarity odds. Other built-in rulebooks can change the operator pool, offer distribution, point costs, capacity, and available actions such as rerolling or holding an offer. Review finished runs in Draft history.
 
-Current Draft features include:
+![Draft session showing the current offers and picked operators](docs/screenshots/draft.gif)
 
-- five built-in Rulebooks;
-- configurable offer size and pull distribution;
-- Rulebook-specific operator pools;
-- optional economy, points, and operator pricing;
-- optional capacity rules;
-- Rulebook-controlled actions such as Hold, Capacity Forfeit, Reroll, and Capacity Expansion;
-- action confirmation controls;
-- completed-run Draft history;
-- selectable built-in presets: Simple Draft, Simple Weighted, Arknights Headhunting, Dev Lax, and Dev Strict.
+### Garrison
 
-**Simple Draft** is pick-1-from-3 using the current Global Pool. **Simple Weighted** is pick-1-from-4 with rarity bucket weights of 38% for 3★, 32% for 2★/4★, 24% for 1★/5★, and 6% for 6★. Both disable economy and special actions.
+Plan and save squads across multiple stages. Add custom stages or load stages from an event, then build a squad for each stage. Enable cross-stage duplicate prevention when you want each operator assigned to only one squad.
 
-### Setup
+![Garrison showing multiple event stages and their assigned operators](docs/screenshots/garrison.png)
 
-**Global Pool** defines the operator set used by Standard and by Draft Rulebooks that inherit the global pool.
+## Customize your operator pool
 
-The Global Pool UI is split into **Global Filter** and **Curate**. It currently supports filtering and curation using release bounds/region, acquisition source, collaboration source, class/subclass, race, faction, Kernel-era metadata, Alter exclusivity, and individual operator inclusion/exclusion. Pool presentation and search/grouping tools are available without changing eligibility.
+Use **Setup → Global Pool** to define which operators can appear in Standard and in drafts that use the Global Pool.
 
-The Rulebook editor, custom Rulebook picker, and manual artwork and data controls are available in development builds on the [development branch](https://github.com/AK-RANDOM/zoot-randomizer-arknights/tree/codex/draft-rulebook-development).
+- **Global Filter** narrows eligibility by server and release window, acquisition source, collaboration, class or subclass, race, faction, and more. You can also enforce Alter exclusivity.
+- **Curate** lets you include or exclude individual operators. Search and group operators to find the ones you want.
 
-### Options
+Choose EN / Global or CN metadata for availability and release order. Game-data localization controls operator names and terminology separately. The app interface is in English.
 
-Current application preferences include:
+![Global Pool filters](docs/screenshots/global_filter.gif)
+![Further operator curation](docs/screenshots/curate.gif)
 
-- metadata region (EN / Global or CN);
-- game-data localization for game-provided names and terminology;
-- Global Pool presentation mode;
-- Draft action confirmations;
-- preferred E1/E2 operator artwork.
+## Windows features
 
-App-owned interface text is currently English; changing game localization only changes game-provided names and terminology.
+The portable Windows app can run offline with bundled operator data and cached artwork. In the app, you can check for operator and event data updates and choose operator artwork in bulk or per operator.
+
+Sync your Arknights account to filter the pool by operator ownership and progression, and use your equipped outfits for operator cards.
+
+In **Options → Data & Storage**, download or resume the full offline artwork cache, open its folder, or clear downloaded artwork.
 
 ## Stack
 
@@ -111,23 +100,20 @@ npm run build:win
 
 `build:unpack` and `build:win` refresh bundled operator metadata before packaging. `build:portable` remains an alias for the portable Windows build.
 
-### Web preview
-
-Run `npm run build:web` after generating the operator data, then run
-`npm run preview:web` and open the printed URL. GitHub Actions publishes the
-web app from `main` to GitHub Pages.
-
-### Deployment branches
+### Preview and deployment
 
 Use `dev` for review. GitHub Actions publishes a Windows portable prerelease
 from `dev`. Promote the reviewed changes to `main` only
-after the project owner's explicit approval. A push to `main` publishes the
-production GitHub Pages build and a new stable Windows release.
+after the project owner's explicit approval. A push to `main` publishes the stable Windows release.
 
 For a local web preview, build from `dev` with `npm run build:web`, then run
 `npm run preview:web -- --host 127.0.0.1` and open the printed URL.
 
-For Arknights account sync, use the [latest Windows portable release](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest).
+The [root Pages repository](https://github.com/AK-RANDOM/ak-random.github.io) deploys the production site from the app repository’s `main` branch. For each approved release, dispatch its Pages workflow and verify that the [live source revision](https://ak-random.github.io/source-revision.txt) matches the released commit.
+
+```sh
+gh workflow run pages.yml --repo AK-RANDOM/ak-random.github.io --ref main
+```
 
 ## Data and artwork
 
@@ -156,9 +142,7 @@ Current builds are unsigned, so Windows may display its normal warning for unsig
 
 ## Automation
 
-CI runs automatically when a pull request targeting `main` is opened or updated, and can also be started manually. New PR updates cancel older CI runs for the same PR. Data refresh and Windows release workflows remain **manual-only**.
-
-Auto-merge can be enabled per PR after review; it uses merge commits and waits for the required GitHub Actions `validate` check on an up-to-date branch. For example, run `gh pr merge <number> --auto --merge`. Starting CI does not itself enable auto-merge. Run data-refresh or release workflows only when the project explicitly decides to use one for that task. Permanent workflows use read-only repository contents permissions; generated operator data/artwork is validation/build output rather than something an automated refresh workflow pushes directly to `main`.
+CI validates pull requests.
 
 ## Workboard and documentation
 

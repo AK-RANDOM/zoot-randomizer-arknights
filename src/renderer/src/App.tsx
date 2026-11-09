@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { version } from '../../../package.json'
 import DraftPanel from './DraftPanel'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
@@ -230,6 +231,7 @@ export default function App(): React.JSX.Element {
           <h1>Arknights Randomizer</h1>
         </div>
         <div className="data-summary">
+          <span>App v{version}</span>
           <span>{data.dataInfo?.operatorCount ?? '—'} operators</span>
           <span>Data {displayDate(data.dataInfo?.generatedAt)}</span>
           <span>{data.dataInfo?.origin === 'downloaded' ? 'Updated data' : 'Bundled data'}</span>

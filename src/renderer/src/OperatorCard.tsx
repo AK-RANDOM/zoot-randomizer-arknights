@@ -30,6 +30,7 @@ interface OperatorCardProps {
   topRightAdornment?: ReactNode
   overlay?: ReactNode
   animationKey?: string | number
+  replayOnRandomize?: boolean
 }
 
 export default function OperatorCard({
@@ -39,6 +40,7 @@ export default function OperatorCard({
   topRightAdornment,
   overlay,
   animationKey = 0,
+  replayOnRandomize = true,
 }: OperatorCardProps): React.JSX.Element {
   const {
     imageUrl,
@@ -99,16 +101,17 @@ export default function OperatorCard({
   }, [touchActionsOpen])
 
   useEffect(() => {
-    const replayOnRandomize = (event: MouseEvent): void => {
+    if (!replayOnRandomize) return
+    const replayAnimation = (event: MouseEvent): void => {
       const target = event.target
       if (!(target instanceof Element)) return
       if (!target.closest('.squad-panel .randomize-button')) return
       if (!cardRef.current?.closest('.squad-panel')) return
       setRandomizeReplayKey((current) => current + 1)
     }
-    document.addEventListener('click', replayOnRandomize)
-    return () => document.removeEventListener('click', replayOnRandomize)
-  }, [])
+    document.addEventListener('click', replayAnimation)
+    return () => document.removeEventListener('click', replayAnimation)
+  }, [replayOnRandomize])
 
   const hasInteractions = (interactionDetails?.interactions.length ?? 0) > 0
   const showInteractionTooltip = (): void => {

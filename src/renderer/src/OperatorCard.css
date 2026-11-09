@@ -130,7 +130,7 @@
 }
 
 .operator-card[data-touch-actions-open] .operator-card__overlay,
-.operator-card__overlay:focus-within {
+.operator-card__overlay:has(:focus-visible) {
   opacity: 1;
   pointer-events: auto;
 }

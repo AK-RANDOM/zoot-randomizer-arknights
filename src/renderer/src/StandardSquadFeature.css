@@ -872,3 +872,15 @@
     padding: 12px;
   }
 }
+.standard-squad-padlock {
+  display: block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.squad-panel .draft-operator-action[aria-pressed='true'] {
+  border-color: currentColor;
+  box-shadow: inset 0 0 0 1px currentColor;
+}

@@ -4,20 +4,28 @@ Build randomized Arknights squads, play pick-by-pick drafts, or plan separate sq
 
 [Play in your browser](https://ak-random.github.io/) · [Download for Windows (x64)](https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest)
 
+The top-right summary shows the app version, operator count, data date, and whether the data is bundled or updated. In v1.2.1, the version appears as **App v1.2.1**.
+
 ## Squad modes
 
 ### Standard
 
 Generate a squad in one roll. Set the squad size, limit how many operators of each class or rarity can appear, and constrain individual slots. Use a built-in preset or save your own setup for repeat runs.
+
+Use **Keep** to protect individual operators while rerolling other slots, or **Keep All** to mark the entire squad. In **Chain Mode**, operators you reroll out are exhausted for the rest of the chain. Open **Exhausted operators** to see who is out and how many are still available.
+
 ![Standard squad results showing the rolled operators](docs/screenshots/standard.gif)
 
 ### Draft
 
 Build a squad one pick at a time. Start with **Simple Draft** for a pick of one from three offers or **Simple Weighted** for four offers with weighted rarity odds. Other built-in rulebooks can change the operator pool, offer distribution, point costs, capacity, and available actions such as rerolling or holding an offer. Review finished runs in Draft history.
+
 ![Draft session showing the current offers and picked operators](docs/screenshots/draft.gif)
+
 ### Garrison
 
 Plan and save squads across multiple stages. Add custom stages or load stages from an event, then build a squad for each stage. Enable cross-stage duplicate prevention when you want each operator assigned to only one squad.
+
 ![Garrison showing multiple event stages and their assigned operators](docs/screenshots/garrison.png)
 
 ## Customize your operator pool
@@ -29,14 +37,16 @@ Use **Setup → Global Pool** to define which operators can appear in Standard a
 
 Choose EN / Global or CN metadata for availability and release order. Game-data localization controls operator names and terminology separately. The app interface is in English.
 
- ![Global Pool filters](docs/screenshots/global_filter.gif)
- ![Further operator curation](docs/screenshots/curate.gif)
+![Global Pool filters](docs/screenshots/global_filter.gif)
+![Further operator curation](docs/screenshots/curate.gif)
 
 ## Windows features
 
 The portable Windows app can run offline with bundled operator data and cached artwork. In the app, you can check for operator and event data updates and choose operator artwork in bulk or per operator.
 
 Sync your Arknights account to filter the pool by operator ownership and progression, and use your equipped outfits for operator cards.
+
+In **Options → Data & Storage**, download or resume the full offline artwork cache, open its folder, or clear downloaded artwork.
 
 ## Stack
 
@@ -92,21 +102,20 @@ npm run build:win
 
 `build:unpack` and `build:win` refresh bundled operator metadata before packaging. `build:portable` remains an alias for the portable Windows build.
 
-### Web preview
-
-Run `npm run build:web` after generating the operator data, then run
-`npm run preview:web` and open the printed URL. GitHub Actions publishes the
-web app from `main` to GitHub Pages.
-
-### Deployment branches
+### Preview and deployment
 
 Use `dev` for review. GitHub Actions publishes a Windows portable prerelease
 from `dev`. Promote the reviewed changes to `main` only
-after the project owner's explicit approval. A push to `main` publishes the
-production GitHub Pages build and a new stable Windows release.
+after the project owner's explicit approval. A push to `main` publishes the stable Windows release.
 
 For a local web preview, build from `dev` with `npm run build:web`, then run
 `npm run preview:web -- --host 127.0.0.1` and open the printed URL.
+
+The [root Pages repository](https://github.com/AK-RANDOM/ak-random.github.io) deploys the production site from the app repository’s `main` branch. For each approved release, dispatch its Pages workflow and verify that the [live source revision](https://ak-random.github.io/source-revision.txt) matches the released commit.
+
+```sh
+gh workflow run pages.yml --repo AK-RANDOM/ak-random.github.io --ref main
+```
 
 ## Data and artwork
 
@@ -135,7 +144,7 @@ Current builds are unsigned, so Windows may display its normal warning for unsig
 
 ## Automation
 
-CI validates pull requests. The Windows release workflow builds previews from `dev` and stable releases from `main`. The GitHub Pages workflow publishes the web app from `main`.
+CI validates pull requests.
 
 ## Workboard and documentation
 

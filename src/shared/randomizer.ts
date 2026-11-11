@@ -183,16 +183,6 @@ export function operatorMatchesSlotConstraint(
   return true
 }
 
-export function countEligibleOperatorsForSlot(
-  operators: Operator[],
-  constraints: RandomizerConstraints,
-  slot: SlotConstraint,
-): number {
-  return filterEligibleOperators(operators, constraints).filter((operator) =>
-    operatorMatchesSlotConstraint(operator, slot),
-  ).length
-}
-
 export function reservedMandatoryGroupsFromSlotConstraints(
   operators: readonly Operator[],
   constraints: RandomizerConstraints,

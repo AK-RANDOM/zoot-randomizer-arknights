@@ -461,7 +461,7 @@ describe('release bound previews', () => {
     const options = buildReleaseDateOptions(dataset, release, 'min')
     expect(options.map(({ date }) => date)).toEqual(['2019-06-01', '2019-07-01', '2019-08-01'])
     expect(options[0].name).toBe('First Event')
-    expect(options[0].sixStar.map(({ id }) => id)).toEqual(['first'])
+    expect(options[0].representatives.map(({ id }) => id)).toEqual(['first'])
     expect(buildReleaseDateOptions(dataset, release, 'max').map(({ name }) => name)).toEqual([
       'Launch',
     ])
@@ -502,7 +502,7 @@ describe('release bound previews', () => {
         'char_237_gravel',
         'char_124_kroos',
       ]
-      expect(preview?.representatives?.map(({ id }) => id)).toEqual(ids)
+      expect(preview?.representatives.map(({ id }) => id)).toEqual(ids)
       for (const side of ['min', 'max'] as const) {
         const option = buildReleaseDateOptions(
           { operators: launch } as OperatorDataset,
@@ -512,15 +512,6 @@ describe('release bound previews', () => {
         expect(option.representatives.map(({ id }) => id)).toEqual(ids)
         expect(option.representative?.id).toBe('char_172_svrash')
       }
-      expect(preview?.sixStar.map((item) => item.id)).toEqual([
-        'char_172_svrash',
-        'char_180_amgoat',
-      ])
-      expect(preview?.fiveStar.map((item) => item.id)).toEqual([
-        'char_002_amiya',
-        'char_143_ghost',
-        'char_128_plosis',
-      ])
     },
   )
 
@@ -532,11 +523,10 @@ describe('release bound previews', () => {
     ]
     const preview = getReleaseBoundPreview(items, cnRelease, 'min')
     expect(preview?.date).toBe('2020-04-01')
-    expect(preview?.sixStar).toEqual([])
-    expect(preview?.fiveStar.map((item) => item.id)).toEqual(['only'])
+    expect(preview?.representatives.map((item) => item.id)).toEqual(['only'])
   })
 
-  it('orders the same-date pool Limited before Standard before Welfare and caps each rarity at two', () => {
+  it('orders same-date representatives by rarity and then acquisition source', () => {
     const items = [
       operator('welfare6', 'A Welfare Name', 6, '2022-05-01', 'welfare'),
       operator('standard6', 'Z Standard Name', 6, '2022-05-01'),
@@ -546,9 +536,14 @@ describe('release bound previews', () => {
       operator('limited5', 'M Limited Five', 5, '2022-05-01', 'limited'),
     ]
     const preview = getReleaseBoundPreview(items, cnRelease, 'max')
-    expect(preview?.sixStar.map((item) => item.id)).toEqual(['limited6', 'standard6'])
-    expect(preview?.fiveStar.map((item) => item.id)).toEqual(['limited5', 'standard5'])
-    expect((preview?.sixStar.length ?? 0) + (preview?.fiveStar.length ?? 0)).toBeLessThanOrEqual(4)
+    expect(preview?.representatives.map(({ id }) => id)).toEqual([
+      'limited6',
+      'standard6',
+      'welfare6',
+      'limited5',
+      'standard5',
+      'welfare5',
+    ])
   })
 
   it('uses the earliest/latest actual operator event inside arbitrary date bounds', () => {

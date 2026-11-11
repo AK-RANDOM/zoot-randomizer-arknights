@@ -16,7 +16,7 @@ import { resolveDraftStatusPresentation } from './draftPresentation'
 import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
-import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import CompactOperatorAvatar from './CompactOperatorAvatar'
 
 const historyForfeitIconUrl = new URL('./assets/draft/forfeit-icon.png', import.meta.url).href
 
@@ -49,7 +49,7 @@ function DraftPilesDebug({
                 {ids.map((id) => {
                   const operator = operatorById.get(id)
                   return operator ? (
-                    <DraftHistoryOperatorIcon key={id} operator={operator} />
+                    <CompactOperatorAvatar key={id} operator={operator} />
                   ) : (
                     <span
                       className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
@@ -67,25 +67,6 @@ function DraftPilesDebug({
         ))}
       </div>
     </details>
-  )
-}
-
-function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceAvatar(operator)
-
-  return (
-    <span
-      className="release-representative draft-history__operator-icon"
-      data-rarity={operator.rarity}
-      title={`${operator.name} — ${operator.rarity}★`}
-      aria-label={`${operator.name}, ${operator.rarity} star`}
-    >
-      {imageUrl ? (
-        <img src={imageUrl} alt="" draggable={false} />
-      ) : (
-        <span aria-hidden="true">{operator.name.slice(0, 1)}</span>
-      )}
-    </span>
   )
 }
 
@@ -138,7 +119,7 @@ function DraftHistoryTable({
                             {offer.operatorIds.map((operatorId) => {
                               const operator = operatorById.get(operatorId)
                               return operator ? (
-                                <DraftHistoryOperatorIcon key={operatorId} operator={operator} />
+                                <CompactOperatorAvatar key={operatorId} operator={operator} />
                               ) : (
                                 <span className="draft-history__missing-operator" key={operatorId}>
                                   {operatorId}
@@ -151,7 +132,7 @@ function DraftHistoryTable({
                               round.offers[offerIndex - 1]?.sidecarOperatorId &&
                             operatorById.get(offer.sidecarOperatorId) && (
                               <span className="draft-history__sidecar" title="Sidecar">
-                                <DraftHistoryOperatorIcon
+                                <CompactOperatorAvatar
                                   operator={operatorById.get(offer.sidecarOperatorId)!}
                                 />
                               </span>
@@ -208,7 +189,7 @@ function DraftHistoryTable({
                                   </span>
                                 )}
                                 {operator ? (
-                                  <DraftHistoryOperatorIcon operator={operator} />
+                                  <CompactOperatorAvatar operator={operator} />
                                 ) : (
                                   action.operatorId && (
                                     <span className="draft-history__missing-operator">

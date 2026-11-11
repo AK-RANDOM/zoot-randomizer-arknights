@@ -6,48 +6,10 @@ import {
   type DraftRulebookValidationResult,
 } from './types'
 import { validateDraftRulebookEligibility, validateDraftRulebookSelector } from './selectors'
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+import { checkKeys, isRecord, nonEmptyString, validateStringList } from './validationHelpers'
 
 function finiteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
-}
-
-function nonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-function checkKeys(
-  value: Record<string, unknown>,
-  allowed: readonly string[],
-  path: string,
-  errors: string[],
-): void {
-  const allowedKeys = new Set(allowed)
-  for (const key of Object.keys(value)) {
-    if (!allowedKeys.has(key)) errors.push(`${path}.${key} is not supported.`)
-  }
-}
-
-function validateStringList(
-  value: unknown,
-  path: string,
-  errors: string[],
-  requireValue = true,
-): void {
-  if (!Array.isArray(value)) {
-    errors.push(`${path} must be an array.`)
-    return
-  }
-  if (requireValue && value.length === 0) errors.push(`${path} must be a non-empty array.`)
-  const seen = new Set<string>()
-  for (const [index, item] of value.entries()) {
-    if (!nonEmptyString(item)) errors.push(`${path}[${index}] must be a non-empty string.`)
-    else if (seen.has(item)) errors.push(`${path} must not contain duplicate value ${item}.`)
-    else seen.add(item)
-  }
 }
 
 function validatePool(value: unknown, errors: string[]): void {

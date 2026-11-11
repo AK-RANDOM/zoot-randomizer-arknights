@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import SquadValidationBox from './SquadValidationBox'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
@@ -8,7 +9,7 @@ import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
 import { compareDefaultOperators } from './PoolPanelPresentation'
-import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import CompactOperatorAvatar from './CompactOperatorAvatar'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -65,20 +66,6 @@ interface ChainSession {
   exhausted: Operator[]
 }
 
-function ExhaustedOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceAvatar(operator)
-  return (
-    <span
-      className="release-representative draft-history__operator-icon"
-      data-rarity={operator.rarity}
-      title={`${operator.name} · ${operator.rarity}★`}
-      aria-label={`${operator.name}, ${operator.rarity} star`}
-    >
-      {imageUrl ? <img src={imageUrl} alt="" draggable={false} /> : operator.name.slice(0, 1)}
-    </span>
-  )
-}
-
 interface PendingConfirmation {
   title: string
   body: string
@@ -94,19 +81,6 @@ function numericSummary(label: string, constraint: NumericConstraint | undefined
   if (resolved.min > 0 && resolved.max === 12) return `At least ${resolved.min} ${label}`
   if (resolved.min === 0 && resolved.max < 12) return `At most ${resolved.max} ${label}`
   return `${resolved.min}–${resolved.max} ${label}`
-}
-
-function ValidationBox({ errors }: { errors: string[] }): React.JSX.Element {
-  return (
-    <div className="validation-box" role="alert">
-      <strong>Current configuration cannot generate a squad.</strong>
-      <ul>
-        {errors.map((error) => (
-          <li key={error}>{error}</li>
-        ))}
-      </ul>
-    </div>
-  )
 }
 
 function ConfirmationDialog({
@@ -595,9 +569,8 @@ export default function StandardSquadFeature({
   const randomize = (): void => {
     if (!dataset) return
     onError(null)
-    const result = validateConstraints(constraints, finalOperatorPool)
-    if (!result.valid) {
-      onError(result.errors.join(' '))
+    if (!validation.valid) {
+      onError(validation.errors.join(' '))
       return
     }
     try {
@@ -743,7 +716,7 @@ export default function StandardSquadFeature({
           </button>
         </div>
         {dataset && !validation.valid && validation.errors.length > 0 && (
-          <ValidationBox errors={validation.errors} />
+          <SquadValidationBox errors={validation.errors} />
         )}
 
         <div className="squad-grid">
@@ -867,7 +840,7 @@ export default function StandardSquadFeature({
               {chain && chain.exhausted.length > 0 && (
                 <div className="garrison-participant-list">
                   {[...chain.exhausted].sort(compareDefaultOperators).map((operator) => (
-                    <ExhaustedOperatorIcon key={operator.id} operator={operator} />
+                    <CompactOperatorAvatar key={operator.id} operator={operator} />
                   ))}
                 </div>
               )}

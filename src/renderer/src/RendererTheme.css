@@ -191,16 +191,6 @@ body {
     var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box !important;
 }
 
-.artwork-choice.is-selected {
-  border-color: var(--app-accent);
-  background: rgba(64, 153, 194, 0.09);
-  box-shadow: inset 0 0 0 1px rgba(64, 153, 194, 0.18);
-}
-
-.artwork-choice.is-selected .artwork-choice__mark {
-  border-color: var(--app-accent);
-}
-
 .draft-hold-panel {
   border-color: #33464f;
   background: rgba(64, 153, 194, 0.06);

@@ -140,10 +140,9 @@ function useAppearanceRevision(): number {
   return revision
 }
 
-export function useOperatorAppearanceImage(
-  operator: Operator,
-  override?: { choice: OperatorAppearanceChoice; randomSeed: number },
-): { imageUrl: string | null; usingPortrait: boolean; choice: OperatorAppearanceChoice } {
+type AppearanceOverride = { choice: OperatorAppearanceChoice; randomSeed: number }
+
+function useResolvedOperatorAppearance(operator: Operator, override?: AppearanceOverride) {
   const revision = useAppearanceRevision()
   const preferences = useMemo(
     () => loadOperatorPreferences(),
@@ -153,6 +152,14 @@ export function useOperatorAppearanceImage(
   const randomSeed = override?.randomSeed ?? preferences.appearanceRandomSeed
   const accountResolution = resolveAccountAppearance(operator, getCachedImportedArknightsAccount())
   const resolved = resolveAppearanceChoice(operator, choice, randomSeed, accountResolution.choice)
+  return { choice, resolved }
+}
+
+export function useOperatorAppearanceImage(
+  operator: Operator,
+  override?: AppearanceOverride,
+): { imageUrl: string | null; usingPortrait: boolean; choice: OperatorAppearanceChoice } {
+  const { choice, resolved } = useResolvedOperatorAppearance(operator, override)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [usingPortrait, setUsingPortrait] = useState(false)
 
@@ -161,51 +168,33 @@ export function useOperatorAppearanceImage(
     setImageUrl(null)
     setUsingPortrait(false)
 
-    const fallback = async (): Promise<void> => {
-      const portrait = await window.desktop.getOperatorPortrait(operator.id, 'e2')
-      if (!active) return
-      if (portrait) {
-        setUsingPortrait(true)
-        setImageUrl(portrait)
-        return
-      }
-      const avatar = await window.desktop.getOperatorImage(operator.id)
-      if (active) {
-        setUsingPortrait(false)
-        setImageUrl(avatar)
-      }
-    }
-
     const load = async (): Promise<void> => {
+      let portrait: string | null = null
       if (resolved === 'e1' || resolved === 'e2') {
-        const portrait = await window.desktop.getOperatorPortrait(operator.id, resolved)
-        if (!active) return
-        if (portrait) {
-          setUsingPortrait(true)
-          setImageUrl(portrait)
-          return
+        portrait = await window.desktop.getOperatorPortrait(operator.id, resolved).catch(() => null)
+      } else {
+        const skinId = resolved.slice(5)
+        if (operator.skins?.some((skin) => skin.id === skinId)) {
+          portrait = await window.desktop
+            .getOperatorSkinPortrait(operator.id, skinId)
+            .catch(() => null)
         }
-        await fallback()
-        return
       }
 
-      const skinId = resolved.slice(5)
-      const skin = operator.skins?.find((candidate) => candidate.id === skinId)
-      if (!skin) {
-        await fallback()
-        return
+      if (active && !portrait && resolved !== 'e2') {
+        portrait = await window.desktop.getOperatorPortrait(operator.id, 'e2').catch(() => null)
       }
-      const portrait = await window.desktop.getOperatorSkinPortrait(operator.id, skin.id)
       if (!active) return
       if (portrait) {
         setUsingPortrait(true)
         setImageUrl(portrait)
         return
       }
-      await fallback()
+      const avatar = await window.desktop.getOperatorImage(operator.id).catch(() => null)
+      if (active) setImageUrl(avatar)
     }
 
-    void load().catch(() => void fallback())
+    void load()
     return () => {
       active = false
     }
@@ -216,17 +205,9 @@ export function useOperatorAppearanceImage(
 
 export function useOperatorAppearanceAvatar(
   operator: Operator,
-  override?: { choice: OperatorAppearanceChoice; randomSeed: number },
+  override?: AppearanceOverride,
 ): { imageUrl: string | null; choice: OperatorAppearanceChoice } {
-  const revision = useAppearanceRevision()
-  const preferences = useMemo(
-    () => loadOperatorPreferences(),
-    [revision, override?.choice, override?.randomSeed],
-  )
-  const choice = override?.choice ?? appearanceChoiceForOperator(preferences, operator.id)
-  const randomSeed = override?.randomSeed ?? preferences.appearanceRandomSeed
-  const accountResolution = resolveAccountAppearance(operator, getCachedImportedArknightsAccount())
-  const resolved = resolveAppearanceChoice(operator, choice, randomSeed, accountResolution.choice)
+  const { choice, resolved } = useResolvedOperatorAppearance(operator, override)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   useEffect(() => {

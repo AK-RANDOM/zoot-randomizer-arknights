@@ -27,7 +27,6 @@ import {
 } from './operatorDataService'
 import {
   getOperatorPortrait,
-  getOperatorSkinAvatar,
   getOperatorSkinPortrait,
   syncOperatorPortraits,
   clearPortraitMemoryCaches,
@@ -35,6 +34,7 @@ import {
 import {
   getOperatorAvatarAsset,
   getOperatorPromotionAvatar,
+  getOperatorSkinAvatar,
   clearAvatarMemoryCaches,
 } from './operatorAvatarService'
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'

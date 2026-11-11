@@ -82,7 +82,7 @@ describe('Garrison Squad M2', () => {
   it('renders stage table squads as a single row of Draft History-style icons', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     const css = read('./GarrisonSquadFeature.css')
-    expect(feature).toContain('GarrisonStageOperatorIcon')
+    expect(feature).toContain('CompactOperatorAvatar')
     expect(feature).toContain('release-representative draft-history__operator-icon')
     expect(feature).toContain('className="garrison-stage-squad-icons"')
     expect(css).toContain('flex-wrap: nowrap')

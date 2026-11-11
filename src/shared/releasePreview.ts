@@ -6,15 +6,12 @@ import { garrisonEventHelperOperator } from './garrisonEventHelper'
 
 export interface ReleaseBoundPreview {
   date: string
-  sixStar: Operator[]
-  fiveStar: Operator[]
-  representatives?: Operator[]
+  representatives: Operator[]
 }
 
 export interface ReleaseDateOption extends ReleaseBoundPreview {
   name: string
   representative: Operator | null
-  representatives: Operator[]
   startDate: string
   endDate: string
 }
@@ -213,13 +210,7 @@ export function buildReleaseDateOptions(
                 : featured?.event.limitedOperatorIds?.includes(featured.operator!.id)
                   ? featured.event.name
                   : `${date} Operator Release`)
-      const preview = getReleaseBoundPreview(
-        operators,
-        { ...release, minYear: null, maxYear: null, minDate: startDate, maxDate: endDate },
-        side,
-      ) ?? { date, sixStar: [], fiveStar: [] }
       return {
-        ...preview,
         date,
         startDate,
         endDate,
@@ -302,26 +293,11 @@ export function getReleaseBoundPreview(
       : dates.reduce((a, b) => (a > b ? a : b))
   const sameDate = eligible.filter((operator) => operator.release[release.server].date === date)
 
-  if (date === SERVER_LAUNCH_DATES[release.server]) {
-    const fixed = launchRepresentatives(sameDate)
-    return {
-      date,
-      representatives: fixed,
-      sixStar: fixed.filter((operator) => operator.rarity === 6),
-      fiveStar: fixed.filter((operator) => operator.rarity === 5),
-    }
-  }
-
   return {
     date,
-    representatives: buildBoundaryRepresentatives(sameDate),
-    sixStar: sameDate
-      .filter((operator) => operator.rarity === 6)
-      .sort(sortRepresentatives)
-      .slice(0, 2),
-    fiveStar: sameDate
-      .filter((operator) => operator.rarity === 5)
-      .sort(sortRepresentatives)
-      .slice(0, 2),
+    representatives:
+      date === SERVER_LAUNCH_DATES[release.server]
+        ? launchRepresentatives(sameDate)
+        : buildBoundaryRepresentatives(sameDate),
   }
 }

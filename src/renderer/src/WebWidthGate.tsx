@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useSyncExternalStore, type ReactNode } from 'react'
 
 const minimumWidth = 960
-const supportedViewport = window.matchMedia(`(min-width: ${minimumWidth}px)`)
+const supportedViewport = /* @__PURE__ */ window.matchMedia(`(min-width: ${minimumWidth}px)`)
 
 function subscribe(onChange: () => void): () => void {
   supportedViewport.addEventListener('change', onChange)

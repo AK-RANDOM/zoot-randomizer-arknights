@@ -25,7 +25,7 @@ import { garrisonEventHelperOperator } from '../../shared/garrisonEventHelper'
 import EventSelectorDropdown from './EventSelectorDropdown'
 import GarrisonConflictDialog from './GarrisonConflictDialog'
 import GarrisonStageEditor from './GarrisonStageEditor'
-import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import CompactOperatorAvatar from './CompactOperatorAvatar'
 import TextInputDialog from './TextInputDialog'
 import { loadSavedGarrisons, saveSavedGarrisons } from './rendererPersistence'
 
@@ -75,25 +75,6 @@ function nextStageName(stages: readonly { name: string }[]): string {
 
 function stageEquals(left: GarrisonStage, right: GarrisonStage): boolean {
   return JSON.stringify(cloneGarrisonStage(left)) === JSON.stringify(cloneGarrisonStage(right))
-}
-
-function GarrisonStageOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceAvatar(operator)
-
-  return (
-    <span
-      className="release-representative draft-history__operator-icon"
-      data-rarity={operator.rarity}
-      title={`${operator.name} — ${operator.rarity}★`}
-      aria-label={`${operator.name}, ${operator.rarity} star`}
-    >
-      {imageUrl ? (
-        <img src={imageUrl} alt="" draggable={false} />
-      ) : (
-        <span aria-hidden="true">{operator.name.slice(0, 1)}</span>
-      )}
-    </span>
-  )
 }
 
 export default function GarrisonSquadFeature({
@@ -848,7 +829,7 @@ export default function GarrisonSquadFeature({
                     style={{ position: 'relative', display: 'inline-flex' }}
                   >
                     {operator ? (
-                      <GarrisonStageOperatorIcon operator={operator} />
+                      <CompactOperatorAvatar operator={operator} />
                     ) : (
                       <span
                         className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
@@ -1039,7 +1020,7 @@ export default function GarrisonSquadFeature({
                         {stage.operatorIds.map((operatorId) => {
                           const operator = operatorById.get(operatorId)
                           return operator ? (
-                            <GarrisonStageOperatorIcon key={operatorId} operator={operator} />
+                            <CompactOperatorAvatar key={operatorId} operator={operator} />
                           ) : (
                             <span
                               key={operatorId}

@@ -34,11 +34,19 @@ describe('renderer persistence', () => {
     storage.setItem('arknights-randomizer:operator-artwork:v1', 'e1')
     storage.setItem(
       'arknights-randomizer:race-filter:v1',
-      JSON.stringify({ version: 1, excludedIds: ['race_a'] }),
+      JSON.stringify({ version: 1, excludedIds: ['race_a', 'race_a', '', 7, ' race_b '] }),
     )
     storage.setItem(
       'arknights-randomizer:draft-rulebooks:v1',
-      JSON.stringify({ version: 1, rulebooks: [imported] }),
+      JSON.stringify({
+        version: 1,
+        rulebooks: [
+          imported,
+          { ...imported, identifier: { ...imported.identifier, name: 'Duplicate' } },
+          STANDARD_DRAFT_RULEBOOK,
+          null,
+        ],
+      }),
     )
     storage.setItem(
       'arknights-randomizer:draft-rulebooks:imported:v1',
@@ -50,9 +58,31 @@ describe('renderer persistence', () => {
     expect(migrated.selectedDraftRulebookId).toBe(imported.identifier.id)
     expect(migrated.dismissedWarnings).toContain('arknights-randomizer:dismiss-bound-reset-warning')
     expect(migrated.operatorArtwork).toBe('e1')
-    expect(migrated.raceExcludedIds).toEqual(['race_a'])
+    expect(migrated.raceExcludedIds).toEqual(['race_a', 'race_b'])
     expect(migrated.rulebookLibrary).toHaveLength(1)
-    expect(migrated.rulebookLibrary[0]?.origin).toBe('imported')
+    expect(migrated.rulebookLibrary[0]).toMatchObject({ document: imported, origin: 'imported' })
+  })
+
+  it('ignores unsupported legacy envelopes', () => {
+    const storage = new MemoryStorage()
+    storage.setItem(
+      'arknights-randomizer:race-filter:v1',
+      JSON.stringify({
+        version: 99,
+        excludedIds: ['race_a'],
+      }),
+    )
+    storage.setItem(
+      'arknights-randomizer:draft-rulebooks:v1',
+      JSON.stringify({
+        version: 2,
+        rulebooks: [cloneStandard()],
+      }),
+    )
+
+    const migrated = migrateLegacyRendererPersistence(storage)
+    expect(migrated.raceExcludedIds).toEqual([])
+    expect(migrated.rulebookLibrary).toEqual([])
   })
 
   it('persists the migrated root on first load', () => {

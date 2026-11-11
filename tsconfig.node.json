@@ -1,6 +1,7 @@
 {
   "extends": "@electron-toolkit/tsconfig/tsconfig.node.json",
   "include": [
+    "package.json",
     "electron.vite.config.*",
     "vite.web.config.ts",
     "src/main/**/*",

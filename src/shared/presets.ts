@@ -156,17 +156,6 @@ export const BUILT_IN_SQUAD_PRESETS: SquadPreset[] = [
   },
 ]
 
-export function findBuiltInPreset(id: string): SquadPreset | undefined {
-  return BUILT_IN_SQUAD_PRESETS.find((preset) => preset.id === id)
-}
-
-export function isNoConstraintConfiguration(configuration: SquadConfiguration): boolean {
-  return squadConfigurationEquals(
-    configuration,
-    createNoConstraintConfiguration(configuration.squadSize),
-  )
-}
-
 export function createUserPreset(
   name: string,
   configuration: SquadConfiguration,

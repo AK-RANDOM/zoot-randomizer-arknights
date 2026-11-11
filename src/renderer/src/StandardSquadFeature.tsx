@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import SquadValidationBox from './SquadValidationBox'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
@@ -80,19 +81,6 @@ function numericSummary(label: string, constraint: NumericConstraint | undefined
   if (resolved.min > 0 && resolved.max === 12) return `At least ${resolved.min} ${label}`
   if (resolved.min === 0 && resolved.max < 12) return `At most ${resolved.max} ${label}`
   return `${resolved.min}–${resolved.max} ${label}`
-}
-
-function ValidationBox({ errors }: { errors: string[] }): React.JSX.Element {
-  return (
-    <div className="validation-box" role="alert">
-      <strong>Current configuration cannot generate a squad.</strong>
-      <ul>
-        {errors.map((error) => (
-          <li key={error}>{error}</li>
-        ))}
-      </ul>
-    </div>
-  )
 }
 
 function ConfirmationDialog({
@@ -728,7 +716,7 @@ export default function StandardSquadFeature({
           </button>
         </div>
         {dataset && !validation.valid && validation.errors.length > 0 && (
-          <ValidationBox errors={validation.errors} />
+          <SquadValidationBox errors={validation.errors} />
         )}
 
         <div className="squad-grid">

@@ -9,6 +9,7 @@ const bundled = resolve('resources/bundled-data/operators')
 export default defineConfig({
   root: resolve('src/renderer'),
   base: './',
+  define: { __WEB_BUILD__: true },
   resolve: {
     alias: {
       '@renderer': resolve('src/renderer/src'),

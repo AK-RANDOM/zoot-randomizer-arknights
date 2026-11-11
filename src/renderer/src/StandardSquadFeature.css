@@ -708,49 +708,6 @@
   color: #f5c46a;
 }
 
-.amiya-form-control {
-  display: grid;
-  gap: 9px;
-  margin-top: 10px;
-  padding: 10px;
-  border: 1px solid #34343a;
-  border-radius: 5px;
-  background: #111113;
-}
-
-.amiya-mode-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  color: #c8c8cd;
-  font-size: 0.7rem;
-}
-
-.amiya-mode-row label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.amiya-form-select {
-  display: grid;
-  grid-template-columns: auto minmax(140px, 1fr);
-  align-items: center;
-  gap: 9px;
-  color: #8d8d94;
-  font-size: 0.68rem;
-  font-weight: 750;
-}
-
-.amiya-form-select select {
-  min-height: 34px;
-  padding: 0 9px;
-  border: 1px solid #3b3b41;
-  border-radius: 4px;
-  color: #efeff1;
-  background: #0e0e10;
-}
-
 .slot-feasibility {
   margin: 10px 0;
   padding: 9px 10px;

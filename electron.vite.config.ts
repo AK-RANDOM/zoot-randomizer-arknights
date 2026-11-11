@@ -11,6 +11,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('src/renderer'),
+    define: { __WEB_BUILD__: false },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),

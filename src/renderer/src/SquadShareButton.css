@@ -104,14 +104,19 @@
 }
 
 .squad-share-image-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
   margin-bottom: 10px;
   padding: 12px 16px;
   border-bottom: 1px solid #36363e;
   color: #f3f3f3;
+  white-space: nowrap;
 }
 
 .squad-share-image-header h2 {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 40px;
   font-weight: 900;
   line-height: 1.15;
@@ -119,7 +124,7 @@
 
 .squad-share-image-header > div {
   display: flex;
-  justify-content: space-between;
+  align-items: baseline;
   gap: 16px;
   color: #c4c4cc;
   font-size: 24px;

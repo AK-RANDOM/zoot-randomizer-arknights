@@ -39,14 +39,24 @@ function ShareText({ result }: { result: SquadShareResult }): React.JSX.Element 
 }
 
 async function captureSquadImage(node: HTMLElement): Promise<Blob> {
-  const { toBlob } = await import('html-to-image')
+  const [{ toBlob }, { default: archivo }] = await Promise.all([
+    import('html-to-image'),
+    import('./assets/Archivo-Variable.ttf?inline'),
+  ])
   const images = [...node.querySelectorAll('img')]
   const decoded = await Promise.allSettled(images.map((image) => image.decode()))
   const failed = new Set(images.filter((_, index) => decoded[index].status === 'rejected'))
+  await document.fonts.ready
   if (!node.isConnected) throw new Error('Image preview closed.')
   const png = await toBlob(node, {
     pixelRatio: 2,
-    skipFonts: true,
+    // The PNG is rasterized from an SVG that cannot load external fonts.
+    fontEmbedCSS: `@font-face {
+      font-family: Archivo;
+      src: url("${archivo}") format('truetype');
+      font-weight: 100 900;
+      font-stretch: 62% 125%;
+    }`,
     fetchRequestInit: { signal: AbortSignal.timeout(20_000) },
     filter: (child) => !(child instanceof HTMLImageElement && failed.has(child)),
   })

@@ -72,7 +72,6 @@
   z-index: 1;
   object-fit: cover;
   object-position: center top;
-  animation: operator-art-in 160ms ease-out both;
 }
 
 .operator-card--portrait
@@ -362,9 +361,11 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .operator-card--portrait .operator-card__art img {
-    animation: none;
+@media (prefers-reduced-motion: no-preference) {
+  .operator-card--portrait:not(:where(.squad-share-grid *))
+    .operator-card__art
+    img:not(.operator-card__faction-logo) {
+    animation: operator-art-in 160ms ease-out both;
   }
 }
 

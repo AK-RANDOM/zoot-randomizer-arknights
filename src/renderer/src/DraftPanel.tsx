@@ -71,6 +71,7 @@ function ConfiguredRulebookDraft({
   return (
     <DraftSessionView
       state={session.state}
+      completedAt={session.completedAt}
       operators={execution?.pool ?? []}
       targetSize={targetSize}
       ready={ready && dataset !== null}

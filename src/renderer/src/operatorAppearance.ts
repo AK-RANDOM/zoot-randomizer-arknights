@@ -155,18 +155,17 @@ function useResolvedOperatorAppearance(operator: Operator, override?: Appearance
   return { choice, resolved }
 }
 
-export function useOperatorAppearanceImage(
-  operator: Operator,
-  override?: AppearanceOverride,
-): { imageUrl: string | null; usingPortrait: boolean; choice: OperatorAppearanceChoice } {
+export function useOperatorAppearanceImage(operator: Operator, override?: AppearanceOverride) {
   const { choice, resolved } = useResolvedOperatorAppearance(operator, override)
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [usingPortrait, setUsingPortrait] = useState(false)
+  const [artwork, setArtwork] = useState<{
+    operator: Operator
+    resolved: ResolvedOperatorAppearanceChoice
+    imageUrl: string | null
+    usingPortrait: boolean
+  } | null>(null)
 
   useEffect(() => {
     let active = true
-    setImageUrl(null)
-    setUsingPortrait(false)
 
     const load = async (): Promise<void> => {
       let portrait: string | null = null
@@ -186,12 +185,11 @@ export function useOperatorAppearanceImage(
       }
       if (!active) return
       if (portrait) {
-        setUsingPortrait(true)
-        setImageUrl(portrait)
+        setArtwork({ operator, resolved, imageUrl: portrait, usingPortrait: true })
         return
       }
       const avatar = await window.desktop.getOperatorImage(operator.id).catch(() => null)
-      if (active) setImageUrl(avatar)
+      if (active) setArtwork({ operator, resolved, imageUrl: avatar, usingPortrait: false })
     }
 
     void load()
@@ -200,7 +198,13 @@ export function useOperatorAppearanceImage(
     }
   }, [operator, resolved])
 
-  return { imageUrl, usingPortrait, choice }
+  const current = artwork?.operator === operator && artwork.resolved === resolved ? artwork : null
+  return {
+    imageUrl: current?.imageUrl ?? null,
+    usingPortrait: current?.usingPortrait ?? false,
+    loading: current === null,
+    choice,
+  }
 }
 
 export function useOperatorAppearanceAvatar(

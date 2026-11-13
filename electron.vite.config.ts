@@ -12,6 +12,7 @@ export default defineConfig(({ mode }) => ({
   },
   renderer: {
     root: resolve('src/renderer'),
+    build: { license: { fileName: 'THIRD_PARTY_LIBRARIES.md' } },
     define: { __WEB_BUILD__: false, __APP_VERSION__: JSON.stringify(buildAppVersion(mode)) },
     resolve: {
       alias: {

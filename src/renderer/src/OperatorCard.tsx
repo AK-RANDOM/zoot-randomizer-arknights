@@ -31,6 +31,7 @@ interface OperatorCardProps {
   overlay?: ReactNode
   animationKey?: string | number
   replayOnRandomize?: boolean
+  showPersonalProgression?: boolean
 }
 
 export default function OperatorCard({
@@ -41,15 +42,19 @@ export default function OperatorCard({
   overlay,
   animationKey = 0,
   replayOnRandomize = true,
+  showPersonalProgression = true,
 }: OperatorCardProps): React.JSX.Element {
   const {
     imageUrl,
     usingPortrait,
+    loading,
     choice: artworkPreference,
   } = useOperatorAppearanceImage(operator)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const importedAccount = useImportedArknightsAccount() ?? null
   const preferences = loadOperatorPreferences()
-  const showAccountProgression = preferences.showAccountProgression && importedAccount !== null
+  const showAccountProgression =
+    showPersonalProgression && preferences.showAccountProgression && importedAccount !== null
   const progression = showAccountProgression
     ? importedAccountOperatorState(importedAccount, operator.id)
     : null
@@ -134,6 +139,7 @@ export default function OperatorCard({
       className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
+      data-artwork-loading={loading || undefined}
       data-touch-actions-open={touchActionsOpen || undefined}
       title={`${operator.name} — selected artwork`}
       onPointerDownCapture={
@@ -164,13 +170,14 @@ export default function OperatorCard({
         {operator.faction.main && (
           <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
         )}
-        {imageUrl ? (
+        {imageUrl && imageUrl !== failedImageUrl ? (
           <img
             key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
             className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
             src={imageUrl}
             alt=""
             draggable={false}
+            onError={() => setFailedImageUrl(imageUrl)}
           />
         ) : (
           <div className="operator-card__fallback" aria-hidden="true">

@@ -10,6 +10,7 @@ import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
 import { compareDefaultOperators } from './PoolPanelPresentation'
 import CompactOperatorAvatar from './CompactOperatorAvatar'
+import SquadShareButton from './SquadShareButton'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -148,6 +149,7 @@ export default function StandardSquadFeature({
   onError: (message: string | null) => void
 }): React.JSX.Element {
   const [squad, setSquad] = useState<Operator[]>([])
+  const [generatedAt, setGeneratedAt] = useState<Date | null>(null)
   const [keptSlots, setKeptSlots] = useState<number[]>([])
   const [chainMode, setChainMode] = useState(false)
   const [chain, setChain] = useState<ChainSession | null>(null)
@@ -552,6 +554,7 @@ export default function StandardSquadFeature({
     try {
       const next = generateSquad(reroll.pool, reroll.constraints)
       setSquad(next)
+      setGeneratedAt(new Date())
       if (chain) {
         const outgoing = reroll.targets.map((index) => squad[index])
         setChain({ ...chain, exhausted: [...chain.exhausted, ...outgoing] })
@@ -576,6 +579,7 @@ export default function StandardSquadFeature({
     try {
       const next = generateSquad(finalOperatorPool, constraints)
       setSquad(next)
+      setGeneratedAt(new Date())
       if (chainMode) setChain({ pool: chainInitialPool, constraints, exhausted: [] })
       onMessage(`Generated a squad of ${constraints.squadSize} operators.`)
     } catch (reason) {
@@ -676,6 +680,9 @@ export default function StandardSquadFeature({
               >
                 {allKept ? 'Unkeep All' : 'Keep All'}
               </button>
+            )}
+            {generatedAt && squad.length === constraints.squadSize && (
+              <SquadShareButton result={{ mode: 'Standard Mode', generatedAt, members: squad }} />
             )}
             <button
               className="randomize-button"

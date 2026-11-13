@@ -17,7 +17,11 @@ export default defineConfig(({ mode }) => ({
       '@shared': resolve('src/shared'),
     },
   },
-  build: { outDir: output, emptyOutDir: true },
+  build: {
+    outDir: output,
+    emptyOutDir: true,
+    license: { fileName: 'THIRD_PARTY_LIBRARIES.md' },
+  },
   plugins: [
     react(),
     {

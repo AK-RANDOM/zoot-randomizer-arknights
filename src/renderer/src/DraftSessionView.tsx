@@ -221,6 +221,7 @@ interface PendingDraftConfirmation {
 
 export interface DraftSessionViewProps {
   state: DraftState | null
+  completedAt?: Date | null
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
@@ -237,6 +238,7 @@ export interface DraftSessionViewProps {
 }
 export default function DraftSessionView({
   state,
+  completedAt,
   operators,
   targetSize,
   ready,
@@ -459,6 +461,7 @@ export default function DraftSessionView({
       {state && configuration && onAction && (
         <DraftSquadGrid
           state={state}
+          completedAt={completedAt}
           operators={operators}
           configuration={configuration}
           onAction={requestEngineAction}

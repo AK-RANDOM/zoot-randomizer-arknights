@@ -4,6 +4,7 @@ import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/o
 import ArknightsAccountPanel from './ArknightsAccountPanel'
 import ArtworkDownloadStatus from './ArtworkDownloadStatus'
 import type { OperatorDatasetController } from './useOperatorDataset'
+import type { AppTheme } from './rendererPersistence'
 import { GAME_LOCALE_LABELS } from '../../shared/gameLocalization'
 import {
   setDraftActionConfirmationPreference,
@@ -16,6 +17,8 @@ const WINDOWS_DOWNLOAD =
 export default function OptionsPanel({
   operatorData,
   preferences,
+  theme,
+  onThemeChange,
   onMetadataRegionChange,
   onGameLocaleChange,
   onCurateNamesChange,
@@ -23,6 +26,8 @@ export default function OptionsPanel({
 }: {
   operatorData: OperatorDatasetController
   preferences: OperatorPreferences
+  theme: AppTheme
+  onThemeChange: (theme: AppTheme) => void
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
   onCurateNamesChange: (enabled: boolean) => void
@@ -73,6 +78,16 @@ export default function OptionsPanel({
             Controls localized names (including Garrison events) and game terminology. App interface
             text remains English.
           </small>
+        </label>
+      </div>
+
+      <div className="option-setting option-setting--compact">
+        <label className="field">
+          <span>Theme</span>
+          <select value={theme} onChange={(event) => onThemeChange(event.target.value as AppTheme)}>
+            <option value="rhodes">Rhodes</option>
+            <option value="zoot">ZOOT</option>
+          </select>
         </label>
       </div>
 

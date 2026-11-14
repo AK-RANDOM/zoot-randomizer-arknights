@@ -11,6 +11,8 @@ import { BUILT_IN_SQUAD_PRESETS, applySquadConfiguration } from './presets'
 import {
   filterEligibleOperators,
   canSlotResolveTo,
+  createSquadRerollPlanner,
+  rollSquadReroll,
   generateSquad,
   measureConstraintSearch,
   validateConstraints,
@@ -90,7 +92,136 @@ function disabledLimited(): RandomizerConstraints['acquisition']['limited'] {
   }
 }
 
+describe('shared reroll planning', () => {
+  it('draws a valid randomized squad from the reported 35-operator Chain pool', () => {
+    const preset = BUILT_IN_SQUAD_PRESETS.find(({ id }) => id === 'builtin:dev-recommended')!
+    const constraints = applySquadConfiguration(DEFAULT_CONSTRAINTS, preset.configuration)
+    const squad = [
+      operator('Phantom', 6, 'Specialist'), operator('Ceylon', 5, 'Medic'),
+      operator('Specter', 5, 'Guard'), operator('Blue Poison', 5, 'Sniper'),
+      operator('Hung', 5, 'Defender'), operator('Glaucus', 5, 'Supporter'),
+      operator('Dobermann', 4, 'Guard'), operator('Perfumer', 4, 'Medic'),
+      operator('Haze', 4, 'Caster'), operator('Shirayuki', 4, 'Sniper'),
+      operator('Lava', 3, 'Caster'), operator('Fang', 3, 'Vanguard'),
+    ]
+    const byRarity: [Operator['rarity'], Operator['class'][]][] = [
+      [6, ['Guard', 'Guard', 'Guard', 'Defender', 'Defender', 'Defender', 'Sniper', 'Sniper', 'Sniper', 'Caster', 'Caster', 'Medic', 'Medic', 'Supporter', 'Specialist']],
+      [5, ['Guard', 'Guard', 'Guard', 'Guard', 'Guard', 'Guard', 'Sniper', 'Sniper', 'Caster', 'Caster', 'Caster', 'Supporter', 'Supporter']],
+      [4, ['Medic']],
+      [3, ['Guard', 'Defender', 'Sniper', 'Medic']],
+      [2, ['Vanguard', 'Sniper']],
+    ]
+    const available = byRarity.flatMap(([rarity, classes]) =>
+      classes.map((operatorClass, index) => operator(`draw-${rarity}-${index}`, rarity, operatorClass)),
+    )
+    const kept = [6, 8, 9]
+    const targets = squad.flatMap((_, index) => kept.includes(index) ? [] : [index])
+    const plan = createSquadRerollPlanner(constraints, squad, [...squad, ...available], []).plan(targets)
+    if (!plan) throw new Error('Expected a feasible nine-slot reroll')
+
+    const outcomes = new Set<string>()
+    for (let seed = 1; seed <= 25; seed += 1) {
+      let state = seed
+      const random = () => {
+        state = (Math.imul(1664525, state) + 1013904223) >>> 0
+        return state / 2 ** 32
+      }
+      const result = rollSquadReroll(plan, random)
+      expect(kept.map((index) => result[index])).toEqual(kept.map((index) => squad[index]))
+      expect(result[7].id).toBe('draw-4-0')
+      expect(result.slice(10).map(({ id }) => id).sort()).toEqual(['draw-2-0', 'draw-3-1'])
+      outcomes.add(result.map(({ id }) => id).join(','))
+    }
+    expect(outcomes.size).toBeGreaterThan(1)
+  })
+
+  it('finds a valid batch when the same 5-star slot cannot reroll individually', () => {
+    const constraints: RandomizerConstraints = {
+      ...DEFAULT_CONSTRAINTS,
+      squadSize: 3,
+      class: { Vanguard: { min: 1, max: 12 } },
+      slots: DEFAULT_CONSTRAINTS.slots.map((slot, index) => {
+        if (index === 0) return { ...slot, rarities: [6] }
+        if (index === 1) return { ...slot, rarities: [5] }
+        return index === 2 ? { ...slot, operatorId: 'kept' } : slot
+      }),
+    }
+    const kept = operator('kept', 4, 'Defender')
+    const squad = [operator('nian', 6, 'Defender'), operator('reed', 5, 'Vanguard'), kept]
+    const exhausted = operator('siege', 6, 'Vanguard')
+    const available = [operator('bagpipe', 6, 'Vanguard'), operator('broca', 5, 'Guard')]
+    const planner = createSquadRerollPlanner(
+      constraints,
+      squad,
+      [...squad, ...available, exhausted],
+      [exhausted],
+    )
+
+    expect(planner.available).toEqual(available)
+    expect(planner.plan([1])).toBeNull()
+    expect(planner.plan([2])).toBeNull()
+    const batch = planner.plan([0, 1])
+    expect(batch).not.toBeNull()
+    if (!batch) throw new Error('Expected a feasible batch')
+    expect(rollSquadReroll(batch, seededRandom())).toEqual([...available, kept])
+    expect(planner.plan([1, 0])).toBe(batch)
+  })
+
+  it('allows fresh random draws from the same checked plan', () => {
+    const constraints = { ...DEFAULT_CONSTRAINTS, squadSize: 1 }
+    const current = operator('current', 5, 'Guard')
+    const first = operator('first', 5, 'Guard')
+    const second = operator('second', 5, 'Guard')
+    const planner = createSquadRerollPlanner(constraints, [current], [current, first, second], [])
+    const plan = planner.plan([0])
+    if (!plan) throw new Error('Expected a feasible reroll')
+
+    expect(rollSquadReroll(plan, () => 0)).toEqual([second])
+    expect(rollSquadReroll(plan, () => 0.99)).toEqual([first])
+  })
+})
+
 describe('constraints', () => {
+  it('rejects competing class minimums that only one slot can satisfy', () => {
+    const constraints: RandomizerConstraints = {
+      ...DEFAULT_CONSTRAINTS,
+      class: { Medic: { min: 1, max: 12 }, Caster: { min: 1, max: 12 } },
+      slots: DEFAULT_CONSTRAINTS.slots.map((slot, index) => ({
+        ...slot,
+        rarities: index === 0 ? [6] : [5],
+      })),
+    }
+    const replacements = [
+      operator('medic', 6, 'Medic'),
+      operator('caster', 6, 'Caster'),
+      ...Array.from({ length: 40 }, (_, index) => operator(`guard-${index}`, 5, 'Guard')),
+    ]
+
+    const result = measureConstraintSearch(replacements, constraints, undefined, 'dynamic', 'deficit')
+    expect(result.solved).toBe(false)
+    expect(result.stats).toMatchObject({ visits: 0, backtracks: 0, exhausted: false })
+    expect(validateConstraints(constraints, [...replacements, operator('medic-5', 5, 'Medic')]).valid).toBe(true)
+  })
+
+  it('rejects a four-Medic squad before search when only three distinct Medics fit', () => {
+    const constraints: RandomizerConstraints = {
+      ...DEFAULT_CONSTRAINTS,
+      class: { Medic: { min: 4, max: 12 } },
+      slots: DEFAULT_CONSTRAINTS.slots.map((slot, index) =>
+        index === 0 ? { ...slot, operatorId: 'medic-0' } : slot,
+      ),
+    }
+    const medics = Array.from({ length: 4 }, (_, index) => operator(`medic-${index}`, 5, 'Medic'))
+    const others = Array.from({ length: 40 }, (_, index) => operator(`guard-${index}`, 5, 'Guard'))
+    const exhaustedPool = [...medics.slice(0, 3), ...others]
+
+    const result = measureConstraintSearch(exhaustedPool, constraints, undefined, 'dynamic', 'deficit')
+    expect(result.solved).toBe(false)
+    expect(result.stats).toMatchObject({ visits: 0, backtracks: 0, exhausted: false })
+    expect(validateConstraints(constraints, exhaustedPool).valid).toBe(false)
+    expect(validateConstraints(constraints, [...medics, ...others]).valid).toBe(true)
+  })
+
   it('accepts the default squad-size shape', () => {
     expect(validateConstraints(DEFAULT_CONSTRAINTS).valid).toBe(true)
   })

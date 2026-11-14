@@ -183,6 +183,7 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
                         operator={operator}
                         replayOnRandomize={false}
                         showPersonalProgression={false}
+                        scrollName={false}
                       />
                       {isOverflow && <span className="squad-share-overflow">Overflow</span>}
                     </>

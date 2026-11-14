@@ -578,7 +578,7 @@
 }
 .garrison-stage-drag-handle:hover,
 .garrison-stage-drag-handle:focus-visible {
-  color: var(--app-accent);
+  color: var(--app-accent-text);
   border-color: var(--app-accent);
 }
 .garrison-stage-drag-handle:active {

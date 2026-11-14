@@ -48,7 +48,7 @@ export default function WebWidthGate({ children }: { children: ReactNode }): Rea
       >
         <h1 id="web-width-title">This screen is too narrow</h1>
         <p id="web-width-description">
-          Arknights Randomizer needs at least {minimumWidth} pixels of browser width. Rotate your
+          ZOOT Squad Dispatcher needs at least {minimumWidth} pixels of browser width. Rotate your
           device or open the app on a wider screen.
         </p>
       </dialog>

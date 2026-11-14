@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
@@ -7,6 +7,7 @@ import { useOperatorAppearanceImage } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
+import useOverflowScroll from './useOverflowScroll'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -32,6 +33,7 @@ interface OperatorCardProps {
   animationKey?: string | number
   replayOnRandomize?: boolean
   showPersonalProgression?: boolean
+  scrollName?: boolean
 }
 
 export default function OperatorCard({
@@ -43,6 +45,7 @@ export default function OperatorCard({
   animationKey = 0,
   replayOnRandomize = true,
   showPersonalProgression = true,
+  scrollName = true,
 }: OperatorCardProps): React.JSX.Element {
   const {
     imageUrl,
@@ -68,31 +71,15 @@ export default function OperatorCard({
   const touchPointer = useRef(false)
   const [touchActionsOpen, setTouchActionsOpen] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
-  const nameViewportRef = useRef<HTMLDivElement | null>(null)
-  const nameTextRef = useRef<HTMLSpanElement | null>(null)
-  const [nameOverflow, setNameOverflow] = useState(0)
+  const { viewportRef: nameViewportRef, textRef: nameTextRef } = useOverflowScroll<HTMLDivElement>(
+    operator.name,
+    scrollName,
+  )
   const [tooltipPosition, setTooltipPosition] = useState<{
     top?: number
     bottom?: number
     right: number
   } | null>(null)
-
-  useEffect(() => {
-    const viewport = nameViewportRef.current
-    const text = nameTextRef.current
-    if (!viewport || !text) return
-
-    const measure = (): void => {
-      setNameOverflow(Math.max(0, text.scrollWidth - viewport.clientWidth))
-    }
-
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(viewport)
-    observer.observe(text)
-
-    return () => observer.disconnect()
-  }, [operator.name])
 
   useEffect(() => {
     if (!touchActionsOpen) return
@@ -268,11 +255,7 @@ export default function OperatorCard({
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
           {'★'.repeat(operator.rarity)}
         </span>
-        <div
-          ref={nameViewportRef}
-          className={`operator-card__name-viewport${nameOverflow > 0 ? ' is-overflowing' : ''}`}
-          style={{ '--operator-name-overflow': `${nameOverflow}px` } as CSSProperties}
-        >
+        <div ref={nameViewportRef} className="operator-card__name-viewport">
           <strong>
             <span ref={nameTextRef} className="operator-card__name-text">
               {operator.name}

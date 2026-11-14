@@ -2,12 +2,29 @@
   --app-accent: #4099c2;
   --app-accent-hover: #65b5d8;
   --app-accent-light: #78c4e5;
+  --app-accent-text: var(--app-accent);
+  --app-accent-hold-border: #33464f;
+  --app-accent-selected-border: #327897;
+  --app-accent-card-hover: #337d9e;
+  --app-accent-pale: #d9f2ff;
   --rarity-6: #f28c28;
   --rarity-5: #f0d547;
   --rarity-4: #a66ddd;
   --rarity-3: #7fd7ff;
   --rarity-2: #6dc66a;
   --rarity-1: #979797;
+}
+
+:root[data-theme='zoot'] {
+  --app-accent: #a30e00;
+  --app-accent-hover: #bf2113;
+  --app-accent-light: #ffaba2;
+  --app-accent-text: #ff8075;
+  --app-accent-hold-border: #62322e;
+  --app-accent-selected-border: #bf5348;
+  --app-accent-card-hover: #b94e44;
+  --app-accent-pale: #ffdbd7;
+  --app-on-accent: #fff;
 }
 
 [data-rarity='6'] {
@@ -131,7 +148,7 @@
 /* Global app accent. Keep rarity, economy, validation, and destructive colors independent. */
 body {
   background:
-    radial-gradient(circle at 92% 0%, rgba(64, 153, 194, 0.12), transparent 30rem),
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--app-accent) 12%, transparent), transparent 30rem),
     linear-gradient(180deg, #111113, #09090a);
 }
 
@@ -142,7 +159,7 @@ body {
 .operator-card__interaction-list li strong,
 .squad-size-heading strong,
 .text-button:hover {
-  color: var(--app-accent);
+  color: var(--app-accent-text);
 }
 
 .randomize-button,
@@ -155,6 +172,20 @@ body {
   background: var(--app-accent);
 }
 
+:where(:root[data-theme='zoot']) :is(
+  .randomize-button,
+  .update-banner button,
+  .main-tabs button.is-active,
+  .criteria-chip.is-selected,
+  .draft-operator-action--pick,
+  .draft-candidate__action,
+  .operator-card__interaction-indicator,
+  .slot-class-constraint-subcount,
+  .slot-constraint-class-subcount
+) {
+  color: var(--app-on-accent);
+}
+
 .randomize-button:hover:not(:disabled),
 .draft-operator-action--pick:hover:not(:disabled),
 .update-banner button:hover:not(:disabled) {
@@ -165,7 +196,7 @@ body {
 .field select:focus,
 .compact-number input:focus {
   border-color: var(--app-accent);
-  box-shadow: 0 0 0 1px rgba(64, 153, 194, 0.25);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent) 25%, transparent);
 }
 
 .toggle-field input,
@@ -185,30 +216,30 @@ body {
 /* Constrained slots always keep a neutral interior. Constraint state only colors
    the border/badges; !important also overrides rarity-specific inline backgrounds. */
 .slot-config-card.is-constrained {
-  border-color: rgba(64, 153, 194, 0.5);
+  border-color: color-mix(in srgb, var(--app-accent) 50%, transparent);
   background:
     linear-gradient(#111113, #111113) padding-box,
     var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box !important;
 }
 
 .draft-hold-panel {
-  border-color: #33464f;
-  background: rgba(64, 153, 194, 0.06);
+  border-color: var(--app-accent-hold-border);
+  background: color-mix(in srgb, var(--app-accent) 6%, transparent);
 }
 
 .draft-operator-action--pick {
-  border-color: rgba(64, 153, 194, 0.9);
-  background: rgba(64, 153, 194, 0.96);
+  border-color: color-mix(in srgb, var(--app-accent) 90%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 96%, transparent);
 }
 
 .draft-candidate__action {
-  border-color: rgba(64, 153, 194, 0.7);
-  background: rgba(64, 153, 194, 0.94);
+  border-color: color-mix(in srgb, var(--app-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 94%, transparent);
 }
 
 .operator-card__interaction-indicator {
-  border-color: rgba(64, 153, 194, 0.85);
-  background: rgba(64, 153, 194, 0.96);
+  border-color: color-mix(in srgb, var(--app-accent) 85%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 96%, transparent);
 }
 
 .bound-pill:hover:not(:disabled),
@@ -217,36 +248,36 @@ body {
 }
 
 .quick-select.is-selected {
-  border-color: #327897;
+  border-color: var(--app-accent-selected-border);
   color: var(--app-accent-light);
 }
 
 .slot-config-card:hover {
-  border-color: #337d9e;
+  border-color: var(--app-accent-card-hover);
 }
 
 .slot-constraint-badge {
-  color: #d9f2ff;
+  color: var(--app-accent-pale);
 }
 
 .draft-squad-expand {
   border-color: var(--app-accent);
-  color: #d9f2ff;
-  background: linear-gradient(180deg, rgba(64, 153, 194, 0.18), rgba(64, 153, 194, 0.08)), #17171a;
-  box-shadow: inset 0 0 0 1px rgba(64, 153, 194, 0.12);
+  color: var(--app-accent-pale);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--app-accent) 18%, transparent), color-mix(in srgb, var(--app-accent) 8%, transparent)), #17171a;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-accent) 12%, transparent);
 }
 
 .draft-squad-expand:hover:not(:disabled),
 .draft-squad-expand:focus-visible {
   border-color: var(--app-accent-light);
-  background: linear-gradient(180deg, rgba(64, 153, 194, 0.26), rgba(64, 153, 194, 0.12)), #1d1d21;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--app-accent) 26%, transparent), color-mix(in srgb, var(--app-accent) 12%, transparent)), #1d1d21;
   box-shadow:
-    inset 0 0 0 1px rgba(64, 153, 194, 0.2),
-    0 0 0 1px rgba(64, 153, 194, 0.16);
+    inset 0 0 0 1px color-mix(in srgb, var(--app-accent) 20%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--app-accent) 16%, transparent);
 }
 
 .draft-squad-expand__icon {
-  color: var(--app-accent);
+  color: var(--app-accent-text);
 }
 
 .draft-squad-expand:disabled {

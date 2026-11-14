@@ -224,12 +224,6 @@ export default function ArknightsAccountPanel({
             Unofficial read-only integration. Signing in may disconnect an active Arknights game
             session. Email, verification codes, and reusable authentication secrets are not saved.
           </p>
-          {window.desktop.platform === 'browser' && (
-            <p>
-              The web account service sends your email and code to YoStar and saves the imported
-              roster in this browser.
-            </p>
-          )}
           <div className="arknights-account__fields">
             <label className="field">
               <span>Server</span>

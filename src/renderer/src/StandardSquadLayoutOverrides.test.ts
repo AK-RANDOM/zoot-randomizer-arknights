@@ -116,7 +116,7 @@ describe('Standard Squad layout refinements', () => {
   })
 
   it('keeps preset and run controls together inside the preset toolbar', () => {
-    const toolbarStart = featureSource.indexOf('<div className="preset-toolbar">')
+    const toolbarStart = featureSource.indexOf('<div className="preset-toolbar"')
     const toolbarEnd = featureSource.indexOf(
       '<div className="current-constraint-summary"',
       toolbarStart,
@@ -128,7 +128,7 @@ describe('Standard Squad layout refinements', () => {
     expect(toolbarSource).toContain('Save as preset…')
     expect(toolbarSource).toContain('Clear')
     expect(toolbarSource).toContain('Randomize')
-    expect(toolbarSource).toContain('disabled={squad.length === 0}')
+    expect(toolbarSource).toContain('disabled={rolling || squad.length === 0}')
     expect(featureSource).not.toContain('Randomize Again')
     expect(layoutCss).toContain('.preset-toolbar .preset-actions-spacer')
     expect(layoutCss).not.toContain('.section-heading .randomize-button')

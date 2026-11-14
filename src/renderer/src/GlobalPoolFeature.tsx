@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import SquadValidationBox from './SquadValidationBox'
 import { createDefaultConstraints, type RandomizerConstraints } from '../../shared/constraints'
 import {
   limitedAcquisitionGroups,
@@ -174,7 +175,7 @@ function ReleasePreviewStrip({
 }): React.JSX.Element {
   if (!preview)
     return <div className="release-preview release-preview--empty">No matching release event</div>
-  const representatives = preview.representatives ?? [...preview.sixStar, ...preview.fiveStar]
+  const representatives = preview.representatives
   return (
     <div className="release-preview">
       <div className="release-preview__meta">
@@ -187,22 +188,9 @@ function ReleasePreviewStrip({
             <RepresentativePortrait key={operator.id} operator={operator} />
           ))
         ) : (
-          <span className="release-preview__none">No 6★/5★ on this date</span>
+          <span className="release-preview__none">No representatives on this date</span>
         )}
       </div>
-    </div>
-  )
-}
-
-function ValidationBox({ errors }: { errors: string[] }): React.JSX.Element {
-  return (
-    <div className="validation-box" role="alert">
-      <strong>Current configuration cannot generate a squad.</strong>
-      <ul>
-        {errors.map((error) => (
-          <li key={error}>{error}</li>
-        ))}
-      </ul>
     </div>
   )
 }
@@ -852,7 +840,7 @@ export default function GlobalPoolFeature({
           )}
 
           {dataset && !validation.valid && validation.errors.length > 0 && (
-            <ValidationBox errors={validation.errors} />
+            <SquadValidationBox errors={validation.errors} />
           )}
         </section>
       )}

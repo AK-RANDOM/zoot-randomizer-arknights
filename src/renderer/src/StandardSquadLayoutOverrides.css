@@ -82,7 +82,7 @@
 
 .preset-name-dialog-input:focus {
   border-color: var(--app-accent);
-  box-shadow: 0 0 0 1px rgba(64, 153, 194, 0.25);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--app-accent) 25%, transparent);
 }
 
 @media (max-width: 960px) {

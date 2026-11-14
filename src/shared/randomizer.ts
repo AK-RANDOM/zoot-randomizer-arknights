@@ -183,16 +183,6 @@ export function operatorMatchesSlotConstraint(
   return true
 }
 
-export function countEligibleOperatorsForSlot(
-  operators: Operator[],
-  constraints: RandomizerConstraints,
-  slot: SlotConstraint,
-): number {
-  return filterEligibleOperators(operators, constraints).filter((operator) =>
-    operatorMatchesSlotConstraint(operator, slot),
-  ).length
-}
-
 export function reservedMandatoryGroupsFromSlotConstraints(
   operators: readonly Operator[],
   constraints: RandomizerConstraints,
@@ -328,6 +318,7 @@ function minimumsStillReachable(
   rarityCounts: ConstraintCountMap<OperatorRarity>,
   rarityGroupCounts: ConstraintCountMap<RarityGroupKey>,
   bounds: PreparedBounds,
+  candidateIsViable: (candidate: PreparedCandidate) => boolean,
 ): boolean {
   for (const operatorClass of operatorClasses) {
     const minimum = bounds.class[operatorClass].min
@@ -335,7 +326,7 @@ function minimumsStillReachable(
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some((candidate) => candidate.operator.class === operatorClass)
+        (candidatesBySlot[slot].some((candidate) => candidate.operator.class === operatorClass && candidateIsViable(candidate))
           ? 1
           : 0),
       0,
@@ -349,7 +340,7 @@ function minimumsStillReachable(
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some((candidate) => candidate.operator.rarity === rarity) ? 1 : 0),
+        (candidatesBySlot[slot].some((candidate) => candidate.operator.rarity === rarity && candidateIsViable(candidate)) ? 1 : 0),
       0,
     )
     if (countFor(rarityCounts, rarity) + possible < minimum) return false
@@ -361,7 +352,7 @@ function minimumsStillReachable(
     const possible = remainingSlots.reduce(
       (total, slot) =>
         total +
-        (candidatesBySlot[slot].some((candidate) => candidate.rarityGroups.includes(group))
+        (candidatesBySlot[slot].some((candidate) => candidate.rarityGroups.includes(group) && candidateIsViable(candidate))
           ? 1
           : 0),
       0,
@@ -372,12 +363,48 @@ function minimumsStillReachable(
   return true
 }
 
+function classMinimumsFitSlots(
+  candidatesBySlot: readonly PreparedCandidate[][],
+  bounds: PreparedBounds,
+): boolean {
+  const slotsByClass = new Map(
+    operatorClasses.map((operatorClass) => [
+      operatorClass,
+      candidatesBySlot.flatMap((candidates, index) =>
+        candidates.some(({ operator }) => operator.class === operatorClass) ? [index] : [],
+      ),
+    ]),
+  )
+  const classBySlot = new Map<number, OperatorClass>()
+  const assign = (operatorClass: OperatorClass, seen: Set<number>): boolean => {
+    for (const slot of slotsByClass.get(operatorClass) ?? []) {
+      if (seen.has(slot)) continue
+      seen.add(slot)
+      const previous = classBySlot.get(slot)
+      if (previous === undefined || assign(previous, seen)) {
+        classBySlot.set(slot, operatorClass)
+        return true
+      }
+    }
+    return false
+  }
+
+  // Required classes can each have candidates and still compete for the same slot.
+  return operatorClasses.every((operatorClass) => {
+    for (let count = 0; count < bounds.class[operatorClass].min; count += 1) {
+      if (!assign(operatorClass, new Set())) return false
+    }
+    return true
+  })
+}
+
 function solveAssignment(
   eligible: Operator[],
   constraints: RandomizerConstraints,
   random: RandomSource,
   slotSelection: 'static' | 'dynamic' = 'static',
   candidateOrdering: 'random' | 'deficit' = 'random',
+  deadline = Infinity,
 ): SearchResult {
   const target = constraints.squadSize
   const bounds = prepareBounds(constraints)
@@ -388,7 +415,27 @@ function solveAssignment(
     ),
   )
 
-  if (candidatesBySlot.some((candidates) => candidates.length === 0)) {
+  const classSupply = new Map<OperatorClass, number>()
+  const raritySupply = new Map<OperatorRarity, number>()
+  const rarityGroupSupply = new Map<RarityGroupKey, number>()
+  const counted = new Set<string>()
+  for (const candidates of candidatesBySlot) {
+    for (const candidate of candidates) {
+      const { id, class: operatorClass, rarity } = candidate.operator
+      if (counted.has(id)) continue
+      counted.add(id)
+      increment(classSupply, operatorClass, 1)
+      increment(raritySupply, rarity, 1)
+      for (const group of candidate.rarityGroups) increment(rarityGroupSupply, group, 1)
+    }
+  }
+
+  // A candidate matching several slots can only contribute to a minimum once.
+  if (
+    candidatesBySlot.some((candidates) => candidates.length === 0) ||
+    !satisfiesMinimums(classSupply, raritySupply, rarityGroupSupply, bounds) ||
+    !classMinimumsFitSlots(candidatesBySlot, bounds)
+  ) {
     return {
       squad: null,
       exhausted: false,
@@ -421,6 +468,28 @@ function solveAssignment(
   })
 
   const randomizedCandidates = candidatesBySlot.map((candidates) => shuffled(candidates, random))
+  const equivalentCandidateKeys = new Map<PreparedCandidate, string>()
+  if (candidateOrdering === 'deficit') {
+    const slotMasks = new Map<PreparedCandidate, number>()
+    candidatesBySlot.forEach((candidates, slot) => {
+      for (const candidate of candidates) {
+        slotMasks.set(candidate, (slotMasks.get(candidate) ?? 0) | (1 << slot))
+      }
+    })
+    for (const candidate of preparedCandidates) {
+      // Candidates in the same class and rarity that fit the same slots and use
+      // the same exclusivity keys are interchangeable in a feasibility check.
+      equivalentCandidateKeys.set(
+        candidate,
+        JSON.stringify([
+          candidate.operator.class,
+          candidate.operator.rarity,
+          slotMasks.get(candidate),
+          candidate.exclusivityKeys,
+        ]),
+      )
+    }
+  }
   const assignment: Array<Operator | undefined> = Array(target).fill(undefined)
   const usedIds = new Set<string>()
   const usedExclusivity = new Set<string>()
@@ -518,7 +587,7 @@ function solveAssignment(
 
   function search(depth: number): boolean {
     visits += 1
-    if (visits > SEARCH_VISIT_LIMIT) {
+    if (visits > SEARCH_VISIT_LIMIT || ((visits & 63) === 1 && performance.now() >= deadline)) {
       exhausted = true
       return false
     }
@@ -543,6 +612,7 @@ function solveAssignment(
         rarityCounts,
         rarityGroupCounts,
         bounds,
+        candidateIsViable,
       )
     ) {
       prunedBranches += 1
@@ -550,8 +620,14 @@ function solveAssignment(
     }
 
     const slotIndex = slotOrder[depth]
+    const tried = candidateOrdering === 'deficit' ? new Set<string>() : undefined
     for (const candidate of orderedCandidatesForSlot(slotIndex)) {
       if (!candidateIsViable(candidate)) continue
+      if (tried) {
+        const key = equivalentCandidateKeys.get(candidate)!
+        if (tried.has(key)) continue
+        tried.add(key)
+      }
 
       assignment[slotIndex] = candidate.operator
       addOperator(candidate)
@@ -741,4 +817,92 @@ export function generateSquad(
   random: RandomSource = Math.random,
 ): Operator[] {
   return generateSquadWithStats(operators, constraints, random).squad
+}
+
+interface SquadRerollPlan {
+  pool: Operator[]
+  constraints: RandomizerConstraints
+}
+
+export function rollSquadReroll(plan: SquadRerollPlan, random: RandomSource = Math.random): Operator[] {
+  return drawChainSquad(plan.pool, plan.constraints, random)
+}
+
+export function drawChainSquad(
+  pool: Operator[],
+  constraints: RandomizerConstraints,
+  random: RandomSource = Math.random,
+): Operator[] {
+  const errors = validateConstraintShape(constraints)
+  if (errors.length > 0) throw new Error(errors.join(' '))
+  const eligible = filterEligibleOperators(pool, constraints)
+  // Shuffle on every click. Prefer candidates that meet unmet minimums and
+  // break ties in shuffled order, as in the feasibility search.
+  const deadline = performance.now() + 750
+  let result: SearchResult
+  do {
+    result = solveAssignment(eligible, constraints, random, 'dynamic', 'deficit', Math.min(deadline, performance.now() + 125))
+  } while (result.exhausted && performance.now() < deadline)
+  if (!result.squad) {
+    throw new Error(
+      result.exhausted
+        ? 'The reroll search took too long. Try rerolling again.'
+        : 'No replacements satisfy the current squad rules.',
+    )
+  }
+  return result.squad
+}
+
+export function createSquadRerollPlanner(
+  constraints: RandomizerConstraints,
+  squad: readonly Operator[],
+  eligiblePool: Operator[],
+  exhausted: readonly Operator[],
+  deadline = Infinity,
+) {
+  const eligible = filterEligibleOperators(eligiblePool, constraints)
+  const eligibleById = new Map(eligible.map((operator) => [operator.id, operator]))
+  const unavailable = new Set([...squad, ...exhausted].map(({ id }) => id))
+  const available = eligible.filter(({ id }) => !unavailable.has(id))
+  const candidatesBySlot = squad.map((_, index) =>
+    available.filter((operator) => operatorMatchesSlotConstraint(operator, constraints.slots[index])),
+  )
+  const plans = new Map<number, SquadRerollPlan | null>()
+  const limited = new Set<number>()
+  const validShape =
+    squad.length === constraints.squadSize && validateConstraintShape(constraints).length === 0
+
+  function plan(targets: readonly number[]) {
+    if (!validShape || targets.length === 0) return null
+    if (targets.some((index) => !candidatesBySlot[index] || constraints.slots[index]?.operatorId)) {
+      return null
+    }
+    const mask = targets.reduce((current, index) => current | (1 << index), 0)
+    if (plans.has(mask)) return plans.get(mask) ?? null
+    const candidates = new Set(targets.flatMap((index) => candidatesBySlot[index]))
+    const slots = constraints.slots.map((slot, index) => {
+      const member = squad[index]
+      if (!member || (mask & (1 << index))) return slot
+      const retained = eligibleById.get(member.id)
+      if (retained && operatorMatchesSlotConstraint(retained, slot)) candidates.add(retained)
+      return { ...slot, operatorId: member.id, mandatoryExclusivityGroup: null }
+    })
+    const pool = [...candidates]
+    const rerollConstraints = { ...constraints, slots }
+    const result = pool.length >= constraints.squadSize
+      ? solveAssignment(pool, rerollConstraints, validationRandom(), 'dynamic', 'deficit', deadline)
+      : null
+    if (result?.exhausted) limited.add(mask)
+    const plan = result?.squad ? { pool, constraints: rerollConstraints } : null
+    plans.set(mask, plan)
+    return plan
+  }
+
+  return {
+    available,
+    candidatesBySlot,
+    plan,
+    wasLimited: (targets: readonly number[]) =>
+      limited.has(targets.reduce((mask, index) => mask | (1 << index), 0)),
+  }
 }

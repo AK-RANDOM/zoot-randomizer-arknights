@@ -12,16 +12,14 @@ import './StandardSquadLayoutOverrides.css'
 import './PresentationPreferences.css'
 import './RendererTheme.css'
 
-window.desktop ??= browserApi
+const rootElement = document.getElementById('root')!
+if (__WEB_BUILD__) window.desktop ??= browserApi
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    {window.desktop.platform === 'browser' ? (
-      <WebWidthGate>
-        <App />
-      </WebWidthGate>
-    ) : (
-      <App />
-    )}
-  </StrictMode>,
-)
+if (!window.desktop) {
+  rootElement.textContent = 'The Windows app could not start. Close it and try again.'
+} else {
+  const app = <App />
+  createRoot(rootElement).render(
+    <StrictMode>{__WEB_BUILD__ ? <WebWidthGate>{app}</WebWidthGate> : app}</StrictMode>,
+  )
+}

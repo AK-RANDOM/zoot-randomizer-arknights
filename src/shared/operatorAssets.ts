@@ -76,7 +76,3 @@ export function factionIconFile(label: string | null | undefined): string | null
   const slug = factionIconSlugByLabel[label]
   return slug ? `logo_${slug}.png` : null
 }
-
-export const KNOWN_FACTION_ICON_FILES = [...new Set(
-  Object.values(factionIconSlugByLabel).map((slug) => `logo_${slug}.png`),
-)]

@@ -9,6 +9,7 @@ import {
 import { operatorRaceIds } from '../raceMetadata'
 import { buildSubclassFilterOptions } from '../operatorFilterCatalog'
 import type { DraftRulebookEligibility, DraftRulebookSelector } from './types'
+import { checkKeys, isRecord, validateStringList } from './validationHelpers'
 
 export const DRAFT_RULEBOOK_SELECTOR_TYPE_OPTIONS: ReadonlyArray<{
   type: DraftRulebookSelector['type']
@@ -246,40 +247,6 @@ export function inspectDraftRulebookSelectorReferences(
     case 'rarities':
     case 'classes':
       return []
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function nonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-function checkKeys(
-  value: Record<string, unknown>,
-  allowed: readonly string[],
-  path: string,
-  errors: string[],
-): void {
-  const allowedKeys = new Set(allowed)
-  for (const key of Object.keys(value)) {
-    if (!allowedKeys.has(key)) errors.push(`${path}.${key} is not supported.`)
-  }
-}
-
-function validateStringList(value: unknown, path: string, errors: string[]): void {
-  if (!Array.isArray(value)) {
-    errors.push(`${path} must be an array.`)
-    return
-  }
-  if (value.length === 0) errors.push(`${path} must be a non-empty array.`)
-  const seen = new Set<string>()
-  for (const [index, item] of value.entries()) {
-    if (!nonEmptyString(item)) errors.push(`${path}[${index}] must be a non-empty string.`)
-    else if (seen.has(item)) errors.push(`${path} must not contain duplicate value ${item}.`)
-    else seen.add(item)
   }
 }
 

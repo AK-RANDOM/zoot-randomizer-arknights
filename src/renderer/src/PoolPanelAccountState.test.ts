@@ -42,7 +42,9 @@ describe('Curate account-state grouping', () => {
 
   it('keeps the ungrouped sort control in the summary and group actions below it', () => {
     const source = readFileSync(new URL('./PoolPanel.tsx', import.meta.url), 'utf8')
-    expect(source).toContain('<option value="accountState">Account State</option>')
+    const controls = readFileSync(new URL('./PoolSortControls.tsx', import.meta.url), 'utf8')
+    expect(source).toContain('<PoolSortControls')
+    expect(controls).toContain('<option value="accountState">Account State</option>')
     expect(source).toContain("onClick={() => toggleOneGroupDirection('All operators')}")
     expect(source.indexOf('<div className="pool-information" role="status">')).toBeLessThan(
       source.indexOf('<div className="pool-group-actions">'),

@@ -16,26 +16,57 @@ import { resolveDraftStatusPresentation } from './draftPresentation'
 import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
-import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import CompactOperatorAvatar from './CompactOperatorAvatar'
 
 const historyForfeitIconUrl = new URL('./assets/draft/forfeit-icon.png', import.meta.url).href
 
-function DraftHistoryOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceAvatar(operator)
+function DraftPilesDebug({
+  state,
+  operatorById,
+}: {
+  state: DraftState
+  operatorById: ReadonlyMap<string, Operator>
+}): React.JSX.Element {
+  const piles = [
+    { label: 'Graveyard', ids: state.discardedOperatorIds },
+    { label: 'Discard Pile', ids: state.discardPileOperatorIds ?? [] },
+  ]
 
   return (
-    <span
-      className="release-representative draft-history__operator-icon"
-      data-rarity={operator.rarity}
-      title={`${operator.name} — ${operator.rarity}★`}
-      aria-label={`${operator.name}, ${operator.rarity} star`}
-    >
-      {imageUrl ? (
-        <img src={imageUrl} alt="" draggable={false} />
-      ) : (
-        <span aria-hidden="true">{operator.name.slice(0, 1)}</span>
-      )}
-    </span>
+    <details className="draft-piles-debug">
+      <summary>Debug: Inspect piles</summary>
+      <div className="draft-piles-debug__contents">
+        {piles.map(({ label, ids }) => (
+          <section className="garrison-participants" key={label} aria-label={label}>
+            <div className="garrison-participant-heading">
+              <strong>{label}</strong>
+              <span>{ids.length} {ids.length === 1 ? 'operator' : 'operators'}</span>
+            </div>
+            {ids.length === 0 ? (
+              <p>Empty</p>
+            ) : (
+              <div className="garrison-participant-list">
+                {ids.map((id) => {
+                  const operator = operatorById.get(id)
+                  return operator ? (
+                    <CompactOperatorAvatar key={id} operator={operator} />
+                  ) : (
+                    <span
+                      className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
+                      key={id}
+                      title={id}
+                      aria-label={id}
+                    >
+                      ?
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+        ))}
+      </div>
+    </details>
   )
 }
 
@@ -88,7 +119,7 @@ function DraftHistoryTable({
                             {offer.operatorIds.map((operatorId) => {
                               const operator = operatorById.get(operatorId)
                               return operator ? (
-                                <DraftHistoryOperatorIcon key={operatorId} operator={operator} />
+                                <CompactOperatorAvatar key={operatorId} operator={operator} />
                               ) : (
                                 <span className="draft-history__missing-operator" key={operatorId}>
                                   {operatorId}
@@ -101,7 +132,7 @@ function DraftHistoryTable({
                               round.offers[offerIndex - 1]?.sidecarOperatorId &&
                             operatorById.get(offer.sidecarOperatorId) && (
                               <span className="draft-history__sidecar" title="Sidecar">
-                                <DraftHistoryOperatorIcon
+                                <CompactOperatorAvatar
                                   operator={operatorById.get(offer.sidecarOperatorId)!}
                                 />
                               </span>
@@ -158,7 +189,7 @@ function DraftHistoryTable({
                                   </span>
                                 )}
                                 {operator ? (
-                                  <DraftHistoryOperatorIcon operator={operator} />
+                                  <CompactOperatorAvatar operator={operator} />
                                 ) : (
                                   action.operatorId && (
                                     <span className="draft-history__missing-operator">
@@ -190,6 +221,7 @@ interface PendingDraftConfirmation {
 
 export interface DraftSessionViewProps {
   state: DraftState | null
+  completedAt?: Date | null
   operators: readonly Operator[]
   targetSize: number
   ready: boolean
@@ -206,6 +238,7 @@ export interface DraftSessionViewProps {
 }
 export default function DraftSessionView({
   state,
+  completedAt,
   operators,
   targetSize,
   ready,
@@ -356,6 +389,9 @@ export default function DraftSessionView({
           distribution={configuration?.pullDistribution ?? rulebook.generalRules.pullDistribution}
         />
       )}
+      {import.meta.env.DEV && state && (
+        <DraftPilesDebug state={state} operatorById={operatorById} />
+      )}
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>
@@ -425,6 +461,7 @@ export default function DraftSessionView({
       {state && configuration && onAction && (
         <DraftSquadGrid
           state={state}
+          completedAt={completedAt}
           operators={operators}
           configuration={configuration}
           onAction={requestEngineAction}

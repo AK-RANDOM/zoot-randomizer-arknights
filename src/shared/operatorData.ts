@@ -27,7 +27,6 @@ import {
   COLLABORATION_BY_OPERATOR_ID,
   RELEASE_METADATA_UPSTREAM,
   buildReleaseCategoryMap,
-  buildReleaseDateMap,
   releaseYearGroup,
   type OperatorReleaseCategory,
   type OperatorReleaseDates,
@@ -430,14 +429,6 @@ function alterGroups(...metas: Array<RawCharacterMetaTable | undefined>): Map<st
     }
   }
   return result
-}
-
-export function createReleaseDateMap(
-  infoSource: string,
-  candidateSource: string,
-  eventSource: string,
-): Record<string, OperatorReleaseDates> {
-  return buildReleaseDateMap(infoSource, candidateSource, eventSource)
 }
 
 export function createReleaseCategoryMap(

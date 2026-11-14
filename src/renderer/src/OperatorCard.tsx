@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
@@ -7,6 +7,7 @@ import { useOperatorAppearanceImage } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
+import useOverflowScroll from './useOverflowScroll'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -31,6 +32,8 @@ interface OperatorCardProps {
   overlay?: ReactNode
   animationKey?: string | number
   replayOnRandomize?: boolean
+  showPersonalProgression?: boolean
+  scrollName?: boolean
 }
 
 export default function OperatorCard({
@@ -41,15 +44,20 @@ export default function OperatorCard({
   overlay,
   animationKey = 0,
   replayOnRandomize = true,
+  showPersonalProgression = true,
+  scrollName = true,
 }: OperatorCardProps): React.JSX.Element {
   const {
     imageUrl,
     usingPortrait,
+    loading,
     choice: artworkPreference,
   } = useOperatorAppearanceImage(operator)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const importedAccount = useImportedArknightsAccount() ?? null
   const preferences = loadOperatorPreferences()
-  const showAccountProgression = preferences.showAccountProgression && importedAccount !== null
+  const showAccountProgression =
+    showPersonalProgression && preferences.showAccountProgression && importedAccount !== null
   const progression = showAccountProgression
     ? importedAccountOperatorState(importedAccount, operator.id)
     : null
@@ -63,31 +71,15 @@ export default function OperatorCard({
   const touchPointer = useRef(false)
   const [touchActionsOpen, setTouchActionsOpen] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
-  const nameViewportRef = useRef<HTMLDivElement | null>(null)
-  const nameTextRef = useRef<HTMLSpanElement | null>(null)
-  const [nameOverflow, setNameOverflow] = useState(0)
+  const { viewportRef: nameViewportRef, textRef: nameTextRef } = useOverflowScroll<HTMLDivElement>(
+    operator.name,
+    scrollName,
+  )
   const [tooltipPosition, setTooltipPosition] = useState<{
     top?: number
     bottom?: number
     right: number
   } | null>(null)
-
-  useEffect(() => {
-    const viewport = nameViewportRef.current
-    const text = nameTextRef.current
-    if (!viewport || !text) return
-
-    const measure = (): void => {
-      setNameOverflow(Math.max(0, text.scrollWidth - viewport.clientWidth))
-    }
-
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(viewport)
-    observer.observe(text)
-
-    return () => observer.disconnect()
-  }, [operator.name])
 
   useEffect(() => {
     if (!touchActionsOpen) return
@@ -134,6 +126,7 @@ export default function OperatorCard({
       className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
+      data-artwork-loading={loading || undefined}
       data-touch-actions-open={touchActionsOpen || undefined}
       title={`${operator.name} — selected artwork`}
       onPointerDownCapture={
@@ -164,13 +157,14 @@ export default function OperatorCard({
         {operator.faction.main && (
           <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
         )}
-        {imageUrl ? (
+        {imageUrl && imageUrl !== failedImageUrl ? (
           <img
             key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
             className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
             src={imageUrl}
             alt=""
             draggable={false}
+            onError={() => setFailedImageUrl(imageUrl)}
           />
         ) : (
           <div className="operator-card__fallback" aria-hidden="true">
@@ -261,11 +255,7 @@ export default function OperatorCard({
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
           {'★'.repeat(operator.rarity)}
         </span>
-        <div
-          ref={nameViewportRef}
-          className={`operator-card__name-viewport${nameOverflow > 0 ? ' is-overflowing' : ''}`}
-          style={{ '--operator-name-overflow': `${nameOverflow}px` } as CSSProperties}
-        >
+        <div ref={nameViewportRef} className="operator-card__name-viewport">
           <strong>
             <span ref={nameTextRef} className="operator-card__name-text">
               {operator.name}

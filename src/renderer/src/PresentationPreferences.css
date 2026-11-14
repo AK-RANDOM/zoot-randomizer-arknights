@@ -72,7 +72,6 @@
   z-index: 1;
   object-fit: cover;
   object-position: center top;
-  animation: operator-art-in 160ms ease-out both;
 }
 
 .operator-card--portrait
@@ -262,66 +261,6 @@
   line-height: 1.55;
 }
 
-.artwork-choice-group {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.artwork-choice {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  gap: 10px;
-  align-items: start;
-  min-height: 82px;
-  padding: 14px;
-  border: 1px solid #3a3a40;
-  border-radius: 5px;
-  color: #ededee;
-  background: #171719;
-  text-align: left;
-}
-
-.artwork-choice:hover {
-  border-color: #595960;
-  background: #1d1d20;
-}
-
-.artwork-choice.is-selected {
-  border-color: #f5ad2f;
-  background: rgba(245, 173, 47, 0.09);
-  box-shadow: inset 0 0 0 1px rgba(245, 173, 47, 0.18);
-}
-
-.artwork-choice__mark {
-  width: 14px;
-  height: 14px;
-  margin-top: 2px;
-  border: 2px solid #77777e;
-  border-radius: 50%;
-}
-
-.artwork-choice.is-selected .artwork-choice__mark {
-  border: 4px solid #f5ad2f;
-  background: #111113;
-}
-
-.artwork-choice strong,
-.artwork-choice small {
-  display: block;
-}
-
-.artwork-choice strong {
-  font-size: 0.92rem;
-}
-
-.artwork-choice small {
-  margin-top: 5px;
-  color: #929299;
-  font-size: 0.72rem;
-  line-height: 1.35;
-}
-
 .option-note {
   margin: 14px 2px 0;
 }
@@ -422,9 +361,11 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .operator-card--portrait .operator-card__art img {
-    animation: none;
+@media (prefers-reduced-motion: no-preference) {
+  .operator-card--portrait:not(:where(.squad-share-grid *))
+    .operator-card__art
+    img:not(.operator-card__faction-logo) {
+    animation: operator-art-in 160ms ease-out both;
   }
 }
 

@@ -28,6 +28,7 @@ interface UseDraftSessionOptions {
 
 export interface DraftSessionController {
   state: DraftState | null
+  completedAt: Date | null
   configuration: ResolvedDraftConfiguration
   distributionLabel: string
   start: () => void
@@ -72,6 +73,7 @@ export default function useDraftSession({
   onError,
 }: UseDraftSessionOptions): DraftSessionController {
   const [state, setState] = useState<DraftState | null>(null)
+  const [completedAt, setCompletedAt] = useState<Date | null>(null)
   const [activeIdentity, setActiveIdentity] = useState<string | null>(null)
   const resolvedConfiguration = useMemo(
     () => resolveDraftConfiguration(configuration ?? STANDARD_DRAFT_CONFIGURATION),
@@ -90,6 +92,7 @@ export default function useDraftSession({
   const reset = useCallback(
     (message = RESET_MESSAGE): void => {
       setState(null)
+      setCompletedAt(null)
       setActiveIdentity(null)
       onError(null)
       onMessage(message)
@@ -114,6 +117,7 @@ export default function useDraftSession({
     try {
       const next = startDraft(pool, targetSize, engineOptions)
       setState(next)
+      setCompletedAt(next.status === 'complete' ? new Date() : null)
       setActiveIdentity(identity)
       onMessage(
         next.status === 'complete'
@@ -137,6 +141,7 @@ export default function useDraftSession({
       completionReason: 'finalized',
     }
     setState(next)
+    setCompletedAt(new Date())
     onMessage(draftCompletionMessage(next))
   }, [onError, onMessage, state])
 
@@ -152,6 +157,7 @@ export default function useDraftSession({
       try {
         const next = applyDraftAction(state, pool, action, engineOptions)
         setState(next)
+        if (next.status === 'complete') setCompletedAt(new Date())
         onMessage(actionMessage(action, next, pool))
       } catch (reason) {
         onError(reason instanceof Error ? reason.message : String(reason))
@@ -169,6 +175,7 @@ export default function useDraftSession({
 
   return {
     state,
+    completedAt,
     configuration: resolvedConfiguration,
     distributionLabel: draftPullDistributionLabel(resolvedConfiguration.pullDistribution),
     start,

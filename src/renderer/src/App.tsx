@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { version } from '../../../package.json'
 import DraftPanel from './DraftPanel'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
@@ -23,8 +22,11 @@ import {
   dismissWarning,
   loadGenderExclusions,
   loadRaceExclusions,
+  loadRendererPersistence,
   saveOperatorArtwork,
+  updateRendererPersistence,
   warningIsDismissed,
+  type AppTheme,
 } from './rendererPersistence'
 import { notifyOperatorAppearanceChanged } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
@@ -46,6 +48,7 @@ function displayDate(value: string | null | undefined): string {
 
 export default function App(): React.JSX.Element {
   const curatePresentation = useCuratePresentation()
+  const [theme, setTheme] = useState(() => loadRendererPersistence().theme)
   const [operatorPreferences, setOperatorPreferences] = useState<OperatorPreferences>(() =>
     loadOperatorPreferences(),
   )
@@ -67,6 +70,15 @@ export default function App(): React.JSX.Element {
     () => window.desktop.platform === 'browser' && !warningIsDismissed(WINDOWS_DOWNLOAD_NOTICE),
   )
   const markPoolChanged = useCallback(() => setPoolRevision((current) => current + 1), [])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+
+  const changeTheme = (next: AppTheme): void => {
+    setTheme(next)
+    updateRendererPersistence((current) => ({ ...current, theme: next }))
+  }
 
   useEffect(() => {
     saveOperatorPreferences(operatorPreferences)
@@ -223,15 +235,11 @@ export default function App(): React.JSX.Element {
     <main className="app-shell">
       <header className="hero">
         <div>
-          <p className="eyebrow">
-            {window.desktop.platform === 'browser'
-              ? 'ARKNIGHTS • SQUAD RANDOMIZER'
-              : 'ARKNIGHTS • OFFLINE SQUAD RANDOMIZER'}
-          </p>
-          <h1>Arknights Randomizer</h1>
+          <p className="eyebrow">Arknights</p>
+          <h1>ZOOT Squad Dispatcher</h1>
         </div>
         <div className="data-summary">
-          <span>App v{version}</span>
+          <span>App v{__APP_VERSION__}</span>
           <span>{data.dataInfo?.operatorCount ?? '—'} operators</span>
           <span>Data {displayDate(data.dataInfo?.generatedAt)}</span>
           <span>{data.dataInfo?.origin === 'downloaded' ? 'Updated data' : 'Bundled data'}</span>
@@ -367,6 +375,8 @@ export default function App(): React.JSX.Element {
         <OptionsPanel
           operatorData={data}
           preferences={operatorPreferences}
+          theme={theme}
+          onThemeChange={changeTheme}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}
           onCurateNamesChange={setCurateNames}

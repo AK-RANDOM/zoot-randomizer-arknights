@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import {
-  readOperatorArtworkPreference,
-  setOperatorArtworkPreference,
-} from './presentationPreferences'
+import { loadOperatorArtwork, saveOperatorArtwork } from './rendererPersistence'
 
 function createStorage(seed: Record<string, string> = {}): Storage {
   const values = new Map(Object.entries(seed))
@@ -32,13 +29,7 @@ function createStorage(seed: Record<string, string> = {}): Storage {
 const originalWindowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
 
 function installWindow(storage: Storage): void {
-  const events = new EventTarget()
-  const fakeWindow = {
-    localStorage: storage,
-    dispatchEvent: events.dispatchEvent.bind(events),
-    addEventListener: events.addEventListener.bind(events),
-    removeEventListener: events.removeEventListener.bind(events),
-  }
+  const fakeWindow = { localStorage: storage }
 
   Object.defineProperty(globalThis, 'window', {
     configurable: true,
@@ -59,13 +50,13 @@ describe('operator artwork preference', () => {
     const storage = createStorage()
     installWindow(storage)
 
-    expect(readOperatorArtworkPreference()).toBe('e2')
+    expect(loadOperatorArtwork()).toBe('e2')
 
-    setOperatorArtworkPreference('e1')
-    expect(readOperatorArtworkPreference()).toBe('e1')
+    saveOperatorArtwork('e1')
+    expect(loadOperatorArtwork()).toBe('e1')
 
-    setOperatorArtworkPreference('e2')
-    expect(readOperatorArtworkPreference()).toBe('e2')
+    saveOperatorArtwork('e2')
+    expect(loadOperatorArtwork()).toBe('e2')
   })
 
   it('keeps artwork preference storage isolated from squad/randomizer preferences', () => {
@@ -76,11 +67,11 @@ describe('operator artwork preference', () => {
     })
     installWindow(storage)
 
-    setOperatorArtworkPreference('e1')
+    saveOperatorArtwork('e1')
 
     expect(storage.getItem('arknights-randomizer:squad-presets:v1')).toBe(squadPresets)
     expect(storage.getItem('arknights-randomizer:dismiss-bound-reset-warning')).toBe('1')
     expect(storage.length).toBe(3)
-    expect(readOperatorArtworkPreference()).toBe('e1')
+    expect(loadOperatorArtwork()).toBe('e1')
   })
 })

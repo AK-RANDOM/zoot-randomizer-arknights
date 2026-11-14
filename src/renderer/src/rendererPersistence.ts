@@ -30,6 +30,7 @@ const LEGACY_RACE_FILTER_KEY = 'arknights-randomizer:race-filter:v1'
 const LEGACY_ARTWORK_PREFERENCE_KEY = 'arknights-randomizer:operator-artwork:v1'
 
 export type RulebookOrigin = 'built-in' | 'local' | 'imported'
+export type AppTheme = 'rhodes' | 'zoot'
 
 export interface RulebookLibraryEntry {
   document: DraftRulebook
@@ -41,6 +42,7 @@ export interface RulebookLibraryEntry {
 
 export interface RendererPersistenceState {
   version: typeof RENDERER_PERSISTENCE_VERSION
+  theme: AppTheme
   operatorPreferences: OperatorPreferences
   squadPresets: StoredSquadPreset[]
   garrisons: Garrison[]
@@ -249,6 +251,7 @@ function normalizePricingProfiles(value: unknown): DraftPricingProfile[] {
 export function createDefaultRendererPersistenceState(): RendererPersistenceState {
   return {
     version: RENDERER_PERSISTENCE_VERSION,
+    theme: 'rhodes',
     operatorPreferences: createDefaultOperatorPreferences(),
     squadPresets: [],
     garrisons: [],
@@ -270,6 +273,7 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
   if (candidate.version !== RENDERER_PERSISTENCE_VERSION) return defaults
   return {
     version: RENDERER_PERSISTENCE_VERSION,
+    theme: candidate.theme === 'zoot' ? 'zoot' : 'rhodes',
     operatorPreferences: normalizeOperatorPreferences(candidate.operatorPreferences),
     squadPresets: normalizeSquadPresets(candidate.squadPresets),
     garrisons: normalizeGarrisons(candidate.garrisons),

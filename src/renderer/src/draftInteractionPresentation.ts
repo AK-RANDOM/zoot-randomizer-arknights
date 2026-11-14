@@ -1,5 +1,4 @@
 import {
-  getDraftInteractionCostContributionsWithConfiguration,
   getDraftOperatorCostForStateWithConfiguration,
   type DraftState,
   type ResolvedDraftConfiguration,
@@ -16,18 +15,6 @@ import type {
   OperatorCardInteractionDetails,
   OperatorCardInteractionLine,
 } from './OperatorCard'
-
-export interface DraftLiveInteractionLine {
-  id: string
-  label: string
-  modifier: number
-}
-
-export interface DraftLiveInteractionBreakdown {
-  baselineCost: number
-  finalCost: number
-  contributions: DraftLiveInteractionLine[]
-}
 
 function signed(value: number): string {
   return value > 0 ? `+${value}` : String(value)
@@ -162,37 +149,5 @@ export function buildLiveRulebookOperatorInteractionDetails(
   return {
     ...details,
     currentCost: getDraftOperatorCostForStateWithConfiguration(operator, state, configuration),
-  }
-}
-
-export function buildLiveDraftInteractionBreakdown(
-  rulebook: DraftRulebook,
-  operator: Operator,
-  dataset: OperatorDataset,
-  state: Pick<DraftState, 'draftedOperatorIds'>,
-  configuration: ResolvedDraftConfiguration,
-): DraftLiveInteractionBreakdown | undefined {
-  const contributionById = new Map(
-    getDraftInteractionCostContributionsWithConfiguration(state, operator.id, configuration)
-      .filter((contribution) => contribution.modifier !== 0)
-      .map((contribution) => [contribution.interactionId, contribution] as const),
-  )
-  if (contributionById.size === 0) return undefined
-
-  const baselineCost = getDraftRulebookOperatorCostBreakdown(rulebook, operator).baselineCost
-  const contributions = rulebook.interactions.flatMap((interaction) => {
-    const contribution = contributionById.get(interaction.id)
-    if (!contribution) return []
-    return [{
-      id: interaction.id,
-      label: describeDraftRulebookInteraction(interaction, dataset),
-      modifier: contribution.modifier,
-    }]
-  })
-
-  return {
-    baselineCost,
-    finalCost: getDraftOperatorCostForStateWithConfiguration(operator, state, configuration),
-    contributions,
   }
 }

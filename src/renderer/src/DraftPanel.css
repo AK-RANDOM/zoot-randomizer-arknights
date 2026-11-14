@@ -33,6 +33,15 @@
   margin: 0;
 }
 
+.draft-piles-debug > summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.draft-piles-debug__contents {
+  margin-top: 8px;
+}
+
 .draft-status-shell {
   display: flex;
   align-items: stretch;
@@ -179,22 +188,7 @@
   color: #4e4e54;
 }
 
-.draft-rulebook-description {
-  margin: -6px 2px 14px;
-  color: #8f8f96;
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-
-.draft-session-note {
-  margin: -8px 0 16px;
-  color: #818187;
-  font-size: 0.72rem;
-  line-height: 1.45;
-}
-
-.draft-empty-state,
-.draft-complete {
+.draft-empty-state {
   display: grid;
   gap: 7px;
   min-height: 170px;
@@ -208,8 +202,7 @@
   text-align: center;
 }
 
-.draft-empty-state strong,
-.draft-complete strong {
+.draft-empty-state strong {
   color: #f3f3f3;
   font-size: 1rem;
 }

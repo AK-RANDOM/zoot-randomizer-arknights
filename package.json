@@ -1,6 +1,6 @@
 {
   "name": "arknights-randomizer",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "description": "Offline-first Arknights squad randomizer for Windows.",
   "main": "./out/main/index.js",
@@ -32,6 +32,7 @@
     "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
   },
   "dependencies": {
+    "html-to-image": "^1.11.13",
     "react": "^19.2.1",
     "react-dom": "^19.2.1"
   },

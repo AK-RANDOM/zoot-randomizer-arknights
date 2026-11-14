@@ -3,6 +3,7 @@ import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
+import SquadShareButton from './SquadShareButton'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import {
   resolveDraftActionPresentation,
@@ -18,6 +19,7 @@ const lockedSlotIconUrl = new URL('./assets/draft/locked-slot-icon.png', import.
 
 interface DraftSquadGridProps {
   state: DraftState
+  completedAt?: Date | null
   operators: readonly Operator[]
   configuration: ResolvedDraftConfiguration
   onAction: (action: DraftAction) => void
@@ -138,6 +140,7 @@ function ExpandControl({
 
 export default function DraftSquadGrid({
   state,
+  completedAt,
   operators,
   configuration,
   onAction,
@@ -173,6 +176,16 @@ export default function DraftSquadGrid({
             </span>
           )}
         </div>
+        {finalized && completedAt && (
+          <SquadShareButton
+            result={{
+              mode: 'Draft Mode',
+              generatedAt: completedAt,
+              members: state.draftedOperatorIds.map((id) => operatorById.get(id) ?? null),
+              overflowStart: squad.permanentCapacity,
+            }}
+          />
+        )}
       </div>
 
       <div

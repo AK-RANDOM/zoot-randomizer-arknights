@@ -6,6 +6,7 @@ const read = (name: string): string => readFileSync(new URL(name, import.meta.ur
 const appearanceSource = read('./operatorAppearance.ts')
 const squadSource = read('./DraftSquadGrid.tsx')
 const sessionSource = read('./DraftSessionView.tsx')
+const compactAvatarSource = read('./CompactOperatorAvatar.tsx')
 const avatarHookSource = appearanceSource.slice(
   appearanceSource.indexOf('export function useOperatorAppearanceAvatar'),
 )
@@ -20,15 +21,16 @@ describe('Draft square appearance avatars', () => {
   })
 
   it('uses square selected-appearance avatars in Current Draft and Overflow', () => {
-    expect(squadSource).toContain("import { useOperatorAppearanceAvatar } from './operatorAppearance'")
+    expect(squadSource).toContain(
+      "import { useOperatorAppearanceAvatar } from './operatorAppearance'",
+    )
     expect(squadSource).toContain('const { imageUrl } = useOperatorAppearanceAvatar(operator)')
     expect(squadSource).not.toContain('useOperatorAppearanceImage')
   })
 
   it('uses the selected appearance for completed draft history icons', () => {
-    expect(sessionSource).toContain("import { useOperatorAppearanceAvatar } from './operatorAppearance'")
-    expect(sessionSource).toContain('function DraftHistoryOperatorIcon')
-    expect(sessionSource).toContain('const { imageUrl } = useOperatorAppearanceAvatar(operator)')
+    expect(sessionSource).toContain('<CompactOperatorAvatar')
+    expect(compactAvatarSource).toContain('useOperatorAppearanceAvatar(operator)')
     expect(sessionSource).not.toContain('.getOperatorImage(operator.id)')
   })
 })

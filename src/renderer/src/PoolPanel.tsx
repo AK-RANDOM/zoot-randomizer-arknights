@@ -24,6 +24,7 @@ import {
   groupLabel,
 } from './PoolPanelPresentation'
 import './PoolPanel.css'
+import PoolSortControls from './PoolSortControls'
 import useCuratePresentation, { type CuratePresentation } from './useCuratePresentation'
 function PoolPanel({
   dataset,
@@ -192,33 +193,16 @@ function PoolPanel({
             <option value="excluded">Excluded</option>
           </select>
         </label>
-        <label className="field">
-          <span>Operator sort</span>
-          <select value={operatorSort} onChange={(event) => setOperatorSort(event.target.value)}>
-            <option value="default">Default</option>
-            <option value="alphabetical">Alphabetical</option>
-            <option value="releaseDate">Release Date</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>Group by</span>
-          <select
-            value={groupBy}
-            onChange={(event) => {
-              setGroupBy(event.target.value)
-              setCollapsedGroups(new Set())
-              setReversedGroups(new Set())
-            }}
-          >
-            <option value="none">None</option>
-            <option value="class">Class</option>
-            <option value="rarity">Rarity</option>
-            <option value="releaseYear">Release</option>
-            <option value="mainFaction">Main Faction</option>
-            <option value="acquisition">Acquisition</option>
-            <option value="accountState">Account State</option>
-          </select>
-        </label>
+        <PoolSortControls
+          operatorSort={operatorSort}
+          groupBy={groupBy}
+          onSortChange={setOperatorSort}
+          onGroupChange={(value) => {
+            setGroupBy(value)
+            setCollapsedGroups(new Set())
+            setReversedGroups(new Set())
+          }}
+        />
       </div>
 
       <div className="pool-information" role="status">

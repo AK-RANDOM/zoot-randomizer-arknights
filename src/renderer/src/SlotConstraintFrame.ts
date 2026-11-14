@@ -13,14 +13,6 @@ export function slotConstraintGradient(rarities: readonly OperatorRarity[]): str
     : `linear-gradient(135deg, ${colors.join(', ')})`
 }
 
-export function slotConstraintGradientStyle(
-  rarities: readonly OperatorRarity[],
-): CSSProperties {
-  return {
-    '--slot-constraint-gradient': slotConstraintGradient(rarities),
-  } as CSSProperties
-}
-
 export function slotConstraintFrameStyle(
   rarities: readonly OperatorRarity[],
   innerBackground = '#17140e',

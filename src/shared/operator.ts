@@ -33,7 +33,7 @@ export const welfareAcquisitionGroups = [
 export const gameLocales = ['en', 'jp', 'kr', 'tw', 'cn'] as const
 
 export const OPERATOR_DATASET_SCHEMA_VERSION = 6 as const
-export const OPERATOR_DATA_PIPELINE_VERSION = 9 as const
+export const OPERATOR_DATA_PIPELINE_VERSION = 10 as const
 
 export type OperatorClass = (typeof operatorClasses)[number]
 export type GameLocale = (typeof gameLocales)[number]

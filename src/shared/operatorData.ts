@@ -25,6 +25,7 @@ import {
 } from './acquisitionMetadata.ts'
 import {
   COLLABORATION_BY_OPERATOR_ID,
+  MONSTER_HUNTER_GLOBAL_RELEASE,
   RELEASE_METADATA_UPSTREAM,
   buildReleaseCategoryMap,
   releaseYearGroup,
@@ -465,7 +466,11 @@ export function normalizeCharacterTables(
     const cnRecord = cn[id] ?? cnPatch[id]
     const enRecord = en[id] ?? enPatch[id]
     const cnPlayable = isPlayableOperator(id, cnRecord)
-    const globalPlayable = isPlayableOperator(id, enRecord)
+    const confirmedGlobalDate =
+      cnPlayable && MONSTER_HUNTER_GLOBAL_RELEASE.operatorIds.has(id)
+        ? MONSTER_HUNTER_GLOBAL_RELEASE.date
+        : null
+    const globalPlayable = confirmedGlobalDate !== null || isPlayableOperator(id, enRecord)
 
     if (!cnPlayable && !globalPlayable) continue
 
@@ -478,6 +483,7 @@ export function normalizeCharacterTables(
     if (!rarity || !operatorClass || !name) continue
 
     const releaseDates = metadata.releaseDates?.[id] ?? { cn: null, global: null }
+    const globalDate = globalPlayable ? (confirmedGlobalDate ?? releaseDates.global) : null
     const collaboration = COLLABORATION_BY_OPERATOR_ID[id] ?? null
     const acquisition = classifyAcquisition({
       id,
@@ -512,8 +518,8 @@ export function normalizeCharacterTables(
           yearGroup: cnPlayable ? releaseYearGroup(releaseDates.cn, 'cn') : null,
         },
         global: {
-          date: globalPlayable ? releaseDates.global : null,
-          yearGroup: globalPlayable ? releaseYearGroup(releaseDates.global, 'global') : null,
+          date: globalDate,
+          yearGroup: releaseYearGroup(globalDate, 'global'),
         },
       },
       acquisition,

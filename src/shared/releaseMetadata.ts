@@ -3,6 +3,15 @@ import { limitedOperatorIdsInPool, type RawGachaTable } from './acquisitionMetad
 
 export const CN_RELEASE_DATES_API = 'https://prts.wiki/api.php'
 
+// Yostar confirmed this release before the English game tables were updated.
+// https://www.arknights.global/news/5092
+export const MONSTER_HUNTER_GLOBAL_RELEASE = {
+  id: 'act50side',
+  date: '2026-11-16',
+  name: 'Thunder in the Azure Dream',
+  operatorIds: new Set(['char_1048_orchd2', 'char_1049_catap2', 'char_4215_buddy']),
+}
+
 export const RELEASE_METADATA_UPSTREAM = {
   repository: 'nadering/arknights-toolbox',
   infoPath: 'src/data/operator/generated/operator-release-info-map.generated.ts',
@@ -190,8 +199,14 @@ export function buildReleaseEventNames(
         if (!operator?.availableOn[server] || !date) continue
         byDate.set(date, [...(byDate.get(date) ?? []), operator.id])
       }
+      const publishedName =
+        server === 'global' && event.id === MONSTER_HUNTER_GLOBAL_RELEASE.id
+          ? MONSTER_HUNTER_GLOBAL_RELEASE.name
+          : undefined
       const name =
-        activityNames.global?.[event.id as string] ?? activityNames[server]?.[event.id as string]
+        activityNames.global?.[event.id as string] ??
+        activityNames[server]?.[event.id as string] ??
+        publishedName
       return [...byDate].flatMap(([date, operatorIds]) => {
         const label =
           /(?:sign|login|checkin)/i.test(event.id as string) && name ? `Login Event: ${name}` : name

@@ -1,0 +1,305 @@
+{
+  "formatVersion": 1,
+  "generatedAt": "2026-11-20T12:16:43.268Z",
+  "inputs": [
+    {
+      "bytes": 48849,
+      "sha256": "9fdea3b9fde3a52e6aba56f4834e612c0fe2e6a2201c933e9b3d7692e277feae",
+      "url": "https://prts.wiki/api.php?action=cargoquery&format=json&tables=char_obtain&fields=_pageName%3Dname%2CcnOnlineTime%3DreleaseDate&limit=500&offset=0&order_by=_pageName"
+    },
+    {
+      "bytes": 20971962,
+      "sha256": "1e20e0413ef88b1fdc3a6937b00b1b7f5ae46e431c4b0b8a9ef2d52950115cb3",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/activity_table.json"
+    },
+    {
+      "bytes": 90284,
+      "sha256": "5c5b862d53ad99d42937bfa2ae766c7fa25e5e9e44ef9616f9c5e326024e7547",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/char_meta_table.json"
+    },
+    {
+      "bytes": 72178,
+      "sha256": "2cde3e0fce094fc5e68a293e0252fe22f4f143fcd6213793b7e3a58ba2c23dc6",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/char_patch_table.json"
+    },
+    {
+      "bytes": 21936306,
+      "sha256": "6f10d9035c971096f8647efdf54e8f695490a98d11c11c3f13c90cf15366c5ab",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/character_table.json"
+    },
+    {
+      "bytes": 7301,
+      "sha256": "bb59dfdf8b6db781e64309b299ea1044f6c925905dac15be1699943bf98d5085",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/crisis_table.json"
+    },
+    {
+      "bytes": 906713,
+      "sha256": "ec7dafc4e6e1d0ddf704a1551db93a692e42ef7533826f3caa525f0d7ea2ee72",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/crisis_v2_table.json"
+    },
+    {
+      "bytes": 570141,
+      "sha256": "eda071f4fc1968f5e6f70628813109228d4a26da92be0cab36344744900cd8f6",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/gacha_table.json"
+    },
+    {
+      "bytes": 6878192,
+      "sha256": "fed8694ec153dcab453016ad1d929b6d21dd90f2f79926f509fe43146387e487",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/handbook_info_table.json"
+    },
+    {
+      "bytes": 11718,
+      "sha256": "2207717e54be5ce85373c87e6f092b82878f27f4d2139f1d270d7fdbc87e2699",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/handbook_team_table.json"
+    },
+    {
+      "bytes": 661923,
+      "sha256": "bad8ca2fc0f208cb6984883429986ccdd8d0d07d49ac999253aec858f2c91ffd",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/main_text.json"
+    },
+    {
+      "bytes": 23928885,
+      "sha256": "b761e9656aa03d86ffb1a2ee7cf7f4b426e8ad8a7a64e0768083d903edfbc073",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/roguelike_topic_table.json"
+    },
+    {
+      "bytes": 7718324,
+      "sha256": "f20a973fda0a8c5139145f9014eb22c40ae95dddcde02a1c6e9ed3903c81eb3e",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/sandbox_perm_table.json"
+    },
+    {
+      "bytes": 4891032,
+      "sha256": "d067c41ca454cbe4cffa6ebd8bab5f6df5d56d7c9a9af22f2693eb7382021fb2",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/skin_table.json"
+    },
+    {
+      "bytes": 26356145,
+      "sha256": "3ea0d536adbe608959364ef255cada3a2108c607e412d09b30ba5b7f28ccc41c",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/stage_table.json"
+    },
+    {
+      "bytes": 11111,
+      "sha256": "6c01b7ef21d9c1bbfb2ac37579189b5341c2fc83fab417a602eaceb32ff24da5",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/uniequip_data.json"
+    },
+    {
+      "bytes": 490440,
+      "sha256": "022e6b85f4aee5e21b639472ed3ebbeb54f10799672dd8c0962256ba44c9ac39",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/cn/gamedata/excel/zone_table.json"
+    },
+    {
+      "bytes": 18365497,
+      "sha256": "7a4f7b8cd5af09cab3e86bf415cc61274f7e7a0b5d013b2f8e1cc1a4225aea56",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/activity_table.json"
+    },
+    {
+      "bytes": 75573,
+      "sha256": "0e9bcbd9c2bfdcbaabb3ad6db302cc11e4879ac7cf9d613157a971ac34530c03",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/char_meta_table.json"
+    },
+    {
+      "bytes": 71864,
+      "sha256": "79e449963a2eb0f2a729c92a5989f34b3d26c036b041ed250efee6948e70f955",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/char_patch_table.json"
+    },
+    {
+      "bytes": 20627861,
+      "sha256": "8f7b6c9e7d71bb5d7fb87043a06dc73703194b01ef4df399b6671dec2d7c47e6",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/character_table.json"
+    },
+    {
+      "bytes": 7471,
+      "sha256": "516671c65a9b72ac2ea82518479c2b30f4979f7769811fbd751419be29c3fbde",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/crisis_table.json"
+    },
+    {
+      "bytes": 6821,
+      "sha256": "6b2034a466f9e2e14a6dd5003fc50759de87215bc809819d4640d7440dbd8660",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/crisis_v2_table.json"
+    },
+    {
+      "bytes": 507112,
+      "sha256": "39bb0d9fc9c47e1a8506ab44dfe1e9d5eda28f8a9a5f523caf9c635c017188ac",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/gacha_table.json"
+    },
+    {
+      "bytes": 6883498,
+      "sha256": "ac4ab3c45545d3ce7bd5e6b747156384f1c46f5c1425ce23f75efe82fe36ad2c",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/handbook_info_table.json"
+    },
+    {
+      "bytes": 11476,
+      "sha256": "528871d2badd9e8fed6732b81bdeb4c5e34cfbcbed2d972d937c755eb3726dee",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/handbook_team_table.json"
+    },
+    {
+      "bytes": 560903,
+      "sha256": "08239d92a2990d03d4fa6631a4017b010b58022145effd34bb1197b9ba285c71",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/main_text.json"
+    },
+    {
+      "bytes": 20973707,
+      "sha256": "18e3cb292abb76b325149147de8fa6d3d59f94494d3042c49895cfd140d70aa9",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/roguelike_topic_table.json"
+    },
+    {
+      "bytes": 3687955,
+      "sha256": "a557ea70bf3b7d64d3684135aada6b0bc3099de84fceec9794b237428a092911",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/sandbox_perm_table.json"
+    },
+    {
+      "bytes": 4548817,
+      "sha256": "df017c061d429b7f449d3dd5cd15e51f8fac536b8ae4ed3cd7a0590031ed497f",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/skin_table.json"
+    },
+    {
+      "bytes": 24641157,
+      "sha256": "a1ae3ff614577d92856a6282ea82633e0e25278aac8c39f32ac45b9b23bc80b6",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/stage_table.json"
+    },
+    {
+      "bytes": 439658,
+      "sha256": "91ace6b6fafece425feadc8e69a9b7ac20e8bde8852f31b7f4aa85b9594390cc",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/en/gamedata/excel/zone_table.json"
+    },
+    {
+      "bytes": 18740340,
+      "sha256": "bf97cf924fefb1547df1b0b33e0de826343afeefeed2fab9431fa781593dc07c",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/activity_table.json"
+    },
+    {
+      "bytes": 71961,
+      "sha256": "0fc927455c2235446fa1e7c5505612ec54022106ead90c8d20355aac67f603c4",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/char_patch_table.json"
+    },
+    {
+      "bytes": 20707192,
+      "sha256": "b3fef5d7c17dc613695ad82817e309f4aad2b3fbac0f4fcd59eb2a4dd85e5590",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/character_table.json"
+    },
+    {
+      "bytes": 8055531,
+      "sha256": "183d13739934e8a5b44f0fab5ecc312427f9e4fa5ea4026be168115c6a1d5f51",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/handbook_info_table.json"
+    },
+    {
+      "bytes": 11641,
+      "sha256": "00bc36f709a5aa511ca292e2d86575dbe1ab5c64cd6c9a0e2d8458575b7e9f2c",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/handbook_team_table.json"
+    },
+    {
+      "bytes": 580131,
+      "sha256": "800e0fc19a445a57e34dcefca6209d6ca347515e2a124ffb315666940c162419",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/main_text.json"
+    },
+    {
+      "bytes": 4638882,
+      "sha256": "a6da5fbe9594fb056f3ef169af37049ca74585c031bac324dbca16bb7a3cea16",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/skin_table.json"
+    },
+    {
+      "bytes": 440544,
+      "sha256": "fb80dbb9ff6f58beedc3886bbe5d9a901c93930182d525aa5e4a6dab519c6b0a",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/jp/gamedata/excel/zone_table.json"
+    },
+    {
+      "bytes": 18522708,
+      "sha256": "46c61d0547e9d4870d732d72d323f2d5d7f1b0f97d609ce3bcc31c6325f18685",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/activity_table.json"
+    },
+    {
+      "bytes": 72197,
+      "sha256": "0a0fbd03db8046d65045ca88065ee077df53d96a627e87a925e2e8c99b93737f",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/char_patch_table.json"
+    },
+    {
+      "bytes": 20680792,
+      "sha256": "4603355a83ae992e688db00eba3930fdd0341574043dd2e251cf4c4436cc669e",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/character_table.json"
+    },
+    {
+      "bytes": 7899104,
+      "sha256": "6bfd05d263fd02b2faa5ee2469ccb089e4e5034fcd1baf9ab086972e92bc6048",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/handbook_info_table.json"
+    },
+    {
+      "bytes": 11619,
+      "sha256": "03848d290cfd06402db5d6b940e3c8f8bd65a58197f258b710cc6c69bd0ddf81",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/handbook_team_table.json"
+    },
+    {
+      "bytes": 578192,
+      "sha256": "daef752529471a23b4d9661b48e95eec0644a65fbbd31d6cc794e52df2abf060",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/main_text.json"
+    },
+    {
+      "bytes": 4645262,
+      "sha256": "0fda3272b729e0ff5f966755cbd17a735f5eba787734615cbc0bf2394dbc218e",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/skin_table.json"
+    },
+    {
+      "bytes": 440822,
+      "sha256": "041a27019807411d24b685900284f923da80ae747b7b948a40710e0bba0e1ffc",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/kr/gamedata/excel/zone_table.json"
+    },
+    {
+      "bytes": 18054321,
+      "sha256": "1a5f0ba10f32d46b5d0d125050b13ef4385f3132a1c066ed44b98634abbc73fe",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/activity_table.json"
+    },
+    {
+      "bytes": 71862,
+      "sha256": "2ecab6824e282e4576342017d03cfa44fdfa2f1be54d455bc283349b896b96cb",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/char_patch_table.json"
+    },
+    {
+      "bytes": 20438458,
+      "sha256": "8a37432b4b12d31a3caf3144e342b0343a95ca82256551577c23e179dc05a53e",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/character_table.json"
+    },
+    {
+      "bytes": 6431561,
+      "sha256": "ae561051154fd71f41224f81e71afc36b6e790fad615718a7a5d6b9b85b3e306",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/handbook_info_table.json"
+    },
+    {
+      "bytes": 11478,
+      "sha256": "93f8bc6daab18a0750ee52902edc0e480e27d86e67c94e653a9f96ee443391a8",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/handbook_team_table.json"
+    },
+    {
+      "bytes": 551610,
+      "sha256": "e4f064e091ab82242785f9afc7239d1360cc5b1a0d2cc5655069df46b10ae2fb",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/main_text.json"
+    },
+    {
+      "bytes": 4423535,
+      "sha256": "19ba982ee4f567073d2299b5d9b4e05c869e9e5171ab99a61b08fef10e49e1d7",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/skin_table.json"
+    },
+    {
+      "bytes": 447213,
+      "sha256": "9f58812549e1844e8b983f1494c5f9c55a935017e0e0436b6bac0eebb067bdae",
+      "url": "https://raw.githubusercontent.com/ArknightsAssets/ArknightsGamedata/e0cd8f274ffbcf57ed0b0684cb681620478ffe0e/tw/gamedata/excel/zone_table.json"
+    },
+    {
+      "bytes": 477108,
+      "sha256": "81cc27ac1e239b7fa609f53c6adaeae293daca941fb24220c73a197d9dc40ec8",
+      "url": "https://raw.githubusercontent.com/nadering/arknights-toolbox/45ae2912b394bb8fdb35285b79a24066a34e3c9b/src/data/operator/generated/operator-cn-release-candidates.generated.ts"
+    },
+    {
+      "bytes": 39822,
+      "sha256": "d68fcb59c026090ce0040d08a2ec4704c2181c03899a0b95fd3ee348c0849866",
+      "url": "https://raw.githubusercontent.com/nadering/arknights-toolbox/45ae2912b394bb8fdb35285b79a24066a34e3c9b/src/data/operator/generated/operator-release-events.generated.ts"
+    },
+    {
+      "bytes": 73353,
+      "sha256": "666e41e4af10e38e4538d26070862e2ffecfad0ecd0f9028fd4f260bd1f9f492",
+      "url": "https://raw.githubusercontent.com/nadering/arknights-toolbox/45ae2912b394bb8fdb35285b79a24066a34e3c9b/src/data/operator/generated/operator-release-info-map.generated.ts"
+    }
+  ],
+  "sources": {
+    "gamedataCommit": "e0cd8f274ffbcf57ed0b0684cb681620478ffe0e",
+    "releaseMetadataCommit": "45ae2912b394bb8fdb35285b79a24066a34e3c9b"
+  }
+}

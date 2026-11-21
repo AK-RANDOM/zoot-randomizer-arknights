@@ -1,0 +1,21 @@
+.card-size-tester {
+  position: fixed;
+  z-index: 1001;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 8px;
+  width: 230px;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  border: 1px solid #66666e;
+  border-radius: 6px;
+  color: #ffffff;
+  background: #151517;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+}
+
+.card-size-tester small {
+  color: #b8b8be;
+  line-height: 1.4;
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DraftPanel from './DraftPanel'
+import CardSizeTester from './CardSizeTester'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
 import useCuratePresentation from './useCuratePresentation'
@@ -382,6 +383,10 @@ export default function App(): React.JSX.Element {
           onCurateNamesChange={setCurateNames}
           onBulkAppearanceChange={setBulkAppearance}
         />
+      )}
+
+      {(import.meta.env.DEV || import.meta.env.VITE_CARD_SIZE_TESTER === 'true') && (
+        <CardSizeTester />
       )}
 
       <footer className="status-line">

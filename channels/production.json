@@ -1,0 +1,29 @@
+{
+  "artifactBytes": 2040330,
+  "artifactEncoding": "gzip",
+  "artifactPath": "packages/c15265d204534093006addb9509c7fb46c2fe4268a606aee7e1e4e94a6a6520f/package.json.gz",
+  "artifactSha256": "ad992d73261516d3969de7fb269c7b383e9c0c1aaa0feb7d715b201f33292ae5",
+  "channel": "production",
+  "compressedBytes": 294802,
+  "compressedSha256": "6e65150999987bd91715f5fc62125510344526e2d81a09870df220c76fc40c1c",
+  "formatVersion": 1,
+  "generatedAt": "2026-11-20T12:16:43.268Z",
+  "minimumReaderVersion": 1,
+  "packageId": "sha256:c15265d204534093006addb9509c7fb46c2fe4268a606aee7e1e4e94a6a6520f",
+  "publishedAt": "2026-11-21T04:31:39.462Z",
+  "snapshotSha256": "0f3612d07efbe591a07a9d40696513cc4a26623a6dcc96b7f0d024da015f2abd",
+  "sources": {
+    "gamedata": {
+      "commit": "e0cd8f274ffbcf57ed0b0684cb681620478ffe0e",
+      "repository": "ArknightsAssets/ArknightsGamedata"
+    },
+    "publishedCnDates": {
+      "endpoint": "https://prts.wiki/api.php",
+      "inputSha256": "e14e0a836940e6dc61f05ece5dc30c1a3fc7daab126734ce5ccecf2ea676d4b8"
+    },
+    "releaseMetadata": {
+      "commit": "45ae2912b394bb8fdb35285b79a24066a34e3c9b",
+      "repository": "nadering/arknights-toolbox"
+    }
+  }
+}

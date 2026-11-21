@@ -113,7 +113,7 @@ export function DraftRosterAvatar({
           {progression ? (
             <OperatorEliteLevel elite={progression.elite} level={progression.level} />
           ) : (
-            <UnownedOperatorIndicator />
+            <UnownedOperatorIndicator iconOnly />
           )}
         </span>
       )}

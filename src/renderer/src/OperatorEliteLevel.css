@@ -22,3 +22,12 @@
   height: 24px;
   object-fit: contain;
 }
+
+.operator-elite-level__icon.operator-elite-level__unowned-icon {
+  display: block;
+  background: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  filter: none;
+}

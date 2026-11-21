@@ -7,11 +7,29 @@ import './OperatorEliteLevel.css'
 
 const eliteIcons = [elite0Icon, elite1Icon, elite2Icon] as const
 
-export function UnownedOperatorIndicator(): React.JSX.Element {
+export function UnownedOperatorIndicator({
+  iconOnly = false,
+}: {
+  iconOnly?: boolean
+}): React.JSX.Element {
   return (
-    <span className="operator-elite-level is-unowned">
-      <img className="operator-elite-level__icon" src={forfeitIcon} alt="" draggable={false} />
-      <span>Not Owned</span>
+    <span
+      className="operator-elite-level is-unowned"
+      aria-label={iconOnly ? 'Not Owned' : undefined}
+      title={iconOnly ? 'Not Owned' : undefined}
+    >
+      {iconOnly ? (
+        <span
+          className="operator-elite-level__icon operator-elite-level__unowned-icon"
+          style={{ maskImage: `url(${forfeitIcon})` }}
+          aria-hidden="true"
+        />
+      ) : (
+        <>
+          <img className="operator-elite-level__icon" src={forfeitIcon} alt="" draggable={false} />
+          <span>Not Owned</span>
+        </>
+      )}
     </span>
   )
 }

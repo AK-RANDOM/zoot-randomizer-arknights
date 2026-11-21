@@ -31,3 +31,9 @@
   mask-size: contain;
   filter: none;
 }
+
+.operator-elite-level.is-compact .operator-elite-level__icon {
+  flex-basis: 16px;
+  width: 16px;
+  height: 16px;
+}

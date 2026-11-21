@@ -222,6 +222,12 @@
   height: 18px;
 }
 
+.draft-squad-avatar__progression .operator-elite-level.is-compact .operator-elite-level__icon {
+  flex-basis: 12px;
+  width: 12px;
+  height: 12px;
+}
+
 .draft-squad-avatar__identity .draft-squad-avatar__class-icon {
   display: block;
   flex: 0 0 1em;

@@ -220,9 +220,6 @@
 }
 
 .draft-squad-avatar__progression .operator-elite-level__icon {
-  flex-basis: 16px;
-  width: 16px;
-  height: 16px;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.9));
 }
 

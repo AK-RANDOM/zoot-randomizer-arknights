@@ -627,7 +627,7 @@ export default function GlobalPoolFeature({
         <section className="panel operators-panel" aria-labelledby="operators-heading">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">SETUP • GLOBAL POOL • GLOBAL FILTER</p>
+              <p className="eyebrow">SETUP • GLOBAL FILTER</p>
               <h2 id="operators-heading">Global Filter</h2>
             </div>
             <div className="section-actions">

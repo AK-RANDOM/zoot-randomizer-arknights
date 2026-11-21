@@ -141,7 +141,7 @@ function PoolPanel({
     <section className="panel pool-panel" aria-labelledby="pool-heading">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">SETUP • GLOBAL POOL • CURATE</p>
+          <p className="eyebrow">SETUP • CURATE</p>
           <h2 id="pool-heading">Curate operators</h2>
         </div>
         <div className="section-actions">

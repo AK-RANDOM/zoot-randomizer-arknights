@@ -8,7 +8,7 @@ import { useOperatorAppearanceAvatar } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
-import OperatorEliteLevel from './OperatorEliteLevel'
+import OperatorEliteLevel, { UnownedOperatorIndicator } from './OperatorEliteLevel'
 import {
   resolveDraftActionPresentation,
   capacityExpansionWaitLabel,
@@ -113,7 +113,7 @@ export function DraftRosterAvatar({
           {progression ? (
             <OperatorEliteLevel elite={progression.elite} level={progression.level} />
           ) : (
-            'Not Owned'
+            <UnownedOperatorIndicator />
           )}
         </span>
       )}

@@ -7,6 +7,8 @@ export interface EventSelectorOption {
   id: string
   name: string
   representative: Operator | null
+  imageUrl?: string
+  imageKind?: 'avatar'
   group?: string
 }
 
@@ -54,7 +56,15 @@ export default function EventSelectorDropdown({
   }, [])
   const row = (option: EventSelectorOption): React.JSX.Element => (
     <>
-      <GarrisonEventHelperAvatar operator={option.representative} />
+      {option.imageUrl && option.imageKind === 'avatar' ? (
+        <span className="garrison-event-helper-avatar" data-rarity="6">
+          <img src={option.imageUrl} alt="" draggable={false} />
+        </span>
+      ) : option.imageUrl ? (
+        <img className="event-selector-artwork" src={option.imageUrl} alt="" draggable={false} />
+      ) : (
+        <GarrisonEventHelperAvatar operator={option.representative} />
+      )}
       <span>{option.name}</span>
     </>
   )

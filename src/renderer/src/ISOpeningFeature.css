@@ -1,0 +1,391 @@
+.is-opening .preset-toolbar.is-opening__toolbar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.is-opening__theme {
+  flex: 1 1 320px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.is-opening__theme > .release-date-field {
+  flex: 1;
+  min-width: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.is-opening .is-opening__theme > span {
+  text-transform: uppercase;
+}
+.is-opening__theme .release-date-dropdown summary {
+  min-height: 38px;
+  height: 38px;
+  padding: 4px 8px;
+}
+.is-opening .draft-operator-action.danger-button {
+  color: #ffd9dc;
+  border-color: #8e3f46;
+  background: #3a171b;
+}
+.is-opening .draft-operator-action.danger-button:hover {
+  border-color: #c95863;
+  background: #552027;
+}
+.is-opening .is-opening__voucher-action {
+  color: #202024;
+  border-color: #e8e8ed;
+  background: #d6d6dc;
+}
+.is-opening .is-opening__voucher-action:hover {
+  background: #eeeeef;
+}
+.is-opening__difficulty {
+  flex: 1 1 310px;
+}
+.is-opening .is-opening__inline-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.is-opening__inline-field > span {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+}
+.is-opening__inline-field select {
+  flex: 1;
+}
+.is-opening .field {
+  min-width: 0;
+}
+.is-opening .field select {
+  width: 100%;
+  min-width: 0;
+}
+.is-opening__toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.is-opening__hope-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+}
+.is-opening__hope-stepper .secondary-button {
+  min-width: 32px;
+  padding: 0 8px;
+}
+.is-opening__hope-stepper output {
+  min-width: 24px;
+  color: inherit;
+  text-align: center;
+}
+.is-opening__columns {
+  display: grid;
+  grid-template-columns: minmax(220px, 326px) minmax(0, 542px);
+  justify-content: center;
+  align-items: stretch;
+  gap: 12px 24px;
+}
+.is-opening__squad,
+.is-opening__recruitment {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 3;
+  min-width: 0;
+}
+.is-opening__squad > .field {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.is-opening__squad-details {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border: 1px solid #2c2c31;
+  border-radius: 5px;
+  background: #111113;
+}
+.is-opening__recruitment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.is-opening__voucher-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.is-opening__voucher-picker {
+  flex: 1;
+  min-width: 0;
+}
+.is-opening__voucher-toolbar .is-opening__choice-actions.draft-operator-actions {
+  flex: 0 0 auto;
+  margin: 0;
+  width: auto;
+}
+.is-opening__voucher-toolbar .is-opening__choice-actions .draft-operator-action {
+  min-width: 64px;
+}
+.is-opening__squad-actions > button {
+  min-height: 40px;
+}
+.is-opening__squad-art {
+  display: grid;
+  place-items: center;
+  height: 280px;
+  overflow: hidden;
+  flex: 0 0 280px;
+  background: radial-gradient(ellipse, #29292f, transparent 70%);
+}
+.is-opening__squad-art img {
+  width: 90%;
+  height: 90%;
+  min-height: 0;
+  object-fit: contain;
+}
+.is-opening__squad-description {
+  color: #a9a9b2;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.is-opening__voucher-picker .release-date-field {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.is-opening__hope-summary {
+  --is-opening-hope-color: #ffe000;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #554b20;
+  border-radius: 4px;
+  background: #1b1a12;
+  color: var(--is-opening-hope-color);
+  font-size: 0.85rem;
+}
+.is-opening__hope-total {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.is-opening__hope-icon {
+  width: 24px;
+  height: 28px;
+  object-fit: contain;
+}
+.is-opening__hope-total small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.65rem;
+}
+.is-opening__hope-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.is-opening__hope-control > span {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+.is-opening__hope-summary .secondary-button {
+  color: var(--is-opening-hope-color);
+}
+.is-opening .is-opening__operators {
+  width: 100%;
+  min-width: 0;
+  max-width: 542px;
+  margin: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto;
+  grid-auto-flow: row;
+  align-items: start;
+  gap: 10px;
+}
+.is-opening__slot-column {
+  min-width: 0;
+}
+.is-opening__slot-choice {
+  margin-bottom: 8px;
+}
+.is-opening__voucher-card.slot-config-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  padding: 12px;
+  color: #d7d7dd;
+  background: #171719;
+  text-align: center;
+}
+.is-opening__choice-actions.draft-operator-actions {
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  height: auto;
+  padding: 0;
+  background: none;
+  backdrop-filter: none;
+}
+.is-opening__choice-actions .draft-operator-action {
+  width: auto;
+  min-width: 80px;
+}
+.is-opening .is-opening__card-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.is-opening .is-opening__card-actions > button {
+  flex: 0 0 40px;
+  width: 96px;
+  max-width: 100%;
+  min-height: 40px;
+  height: 40px;
+  margin: 0;
+}
+.is-opening .draft-operator-action[aria-pressed='true'] {
+  border-color: #f2b84d;
+  background: #3a3020;
+}
+.is-opening__padlock {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+.is-opening__class-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.is-opening__class-picker button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+}
+.is-opening__class-picker .class-icon {
+  width: 30px;
+  height: 30px;
+}
+.is-opening__voucher-image {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.is-opening__voucher-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+.is-opening__voucher-card strong {
+  font-size: 0.78rem;
+}
+.is-opening__art-unavailable {
+  color: #8f8f95;
+  font-size: 0.75rem;
+}
+.is-opening__squad-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+}
+.is-opening .is-opening__control-box {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.is-opening .is-opening__strategy {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.is-opening__strategy select {
+  height: 40px;
+}
+.is-opening .is-opening__strategy > span {
+  text-transform: none;
+}
+.is-opening__control-box .confirmation-checkbox {
+  margin: 0;
+}
+.is-opening button,
+.is-opening select,
+.is-opening summary {
+  font-size: 0.8rem;
+}
+.is-opening .is-opening__toolbar button {
+  font-size: inherit;
+}
+.is-opening .is-opening__card-badges {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+}
+.is-opening .is-opening__card-badges .draft-operator-price {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+.is-opening__card-badges .is-opening__padlock {
+  margin: 0;
+}
+.is-opening__note {
+  margin: 10px 0;
+  color: #a9a9b2;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+@media (max-width: 760px) {
+  .is-opening__columns {
+    grid-template-columns: minmax(0, 542px);
+    gap: 20px;
+  }
+  .is-opening__squad {
+    width: min(100%, 326px);
+    justify-self: center;
+  }
+  .is-opening__squad-art {
+    height: 180px;
+    flex-basis: 180px;
+  }
+  .is-opening__squad,
+  .is-opening__recruitment {
+    grid-template-rows: auto;
+    grid-row: auto;
+    gap: 12px;
+  }
+}

@@ -9,6 +9,8 @@ import {
 } from './squadShare'
 import './SquadShareButton.css'
 
+const hopeIcon = new URL('./assets/hope.webp', import.meta.url).href
+
 function ShareText({ result }: { result: SquadShareResult }): React.JSX.Element {
   const text = formatSquadShareText(result)
   const field = useRef<HTMLTextAreaElement>(null)
@@ -134,7 +136,11 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
               className="secondary-button squad-share-download"
               href={preview.url}
               download={
-                result.mode === 'Draft Mode' ? 'zoot-draft-squad.png' : 'zoot-standard-squad.png'
+                result.mode === 'IS Opening'
+                  ? 'zoot-is-opening.png'
+                  : result.mode === 'Draft Mode'
+                    ? 'zoot-draft-squad.png'
+                    : 'zoot-standard-squad.png'
               }
             >
               Download PNG
@@ -162,7 +168,10 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
       )}
       {!preview && (
         <div className="squad-share-capture" aria-hidden="true">
-          <article ref={image} className="squad-share-image">
+          <article
+            ref={image}
+            className={`squad-share-image${result.mode === 'IS Opening' ? ' squad-share-image--is-opening' : ''}`}
+          >
             <header className="squad-share-image-header">
               <h2>{squadShareTitle}</h2>
               <div>
@@ -170,6 +179,23 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
                 <span>{generatedLabel}</span>
               </div>
             </header>
+            {result.opening && (
+              <div className="squad-share-opening-details">
+                <strong className="squad-share-opening-theme">{result.opening.theme}</strong>
+                <div>
+                  <img src={result.opening.squadIconUrl} alt="" />
+                  <span>{result.opening.squad}</span>
+                </div>
+                <div>
+                  <img src={result.opening.voucherSetIconUrl} alt="" />
+                  <span>{result.opening.voucherSet}</span>
+                </div>
+                <div className="squad-share-opening-hope">
+                  <img src={hopeIcon} alt="" />
+                  <span>{result.opening.startingHope} starting Hope</span>
+                </div>
+              </div>
+            )}
             <SquadResultGrid result={result} forImage />
           </article>
         </div>

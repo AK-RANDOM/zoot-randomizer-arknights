@@ -1,0 +1,1204 @@
+[
+  {
+    "id": "rogue_1",
+    "name": "Phantom & Crimson Solitaire",
+    "number": 2,
+    "squads": [
+      {
+        "id": "rogue_1_band_1",
+        "name": "Leader Squad",
+        "description": "Gain 4 Temporary Life Points at the beginning of each battle.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_1.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_1_band_2",
+        "name": "Gathering Squad",
+        "description": "+2 Squad Size Limit, +2 Deployment Limit.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_2.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_1_band_3",
+        "name": "Support Squad",
+        "description": "Start with +20 Originium Ingots and +2 Hope.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_3.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_1_band_4",
+        "name": "Spearhead Squad",
+        "description": "Start with 1 Life Point; All Operators gain +15% ATK and +15% Max HP",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_4.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_1_band_5",
+        "name": "Tactical Assault Squad",
+        "description": "When recruiting a 4-star or above Vanguard or Guard Operator, that Operator is automatically Promoted.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_5.png",
+        "classes": ["Guard", "Vanguard"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard"],
+            "delta": 0
+          }
+        ]
+      },
+      {
+        "id": "rogue_1_band_6",
+        "name": "Tactical Fortification Squad",
+        "description": "When recruiting a 4-star or above Defender or Supporter Operator, that Operator is automatically Promoted.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_6.png",
+        "classes": ["Defender", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Defender", "Supporter"],
+            "delta": 0
+          }
+        ]
+      },
+      {
+        "id": "rogue_1_band_7",
+        "name": "Tactical Ranged Squad",
+        "description": "When recruiting a 4-star or above Medic or Sniper Operator, that Operator is automatically Promoted.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_7.png",
+        "classes": ["Medic", "Sniper"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper"],
+            "delta": 0
+          }
+        ]
+      },
+      {
+        "id": "rogue_1_band_8",
+        "name": "Tactical Destruction Squad",
+        "description": "When recruiting a 4-star or above Caster or Specialist Operator, that Operator is automatically Promoted.",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_8.png",
+        "classes": ["Caster", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Caster", "Specialist"],
+            "delta": 0
+          }
+        ]
+      },
+      {
+        "id": "rogue_1_band_9",
+        "name": "Research Squad",
+        "description": "Start with +2 Life Points; Gain +30% Command EXP from battles",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_9.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_1_band_10",
+        "name": "First-Class Squad",
+        "description": "When Recruiting for the first time, gain a random Elite Recruitment Voucher",
+        "artPath": "topics/rogue_1/init/initreliciconpic/rogue_1_band_10.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      }
+    ],
+    "voucherSets": [
+      {
+        "id": "recruit_group_1",
+        "name": "First Move Advantage"
+      },
+      {
+        "id": "recruit_group_2",
+        "name": "Slow and Steady Wins the Race"
+      },
+      {
+        "id": "recruit_group_3",
+        "name": "Overcoming Your Weaknesses"
+      },
+      {
+        "id": "recruit_group_random",
+        "name": "As Your Heart Desires",
+        "temporaryRarity": 4
+      }
+    ],
+    "hopeCosts": [0, 0, 0, 2, 3, 6],
+    "representativeId": "char_250_phatom"
+  },
+  {
+    "id": "rogue_2",
+    "name": "Mizuki & Caerula Arbor",
+    "number": 3,
+    "squads": [
+      {
+        "id": "rogue_2_band_11",
+        "name": "Mind Over Matter Squad",
+        "description": "Battles have a higher chance to yield another collectible; you may choose an additional reward after completing a commission; start with 'Survivor Contract'",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_11.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_2_band_14"
+      },
+      {
+        "id": "rogue_2_band_15",
+        "name": "Resourceful Squad",
+        "description": "Gain 2 Die Rolls upon entering a new floor; your starting die is upgraded to an 8-sided die; more dice available in battle",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_15.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_2_band_18"
+      },
+      {
+        "id": "rogue_2_band_19",
+        "name": "People-Oriented Squad",
+        "description": "All Operators cost -1 Hope to recruit and promote; you may choose an additional reward at the 'Safe House' node; max Command Level +1",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_19.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [3, 4, 5, 6],
+            "classes": [
+              "Vanguard",
+              "Guard",
+              "Defender",
+              "Sniper",
+              "Caster",
+              "Supporter",
+              "Medic",
+              "Specialist"
+            ],
+            "delta": -1
+          }
+        ],
+        "effectId": "rogue_2_band_22"
+      },
+      {
+        "id": "rogue_2_band_1",
+        "name": "Leader Squad",
+        "description": "+2 Max Life Point, restore 1 additional Life Point after each battle",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_1.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_2_band_2",
+        "name": "Gathering Squad",
+        "description": "+2 Squad Size Limit, +2 Deployment Limit",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_2.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_2_band_3",
+        "name": "Support Squad",
+        "description": "Start with +20 Originium Ingots and +2 Hope",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_3.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_2_band_4",
+        "name": "Spearhead Squad",
+        "description": "Life Point is set to 1; All Operators gain +15% ATK and +15% HP",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_4.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_2_band_5",
+        "name": "Tactical Assault Squad",
+        "description": "[Guard] and [Vanguard] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_5.png",
+        "classes": ["Guard", "Vanguard"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_2_band_6",
+        "name": "Tactical Fortification Squad",
+        "description": "[Defender] and [Supporter] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_6.png",
+        "classes": ["Defender", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Defender", "Supporter"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_2_band_7",
+        "name": "Tactical Ranged Squad",
+        "description": "[Medic] and [Sniper] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_7.png",
+        "classes": ["Medic", "Sniper"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_2_band_8",
+        "name": "Tactical Destruction Squad",
+        "description": "[Caster] and [Specialist] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_8.png",
+        "classes": ["Caster", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Caster", "Specialist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_2_band_9",
+        "name": "Research Squad",
+        "description": "Start with +3 Objective Shield; +30% Command EXP gained from battles",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_9.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_2_band_10",
+        "name": "First-Class Squad",
+        "description": "When Recruiting for the first time, gain a random Advanced Recruitment Voucher",
+        "artPath": "topics/rogue_2/init/initreliciconpic/rogue_2_band_10.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      }
+    ],
+    "voucherSets": [
+      {
+        "id": "recruit_group_1",
+        "name": "First Move Advantage"
+      },
+      {
+        "id": "recruit_group_2",
+        "name": "Slow and Steady Wins the Race"
+      },
+      {
+        "id": "recruit_group_3",
+        "name": "Overcoming Your Weaknesses"
+      },
+      {
+        "id": "recruit_group_random",
+        "name": "As Your Heart Desires",
+        "temporaryRarity": 4
+      }
+    ],
+    "hopeCosts": [0, 0, 0, 2, 3, 6],
+    "representativeId": "char_437_mizuki"
+  },
+  {
+    "id": "rogue_3",
+    "name": "Expeditioner's Jǫklumarkar",
+    "number": 4,
+    "squads": [
+      {
+        "id": "rogue_3_band_1",
+        "name": "Leader Squad",
+        "description": "+2 Max Life Points, recover 1 additional Life Point after each battle",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_1.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_2",
+        "name": "Gathering Squad",
+        "description": "+2 Squad Size Limit, +2 Deployment Limit",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_2.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_3",
+        "name": "Support Squad",
+        "description": "Start with +20 Originium Ingots and +2 Hope",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_3.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_4",
+        "name": "Spearhead Squad",
+        "description": "Life Point is set to 1; All allied units gain +15% ATK and +15% HP",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_4.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_5",
+        "name": "Tactical Assault Squad",
+        "description": "[Guard] and [Vanguard] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_5.png",
+        "classes": ["Guard", "Vanguard"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_3_band_6",
+        "name": "Tactical Fortification Squad",
+        "description": "[Defender] and [Supporter] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_6.png",
+        "classes": ["Defender", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Defender", "Supporter"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_3_band_7",
+        "name": "Tactical Ranged Squad",
+        "description": "[Medic] and [Sniper] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_7.png",
+        "classes": ["Medic", "Sniper"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_3_band_8",
+        "name": "Tactical Destruction Squad",
+        "description": "[Caster] and [Specialist] Operators cost 2 less Hope to recruit, 1 less Hope to promote, and have a greatly increased chance of being randomly promoted",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_8.png",
+        "classes": ["Caster", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Caster", "Specialist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_3_band_9",
+        "name": "Special Training Squad",
+        "description": "Start with +3 Objective Shield, promoting Operators will not require Hope",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_9.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_10",
+        "name": "First-Class Squad",
+        "description": "Gain an additional Advanced Recruitment Voucher during initial recruitment, and 5-star Promoted Operators have a greatly increased chance of appearing",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_10.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_11",
+        "name": "Eternal Hunting Squad",
+        "description": "+2 Max Life Points, not earning a Perfect will additionally add 1 Collapse value, earning Perfect will subtract 2 Collapse value",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_11.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_12",
+        "name": "Life Prioritizing Squad",
+        "description": "Start with 3 random Foldartals, Clairvoyance will also predict Foldartals",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_12.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_3_band_13",
+        "name": "Scientific Thinking Squad",
+        "description": "Start with Anti-Interference Index at 0, but entering a new Floor will increase it by 2",
+        "artPath": "topics/rogue_3/init/initreliciconpic/rogue_3_band_13.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      }
+    ],
+    "voucherSets": [
+      {
+        "id": "recruit_group_1",
+        "name": "First Move Advantage"
+      },
+      {
+        "id": "recruit_group_2",
+        "name": "Slow and Steady Wins the Race"
+      },
+      {
+        "id": "recruit_group_3",
+        "name": "Overcoming Your Weaknesses"
+      },
+      {
+        "id": "recruit_group_random",
+        "name": "As Your Heart Desires",
+        "temporaryRarity": 4
+      }
+    ],
+    "hopeCosts": [0, 0, 0, 2, 3, 6],
+    "representativeId": "char_2012_typhon"
+  },
+  {
+    "id": "rogue_4",
+    "name": "Sarkaz's Furnaceside Fables",
+    "number": 5,
+    "squads": [
+      {
+        "id": "rogue_4_band_14",
+        "name": "Soul Escort Squad",
+        "description": "Gain 2 Inspirers and Toil Limit +1 upon entering a new floor; Toil Limit +1 for every Inspirer used; Operators have Redeployment Time -12s if an Inspirer is used in battle",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_14.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_24"
+      },
+      {
+        "id": "rogue_4_band_16",
+        "name": "Erudite Squad",
+        "description": "Starting Toil Limit +10, starting Hope +2, and start with several Shrivel and Sprouts",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_16.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_23"
+      },
+      {
+        "id": "rogue_4_band_18",
+        "name": "Blueprint Squad",
+        "description": "Node Refresh count +1, first refresh is free, starting Plans +1, and starting Hope +1",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_18.png",
+        "classes": [],
+        "hopeBonus": 1,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_25"
+      },
+      {
+        "id": "rogue_4_band_1",
+        "name": "Leader Squad",
+        "description": "Max Life Point +5, recover 1 additional Life Point after each battle",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_1.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_2"
+      },
+      {
+        "id": "rogue_4_band_3",
+        "name": "Gathering Squad",
+        "description": "Squad Size Limit +2, Deployment Limit +2, and recruits 5 Rhodes Island Reserve Operators at the start",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_3.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_4_band_4",
+        "name": "Support Squad",
+        "description": "Starting Originium Ingots +30; Starting Hope +2",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_4.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_5"
+      },
+      {
+        "id": "rogue_4_band_6",
+        "name": "Spearhead Squad",
+        "description": "Life Point is set to 1; All allied units gain +20% ATK and +20% HP",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_6.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_7"
+      },
+      {
+        "id": "rogue_4_band_8",
+        "name": "Tactical Assault Squad",
+        "description": "4-star or above [Guard] and [Vanguard] Operators cost 2 less Hope to recruit and 1 less Hope to promote. Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_8.png",
+        "classes": ["Guard", "Vanguard"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_4_band_9",
+        "name": "Tactical Fortification Squad",
+        "description": "4-star or above [Defender] and [Supporter] Operators cost 2 less Hope to recruit and 1 less Hope to promote. Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_9.png",
+        "classes": ["Defender", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Defender", "Supporter"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_4_band_10",
+        "name": "Tactical Ranged Squad",
+        "description": "4-star or above [Medic] and [Sniper] Operators cost 2 less Hope to recruit and 1 less Hope to promote. Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_10.png",
+        "classes": ["Medic", "Sniper"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_4_band_11",
+        "name": "Tactical Destruction Squad",
+        "description": "4-star or above [Caster] and [Specialist] Operators cost 2 less Hope to recruit and 1 less Hope to promote. Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_11.png",
+        "classes": ["Caster", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Caster", "Specialist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_4_band_12",
+        "name": "First-Class Squad",
+        "description": "5-star Operators will already be promoted when recruited",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_12.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_4_band_13",
+        "name": "Improvisation Squad",
+        "description": "Gain 1 random Collectible upon entering a new floor",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_13.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_4_band_20",
+        "name": "Ingots Squad",
+        "description": "Upon entering a new floor, Originium Ingots +5; the first refresh will not consume Plans and will result in a Rogue Trader; defeated <Spines of Epoch> will drop an additional 2 Originium Ingots; start with Scales of Avarice, and gain 1 Plan upon entering Rogue Trader",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_20.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_27"
+      },
+      {
+        "id": "rogue_4_band_21",
+        "name": "Collection Squad",
+        "description": "Starting Hope +1; when interpreting Plans with Lingerers or Inspirers, the chance of obtaining a Collectible greatly increases, and will always obtain rarer Collectibles; start with Herr Hraaselsuher",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_21.png",
+        "classes": [],
+        "hopeBonus": 1,
+        "costModifiers": [],
+        "effectId": "rogue_4_band_29"
+      },
+      {
+        "id": "rogue_4_band_22",
+        "name": "Mimic Squad",
+        "description": "Randomly receive a partial bonus from 2 other squads",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_22.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_4_band_30",
+        "name": "Top Gun Squad",
+        "description": "When Recruiting for the first time, gain a random Top Operator Recruitment Voucher; Top Operator Rec. Voucher becomes purchasable",
+        "artPath": "topics/rogue_4/init/initreliciconpic/rogue_4_band_30.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      }
+    ],
+    "voucherSets": [
+      {
+        "id": "recruit_group_1",
+        "name": "First Move Advantage"
+      },
+      {
+        "id": "recruit_group_2",
+        "name": "Steadily, Surely"
+      },
+      {
+        "id": "recruit_group_3",
+        "name": "Overcoming Your Weaknesses"
+      },
+      {
+        "id": "recruit_group_random",
+        "name": "As Your Heart Desires",
+        "temporaryRarity": 5
+      }
+    ],
+    "hopeCosts": [0, 0, 0, 0, 2, 6],
+    "representativeId": "char_4146_nymph"
+  },
+  {
+    "id": "rogue_5",
+    "name": "Sui's Garden of Grotesqueries",
+    "number": 6,
+    "hopeCosts": [0, 0, 0, 0, 2, 6],
+    "squads": [
+      {
+        "id": "rogue_5_band_1",
+        "name": "Leader Squad",
+        "description": "+4 Max Life Points, recover 1 additional Life Point after each battle. Start with 'End of Times'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_1.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_2"
+      },
+      {
+        "id": "rogue_5_band_3",
+        "name": "Special Squad",
+        "description": "Squad Size Limit +2, Deployment Limit +2; start with Raidian and 5 Rhodes Island Reserve Operators recruited",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_3.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_4"
+      },
+      {
+        "id": "rogue_5_band_5",
+        "name": "Support Squad",
+        "description": "Start with +20 Originium Ingots, +2 Hope, and Tongbao 'Cocoon Worth'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_5.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_6"
+      },
+      {
+        "id": "rogue_5_band_7",
+        "name": "Tactical Assault Squad",
+        "description": "4-star or above Guard and Vanguard Operators cost 1 less Hope to recruit and promote; Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_7.png",
+        "classes": ["Vanguard", "Guard"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard"],
+            "delta": -1
+          }
+        ]
+      },
+      {
+        "id": "rogue_5_band_8",
+        "name": "Tactical Fortification Squad",
+        "description": "4-star or above Defender and Supporter Operators cost 1 less Hope to recruit and promote; Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_8.png",
+        "classes": ["Defender", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Defender", "Supporter"],
+            "delta": -1
+          }
+        ]
+      },
+      {
+        "id": "rogue_5_band_9",
+        "name": "Tactical Ranged Squad",
+        "description": "4-star or above Medic and Sniper Operators cost 1 less Hope to recruit and promote; Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_9.png",
+        "classes": ["Medic", "Sniper"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper"],
+            "delta": -1
+          }
+        ]
+      },
+      {
+        "id": "rogue_5_band_10",
+        "name": "Tactical Destruction Squad",
+        "description": "4-star or above Caster and Specialist Operators cost 1 less Hope to recruit and promote; Operators from first recruitment will already be promoted and Recruitment Vouchers are more likely to appear in shops",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_10.png",
+        "classes": ["Caster", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Caster", "Specialist"],
+            "delta": -1
+          }
+        ]
+      },
+      {
+        "id": "rogue_5_band_11",
+        "name": "High Ground Breaching Squad",
+        "description": "All Caster, Sniper, Medic, and Supporter Operators above 4-star cost 2 less Hope to recruit",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_11.png",
+        "classes": ["Medic", "Sniper", "Caster", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper", "Caster", "Supporter"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_5_band_12",
+        "name": "Ground Breaching Squad",
+        "description": "All Vanguard, Guard, Defender, and Specialist Operators above 4-star cost 2 less Hope to recruit",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_12.png",
+        "classes": ["Vanguard", "Guard", "Defender", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard", "Defender", "Specialist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_5_band_13",
+        "name": "First-Class Squad",
+        "description": "When Recruiting for the first time, gain a random Advanced Recruitment Voucher; 4 & 5-star Operators will already be promoted when recruited",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_13.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_14"
+      },
+      {
+        "id": "rogue_5_band_15",
+        "name": "Tourist Squad",
+        "description": "Coin coffer size +2, +4 Coupons; coins tossed +3. Start with 'Flower-Beacon Tower'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_15.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_27"
+      },
+      {
+        "id": "rogue_5_band_17",
+        "name": "Sui Regulator Squad",
+        "description": "Recruitment Voucher conserve limit +3, gain 2 random Conserved Recruitment Vouchers upon entering a new floor until limit reached. +2 Hope when entering Pathfinder",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_17.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_29"
+      },
+      {
+        "id": "rogue_5_band_19",
+        "name": "Tianshi Bureau Squad",
+        "description": "+2 Candles when entering Sui's Remnant Consciousness, can enter Sui's Remnant Consciousness through Safe House nodes, and get Collectibles whenever all Retrieve, Legend, Doubts or Turmoil nodes are completed",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_19.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_5_band_28"
+      },
+      {
+        "id": "rogue_5_band_21",
+        "name": "Blooming Flowers Squad",
+        "description": "Life Points spent in Plan nodes fixed at 1; When tossing coins, 1 or more Flower Coins will grant +1 Coupon; Start with Tongbao 'A People United'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_21.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_5_band_22",
+        "name": "Perilous Game Squad",
+        "description": "When 1 or more Risk Coins are tossed, Treasure Chest is more likely to appear in Combat and Emergency Ops; Start with 'Interdependent Luck' and Tongbao 'Dream of Curio'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_22.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_5_band_23",
+        "name": "Sui's Shadow Squad",
+        "description": "Randomly receive a variant effect from another squad",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_23.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_5_band_24",
+        "name": "Proxy Squad",
+        "description": "Extra choice when entering some non-combat nodes. Chance to give +1 to Hope, Max Life Points, Coupon limit, or Originium Ingot when entering non-combat or Doubts nodes",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_24.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_5_band_25",
+        "name": "Knowledge Squad",
+        "description": "When Recruiting for the first time, gain a random Top Operator Recruitment Voucher; Top Operator Rec. Voucher becomes purchasable. Start with 'The Ascent'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_25.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_5_band_26",
+        "name": "Merchant Squad",
+        "description": "Gain 3 Originium Ingots when exchanging Tongbao. Rogue Trader are guaranteed to appear with vertical paths, and Rogue Trader prices are reduced by 50%. Start with 'Tactile Token'",
+        "artPath": "topics/rogue_5/init/initreliciconpic/rogue_5_band_26.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      }
+    ],
+    "voucherSets": [
+      {
+        "id": "recruit_group_1",
+        "name": "First Move Advantage"
+      },
+      {
+        "id": "recruit_group_2",
+        "name": "Steady Win"
+      },
+      {
+        "id": "recruit_group_3",
+        "name": "Overcoming Your Weaknesses"
+      },
+      {
+        "id": "recruit_group_4",
+        "name": "Flexible Deployment"
+      },
+      {
+        "id": "recruit_group_5",
+        "name": "Indestructible"
+      },
+      {
+        "id": "recruit_group_random",
+        "name": "As Your Heart Desires",
+        "temporaryRarity": 5
+      }
+    ],
+    "representativeId": "char_1043_leizi2"
+  },
+  {
+    "id": "rogue_6",
+    "name": "The Black Flow of the Drowning Seekers",
+    "number": 7,
+    "hopeCosts": [0, 0, 0, 0, 2, 6],
+    "squads": [
+      {
+        "id": "rogue_6_band_1",
+        "name": "Leader Squad",
+        "description": "+2 Max Life Points; recover 1 additional Life Point after each battle. After each battle, gain 1 Shield if you have fewer than 5 Shield points.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_1.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_2"
+      },
+      {
+        "id": "rogue_6_band_3",
+        "name": "Special Squad",
+        "description": "Squad Size Limit +2, Deployment Limit +2; start with Mechanist and five Rhodes Island Reserve Operators recruited.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_3.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_22"
+      },
+      {
+        "id": "rogue_6_band_4",
+        "name": "Support Squad",
+        "description": "Start with +20 Originium Ingots, +2 Hope, and Proliferating Moss.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_4.png",
+        "classes": [],
+        "hopeBonus": 2,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_5"
+      },
+      {
+        "id": "rogue_6_band_6",
+        "name": "Spearhead Squad",
+        "description": "Start with 1 Life Point; all allied units gain +15% ATK, DEF, and Max HP. Start with End of Times.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_6.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_7"
+      },
+      {
+        "id": "rogue_6_band_8",
+        "name": "Tactical Assault Squad",
+        "description": "4-star or above Vanguard and Guard Operators cost 2 less Hope to recruit and 1 less to promote. Initial recruits are promoted; matching vouchers appear more often in shops.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_8.png",
+        "classes": ["Vanguard", "Guard"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_9",
+        "name": "Tactical Fortification Squad",
+        "description": "4-star or above Defender and Supporter Operators cost 2 less Hope to recruit and 1 less to promote. Initial recruits are promoted; matching vouchers appear more often in shops.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_9.png",
+        "classes": ["Defender", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Defender", "Supporter"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_10",
+        "name": "Tactical Ranged Squad",
+        "description": "4-star or above Sniper and Medic Operators cost 2 less Hope to recruit and 1 less to promote. Initial recruits are promoted; matching vouchers appear more often in shops.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_10.png",
+        "classes": ["Medic", "Sniper"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_11",
+        "name": "Tactical Destruction Squad",
+        "description": "4-star or above Caster and Specialist Operators cost 2 less Hope to recruit and 1 less to promote. Initial recruits are promoted; matching vouchers appear more often in shops.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_11.png",
+        "classes": ["Caster", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Caster", "Specialist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_12",
+        "name": "High Ground Breaching Squad",
+        "description": "4-star or above Caster, Sniper, Medic, and Supporter Operators cost 2 less Hope to recruit.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_12.png",
+        "classes": ["Medic", "Sniper", "Caster", "Supporter"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Medic", "Sniper", "Caster", "Supporter"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_13",
+        "name": "Ground Breaching Squad",
+        "description": "4-star or above Vanguard, Guard, Defender, and Specialist Operators cost 2 less Hope to recruit.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_13.png",
+        "classes": ["Vanguard", "Guard", "Defender", "Specialist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": ["Vanguard", "Guard", "Defender", "Specialist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_14",
+        "name": "Primal Studies Squad",
+        "description": "4-star or above Primal Caster, Primal Protector, Primal Guard, and Ritualist Operators cost 2 less Hope to recruit and promote. Start with River Valley Prayer.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_14.png",
+        "classes": ["Caster", "Defender", "Guard", "Supporter"],
+        "subclasses": ["primcaster", "primprotector", "primguard", "ritualist"],
+        "hopeBonus": 0,
+        "costModifiers": [
+          {
+            "rarities": [4, 5, 6],
+            "classes": [],
+            "subclasses": ["primcaster", "primprotector", "primguard", "ritualist"],
+            "delta": -2
+          }
+        ]
+      },
+      {
+        "id": "rogue_6_band_15",
+        "name": "Enlightenment Squad",
+        "description": "After eliminating an ideal source in a utopia, gain 2 Action Points and 4 random Collectibles, unaffected by utopia policies. Entering the next region through a pursuit increases the chance of a utopia.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_15.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_25"
+      },
+      {
+        "id": "rogue_6_band_17",
+        "name": "Pioneer Squad",
+        "description": "Start with a rare processed product and Travel Fuzz. Upon entering a new region, gain a random processed product or concept.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_17.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_26"
+      },
+      {
+        "id": "rogue_6_band_19",
+        "name": "Multilateral Trade Squad",
+        "description": "Parts Case capacity +4; sell three parts at the same trader node to gain 8 Originium Ingots. Gain a Withered Moss Ball upon entering a trader node; start with three Withered Moss Balls.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_19.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": [],
+        "effectId": "rogue_6_band_27"
+      },
+      {
+        "id": "rogue_6_band_21",
+        "name": "Geological Survey Squad",
+        "description": "Visiting different node types increases the chance of obtaining Collectibles after battles.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_21.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_6_band_23",
+        "name": "United Front Squad",
+        "description": "Refreshing emergency support nodes no longer costs Originium Ingots. Start with Familiar Chess Box.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_23.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      },
+      {
+        "id": "rogue_6_band_24",
+        "name": "Trailblazer Squad",
+        "description": "After moving with a processed product, reveal three random nodes. Start with Go Explore.",
+        "artPath": "topics/rogue_6/init/initreliciconpic/rogue_6_band_24.png",
+        "classes": [],
+        "hopeBonus": 0,
+        "costModifiers": []
+      }
+    ],
+    "voucherSets": [
+      {
+        "id": "recruit_group_1",
+        "name": "First Move Advantage"
+      },
+      {
+        "id": "recruit_group_2",
+        "name": "Steady Win"
+      },
+      {
+        "id": "recruit_group_3",
+        "name": "Overcoming Your Weaknesses"
+      },
+      {
+        "id": "recruit_group_4",
+        "name": "Flexible Deployment"
+      },
+      {
+        "id": "recruit_group_5",
+        "name": "Indestructible"
+      },
+      {
+        "id": "recruit_group_random",
+        "name": "As Your Heart Desires",
+        "temporaryRarity": 5
+      }
+    ],
+    "cnOnly": true,
+    "representativeId": "char_4229_aphris"
+  }
+]

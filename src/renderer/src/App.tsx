@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DraftPanel from './DraftPanel'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
+import ISOpeningFeature from './ISOpeningFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
 import useCuratePresentation from './useCuratePresentation'
 import OptionsPanel from './OptionsPanel'
@@ -38,7 +39,7 @@ const DEFAULT_DRAFT_TARGET_SIZE = 12
 const WINDOWS_DOWNLOAD_NOTICE = 'web-windows-download-banner'
 
 type AppTab = 'squads' | 'setup' | 'options'
-type SquadMode = 'standard' | 'garrison' | 'draft'
+type SquadMode = 'standard' | 'garrison' | 'draft' | 'is-opening'
 
 function displayDate(value: string | null | undefined): string {
   if (!value) return 'unknown'
@@ -277,7 +278,7 @@ export default function App(): React.JSX.Element {
       <nav className="main-tabs" aria-label="Randomizer configuration">
         {(
           [
-            ['squads', 'Get Squad'],
+            ['squads', 'Dispatch'],
             ['setup', 'Setup'],
             ['options', 'Options'],
           ] as const
@@ -301,6 +302,7 @@ export default function App(): React.JSX.Element {
               ['standard', 'Standard'],
               ['draft', 'Draft'],
               ['garrison', 'Garrison'],
+              ['is-opening', 'IS Opening'],
             ] as const
           ).map(([mode, label]) => (
             <button
@@ -337,6 +339,18 @@ export default function App(): React.JSX.Element {
           gameLocale={operatorPreferences.gameLocale}
           onDirtyChange={setGarrisonDirty}
           onMessage={setMessage}
+        />
+      )}
+
+      {activeTab === 'squads' && squadMode === 'is-opening' && (
+        <ISOpeningFeature
+          key={operatorPreferences.metadataRegion}
+          operators={finalOperatorPool}
+          metadataRegion={operatorPreferences.metadataRegion}
+          alterExclusivity={constraints.alterExclusivity}
+          ready={data.dataset !== null}
+          onMessage={setMessage}
+          onError={setError}
         />
       )}
 

@@ -262,7 +262,7 @@ export default function OperatorCard({
                   alt={`E${progression.elite}`}
                   draggable={false}
                 />
-                <span>L{progression.level}</span>
+                <span>{progression.level}</span>
               </>
             ) : (
               progressionLabel

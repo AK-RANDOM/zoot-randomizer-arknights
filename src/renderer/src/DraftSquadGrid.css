@@ -205,6 +205,27 @@
   font-size: 0.68rem;
 }
 
+.draft-squad-avatar__progression {
+  position: absolute;
+  z-index: 3;
+  bottom: 5px;
+  left: 5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #f0f0f1;
+  background: rgba(7, 7, 9, 0.78);
+  font-size: 0.68rem;
+  font-weight: 850;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.draft-squad-avatar__progression .operator-elite-level__icon {
+  flex-basis: 16px;
+  width: 16px;
+  height: 16px;
+}
+
 .draft-squad-avatar__identity .draft-squad-avatar__class-icon {
   display: block;
   flex: 0 0 1em;

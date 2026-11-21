@@ -5,6 +5,10 @@ import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
 import SquadShareButton from './SquadShareButton'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
+import { loadOperatorPreferences } from './operatorPreferencesStorage'
+import OperatorEliteLevel from './OperatorEliteLevel'
 import {
   resolveDraftActionPresentation,
   capacityExpansionWaitLabel,
@@ -76,6 +80,12 @@ export function DraftRosterAvatar({
   overflow?: boolean
 }): React.JSX.Element {
   const { imageUrl } = useOperatorAppearanceAvatar(operator)
+  const importedAccount = useImportedArknightsAccount() ?? null
+  const showProgression =
+    loadOperatorPreferences().showAccountProgression && importedAccount !== null
+  const progression = showProgression
+    ? importedAccountOperatorState(importedAccount, operator.id)
+    : null
 
   return (
     <div
@@ -98,6 +108,15 @@ export function DraftRosterAvatar({
         <ClassIcon operatorClass={operator.class} className="draft-squad-avatar__class-icon" />
         <span className="draft-squad-avatar__name">{operator.name}</span>
       </span>
+      {showProgression && (
+        <span className="draft-squad-avatar__progression">
+          {progression ? (
+            <OperatorEliteLevel elite={progression.elite} level={progression.level} />
+          ) : (
+            'Not Owned'
+          )}
+        </span>
+      )}
     </div>
   )
 }

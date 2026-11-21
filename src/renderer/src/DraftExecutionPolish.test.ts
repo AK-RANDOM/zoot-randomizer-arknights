@@ -23,15 +23,20 @@ describe('Draft execution polish', () => {
     expect(plane).not.toContain('<strong>Release</strong>')
   })
 
-  it('uses a compact pill identity on Current Draft avatars', () => {
+  it('uses a compact transparent identity on Current Draft avatars', () => {
     const css = read('./DraftSquadGrid.css')
-    expect(css).toContain('border-radius: 999px;')
+    const identity = css.slice(
+      css.indexOf('.draft-squad-avatar__identity {'),
+      css.indexOf('.draft-squad-avatar__progression {'),
+    )
+    expect(identity).not.toContain('border-radius:')
+    expect(identity).toContain('padding: 0;')
+    expect(identity).toContain('background: transparent;')
     expect(css).toContain('font-size: 0.68rem;')
     expect(css).toContain('width: 1em;')
     expect(css).toContain('height: 1em;')
     expect(css).toContain('padding: 0;')
     expect(css).toContain('background: transparent;')
-    expect(css).toContain('background: rgba(7, 7, 9, 0.72);')
   })
 
   it('replaces Abandon with same-size Finalize and completes the active session', () => {

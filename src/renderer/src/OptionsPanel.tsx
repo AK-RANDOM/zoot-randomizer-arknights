@@ -94,7 +94,7 @@ export default function OptionsPanel({
       <div className="option-setting option-setting--compact">
         <div className="option-setting__copy">
           <strong id="curate-names-heading">Show operator names in Curate</strong>
-          <p>Display operator names on tiles in Setup → Global Pool → Curate.</p>
+          <p>Display operator names on tiles in Setup → Curate.</p>
         </div>
         <label className="option-toggle">
           <input
@@ -130,7 +130,7 @@ export default function OptionsPanel({
           <strong>Bulk operator appearance</strong>
           <p>
             Apply one appearance choice to every currently loaded operator. Individual operators can
-            then be changed from Setup → Global Pool → Curate. This is presentation-only.
+            then be changed from Setup → Curate. This is presentation-only.
           </p>
         </div>
         <div className="bulk-appearance-control">

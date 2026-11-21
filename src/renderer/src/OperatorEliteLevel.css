@@ -1,0 +1,33 @@
+.operator-elite-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f0f0f1;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.operator-elite-level.is-unowned {
+  color: #e08a91;
+  font-weight: 800;
+}
+
+.operator-elite-level__icon {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.operator-elite-level__icon.operator-elite-level__unowned-icon {
+  display: block;
+  background: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  filter: none;
+}

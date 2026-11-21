@@ -11,7 +11,12 @@ import {
 } from '../../shared/portraits'
 import { bundledIconUrl } from './bundledIcons'
 import { createBrowserDataPackage } from './browserDataPackage'
-import { getBrowserAccount } from './browserAccount'
+import {
+  clearBrowserAccount,
+  getBrowserAccount,
+  requestBrowserLoginCode,
+  syncBrowserAccount,
+} from './browserAccount'
 
 const dataRoot = `${import.meta.env.BASE_URL}operator-data/`
 const dataPackage = createBrowserDataPackage(dataRoot)
@@ -83,7 +88,11 @@ export const browserApi: DesktopApi = {
     return bundledIconUrl('faction-icons', factionIconFile(factionLabels[id]))
   },
   getImportedArknightsAccount: getBrowserAccount,
-  getArknightsProfileAvatar: unavailable,
+  getArknightsProfileAvatar: (id) =>
+    imageUrl(
+      'https://raw.githubusercontent.com/fexli/ArknightsResource/main/avatar/DEFAULT',
+      `${id}.png`,
+    ),
   setGarrisonCloseDirty: noOp,
   completeGarrisonCloseSave: noOp,
   onGarrisonCloseSaveRequested: () => noOp,
@@ -97,7 +106,7 @@ export const browserApi: DesktopApi = {
   getPortraitSyncProgress: unavailable,
   startPortraitSync: unavailable,
   cancelPortraitSync: unavailable,
-  requestArknightsLoginCode: unavailable,
-  syncArknightsAccount: unavailable,
-  clearImportedArknightsAccount: unavailable,
+  requestArknightsLoginCode: requestBrowserLoginCode,
+  syncArknightsAccount: syncBrowserAccount,
+  clearImportedArknightsAccount: clearBrowserAccount,
 }

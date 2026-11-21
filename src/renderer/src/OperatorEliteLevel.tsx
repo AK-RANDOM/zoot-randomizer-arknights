@@ -18,18 +18,12 @@ export function UnownedOperatorIndicator({
       aria-label={iconOnly ? 'Not Owned' : undefined}
       title={iconOnly ? 'Not Owned' : undefined}
     >
-      {iconOnly ? (
-        <span
-          className="operator-elite-level__icon operator-elite-level__unowned-icon"
-          style={{ maskImage: `url(${forfeitIcon})` }}
-          aria-hidden="true"
-        />
-      ) : (
-        <>
-          <img className="operator-elite-level__icon" src={forfeitIcon} alt="" draggable={false} />
-          <span>Not Owned</span>
-        </>
-      )}
+      <span
+        className="operator-elite-level__icon operator-elite-level__unowned-icon"
+        style={{ maskImage: `url(${forfeitIcon})` }}
+        aria-hidden="true"
+      />
+      {!iconOnly && <span>Not Owned</span>}
     </span>
   )
 }

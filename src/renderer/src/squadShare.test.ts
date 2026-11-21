@@ -24,6 +24,39 @@ const amiya: Operator = { ...silverAsh, id: 'amiya', name: 'Amiya', rarity: 5 }
 const generatedAt = new Date(2026, 10, 13)
 
 describe('squad sharing', () => {
+  it('shares only the concise IS setup and member names without Hope costs', () => {
+    const result: SquadShareResult = {
+      mode: 'IS Opening',
+      generatedAt,
+      members: [silverAsh, null, amiya],
+      opening: {
+        theme: 'IS3: Mizuki & Caerula Arbor',
+        squad: 'Tactical Assault Squad',
+        squadIconUrl: 'squad.png',
+        voucherSet: 'As Your Heart Desires',
+        voucherSetIconUrl: 'vouchers.png',
+        startingHope: 8,
+      },
+    }
+    expect(formatSquadShareText(result)).toBe(
+      [
+        'IS3: Mizuki & Caerula Arbor',
+        'Tactical Assault Squad',
+        'As Your Heart Desires',
+        '8 starting Hope',
+        '',
+        'Members',
+        '1. 6* SilverAsh',
+        '2. 5* Amiya',
+      ].join('\n'),
+    )
+    expect(squadShareImageSlots(result).map(({ operator }) => operator)).toEqual([
+      silverAsh,
+      null,
+      amiya,
+    ])
+  })
+
   it('formats the local generation date and numbers filled members in squad order', () => {
     expect(
       formatSquadShareText({

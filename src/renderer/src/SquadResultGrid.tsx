@@ -11,7 +11,7 @@ export default function SquadResultGrid({
 }): React.JSX.Element {
   return (
     <div
-      className={`squad-grid squad-result-grid${forImage ? ' squad-share-grid' : ''}`}
+      className={`squad-grid squad-result-grid${forImage ? ' squad-share-grid' : ''}${result.mode === 'IS Opening' ? ' squad-share-grid--is-opening' : ''}`}
       aria-label="Finalized squad slots"
     >
       {squadShareImageSlots(result).map(({ operator, isOverflow }, index) => (

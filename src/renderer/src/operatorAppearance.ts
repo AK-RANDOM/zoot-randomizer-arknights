@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountEquippedSkinId } from '../../shared/arknightsAccountReconciliation'
 import type { Operator, ReleaseServer } from '../../shared/operator'
+import { isTemporaryArtwork } from '../../shared/isOpeningTemporaryOperators'
 import type { OperatorAppearanceChoice, OperatorPreferences } from '../../shared/operatorPool'
 import { skinDisplayName, skinAvailableInRegion } from '../../shared/skinMetadata'
 import { loadOperatorArtwork } from './rendererPersistence'
@@ -250,6 +251,11 @@ export function useOperatorAppearanceImage(operator: Operator, override?: Appear
 
     const load = async (): Promise<void> => {
       let portrait: string | null = null
+      const temporaryArt = isTemporaryArtwork(operator)
+      if (temporaryArt) {
+        setArtwork({ operator, resolved, imageUrl: temporaryArt, usingPortrait: true })
+        return
+      }
       if (resolved === 'e1' || resolved === 'e2') {
         portrait = await window.desktop.getOperatorPortrait(operator.id, resolved).catch(() => null)
       } else {
@@ -305,6 +311,11 @@ export function useOperatorAppearanceAvatar(
     }
 
     const load = async (): Promise<void> => {
+      const temporaryArt = isTemporaryArtwork(operator, true)
+      if (temporaryArt) {
+        if (active) setImageUrl(temporaryArt)
+        return
+      }
       if (resolved === 'e1' || resolved === 'e2') {
         const avatar = await window.desktop.getOperatorPromotionAvatar(operator.id, resolved)
         if (!active) return

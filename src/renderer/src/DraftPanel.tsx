@@ -123,7 +123,7 @@ export default function DraftPanel({
     <select
       className="draft-rulebook-select"
       value={selected.identifier.id}
-      aria-label="Draft Rulebook"
+      aria-label="Draft preset"
       onChange={(event) => selectRulebook(event.target.value)}
     >
       {builtInOptions}

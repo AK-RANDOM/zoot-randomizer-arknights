@@ -189,19 +189,20 @@ export default function DraftSquadGrid({
   }
 
   return (
-    <section className="draft-selected-squad" aria-labelledby="draft-selected-squad-heading">
-      <div className="draft-roster-heading">
-        <div>
-          <strong id="draft-selected-squad-heading">
-            {finalized ? 'Finalized Draft' : 'Current Draft'}
-          </strong>
-          {!finalized && (
+    <section
+      className="draft-selected-squad"
+      aria-label={finalized ? 'Finalized Draft' : 'Current Draft'}
+    >
+      {!finalized && (
+        <div className="draft-roster-heading">
+          <div>
+            <strong id="draft-selected-squad-heading">Current Draft</strong>
             <span className="draft-roster-heading__capacity">
               {squad.permanentCapacity} permanent / {squad.maximum} max
             </span>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {finalized ? (
         <div className="draft-finalized-squad-grid">

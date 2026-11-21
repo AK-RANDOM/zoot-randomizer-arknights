@@ -154,31 +154,3 @@
   min-width: 0;
   animation: none;
 }
-
-.squad-share-empty {
-  height: 100%;
-  border: 1px solid #3a3a41;
-  border-radius: 4px;
-  background: #171719;
-}
-
-.squad-share-grid .squad-share-slot--overflow .operator-card {
-  opacity: 0.78;
-  border-color: #777782;
-  filter: saturate(0.75);
-}
-
-.squad-share-overflow {
-  position: absolute;
-  z-index: 4;
-  top: 8px;
-  right: 8px;
-  padding: 3px 5px;
-  border-radius: 3px;
-  color: #d0d0d7;
-  background: rgba(7, 7, 9, 0.76);
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}

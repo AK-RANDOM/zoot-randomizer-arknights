@@ -12,6 +12,11 @@
   margin-bottom: 10px;
 }
 
+.draft-finalized-squad-grid {
+  width: min(100%, 1080px);
+  margin-inline: auto;
+}
+
 .draft-roster-heading > div {
   display: grid;
   gap: 3px;

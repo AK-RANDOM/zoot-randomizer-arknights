@@ -358,11 +358,11 @@ export default function DraftSessionView({
   }
 
   return (
-    <section className="panel draft-panel" aria-labelledby="draft-heading">
+    <section className="panel draft-panel" aria-label="Draft mode">
       <div className="draft-status-shell">
         <div className="draft-status-main">
           <div className="draft-status-rulebook">
-            <span id="draft-heading">Draft Rulebook</span>
+            <span className="preset-toolbar-label">Preset</span>
             {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
           </div>
           <div className="draft-status-item">

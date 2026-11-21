@@ -48,7 +48,9 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
-  padding: 10px;
+  min-height: 64px;
+  box-sizing: border-box;
+  padding: 12px;
   border: 1px solid #303036;
   border-radius: 6px;
   background: #111113;
@@ -68,13 +70,22 @@
   min-width: 96px;
   align-content: center;
   gap: 3px;
-  padding: 4px 10px;
+  min-height: 38px;
+  padding: 0 10px;
   border-right: 1px solid #2a2a2f;
 }
 
 .draft-status-rulebook {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 180px;
   flex: 1 1 240px;
+}
+
+.draft-status-rulebook > .preset-toolbar-label {
+  color: #a7a7ad;
+  font-size: 0.68rem;
 }
 
 .draft-status-main > :last-child {
@@ -88,6 +99,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  line-height: 1;
 }
 
 .draft-status-rulebook strong,
@@ -97,6 +109,7 @@
   font-size: 0.9rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .draft-status-rulebook strong {
@@ -115,7 +128,8 @@
 }
 .draft-rulebook-select {
   width: 100%;
-  min-height: 36px;
+  min-width: 0;
+  min-height: 38px;
   padding: 0 30px 0 9px;
   border: 1px solid #3b3b41;
   border-radius: 4px;

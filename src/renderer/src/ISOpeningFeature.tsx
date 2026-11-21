@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import {
   operatorClasses,
   type Operator,
@@ -38,6 +38,16 @@ import './ISOpeningFeature.css'
 
 const lockIcon = new URL('./assets/draft/locked-slot-icon.png', import.meta.url).href
 const hopeIcon = new URL('./assets/hope.webp', import.meta.url).href
+
+const strategyDescriptions: Record<ISOpeningStrategy, string> = {
+  'true-random': 'Every valid opening has an equal chance, within the available Hope.',
+  'squad-six':
+    'Tries a squad-associated 6★ first, then fills the other slots randomly within the available Hope.',
+  greedy:
+    'Locks a random feasible 5★ or 6★ first, then maximizes Hope spending. Free slots favor non-reserve operators and higher rarity.',
+  'exhaust-hope':
+    'Maximizes total Hope spending without a first pick. Free slots favor non-reserve operators and higher rarity.',
+}
 
 function GameArt({ src, alt }: { src: string; alt: string }): React.JSX.Element {
   const [failed, setFailed] = useState(false)
@@ -93,6 +103,8 @@ export default function ISOpeningFeature({
   const [voucherSetId, setVoucherSetId] = useState(theme.voucherSets[0].id)
   const [voucherChoices, setVoucherChoices] = useState<(OperatorClass | '')[]>(['', '', ''])
   const [strategy, setStrategy] = useState<ISOpeningStrategy>('true-random')
+  const strategyHelpId = useId()
+  const selectedStrategy = IS_OPENING_STRATEGIES.find((value) => value.id === strategy)!
   const [startingHope, setStartingHope] = useState(6)
   const [difficultyLevel, setDifficultyLevel] = useState(0)
   const [selected, setSelected] = useState<(Operator | null)[]>([null, null, null])
@@ -624,6 +636,7 @@ export default function ISOpeningFeature({
                         className="draft-operator-action danger-button"
                         type="button"
                         aria-label={`Clear operator for slot ${index + 1}`}
+                        disabled={keptSlots[index]}
                         onClick={() => clearOperator(index)}
                       >
                         Clear
@@ -709,19 +722,34 @@ export default function ISOpeningFeature({
             </div>
           </div>
           <div className="is-opening__squad-actions is-opening__control-box">
-            <label className="field is-opening__strategy">
-              <span>Strategy</span>
-              <select
-                value={strategy}
-                onChange={(event) => setStrategy(event.target.value as ISOpeningStrategy)}
-              >
-                {IS_OPENING_STRATEGIES.map((value) => (
-                  <option key={value.id} value={value.id}>
-                    {value.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="is-opening__strategy-control">
+              <label className="field is-opening__strategy">
+                <span>Strategy</span>
+                <select
+                  value={strategy}
+                  onChange={(event) => setStrategy(event.target.value as ISOpeningStrategy)}
+                >
+                  {IS_OPENING_STRATEGIES.map((value) => (
+                    <option key={value.id} value={value.id}>
+                      {value.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className="is-opening__strategy-help">
+                <button
+                  type="button"
+                  aria-label={`About ${selectedStrategy.name}`}
+                  aria-describedby={strategyHelpId}
+                >
+                  ?
+                </button>
+                <span id={strategyHelpId} role="tooltip" className="is-opening__strategy-tooltip">
+                  <strong>{selectedStrategy.name}</strong>
+                  <span>{strategyDescriptions[strategy]}</span>
+                </span>
+              </span>
+            </div>
             <button
               className="danger-button"
               type="button"

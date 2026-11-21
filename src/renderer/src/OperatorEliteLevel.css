@@ -6,9 +6,16 @@
   font-size: 0.72rem;
   font-weight: 850;
   letter-spacing: 0.02em;
-  line-height: 1.2;
+  line-height: 1;
+  vertical-align: middle;
   -webkit-text-stroke: 0;
   text-shadow: none;
+}
+
+.operator-elite-level > span:not(.operator-elite-level__icon) {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
 }
 
 .operator-elite-level.is-unowned {
@@ -17,9 +24,9 @@
 }
 
 .operator-elite-level__icon {
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 var(--progression-icon-size, 24px);
+  width: var(--progression-icon-size, 24px);
+  height: var(--progression-icon-size, 24px);
   object-fit: contain;
 }
 
@@ -32,8 +39,6 @@
   filter: none;
 }
 
-.operator-elite-level.is-compact .operator-elite-level__icon {
-  flex-basis: 16px;
-  width: 16px;
-  height: 16px;
+.operator-elite-level.is-compact {
+  --progression-icon-size: 16px;
 }

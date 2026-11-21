@@ -22,7 +22,7 @@ export function ProgressionIconPreviewProvider({
         <aside className="progression-icon-preview" aria-label="Progression icon tester">
           <strong>Progression icon tester</strong>
           <span aria-live="polite">
-            {compact ? 'Compact: 16px main / 12px square' : 'Original: 24px main / 18px square'}
+            {compact ? 'Compact: 16px on all cards' : 'Original: 24px main / 18px square'}
           </span>
           <button type="button" aria-pressed={compact} onClick={() => setCompact(!compact)}>
             {compact ? 'Use original icons' : 'Use compact icons'}

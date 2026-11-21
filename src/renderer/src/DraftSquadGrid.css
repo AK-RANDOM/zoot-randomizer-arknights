@@ -216,12 +216,6 @@
   pointer-events: none;
 }
 
-.draft-squad-avatar__progression .operator-elite-level__icon {
-  flex-basis: 18px;
-  width: 18px;
-  height: 18px;
-}
-
 .draft-squad-avatar__identity .draft-squad-avatar__class-icon {
   display: block;
   flex: 0 0 1em;

@@ -181,7 +181,7 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
 export default function SquadShareButton({
   result,
 }: {
-  result: SquadShareResult
+  result: SquadShareResult | null
 }): React.JSX.Element {
   const titleId = useId()
   const dialog = useRef<HTMLDialogElement>(null)
@@ -198,7 +198,9 @@ export default function SquadShareButton({
         type="button"
         className="secondary-button"
         aria-haspopup="dialog"
+        disabled={result === null}
         onClick={() => {
+          if (!result) return
           setFormat('text')
           setSnapshot(result)
         }}

@@ -12,7 +12,9 @@ import DraftConfirmationDialog from './DraftConfirmationDialog'
 import DraftProbabilitySummary from './DraftProbabilitySummary'
 import OperatorCard from './OperatorCard'
 import DraftSquadGrid from './DraftSquadGrid'
-import { resolveDraftStatusPresentation } from './draftPresentation'
+import { resolveDraftSquadPresentation, resolveDraftStatusPresentation } from './draftPresentation'
+import SquadShareButton from './SquadShareButton'
+import type { SquadShareResult } from './squadShare'
 import { buildDraftHistoryRounds, draftHistoryActionLabel } from './draftHistoryPresentation'
 import { draftConfirmationCopy, type DraftConfirmationIntent } from './draftConfirmation'
 import { useDraftActionConfirmationPreference } from './draftConfirmationPreferences'
@@ -261,6 +263,15 @@ export default function DraftSessionView({
     ready && validationErrors.length === 0 && operators.length >= rulebook.generalRules.offerSize
   const status = resolveDraftStatusPresentation(state, targetSize)
   const draftOngoing = state?.status === 'active'
+  const shareResult: SquadShareResult | null =
+    state?.status === 'complete'
+      ? {
+          mode: 'Draft Mode',
+          generatedAt: completedAt ?? new Date(),
+          members: state.draftedOperatorIds.map((id) => operatorById.get(id) ?? null),
+          overflowStart: resolveDraftSquadPresentation(state).permanentCapacity,
+        }
+      : null
   const confirmationsEnabled = useDraftActionConfirmationPreference()
   const [sessionConfirmationsSuppressed, setSessionConfirmationsSuppressed] = useState(false)
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingDraftConfirmation | null>(
@@ -375,14 +386,17 @@ export default function DraftSessionView({
             <strong>{status.capacity.label}</strong>
           </div>
         </div>
-        <button
-          className="randomize-button draft-status-new"
-          type="button"
-          disabled={draftOngoing ? !onFinalize : !canStart}
-          onClick={draftOngoing ? requestFinalize : requestStart}
-        >
-          {draftOngoing ? 'Finalize' : 'Start Draft'}
-        </button>
+        <div className="draft-status-actions">
+          <SquadShareButton result={shareResult} />
+          <button
+            className="randomize-button draft-status-new"
+            type="button"
+            disabled={draftOngoing ? !onFinalize : !canStart}
+            onClick={draftOngoing ? requestFinalize : requestStart}
+          >
+            {draftOngoing ? 'Finalize' : 'Start Draft'}
+          </button>
+        </div>
       </div>
       {validationErrors.length === 0 && (
         <DraftProbabilitySummary

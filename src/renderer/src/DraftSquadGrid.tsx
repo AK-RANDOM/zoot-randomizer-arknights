@@ -3,7 +3,6 @@ import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import SquadShareButton from './SquadShareButton'
 import SquadResultGrid from './SquadResultGrid'
 import type { SquadShareResult } from './squadShare'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
@@ -202,7 +201,6 @@ export default function DraftSquadGrid({
             </span>
           )}
         </div>
-        {finalized && completedAt && <SquadShareButton result={shareResult} />}
       </div>
 
       {finalized ? (

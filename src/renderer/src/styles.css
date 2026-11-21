@@ -312,7 +312,8 @@ body {
 }
 
 .operator-card__caption strong,
-.operator-card__rarity {
+.operator-card__rarity,
+.draft-squad-avatar__progression {
   color: #ffffff;
   paint-order: stroke fill;
   -webkit-text-stroke: 1.2px #000000;

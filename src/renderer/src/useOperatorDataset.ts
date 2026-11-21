@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { GameLocale, Operator, OperatorDataset } from '../../shared/operator'
 import type { OperatorDataInfo, OperatorUpdateCheck } from '../../shared/desktop'
 import { localizeOperatorDataset } from '../../shared/gameLocalization'
-import { operatorDatasetNeedsSkinMetadataRefresh } from '../../shared/skinMetadata'
 
 export interface OperatorDatasetController {
   dataset: OperatorDataset | null
@@ -30,7 +29,6 @@ export default function useOperatorDataset({
   const [updateCheck, setUpdateCheck] = useState<OperatorUpdateCheck | null>(null)
   const [busy, setBusy] = useState(false)
   const [updateRevision, setUpdateRevision] = useState(0)
-  const skinMetadataRefreshAttempted = useRef(false)
 
   const loadData = useCallback(async (): Promise<OperatorDataset> => {
     const [nextDataset, nextInfo] = await Promise.all([
@@ -41,7 +39,7 @@ export default function useOperatorDataset({
     setDataset(localized)
     setDataInfo(nextInfo)
     onOperatorsLoaded(localized.operators)
-    onMessage(`${localized.operators.length} operators ready.`)
+    onMessage(nextInfo.warning ?? `${localized.operators.length} operators ready.`)
     return localized
   }, [gameLocale, onMessage, onOperatorsLoaded])
 
@@ -50,28 +48,7 @@ export default function useOperatorDataset({
 
     void (async () => {
       try {
-        const loaded = await loadData()
-        if (window.desktop.platform === 'browser') return
-        if (!operatorDatasetNeedsSkinMetadataRefresh(loaded) || skinMetadataRefreshAttempted.current) return
-
-        skinMetadataRefreshAttempted.current = true
-        setBusy(true)
-        try {
-          const result = await window.desktop.updateOperatorData()
-          if (!active) return
-          if (result.updated) {
-            await loadData()
-            if (!active) return
-            setUpdateRevision((current) => current + 1)
-            onMessage('Operator skin metadata is ready.')
-          }
-        } catch {
-          if (active) {
-            onMessage('Operator data loaded. Skin metadata will become available when the update source is reachable.')
-          }
-        } finally {
-          if (active) setBusy(false)
-        }
+        await loadData()
       } catch (reason: unknown) {
         if (!active) return
         onError(reason instanceof Error ? reason.message : String(reason))
@@ -106,9 +83,11 @@ export default function useOperatorDataset({
       await loadData()
       setUpdateCheck(null)
       setUpdateRevision((current) => current + 1)
-      onMessage(result.updated
-        ? `Operator data updated. ${result.warnings.length ? `${result.warnings.length} metadata/image warning(s).` : ''}`
-        : 'Operator data was already current.')
+      onMessage(
+        result.updated
+          ? `Operator and event data updated. ${result.warnings.length ? `${result.warnings.length} metadata warning(s).` : ''}`
+          : 'Operator data was already current.',
+      )
     } catch (reason) {
       onError(reason instanceof Error ? reason.message : String(reason))
     } finally {

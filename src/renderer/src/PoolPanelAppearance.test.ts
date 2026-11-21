@@ -32,7 +32,9 @@ describe('Curate operator appearance picker', () => {
   it('orders only alternate outfits by release timestamp before rendering them', () => {
     expect(panelSource).toContain('compareSkinsByRelease')
     expect(panelSource).toContain('left.releaseTime')
-    expect(panelSource).toContain('.filter((skin) => !skin.isDefault)')
+    expect(panelSource).toContain(
+      '!skin.isDefault && skinAvailableInRegion(skin, preferences.metadataRegion)',
+    )
     expect(panelSource).toContain('.sort(compareSkinsByRelease)')
   })
 

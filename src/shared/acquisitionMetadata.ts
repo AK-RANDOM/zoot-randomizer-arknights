@@ -1,3 +1,12 @@
+import {
+  LIMITED_SERIES_BY_OPERATOR_ID,
+  IS_RA_WELFARE_OPERATOR_IDS,
+  ALWAYS_WELFARE_OPERATOR_IDS,
+  RECRUITMENT_WELFARE_OPERATOR_IDS,
+  CREDIT_SHOP_WELFARE_OPERATOR_IDS,
+  MODE_ONLY_OPERATOR_IDS,
+} from './dataCorrections.ts'
+export { LIMITED_SERIES_BY_OPERATOR_ID, MODE_ONLY_OPERATOR_IDS } from './dataCorrections.ts'
 import type { LimitedAcquisitionGroup, OperatorAcquisition } from './operator'
 import type { OperatorReleaseCategory } from './releaseMetadata'
 
@@ -12,93 +21,6 @@ export interface RawGachaTable {
   gachaPoolClient?: Record<string, RawGachaPoolClientEntry>
 }
 
-/**
- * Historical normal Limited operators need an explicit durable registry:
- * current gacha_table snapshots do not preserve every past limitedCharId.
- * Groups follow the operator's original CN limited series, independent of the
- * Global calendar date at which the same content was released.
- */
-export const LIMITED_SERIES_BY_OPERATOR_ID: Record<string, LimitedAcquisitionGroup> = {
-  // Celebration — CN anniversary (early May / late April)
-  char_113_cqbw: 'anniversary', // W
-  char_1012_skadi2: 'anniversary', // Skadi the Corrupting Heart
-  char_1023_ghost2: 'anniversary', // Specter the Unchained
-  char_249_mlyss: 'anniversary', // Muelsyse
-  char_1035_wisdel: 'anniversary', // Wiš'adel
-  char_1041_angel2: 'anniversary', // Exusiai the New Covenant
-  char_1052_kalts2: 'anniversary', // Kal'tsit - Esperanta
-
-  // Celebration — CN half-anniversary (early November)
-  char_391_rosmon: 'halfAnniversary', // Rosmontis
-  char_1014_nearl2: 'halfAnniversary', // Nearl the Radiant Knight
-  char_1028_texas2: 'halfAnniversary', // Texas the Omertosa
-  char_245_cello: 'halfAnniversary', // Virtuosa
-  char_1038_whitw2: 'halfAnniversary', // Lappland the Decadenza
-  char_1045_svash2: 'halfAnniversary', // SilverAsh the Reignfrost
-
-  // Festival — Spring Festival / CNY
-  char_2014_nian: 'cny',
-  char_2015_dusk: 'cny',
-  char_2023_ling: 'cny',
-  char_2024_chyue: 'cny',
-  char_2025_shu: 'cny',
-  char_2026_yu: 'cny',
-  char_2027_wang: 'cny',
-
-  // Carnival — CN Summer Carnival
-  char_1013_chen2: 'summer', // Ch'en the Holungday
-  char_1026_gvial2: 'summer', // Gavial the Invincible
-  char_1016_agoat2: 'summer', // Eyjafjalla the Hvit Aska
-  char_4058_pepe: 'summer',
-  char_1044_hsgma2: 'summer', // Hoshiguma the Breacher
-  char_1015_aglna2: 'summer', // Angelina the Mellow Wish
-}
-
-const IS_RA_WELFARE_OPERATOR_IDS = new Set([
-  'char_4025_aprot2', // Shalem — IS2
-  'char_4066_highmo', // Highmore — IS3
-  'char_4102_threye', // Valarqvin — IS4
-  'char_4151_tinman', // Tin Man — IS5
-  'char_4195_radian', // Raidian — IS6
-  'char_4230_mcnist', // Mechanist — IS7
-  'char_4023_rfalcn', // Kestrel — Reclamation Algorithm
-])
-
-const ALWAYS_WELFARE_OPERATOR_IDS = new Set([
-  'char_002_amiya',
-  'char_1001_amiya2',
-  'char_1037_amiya3',
-  'char_159_peacok', // Conviction
-])
-
-// Operators available from Recruitment with no Headhunting source.
-const RECRUITMENT_WELFARE_OPERATOR_IDS = new Set([
-  'char_155_tiger', // Indra
-  'char_163_hpsts', // Vulcan
-  'char_127_estell', // Estelle
-  'char_385_finlpp', // Purestream
-  'char_211_adnach', // Adnachiel
-  'char_009_12fce', // 12F
-  'char_501_durin', // Durin
-  'char_500_noirc', // Noir Corne
-  'char_503_rang', // Rangers
-  'char_502_nblade', // Yato
-  'char_286_cast3', // Castle-3
-  'char_4188_confes', // CONFESS-47
-  'char_4093_frston', // Friston-3
-  'char_4227_gallus', // GALLUS²
-  'char_4000_jnight', // Justice Knight
-  'char_285_medic2', // Lancet-2
-  'char_4136_phonor', // PhonoR-0
-  'char_376_therex', // THRM-EX
-])
-
-const CREDIT_SHOP_WELFARE_OPERATOR_IDS = new Set([
-  'char_198_blackd', // Courier
-  'char_187_ccheal', // Gavial
-  'char_260_durnar', // Dur-nar
-])
-
 export function welfareAcquisitionOverride(id: string): OperatorAcquisition | undefined {
   if (RECRUITMENT_WELFARE_OPERATOR_IDS.has(id)) {
     return { family: 'welfare', group: 'recruitment' }
@@ -108,31 +30,6 @@ export function welfareAcquisitionOverride(id: string): OperatorAcquisition | un
   }
   return undefined
 }
-
-export const MODE_ONLY_OPERATOR_IDS = new Set([
-  // Integrated Strategies temporary Elite / Reserve recruitment operators.
-  'char_504_rguard',
-  'char_514_rdfend',
-  'char_507_rsnipe',
-  'char_506_rmedic',
-  'char_505_rcast',
-  'char_513_apionr',
-  'char_508_aguard',
-  'char_511_asnipe',
-  'char_509_acast',
-  'char_510_amedic',
-
-  // Stronghold Protocol-only variants. Normal Raidian and Mechanist use
-  // different character IDs and intentionally remain in the playable pool.
-  'char_608_acpion',
-  'char_609_acguad',
-  'char_610_acfend',
-  'char_611_acnipe',
-  'char_612_accast',
-  'char_613_acmedc',
-  'char_614_acsupo',
-  'char_615_acspec',
-])
 
 export function isModeOnlyOperator(id: string): boolean {
   if (MODE_ONLY_OPERATOR_IDS.has(id)) return true

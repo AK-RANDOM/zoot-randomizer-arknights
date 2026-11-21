@@ -12,6 +12,11 @@
   margin-bottom: 10px;
 }
 
+.draft-finalized-squad-grid {
+  width: min(100%, 1080px);
+  margin-inline: auto;
+}
+
 .draft-roster-heading > div {
   display: grid;
   gap: 3px;
@@ -159,6 +164,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center top;
+  transform: scale(1.8);
   opacity: 0.5;
   filter: grayscale(0.15);
   pointer-events: none;
@@ -199,10 +205,20 @@
   min-width: 0;
   align-items: center;
   gap: 3px;
-  padding: 2px 5px;
-  border-radius: 999px;
-  background: rgba(7, 7, 9, 0.72);
+  padding: 0;
+  background: transparent;
   font-size: 0.68rem;
+}
+
+.draft-squad-avatar__progression {
+  position: absolute;
+  z-index: 3;
+  bottom: 3px;
+  left: 5px;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(7, 7, 9, 0.78);
+  pointer-events: none;
 }
 
 .draft-squad-avatar__identity .draft-squad-avatar__class-icon {
@@ -220,6 +236,7 @@
   background: transparent;
   box-shadow: none;
   backdrop-filter: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.9));
 }
 
 .draft-squad-avatar__identity .draft-squad-avatar__class-icon img {
@@ -237,7 +254,6 @@
   font-weight: 900;
   line-height: 1.1;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.95);
   white-space: nowrap;
 }
 

@@ -8,6 +8,7 @@ import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import useOverflowScroll from './useOverflowScroll'
+import OperatorEliteLevel, { UnownedOperatorIndicator } from './OperatorEliteLevel'
 import './OperatorCard.css'
 
 export interface OperatorCardInteractionLine {
@@ -249,7 +250,11 @@ export default function OperatorCard({
       <div className="operator-card__caption">
         {progressionLabel && (
           <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
-            {progressionLabel}
+            {progression ? (
+              <OperatorEliteLevel elite={progression.elite} level={progression.level} />
+            ) : (
+              <UnownedOperatorIndicator />
+            )}
           </span>
         )}
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>

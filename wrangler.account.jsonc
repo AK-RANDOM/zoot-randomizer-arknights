@@ -1,0 +1,14 @@
+// API-only deployment for the website hosted on GitHub Pages.
+// Keep this separate from wrangler.jsonc, which also hosts the built website.
+{
+  "name": "ak-randomizer-account",
+  "main": "src/web/accountWorker.ts",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "ratelimits": [
+    { "name": "ACCOUNT_LIMIT", "namespace_id": "1001", "simple": { "limit": 6, "period": 60 } },
+  ],
+  "vars": { "ACCOUNT_WEB_ORIGIN": "https://ak-random.github.io" },
+  "observability": { "enabled": false },
+}

@@ -169,15 +169,8 @@
   min-width: max-content;
 }
 .operator-card__account-progression {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 2px;
-  color: #f0f0f1;
-  font-size: 0.72rem;
-  font-weight: 850;
-  letter-spacing: 0.02em;
-}
-
-.operator-card__account-progression.is-unowned {
-  color: #e08a91;
-  font-weight: 800;
 }

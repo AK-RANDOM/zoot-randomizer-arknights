@@ -1,10 +1,11 @@
+import { ARTWORK_SOURCE } from './artworkSources.ts'
 export type PromotionArt = 'e1' | 'e2'
 export type PortraitPhase = 1 | 2
 
 export const PORTRAIT_SOURCE = {
-  repository: 'yuanyan3060/ArknightsGameResource',
+  repository: ARTWORK_SOURCE.repository,
   path: 'portrait',
-  baseUrl: 'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/portrait',
+  baseUrl: `https://raw.githubusercontent.com/${ARTWORK_SOURCE.repository}/${ARTWORK_SOURCE.revision}/portrait`,
 } as const
 
 const AMIYA_E2_AS_E1 = new Set(['char_1001_amiya2', 'char_1037_amiya3'])

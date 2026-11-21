@@ -159,38 +159,17 @@ Editor persistence validity is deliberately separate from execution/export valid
 
 ## Operator data lifecycle
 
-A known-good operator dataset ships in `resources/bundled-data/operators`.
+One source-selected, validated package contains the roster and ten CN/Global × EN/JP/KR/TW/CN Garrison catalogs. Windows and website builds embed the exact package selected in `dataPackagePin.ts`, plus application/data provenance. `npm run data:update` installs that immutable selection and prepares UI icons; it does not rebuild metadata from moving upstream sources.
 
-At runtime:
+At runtime, `dataPackageClient.ts` owns the roster and catalogs together. It reads valid local data without source-table requests, checks a preview or production pointer on request, and validates the complete gzip artifact before saving/activating it. Shared pure validation plus WebCrypto checks identity, compatibility, every payload hash and content. Failed updates retain the active package; corrupt current caches can recover from the previous package or the bundle.
 
-1. The app prefers a validated downloaded dataset in Electron's `userData` directory.
-2. If no valid downloaded dataset exists, the bundled dataset is used.
-3. Update checks compare upstream source commits through `src/shared/operatorDataPipeline.ts`.
-4. When an update is available, the same shared pipeline fetches source tables, normalizes/builds the dataset, applies race metadata, and validates the generated result.
-5. `src/main/operatorDataService.ts` stages runtime data/assets and activates the dataset with rollback protection. A failed activation leaves the last known-good dataset usable.
+Windows `dataPackageRepository.ts` stages/flushes/renames a complete current/previous record on the configured user-data volume. Browser `browserDataPackage.ts` commits that record atomically in a separate IndexedDB database. Newer legacy Windows metadata stays a labelled read-only bridge until a complete package replaces it; user preferences, account snapshots, Rulebooks and saved Garrisons are untouched. `operatorDataService.ts` and `garrisonEventCatalogService.ts` delegate metadata reads to the same client. Artwork remains independently cached/downloaded.
 
-Bundled-data generation uses the same source-version/fetch/build/validation pipeline from `scripts/update-operator-data.mts`, but keeps CLI-specific output and optional asset-download behavior in the script.
+`dataPackageProducer.ts` alone fetches and normalizes metadata using pinned shared inputs from `dataPackageInputs.ts`. It reuses `operatorDataPipeline.ts`, existing localization/catalog helpers and the maintained `dataCorrections.ts` registry. `build-data-package.mts` supports live capture and network-forbidden replay from frozen evidence. Producer inputs are separate from the small client artifact.
 
-This separation is intentional:
+`dataPackageDistribution.ts` validates immutable artifact publication and channel advancement/rollback. The build installer consumes an exact source pin; application readers follow their build-selected channel only for manual updates. Source evidence stays archived with each immutable version. Metadata identity has no artwork-provider revision dependency.
 
-```text
-shared operatorDataPipeline
-├─ source version detection
-├─ source comparison
-├─ source-table fetching
-├─ normalization / dataset construction
-└─ generated-dataset validation
-
-runtime operatorDataService
-├─ staging
-├─ activation
-├─ rollback
-└─ runtime image cache policy
-
-bundled-data CLI
-├─ bundled JSON output
-└─ optional avatar / UI-asset download policy
-```
+See [DATA_PACKAGE.md](DATA_PACKAGE.md), [DATA_PACKAGE_PRODUCER.md](DATA_PACKAGE_PRODUCER.md), [DATA_PACKAGE_DELIVERY.md](DATA_PACKAGE_DELIVERY.md) and [DATA_PACKAGE_READERS.md](DATA_PACKAGE_READERS.md) for contracts and verification. M1–M4 are locally implemented; the initial preview artifact is published separately. Application main/production promotion remains unperformed.
 
 ## Styling organization
 

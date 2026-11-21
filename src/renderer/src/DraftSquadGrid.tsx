@@ -3,8 +3,13 @@ import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import SquadShareButton from './SquadShareButton'
+import SquadResultGrid from './SquadResultGrid'
+import type { SquadShareResult } from './squadShare'
 import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import { useImportedArknightsAccount } from './arknightsAccountState'
+import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
+import { loadOperatorPreferences } from './operatorPreferencesStorage'
+import OperatorEliteLevel, { UnownedOperatorIndicator } from './OperatorEliteLevel'
 import {
   resolveDraftActionPresentation,
   capacityExpansionWaitLabel,
@@ -76,6 +81,12 @@ export function DraftRosterAvatar({
   overflow?: boolean
 }): React.JSX.Element {
   const { imageUrl } = useOperatorAppearanceAvatar(operator)
+  const importedAccount = useImportedArknightsAccount() ?? null
+  const showProgression =
+    loadOperatorPreferences().showAccountProgression && importedAccount !== null
+  const progression = showProgression
+    ? importedAccountOperatorState(importedAccount, operator.id)
+    : null
 
   return (
     <div
@@ -98,6 +109,15 @@ export function DraftRosterAvatar({
         <ClassIcon operatorClass={operator.class} className="draft-squad-avatar__class-icon" />
         <span className="draft-squad-avatar__name">{operator.name}</span>
       </span>
+      {showProgression && (
+        <span className="draft-squad-avatar__progression">
+          {progression ? (
+            <OperatorEliteLevel elite={progression.elite} level={progression.level} />
+          ) : (
+            <UnownedOperatorIndicator iconOnly />
+          )}
+        </span>
+      )}
     </div>
   )
 }
@@ -111,9 +131,8 @@ function ExpandControl({
   waitLabel: string | null
   onExpand: () => void
 }): React.JSX.Element {
-  const economyLabel = presentation.economy.pointDelta === 0
-    ? 'Free'
-    : `${presentation.economy.amount} pts`
+  const economyLabel =
+    presentation.economy.pointDelta === 0 ? 'Free' : `${presentation.economy.amount} pts`
 
   return (
     <button
@@ -162,92 +181,98 @@ export default function DraftSquadGrid({
     : null
   const showContextualColumn = squad.overflowVisible || expand !== null
   const finalized = state.status === 'complete'
+  const shareResult: SquadShareResult = {
+    mode: 'Draft Mode',
+    generatedAt: completedAt ?? new Date(),
+    members: state.draftedOperatorIds.map((id) => operatorById.get(id) ?? null),
+    overflowStart: squad.permanentCapacity,
+  }
 
   return (
-    <section className="draft-selected-squad" aria-labelledby="draft-selected-squad-heading">
-      <div className="draft-roster-heading">
-        <div>
-          <strong id="draft-selected-squad-heading">
-            {finalized ? 'Finalized Draft' : 'Current Draft'}
-          </strong>
-          {!finalized && (
+    <section
+      className="draft-selected-squad"
+      aria-label={finalized ? 'Finalized Draft' : 'Current Draft'}
+    >
+      {!finalized && (
+        <div className="draft-roster-heading">
+          <div>
+            <strong id="draft-selected-squad-heading">Current Draft</strong>
             <span className="draft-roster-heading__capacity">
               {squad.permanentCapacity} permanent / {squad.maximum} max
             </span>
+          </div>
+        </div>
+      )}
+
+      {finalized ? (
+        <div className="draft-finalized-squad-grid">
+          <SquadResultGrid result={shareResult} />
+        </div>
+      ) : (
+        <div
+          className={`draft-squad-layout${showContextualColumn ? ' draft-squad-layout--with-capacity' : ''}`}
+        >
+          <div className="draft-squad-grid" aria-label="Selected squad slots">
+            {squad.slots.map((slot) => {
+              const operator = slot.operatorId ? (operatorById.get(slot.operatorId) ?? null) : null
+              return (
+                <div
+                  className={`draft-squad-slot draft-squad-slot--${slot.state}`}
+                  key={slot.slotNumber}
+                  aria-label={`Squad slot ${slot.slotNumber}: ${
+                    operator
+                      ? operator.name
+                      : slot.state === 'valid'
+                        ? 'open'
+                        : slot.state === 'expandable'
+                          ? 'expandable'
+                          : 'unavailable'
+                  }`}
+                >
+                  {operator ? (
+                    <DraftRosterAvatar operator={operator} />
+                  ) : (
+                    <DraftEmptySlotFrame slotNumber={slot.slotNumber} variant={slot.state} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {showContextualColumn && (
+            <div
+              className="draft-squad-capacity-column"
+              aria-label="Overflow and capacity controls"
+            >
+              {squad.overflowVisible && (
+                <div
+                  className={`draft-squad-overflow${overflowOperator ? ' is-occupied' : ''}`}
+                  aria-label={
+                    overflowOperator ? `Overflow: ${overflowOperator.name}` : 'Overflow: empty'
+                  }
+                >
+                  {overflowOperator ? (
+                    <>
+                      <span className="draft-squad-capacity-label">Overflow</span>
+                      <DraftRosterAvatar operator={overflowOperator} overflow />
+                    </>
+                  ) : (
+                    <EmptyOverflowFrame />
+                  )}
+                </div>
+              )}
+
+              {expand && (
+                <ExpandControl
+                  presentation={expand}
+                  waitLabel={capacityExpansionWaitLabel(state, configuration, expand)}
+                  onExpand={() => onAction(expand.action)}
+                />
+              )}
+            </div>
           )}
         </div>
-        {finalized && completedAt && (
-          <SquadShareButton
-            result={{
-              mode: 'Draft Mode',
-              generatedAt: completedAt,
-              members: state.draftedOperatorIds.map((id) => operatorById.get(id) ?? null),
-              overflowStart: squad.permanentCapacity,
-            }}
-          />
-        )}
-      </div>
-
-      <div
-        className={`draft-squad-layout${showContextualColumn ? ' draft-squad-layout--with-capacity' : ''}`}
-      >
-        <div className="draft-squad-grid" aria-label="Selected squad slots">
-          {squad.slots.map((slot) => {
-            const operator = slot.operatorId ? (operatorById.get(slot.operatorId) ?? null) : null
-            return (
-              <div
-                className={`draft-squad-slot draft-squad-slot--${slot.state}`}
-                key={slot.slotNumber}
-                aria-label={`Squad slot ${slot.slotNumber}: ${
-                  operator
-                    ? operator.name
-                    : slot.state === 'valid'
-                      ? 'open'
-                      : slot.state === 'expandable'
-                        ? 'expandable'
-                        : 'unavailable'
-                }`}
-              >
-                {operator ? (
-                  <DraftRosterAvatar operator={operator} />
-                ) : (
-                  <DraftEmptySlotFrame slotNumber={slot.slotNumber} variant={slot.state} />
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {showContextualColumn && (
-          <div className="draft-squad-capacity-column" aria-label="Overflow and capacity controls">
-            {squad.overflowVisible && (
-              <div
-                className={`draft-squad-overflow${overflowOperator ? ' is-occupied' : ''}`}
-                aria-label={
-                  overflowOperator ? `Overflow: ${overflowOperator.name}` : 'Overflow: empty'
-                }
-              >
-                {overflowOperator ? (
-                  <>
-                    <span className="draft-squad-capacity-label">Overflow</span>
-                    <DraftRosterAvatar operator={overflowOperator} overflow />
-                  </>
-                ) : (
-                  <EmptyOverflowFrame />
-                )}
-              </div>
-            )}
-
-            {expand && (
-              <ExpandControl
-                presentation={expand}
-                waitLabel={capacityExpansionWaitLabel(state, configuration, expand)}
-                onExpand={() => onAction(expand.action)}
-              />
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </section>
   )
 }

@@ -11,8 +11,7 @@ import {
   useDraftActionConfirmationPreference,
 } from './draftConfirmationPreferences'
 
-const WINDOWS_DOWNLOAD =
-  'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest'
+const WINDOWS_DOWNLOAD = 'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest'
 
 export default function OptionsPanel({
   operatorData,
@@ -36,15 +35,16 @@ export default function OptionsPanel({
   const confirmDraftActions = useDraftActionConfirmationPreference()
   const [bulkAppearanceChoice, setBulkAppearanceChoice] = useState<
     'e1' | 'e2' | 'random' | 'account'
-  >('e2')
+  >(preferences.defaultAppearance)
 
   const isBrowser = window.desktop.platform === 'browser'
+  const accountSyncAvailable = !isBrowser || Boolean(import.meta.env.VITE_WEB_ACCOUNT_API_ORIGIN)
   const { dataset, busy, updateCheck, checkUpdates, installUpdate } = operatorData
   const updateAvailable = updateCheck?.updateAvailable
 
   return (
     <section className="panel options-panel" aria-label="Options">
-      {!isBrowser && <ArknightsAccountPanel dataset={dataset} />}
+      {accountSyncAvailable && <ArknightsAccountPanel dataset={dataset} />}
 
       <div className="primary-settings">
         <label className="field">
@@ -94,7 +94,7 @@ export default function OptionsPanel({
       <div className="option-setting option-setting--compact">
         <div className="option-setting__copy">
           <strong id="curate-names-heading">Show operator names in Curate</strong>
-          <p>Display operator names on tiles in Setup → Global Pool → Curate.</p>
+          <p>Display operator names on tiles in Setup → Curate.</p>
         </div>
         <label className="option-toggle">
           <input
@@ -130,7 +130,7 @@ export default function OptionsPanel({
           <strong>Bulk operator appearance</strong>
           <p>
             Apply one appearance choice to every currently loaded operator. Individual operators can
-            then be changed from Setup → Global Pool → Curate. This is presentation-only.
+            then be changed from Setup → Curate. This is presentation-only.
           </p>
         </div>
         <div className="bulk-appearance-control">
@@ -145,7 +145,7 @@ export default function OptionsPanel({
               <option value="e1">Elite 1 for all</option>
               <option value="e2">Elite 2 for all</option>
               <option value="random">Randomize all</option>
-              {!isBrowser && <option value="account">Sync account outfits</option>}
+              {accountSyncAvailable && <option value="account">Sync account outfits</option>}
             </select>
           </label>
           <button
@@ -163,25 +163,23 @@ export default function OptionsPanel({
         the bulk result without changing other operators.
       </p>
 
-      {!isBrowser && (
-        <>
-          <div className="option-setting option-setting--compact">
-            <div className="option-setting__copy">
-              <strong>Operator data</strong>
-              <p>Check for and install updated operator and event data.</p>
-            </div>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy || !dataset}
-              onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
-            >
-              {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
-            </button>
+      <>
+        <div className="option-setting option-setting--compact">
+          <div className="option-setting__copy">
+            <strong>Operator data</strong>
+            <p>Check for and install updated operator and event data.</p>
           </div>
-          <ArtworkDownloadStatus />
-        </>
-      )}
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy || !dataset}
+            onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
+          >
+            {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
+          </button>
+        </div>
+        {!isBrowser && <ArtworkDownloadStatus />}
+      </>
 
       {isBrowser && (
         <div className="option-setting option-setting--compact options-windows">

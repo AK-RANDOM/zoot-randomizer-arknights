@@ -1,6 +1,6 @@
 {
   "name": "arknights-randomizer",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "description": "Offline-first Arknights squad randomizer for Windows.",
   "main": "./out/main/index.js",
@@ -23,13 +23,17 @@
     "preview:web": "vite preview --config vite.web.config.ts",
     "build:unpack": "npm run data:update && npm run build && electron-builder --dir --publish never",
     "build:win": "npm run data:update && npm run build && electron-builder --win portable --publish never",
-    "data:update": "node --experimental-transform-types scripts/update-operator-data.mts",
-    "data:update:images": "node --experimental-transform-types scripts/update-operator-data.mts --download-images",
+    "data:update": "node --experimental-transform-types scripts/install-data-package.mts",
+    "data:update:images": "node --experimental-transform-types scripts/download-artwork.mts --kind avatar",
     "data:validate": "node --experimental-transform-types scripts/validate-bundled-data.mts",
     "build:portable": "npm run build:win",
-    "data:images": "node --experimental-transform-types scripts/update-operator-data.mts --download-images-only",
-    "data:portraits": "node --experimental-transform-types scripts/update-operator-portraits.mts",
-    "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose"
+    "data:images": "node --experimental-transform-types scripts/download-artwork.mts --kind avatar",
+    "data:portraits": "node --experimental-transform-types scripts/download-artwork.mts --kind portrait",
+    "benchmark": "vitest run --config vitest.benchmark.config.ts --reporter=verbose",
+    "data:legacy:update": "node --experimental-transform-types scripts/update-operator-data.mts",
+    "data:publish": "node --experimental-transform-types scripts/publish-data-package.mts",
+    "data:package": "node --experimental-transform-types scripts/build-data-package.mts",
+    "data:artwork": "node --experimental-transform-types scripts/download-artwork.mts"
   },
   "dependencies": {
     "html-to-image": "^1.11.13",
@@ -72,7 +76,11 @@
         "filter": [
           "**/*",
           "!operators/images/**/*",
-          "!operators/portraits/**/*"
+          "!operators/portraits/**/*",
+          "!operators/shared-artwork/**/*",
+          "!operators/appearance-avatars/**/*",
+          "!operators/skin-avatars/**/*",
+          "!operators/skin-portraits/**/*"
         ]
       }
     ],

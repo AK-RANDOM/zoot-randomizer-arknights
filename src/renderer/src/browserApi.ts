@@ -1,9 +1,7 @@
 import type { DesktopApi } from '../../shared/desktop'
-import { loadGarrisonEvents } from '../../shared/loadGarrisonEvents'
-import type { OperatorDataset } from '../../shared/operator'
 import { CLASS_ICON_FILES, factionIconFile, subclassIconFile } from '../../shared/operatorAssets'
 import { operatorAvatarSourceFilename } from '../../shared/operatorAvatar'
-import { gameDataExcelUrl, UPSTREAM } from '../../shared/operatorData'
+import { artworkBaseUrl } from '../../shared/artworkSources'
 import {
   PORTRAIT_SOURCE,
   portraitFilename,
@@ -12,28 +10,18 @@ import {
   skinPortraitFilename,
 } from '../../shared/portraits'
 import { bundledIconUrl } from './bundledIcons'
-import { getBrowserAccount } from './browserAccount'
+import { createBrowserDataPackage } from './browserDataPackage'
+import {
+  clearBrowserAccount,
+  getBrowserAccount,
+  requestBrowserLoginCode,
+  syncBrowserAccount,
+} from './browserAccount'
 
 const dataRoot = `${import.meta.env.BASE_URL}operator-data/`
-let datasetRequest: Promise<OperatorDataset> | undefined
+const dataPackage = createBrowserDataPackage(dataRoot)
+const getOperatorDataset = () => dataPackage.getDataset()
 const imageRequests = new Map<string, Promise<string | null>>()
-const eventRequests = new Map<string, ReturnType<typeof loadGarrisonEvents>>()
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) })
-  if (!response.ok) throw new Error(`Could not load ${url} (${response.status}).`)
-  return (await response.json()) as T
-}
-
-function getOperatorDataset(): Promise<OperatorDataset> {
-  datasetRequest ??= fetchJson<OperatorDataset>(`${dataRoot}operators.json`).catch(
-    (error: unknown) => {
-      datasetRequest = undefined
-      throw error
-    },
-  )
-  return datasetRequest
-}
 
 function imageUrl(base: string, filename: string | null): Promise<string | null> {
   if (!filename) return Promise.resolve(null)
@@ -54,7 +42,8 @@ async function findOperator(operatorId: string) {
   return (await getOperatorDataset()).operators.find(({ id }) => id === operatorId)
 }
 
-const avatar = (avatarId: string) => imageUrl(UPSTREAM.avatarBaseUrl, skinAvatarFilename(avatarId))
+const avatar = (avatarId: string) =>
+  imageUrl(artworkBaseUrl('avatar'), skinAvatarFilename(avatarId))
 const noOp = () => undefined
 const unavailable = async (): Promise<never> => {
   throw new Error('This action is available in the Windows app.')
@@ -63,27 +52,9 @@ const unavailable = async (): Promise<never> => {
 export const browserApi: DesktopApi = {
   platform: 'browser',
   getOperatorDataset,
-  async getOperatorDataInfo() {
-    const { generatedAt, operators, sources } = await getOperatorDataset()
-    return { origin: 'bundled', generatedAt, operatorCount: operators.length, sources }
-  },
-  async getGarrisonEvents(region, locale) {
-    const key = `${region}-${locale}`
-    let request = eventRequests.get(key)
-    if (!request) {
-      request = loadGarrisonEvents(region, locale, (language, file) =>
-        fetchJson(gameDataExcelUrl(language, file)),
-      ).catch((error: unknown) => {
-        eventRequests.delete(key)
-        throw error
-      })
-      eventRequests.set(key, request)
-    }
-    const { events, localized } = await request
-    if (!localized) eventRequests.delete(key)
-    return events
-  },
-  getOperatorImage: (id) => imageUrl(UPSTREAM.avatarBaseUrl, operatorAvatarSourceFilename(id)),
+  getOperatorDataInfo: () => dataPackage.getInfo(),
+  getGarrisonEvents: (region, locale) => dataPackage.getCatalog(region, locale),
+  getOperatorImage: (id) => imageUrl(artworkBaseUrl('avatar'), operatorAvatarSourceFilename(id)),
   getOperatorAvatarAsset: avatar,
   async getOperatorPromotionAvatar(id, promotion) {
     const arts = (await findOperator(id))?.defaultArts ?? []
@@ -117,13 +88,17 @@ export const browserApi: DesktopApi = {
     return bundledIconUrl('faction-icons', factionIconFile(factionLabels[id]))
   },
   getImportedArknightsAccount: getBrowserAccount,
-  getArknightsProfileAvatar: unavailable,
+  getArknightsProfileAvatar: (id) =>
+    imageUrl(
+      'https://raw.githubusercontent.com/fexli/ArknightsResource/main/avatar/DEFAULT',
+      `${id}.png`,
+    ),
   setGarrisonCloseDirty: noOp,
   completeGarrisonCloseSave: noOp,
   onGarrisonCloseSaveRequested: () => noOp,
   onPortraitSyncProgress: () => noOp,
-  checkOperatorUpdates: unavailable,
-  updateOperatorData: unavailable,
+  checkOperatorUpdates: () => dataPackage.checkUpdates(),
+  updateOperatorData: () => dataPackage.installUpdate(),
   getArtworkStorageInfo: unavailable,
   openArtworkStorageFolder: unavailable,
   clearDownloadedArtwork: unavailable,
@@ -131,7 +106,7 @@ export const browserApi: DesktopApi = {
   getPortraitSyncProgress: unavailable,
   startPortraitSync: unavailable,
   cancelPortraitSync: unavailable,
-  requestArknightsLoginCode: unavailable,
-  syncArknightsAccount: unavailable,
-  clearImportedArknightsAccount: unavailable,
+  requestArknightsLoginCode: requestBrowserLoginCode,
+  syncArknightsAccount: syncBrowserAccount,
+  clearImportedArknightsAccount: clearBrowserAccount,
 }

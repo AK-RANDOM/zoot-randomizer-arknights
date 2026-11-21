@@ -1,0 +1,77 @@
+name: Publish reviewed data package
+
+on:
+  workflow_dispatch:
+    inputs:
+      prepared_run_id:
+        description: Successful Prepare reviewed data package run ID
+        required: true
+      package_id:
+        description: Exact reviewed sha256 package ID from its build report
+        required: true
+      channel:
+        type: choice
+        options: [preview, production]
+        default: preview
+        required: true
+      confirm_production:
+        description: For production, repeat the approved package ID
+        required: false
+
+concurrency:
+  group: reviewed-data-publication
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    if: inputs.channel != 'production' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: app
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        working-directory: app
+      - uses: actions/download-artifact@v8
+        with:
+          name: prepared-data-package
+          run-id: ${{ inputs.prepared_run_id }}
+          github-token: ${{ github.token }}
+          path: prepared
+      - uses: actions/checkout@v7
+        with:
+          ref: codex/data-packages
+          path: data-feed
+      - name: Validate package and stage the selected channel
+        working-directory: app
+        env:
+          DATA_CHANNEL: ${{ inputs.channel }}
+          REVIEWED_PACKAGE_ID: ${{ inputs.package_id }}
+          PRODUCTION_CONFIRMATION: ${{ inputs.confirm_production }}
+        run: |
+          args=(--prepared ../prepared --store ../data-feed --channel "$DATA_CHANNEL" --expect-package "$REVIEWED_PACKAGE_ID")
+          if [[ "$DATA_CHANNEL" == production ]]; then
+            args+=(--confirm-production "$PRODUCTION_CONFIRMATION")
+          fi
+          node --experimental-transform-types scripts/publish-data-package.mts "${args[@]}"
+      - name: Atomically publish the immutable version and channel pointer
+        working-directory: data-feed
+        env:
+          DATA_CHANNEL: ${{ inputs.channel }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages channels
+          if ! git diff --cached --quiet; then
+            git commit -m "Publish reviewed $DATA_CHANNEL data package"
+            git push origin HEAD:refs/heads/codex/data-packages
+          fi

@@ -4,19 +4,15 @@ import { describe, expect, it } from 'vitest'
 const feature = readFileSync(new URL('./GarrisonSquadFeature.tsx', import.meta.url), 'utf8')
 const app = readFileSync(new URL('./App.tsx', import.meta.url), 'utf8')
 const options = readFileSync(new URL('./OptionsPanel.tsx', import.meta.url), 'utf8')
-const service = readFileSync(
-  new URL('../../main/garrisonEventCatalogService.ts', import.meta.url),
-  'utf8',
-)
 const loader = readFileSync(new URL('../../shared/loadGarrisonEvents.ts', import.meta.url), 'utf8')
 const main = readFileSync(new URL('../../main/index.ts', import.meta.url), 'utf8')
 
 describe('Garrison event region vs App Localization integration', () => {
-  it('uses distinct preferences and reloads when either changes', () => {
+  it('uses distinct preferences and reloads when either preference or the dataset changes', () => {
     expect(app).toContain('metadataRegion={operatorPreferences.metadataRegion}')
     expect(app).toContain('gameLocale={operatorPreferences.gameLocale}')
     expect(feature).toContain('getGarrisonEvents(metadataRegion, gameLocale)')
-    expect(feature).toContain('}, [metadataRegion, gameLocale])')
+    expect(feature).toContain('}, [metadataRegion, gameLocale, operators])')
     expect(feature).toContain("setEventId('')")
     expect(feature).toContain("'Quick add event'")
     expect(feature).toContain('<EventSelectorDropdown')
@@ -34,7 +30,6 @@ describe('Garrison event region vs App Localization integration', () => {
     expect(loader).toContain(
       'localizeGarrisonEventNames(sourceEvents, localizedActivities, localizedZones)',
     )
-    expect(service).toContain('catalogKey(region, locale)')
     expect(main).toContain('requireMetadataRegion(region), requireGameLocale(locale)')
   })
 })

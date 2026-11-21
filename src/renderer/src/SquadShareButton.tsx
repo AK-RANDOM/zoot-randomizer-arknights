@@ -1,10 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import OperatorCard from './OperatorCard'
+import SquadResultGrid from './SquadResultGrid'
 import {
   formatSquadShareText,
   squadShareGeneratedLabel,
-  squadShareImageSlots,
   squadShareTitle,
   type SquadShareResult,
 } from './squadShare'
@@ -171,28 +170,7 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
                 <span>{generatedLabel}</span>
               </div>
             </header>
-            <div className="squad-grid squad-share-grid">
-              {squadShareImageSlots(result).map(({ operator, isOverflow }, index) => (
-                <div
-                  key={index}
-                  className={`squad-slot${isOverflow ? ' squad-share-slot--overflow' : ''}`}
-                >
-                  {operator ? (
-                    <>
-                      <OperatorCard
-                        operator={operator}
-                        replayOnRandomize={false}
-                        showPersonalProgression={false}
-                        scrollName={false}
-                      />
-                      {isOverflow && <span className="squad-share-overflow">Overflow</span>}
-                    </>
-                  ) : (
-                    <div className="squad-share-empty" />
-                  )}
-                </div>
-              ))}
-            </div>
+            <SquadResultGrid result={result} forImage />
           </article>
         </div>
       )}
@@ -203,7 +181,7 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
 export default function SquadShareButton({
   result,
 }: {
-  result: SquadShareResult
+  result: SquadShareResult | null
 }): React.JSX.Element {
   const titleId = useId()
   const dialog = useRef<HTMLDialogElement>(null)
@@ -220,7 +198,9 @@ export default function SquadShareButton({
         type="button"
         className="secondary-button"
         aria-haspopup="dialog"
+        disabled={result === null}
         onClick={() => {
+          if (!result) return
           setFormat('text')
           setSnapshot(result)
         }}

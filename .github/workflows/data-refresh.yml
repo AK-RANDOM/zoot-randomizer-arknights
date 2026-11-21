@@ -1,4 +1,4 @@
-name: Validate operator data refresh
+name: Prepare reviewed data package
 
 on:
   workflow_dispatch:
@@ -20,6 +20,13 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npm run data:update -- --force
-      - run: npm run data:images
+      - run: npm run data:update
       - run: npm run data:validate
+      - run: node --experimental-transform-types scripts/install-data-package.mts --producer-snapshot .tmp/previous-inputs.json --skip-ui-assets
+      - run: node --experimental-transform-types scripts/build-data-package.mts --online --previous-snapshot .tmp/previous-inputs.json --output .tmp/prepared-data
+      - uses: actions/upload-artifact@v7
+        with:
+          name: prepared-data-package
+          path: .tmp/prepared-data/
+          include-hidden-files: true
+          if-no-files-found: error

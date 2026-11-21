@@ -58,6 +58,8 @@ export interface OperatorDataFetchOptions {
   userAgent?: string
   timeoutMs?: number
   fetchImpl?: typeof fetch
+  /** Legacy runtime datasets require this stamp; metadata packages keep it null. */
+  requireArtworkSourceCommit?: boolean
 }
 
 export type OperatorDatasetValidation = ReturnType<typeof validateOperatorDataset>
@@ -104,7 +106,9 @@ async function fetchPublishedCnReleaseRows(
   }
 }
 
-function fetchOptions(options: OperatorDataFetchOptions): Required<OperatorDataFetchOptions> {
+function fetchOptions(
+  options: OperatorDataFetchOptions,
+): Required<Pick<OperatorDataFetchOptions, 'userAgent' | 'timeoutMs' | 'fetchImpl'>> {
   return {
     userAgent: options.userAgent ?? 'arknights-randomizer-data-pipeline',
     timeoutMs: options.timeoutMs ?? 120_000,
@@ -422,7 +426,10 @@ export async function fetchAndBuildOperatorDataset(
   )
   appendUnregisteredActivityReleases(dataset, activityTables, activityNames)
 
-  const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
+  const validation = validateOperatorDataset(dataset, {
+    requireSourceCommits: true,
+    requireArtworkSourceCommit: options.requireArtworkSourceCommit,
+  })
   if (publishedCnRows === null)
     validation.warnings.push(
       'Published CN release dates could not be fetched. Unconfirmed dates remain unknown.',

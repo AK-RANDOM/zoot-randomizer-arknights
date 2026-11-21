@@ -1,4 +1,4 @@
-import { limitedOperatorIdsInPool, type RawGachaTable } from './acquisitionMetadata'
+import { limitedOperatorIdsInPool, type RawGachaTable } from './acquisitionMetadata.ts'
 
 /** Event-stage quick-add catalog derived from region-specific game-data tables. */
 export type GarrisonEventStageType = 'standard' | 'h' | 'ex' | 's'

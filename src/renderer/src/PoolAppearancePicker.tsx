@@ -4,7 +4,8 @@ import {
   importedAccountOperatorState,
   importedAccountOwnsSkin,
 } from '../../shared/arknightsAccountReconciliation'
-import { skinDisplayName } from '../../shared/skinMetadata'
+import type { ReleaseServer } from '../../shared/operator'
+import { skinDisplayName, skinAvailableInRegion } from '../../shared/skinMetadata'
 import { appearanceChoiceForOperator, resolveAccountAppearance } from './operatorAppearance'
 
 const AMIYA_CASTER_ID = 'char_002_amiya'
@@ -124,7 +125,11 @@ function defaultArtDisplayLabel(operatorId, defaultArt, choice, fallbackLabel) {
   if (choice === 'e2') return 'Elite 2'
   return fallbackLabel
 }
-export function randomOutfitChoice(operator, random: () => number = Math.random): string {
+export function randomOutfitChoice(
+  operator,
+  random: () => number = Math.random,
+  region: ReleaseServer = 'cn',
+): string {
   const arts = operator.defaultArts ?? []
   const defaults =
     arts.length > 0
@@ -135,7 +140,9 @@ export function randomOutfitChoice(operator, random: () => number = Math.random)
   const choices = [
     ...new Set([
       ...defaults,
-      ...(operator.skins ?? []).filter((skin) => !skin.isDefault).map((skin) => `skin:${skin.id}`),
+      ...(operator.skins ?? [])
+        .filter((skin) => !skin.isDefault && skinAvailableInRegion(skin, region))
+        .map((skin) => `skin:${skin.id}`),
     ]),
   ]
   return choices[Math.floor(random() * choices.length)]
@@ -159,12 +166,16 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
   const selected = appearanceChoiceForOperator(preferences, operator.id)
   const defaultArts = operator.defaultArts ?? []
   const outfits = (operator.skins ?? [])
-    .filter((skin) => !skin.isDefault)
+    .filter((skin) => !skin.isDefault && skinAvailableInRegion(skin, preferences.metadataRegion))
     .sort(compareSkinsByRelease)
   const accountState = importedAccount
     ? importedAccountOperatorState(importedAccount, operator.id)
     : null
-  const accountResolution = resolveAccountAppearance(operator, importedAccount)
+  const accountResolution = resolveAccountAppearance(
+    operator,
+    importedAccount,
+    preferences.metadataRegion,
+  )
   const accountChoice = accountState
     ? {
         choice: 'account',
@@ -286,7 +297,9 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
         <button
           type="button"
           className="pool-appearance-random"
-          onClick={() => onChoose(randomOutfitChoice(operator))}
+          onClick={() =>
+            onChoose(randomOutfitChoice(operator, Math.random, preferences.metadataRegion))
+          }
         >
           Random Outfit
         </button>

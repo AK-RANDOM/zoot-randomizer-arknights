@@ -1,0 +1,42 @@
+.operator-elite-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #f0f0f1;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  vertical-align: middle;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
+.operator-elite-level > span:not(.operator-elite-level__icon) {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  /* Center the visible glyphs, accounting for the font's ascent. */
+  transform: translateY(1px);
+}
+
+.operator-elite-level.is-unowned {
+  color: #e08a91;
+  font-weight: 800;
+}
+
+.operator-elite-level__icon {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.operator-elite-level__icon.operator-elite-level__unowned-icon {
+  display: block;
+  background: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  filter: none;
+}

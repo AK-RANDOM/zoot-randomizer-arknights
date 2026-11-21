@@ -67,6 +67,7 @@ describe('Iteration 6 Pool persistence model', () => {
       showCurateNames: false,
       excludedOperatorIds: [],
       operatorAppearances: {},
+      defaultAppearance: 'e2',
       appearanceRandomSeed: 1,
     })
   })
@@ -92,6 +93,7 @@ describe('Iteration 6 Pool persistence model', () => {
       showCurateNames: false,
       excludedOperatorIds: ['char_a', 'char_b'],
       operatorAppearances: {},
+      defaultAppearance: 'e2',
       appearanceRandomSeed: 1,
     })
   })
@@ -205,8 +207,14 @@ describe('Iteration 6 Pool persistence model', () => {
       fetchedAt: '2026-10-17T00:00:00.000Z',
     }
     const filter = (minimum: { elite: 0 | 1 | 2; level: number }, enabled = true) =>
-      applyAccountFilter(operators, snapshot, 'progression', minimum, { elite: 2, level: 90 }, enabled)
-        .map(({ id }) => id)
+      applyAccountFilter(
+        operators,
+        snapshot,
+        'progression',
+        minimum,
+        { elite: 2, level: 90 },
+        enabled,
+      ).map(({ id }) => id)
 
     expect(filter({ elite: 0, level: 30 })).toEqual(['three', 'four'])
     expect(filter({ elite: 1, level: 1 })).toEqual(['one', 'two', 'three', 'four'])
@@ -313,6 +321,7 @@ describe('Iteration 6 Pool persistence model', () => {
         ownedOperatorsOnly: true,
         excludedOperatorIds: [],
         operatorAppearances: { char_old: 'account' },
+        defaultAppearance: 'e2',
         appearanceRandomSeed: 1,
       }),
     ).toMatchObject({

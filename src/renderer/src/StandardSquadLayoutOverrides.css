@@ -41,6 +41,11 @@
   flex: 1 1 auto;
 }
 
+.squad-panel > .preset-toolbar .confirmation-checkbox {
+  min-height: 38px;
+  margin: 0;
+}
+
 .squad-panel > .preset-toolbar .danger-button,
 .squad-panel > .preset-toolbar .randomize-button {
   min-height: 38px;

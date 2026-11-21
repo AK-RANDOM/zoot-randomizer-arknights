@@ -42,29 +42,14 @@
   margin-top: 8px;
 }
 
-.draft-status-shell {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  min-height: 64px;
-  box-sizing: border-box;
-  padding: 12px;
-  border: 1px solid #303036;
-  border-radius: 6px;
-  background: #111113;
-}
-
 .draft-status-main {
   display: flex;
   min-width: 0;
-  flex: 1;
+  flex: 0 1 auto;
   align-items: stretch;
   gap: 8px;
 }
 
-.draft-status-rulebook,
 .draft-status-item {
   display: grid;
   min-width: 96px;
@@ -75,24 +60,10 @@
   border-right: 1px solid #2a2a2f;
 }
 
-.draft-status-rulebook {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 180px;
-  flex: 1 1 240px;
-}
-
-.draft-status-rulebook > .preset-toolbar-label {
-  color: #a7a7ad;
-  font-size: 0.68rem;
-}
-
 .draft-status-main > :last-child {
   border-right: 0;
 }
 
-.draft-status-rulebook span,
 .draft-status-item span {
   color: #818187;
   font-size: 0.64rem;
@@ -102,7 +73,6 @@
   line-height: 1;
 }
 
-.draft-status-rulebook strong,
 .draft-status-item strong {
   overflow: hidden;
   color: #f3f3f3;
@@ -112,38 +82,9 @@
   line-height: 1.2;
 }
 
-.draft-status-rulebook strong {
-  color: #f5ad2f;
-}
-
-.draft-status-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-self: center;
-  gap: 8px;
-}
 .draft-status-new,
 .draft-status-abandon {
   white-space: nowrap;
-}
-.draft-rulebook-select {
-  width: 100%;
-  min-width: 0;
-  min-height: 38px;
-  padding: 0 30px 0 9px;
-  border: 1px solid #3b3b41;
-  border-radius: 4px;
-  color: #f2f2f2;
-  background: #0f0f11;
-  font: inherit;
-  font-size: 0.72rem;
-  font-weight: 400;
-}
-.draft-rulebook-select:hover,
-.draft-rulebook-select:focus-visible {
-  border-color: #5b5b62;
-  outline: none;
-  background: #1d1d20;
 }
 
 .draft-probability-summary {
@@ -438,13 +379,11 @@
 }
 
 @media (max-width: 820px) {
-  .draft-status-shell,
   .draft-status-main {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .draft-status-rulebook,
   .draft-status-item {
     min-width: 0;
     border-right: 0;
@@ -453,16 +392,6 @@
 
   .draft-status-main > :last-child {
     border-bottom: 0;
-  }
-
-  .draft-status-actions {
-    width: 100%;
-    flex-direction: row;
-    justify-content: flex-end;
-  }
-  .draft-status-new,
-  .draft-status-abandon {
-    width: 100%;
   }
 
   .draft-offer-grid {

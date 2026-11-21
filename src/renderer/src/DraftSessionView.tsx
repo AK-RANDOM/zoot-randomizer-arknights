@@ -358,13 +358,14 @@ export default function DraftSessionView({
   }
 
   return (
-    <section className="panel draft-panel" aria-label="Draft mode">
-      <div className="draft-status-shell">
+    <section className="panel squad-panel draft-panel" aria-label="Draft mode">
+      <div className="preset-toolbar draft-status-shell">
+        <span className="preset-toolbar-label">Preset</span>
+        <label className="preset-select">
+          <span className="sr-only">Draft preset</span>
+          {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
+        </label>
         <div className="draft-status-main">
-          <div className="draft-status-rulebook">
-            <span className="preset-toolbar-label">Preset</span>
-            {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
-          </div>
           <div className="draft-status-item">
             <span>Round</span>
             <strong>{status.roundNumber ?? '—'}</strong>
@@ -386,7 +387,8 @@ export default function DraftSessionView({
             <strong>{status.capacity.label}</strong>
           </div>
         </div>
-        <div className="draft-status-actions">
+        <div className="preset-actions draft-status-actions">
+          <span className="preset-actions-spacer" aria-hidden="true" />
           <SquadShareButton result={shareResult} />
           <button
             className="randomize-button draft-status-new"

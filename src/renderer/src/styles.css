@@ -274,14 +274,18 @@ body {
   width: 27px;
   height: 27px;
   object-fit: contain;
+  opacity: 1;
+  user-select: none;
+}
+
+.class-icon img,
+.operator-elite-level__icon {
   filter:
     brightness(0)
     saturate(100%)
     invert(100%)
     contrast(140%)
     drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
-  opacity: 1;
-  user-select: none;
 }
 
 .class-icon__fallback {

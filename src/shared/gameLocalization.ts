@@ -5,8 +5,8 @@ import {
   type GameStringCatalog,
   type OperatorClass,
   type OperatorDataset,
-} from './operator'
-import { RACE_UNAVAILABLE_ID, applyOperatorRaceOverrides, operatorRaceIds } from './raceMetadata'
+} from './operator.ts'
+import { RACE_UNAVAILABLE_ID, applyOperatorRaceOverrides, operatorRaceIds } from './raceMetadata.ts'
 
 /**
  * This module is the boundary for Arknights-owned display strings.
@@ -86,11 +86,7 @@ function isNeutralEnglishLikeLabel(value: string): boolean {
   return /^[\x20-\x7E]+$/.test(value)
 }
 
-function resolveRaceLabel(
-  dataset: OperatorDataset,
-  locale: GameLocale,
-  raceId: string,
-): string {
+function resolveRaceLabel(dataset: OperatorDataset, locale: GameLocale, raceId: string): string {
   const selected = catalogFor(dataset, locale).raceLabels?.[raceId]?.trim()
   if (selected) return selected
 

@@ -7,3 +7,13 @@ const AVATAR_SOURCE_FILENAME_OVERRIDES: Readonly<Record<string, string>> = {
 export function operatorAvatarSourceFilename(operatorId: string): string {
   return AVATAR_SOURCE_FILENAME_OVERRIDES[operatorId] ?? `${operatorId}.png`
 }
+export function legacyOperatorAvatarIds(filename: string): string[] {
+  return [
+    ...new Set([
+      filename.slice(0, -4),
+      ...Object.keys(AVATAR_SOURCE_FILENAME_OVERRIDES).filter(
+        (id) => AVATAR_SOURCE_FILENAME_OVERRIDES[id] === filename,
+      ),
+    ]),
+  ]
+}

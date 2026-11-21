@@ -1,3 +1,5 @@
+import { AMIYA_RACE_ID, AMIYA_RACE_LABEL, AMIYA_FORM_IDS } from './dataCorrections.ts'
+export { AMIYA_RACE_ID, AMIYA_RACE_LABEL } from './dataCorrections.ts'
 import {
   gameLocales,
   type GameLocale,
@@ -6,10 +8,6 @@ import {
 } from './operator.ts'
 
 export const RACE_UNAVAILABLE_ID = 'race:unavailable' as const
-
-export const AMIYA_RACE_ID = 'race:override:amiya-cautus-chimera' as const
-export const AMIYA_RACE_LABEL = 'Chimera' as const
-const AMIYA_FORM_IDS = new Set(['char_002_amiya', 'char_1001_amiya2', 'char_1037_amiya3'])
 
 export interface RawHandbookStory {
   storyText?: unknown

@@ -1,4 +1,10 @@
-import type { GameLocale, OperatorClass, OperatorDataset, OperatorDatasetSources, ReleaseServer } from './operator'
+import type {
+  GameLocale,
+  OperatorClass,
+  OperatorDataset,
+  OperatorDatasetSources,
+  ReleaseServer,
+} from './operator'
 import type { PromotionArt } from './portraits'
 import type { GarrisonEvent } from './garrisonEventCatalog'
 import type {
@@ -12,6 +18,8 @@ export interface OperatorDataInfo {
   generatedAt: string | null
   operatorCount: number
   sources: OperatorDatasetSources
+  packageId?: string
+  warning?: string
 }
 
 export interface OperatorUpdateCheck {
@@ -35,6 +43,10 @@ export interface PortraitSyncProgress {
   completed: number
   total: number
   message: string
+  downloaded?: number
+  cached?: number
+  unavailable?: number
+  failed?: number
 }
 
 export interface ArtworkStorageInfo {

@@ -1,16 +1,24 @@
+import {
+  MONSTER_HUNTER_GLOBAL_RELEASE,
+  SERVER_LAUNCH_DATES,
+  ANNIVERSARY_BOUNDARIES,
+  MAIN_STORY_DATE_OVERRIDES,
+  AMIYA_FORM_RELEASES,
+  RELEASE_DATE_OVERRIDES,
+} from './dataCorrections.ts'
+export {
+  MONSTER_HUNTER_GLOBAL_RELEASE,
+  SERVER_LAUNCH_DATES,
+  ANNIVERSARY_BOUNDARIES,
+  AMIYA_FORM_RELEASES,
+  RELEASE_DATE_OVERRIDES,
+  COLLABORATION_BY_OPERATOR_ID,
+} from './dataCorrections.ts'
 import type { ReleaseServer } from './operator'
+import { CN_RELEASE_DATE_ALIASES, RELEASE_PRESENTATION_DATE_ALIASES } from './dataCorrections.ts'
 import { limitedOperatorIdsInPool, type RawGachaTable } from './acquisitionMetadata.ts'
 
 export const CN_RELEASE_DATES_API = 'https://prts.wiki/api.php'
-
-// Yostar confirmed this release before the English game tables were updated.
-// https://www.arknights.global/news/5092
-export const MONSTER_HUNTER_GLOBAL_RELEASE = {
-  id: 'act50side',
-  date: '2026-11-16',
-  name: 'Thunder in the Azure Dream',
-  operatorIds: new Set(['char_1048_orchd2', 'char_1049_catap2', 'char_4215_buddy']),
-}
 
 export const RELEASE_METADATA_UPSTREAM = {
   repository: 'nadering/arknights-toolbox',
@@ -27,130 +35,6 @@ export const RELEASE_METADATA_UPSTREAM = {
 
 export type OperatorReleaseCategory =
   'main_story' | 'side_story' | 'mini_event' | 'crisis' | 'roguelike' | 'server_open' | 'other'
-
-export const SERVER_LAUNCH_DATES: Record<ReleaseServer, string> = {
-  cn: '2019-05-01',
-  global: '2020-01-16',
-}
-
-export const ANNIVERSARY_BOUNDARIES: Record<ReleaseServer, readonly string[]> = {
-  cn: [
-    '2020-05-01',
-    '2021-05-01',
-    '2022-05-01',
-    '2023-05-01',
-    '2024-05-01',
-    '2025-05-01',
-    '2026-05-01',
-  ],
-  global: ['2020-12-30', '2022-01-14', '2023-01-13', '2024-01-16', '2025-01-16', '2026-01-16'],
-}
-
-const MAIN_STORY_DATE_OVERRIDES: Record<string, { cn: string; global: string }> = {
-  dis_main_5: { cn: '2019-07-09', global: '2020-02-26' },
-  dis_main_6: { cn: '2019-12-24', global: '2020-06-30' },
-  dis_main_7: { cn: '2020-05-01', global: '2020-12-30' },
-  dis_main_8: { cn: '2020-11-01', global: '2021-04-30' },
-  dis_main_9: { cn: '2021-09-17', global: '2022-03-17' },
-  dis_main_10: { cn: '2022-04-14', global: '2022-10-19' },
-  dis_main_11: { cn: '2022-10-11', global: '2023-04-27' },
-  dis_main_12: { cn: '2023-04-06', global: '2023-10-24' },
-  dis_main_13: { cn: '2023-10-08', global: '2024-04-16' },
-}
-
-export const AMIYA_FORM_RELEASES: Record<string, { cn: string; global: string }> = {
-  char_002_amiya: {
-    cn: SERVER_LAUNCH_DATES.cn,
-    global: SERVER_LAUNCH_DATES.global,
-  },
-  char_1001_amiya2: MAIN_STORY_DATE_OVERRIDES.dis_main_8,
-  char_1037_amiya3: { cn: '2024-05-01', global: '2024-10-31' },
-}
-
-/**
- * Audited exceptions/fallbacks for dates that are missing or ambiguous in the
- * generated upstream metadata. Ordinary dates continue to come from the
- * generated release/event sources; these values follow the wiki.gg release
- * list and, for permanent-mode welfare operators, the launch of their mode.
- */
-export const RELEASE_DATE_OVERRIDES: Record<
-  string,
-  Partial<Record<ReleaseServer, string | null>>
-> = {
-  // Ancient Forge's banner opens after its activity start; keep the confirmed
-  // banner date even when the published CN date service is unavailable.
-  char_2014_nian: { cn: '2020-01-16' },
-  // Critical Phase Transition / Episode 17 starts on 2026-05-01 CN; upstream candidates can surface the pre-event commit date.
-  char_4227_gallus: { cn: '2026-05-01' }, // GALLUS²
-  char_4225_tanya: { cn: '2026-05-01' }, // Crackborne
-  char_4226_veen: { cn: '2026-05-01' }, // Viy
-  char_4228_closur: { cn: '2026-05-01' }, // Closure
-  char_1052_kalts2: { cn: '2026-05-01' }, // Kal'tsit·Esperanta
-  char_456_ash: { cn: '2021-03-09', global: '2021-08-18' },
-  char_222_bpipe: { global: '2020-09-10' },
-  char_188_helage: { global: '2020-04-15' },
-  char_378_asbest: { global: '2020-11-11' },
-  char_274_astesi: { global: '2020-04-15' },
-  char_344_beewax: { global: '2020-11-26' },
-  char_252_bibeak: { global: '2020-09-10' },
-  char_275_breeze: { global: '2020-05-20' },
-  char_356_broca: { global: '2020-07-15' },
-  char_349_chiave: { global: '2020-11-26' },
-  char_4043_erato: { global: '2022-12-08' },
-  char_261_sddrag: { global: '2020-07-15' },
-  char_336_folivo: { global: '2021-02-04' },
-  char_379_sesa: { global: '2020-09-10' },
-  char_343_tknogi: { global: '2020-11-11' },
-  char_402_tuye: { global: '2021-07-13' },
-  char_260_durnar: { global: '2020-05-20' },
-  char_355_ethan: { global: '2020-05-20' },
-  char_151_myrtle: { global: '2020-04-15' },
-  char_337_utage: { global: '2020-09-10' },
-
-  // Permanent-mode welfare operators inherit the mode's first release date.
-  char_4025_aprot2: { cn: '2022-01-05', global: '2022-07-14' }, // Shalem — IS2
-  char_4066_highmo: { cn: '2022-09-27', global: '2023-05-23' }, // Highmore — IS3
-  char_4102_threye: { cn: '2023-07-13', global: '2024-03-05' }, // Valarqvin — IS4
-  char_4151_tinman: { cn: '2024-07-16', global: '2025-02-14' }, // Tin Man — IS5
-  char_4195_radian: { cn: '2025-07-15', global: '2025-12-18' }, // Raidian — IS6
-  char_4230_mcnist: { cn: '2026-07-17', global: null }, // Mechanist — IS7, Global TBA
-  char_4023_rfalcn: { cn: '2024-02-03', global: '2024-08-07' }, // Kestrel — RA
-
-  // April Fools operator; explicit release dates by server.
-  char_159_peacok: { cn: '2020-04-01', global: '2021-04-01' },
-}
-
-export const COLLABORATION_BY_OPERATOR_ID: Record<string, string> = {
-  char_456_ash: 'Rainbow Six Siege',
-  char_457_blitz: 'Rainbow Six Siege',
-  char_458_rfrost: 'Rainbow Six Siege',
-  char_459_tachak: 'Rainbow Six Siege',
-  char_4123_ela: 'Rainbow Six Siege',
-  char_4124_iana: 'Rainbow Six Siege',
-  char_4125_rdoc: 'Rainbow Six Siege',
-  char_4126_fuze: 'Rainbow Six Siege',
-  char_4019_ncdeer: 'A Deer of Nine Colors',
-  char_4067_lolxh: 'The Legend of Luo Xiaohei',
-  char_4077_palico: 'Monster Hunter',
-  char_1029_yato2: 'Monster Hunter',
-  char_1030_noirc2: 'Monster Hunter',
-  char_4215_buddy: 'Monster Hunter',
-  char_1049_catap2: 'Monster Hunter',
-  char_1048_orchd2: 'Monster Hunter',
-  char_4141_marcil: 'Delicious in Dungeon',
-  char_4142_laios: 'Delicious in Dungeon',
-  char_4143_sensi: 'Delicious in Dungeon',
-  char_4144_chilc: 'Delicious in Dungeon',
-  char_4182_oblvns: 'BanG Dream! Ave Mujica',
-  char_4183_mortis: 'BanG Dream! Ave Mujica',
-  char_4184_dolris: 'BanG Dream! Ave Mujica',
-  char_4185_amoris: 'BanG Dream! Ave Mujica',
-  char_4186_tmoris: 'BanG Dream! Ave Mujica',
-  char_4217_makoto: 'Persona 3 Reload',
-  char_4218_aigis: 'Persona 3 Reload',
-  char_4219_yukari: 'Persona 3 Reload',
-  char_4220_kormr: 'Persona 3 Reload',
-}
 
 interface ReleaseInfoEntry {
   eventId?: unknown
@@ -638,15 +522,14 @@ export function buildReleaseDateMap(
     }
   }
 
-  if (result.char_383_snsant && result.char_2014_nian?.cn) {
-    result.char_383_snsant = { ...result.char_383_snsant, cn: result.char_2014_nian.cn }
+  for (const [operatorId, referenceId] of Object.entries(CN_RELEASE_DATE_ALIASES)) {
+    if (result[operatorId] && result[referenceId]?.cn) {
+      result[operatorId] = { ...result[operatorId], cn: result[referenceId].cn }
+    }
   }
   // User-defined presentation dates follow the named operator on each server,
   // after published dates and all other date overrides have been resolved.
-  for (const [operatorId, referenceId] of [
-    ['char_282_catap', 'char_263_skadi'],
-    ['char_284_spot', 'char_010_chen'],
-  ]) {
+  for (const [operatorId, referenceId] of Object.entries(RELEASE_PRESENTATION_DATE_ALIASES)) {
     if (result[operatorId] && result[referenceId]) result[operatorId] = { ...result[referenceId] }
   }
   return result

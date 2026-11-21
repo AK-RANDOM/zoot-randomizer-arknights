@@ -1,4 +1,7 @@
+import { enumerateArtwork } from '../shared/artwork'
+import { operatorArtworkCache } from './operatorArtwork'
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { PortraitSyncProgress } from '../shared/desktop'
 import {
@@ -21,36 +24,24 @@ import {
   getOperatorDataInfo,
   getOperatorDataset,
   getOperatorImage,
-  syncOperatorAvatars,
-  clearOperatorImageMemoryCaches,
   updateOperatorData,
 } from './operatorDataService'
 import {
   getOperatorPortrait,
-  getOperatorSkinPortrait,
-  syncOperatorPortraits,
-  clearPortraitMemoryCaches,
-} from './operatorPortraitService'
-import {
-  getOperatorAvatarAsset,
-  getOperatorPromotionAvatar,
   getOperatorSkinAvatar,
-  clearAvatarMemoryCaches,
-} from './operatorAvatarService'
+  getOperatorSkinPortrait,
+} from './operatorPortraitService'
+import { getOperatorAvatarAsset, getOperatorPromotionAvatar } from './operatorAvatarService'
 import { getBundledClassIcon, getFactionIcon, getSubclassIcon } from './operatorUiAssetService'
 import { ArknightsAccountService } from './arknightsAccount/service'
 import { AccountSnapshotStore } from './arknightsAccount/snapshotStore'
 import { getArknightsProfileAvatar } from './arknightsAccount/avatarService'
+import { getGarrisonEventCatalog } from './garrisonEventCatalogService'
 import {
-  getGarrisonEventCatalog,
-  invalidateGarrisonEventCatalog,
-} from './garrisonEventCatalogService'
-import {
+  artworkRoot,
   clearDownloadedArtwork,
-  downloadAdditionalArtwork,
   getArtworkStorageInfo,
   openArtworkStorageFolder,
-  enumerateAdditionalArtwork,
 } from './artworkStorage'
 import { ensureWritableDirectory, resolvePortableDataPath } from './portableStorage'
 
@@ -118,7 +109,7 @@ function publishPortraitProgress(progress: PortraitSyncProgress): PortraitSyncPr
   return progress
 }
 
-async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgress> {
+async function startPortraitSync(): Promise<PortraitSyncProgress> {
   if (clearingArtwork) throw new Error('Artwork cache is being cleared.')
   if (portraitSyncPromise) return portraitSyncPromise
 
@@ -126,58 +117,25 @@ async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgre
   portraitSyncController = controller
   portraitSyncPromise = (async () => {
     try {
+      await mkdir(artworkRoot(), { recursive: true })
       const dataset = await getOperatorDataset()
-      const operatorIds = dataset.operators.map((operator) => operator.id)
-      const total =
-        operatorIds.length * 2 + (includeAll ? enumerateAdditionalArtwork(dataset).length : 0)
-      publishPortraitProgress({
-        status: 'downloading',
-        completed: 0,
-        total,
-        message: 'Downloading operator avatars…',
-      })
-
-      const avatarWarnings = await syncOperatorAvatars(operatorIds, {
+      const assets = enumerateArtwork(dataset)
+      const result = await operatorArtworkCache().download(assets, {
         signal: controller.signal,
-        onProgress: (completed) =>
+        onProgress: (counts) =>
           publishPortraitProgress({
+            ...counts,
             status: 'downloading',
-            completed,
-            total,
-            message: `Downloading operator avatars… ${completed}/${operatorIds.length}`,
+            message: 'Downloading artwork… ' + counts.completed + '/' + counts.total,
           }),
       })
-
-      const portraitWarnings = await syncOperatorPortraits(operatorIds, {
-        signal: controller.signal,
-        onProgress: (progress) =>
-          publishPortraitProgress({
-            ...progress,
-            completed: operatorIds.length + progress.completed,
-            total,
-            message: progress.message,
-          }),
-      })
-      const additionalWarnings = includeAll
-        ? await downloadAdditionalArtwork(dataset, {
-            signal: controller.signal,
-            onProgress: (completed, additionalTotal) =>
-              publishPortraitProgress({
-                status: 'downloading',
-                completed: operatorIds.length * 2 + completed,
-                total: operatorIds.length * 2 + additionalTotal,
-                message: `Downloading appearance and skin artwork… ${completed}/${additionalTotal}`,
-              }),
-          })
-        : []
-      const warnings = [...avatarWarnings, ...portraitWarnings, ...additionalWarnings]
+      const { warnings, ...counts } = result
       return publishPortraitProgress({
         status: 'complete',
-        completed: total,
-        total,
+        ...counts,
         message:
           warnings.length > 0
-            ? `Artwork download complete with ${warnings.length} unavailable asset(s).`
+            ? `Artwork download finished. ${counts.unavailable} unavailable; ${counts.failed} could not be saved. Retry to resume.`
             : 'Operator artwork is ready for offline use.',
       })
     } catch {
@@ -185,7 +143,8 @@ async function startPortraitSync(includeAll = false): Promise<PortraitSyncProgre
         return publishPortraitProgress({
           ...portraitSyncProgress,
           status: 'cancelled',
-          message: 'Artwork download paused. It will resume on the next launch or when retried.',
+          message:
+            'Artwork download paused. Completed files have been kept; choose Resume to continue.',
         })
       }
       return publishPortraitProgress({
@@ -266,10 +225,7 @@ function registerIpc(): void {
   ipcMain.handle(DESKTOP_IPC_CHANNELS.factionIcon, (_event, factionId: unknown) =>
     getFactionIcon(requireMetadataId(factionId, 'faction')),
   )
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.checkUpdates, () => {
-    invalidateGarrisonEventCatalog()
-    return checkOperatorUpdates()
-  })
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.checkUpdates, () => checkOperatorUpdates())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.updateData, () => updateOperatorData())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkStorageInfo, () => getArtworkStorageInfo())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkOpenFolder, () => openArtworkStorageFolder())
@@ -281,19 +237,13 @@ function registerIpc(): void {
     clearingArtwork = true
     try {
       const result = await clearDownloadedArtwork()
-      clearPortraitMemoryCaches()
-      clearAvatarMemoryCaches()
-      clearOperatorImageMemoryCaches()
+      operatorArtworkCache().clearMemory()
       return result
     } finally {
       clearingArtwork = false
     }
   })
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkDownloadAll, async () => {
-    // A startup normal-art sync must not silently swallow a full-art request.
-    if (portraitSyncPromise) await portraitSyncPromise
-    return startPortraitSync(true)
-  })
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.artworkDownloadAll, () => startPortraitSync())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitProgress, () => portraitSyncProgress)
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitStart, () => startPortraitSync())
   ipcMain.handle(DESKTOP_IPC_CHANNELS.portraitCancel, () => cancelPortraitSync())
@@ -400,13 +350,56 @@ function createWindow(): void {
 
   if (smokeTest) {
     mainWindow.webContents.once('did-finish-load', () => {
+      const reportPath = process.env['AKR_SMOKE_REPORT']
+      if (reportPath) {
+        void (async () => {
+          const result = await mainWindow.webContents.executeJavaScript(`(async () => {
+            const info = await window.desktop.getOperatorDataInfo()
+            const dataset = await window.desktop.getOperatorDataset()
+            const catalogs = []
+            for (const region of ['cn','global']) for (const locale of ['en','jp','kr','tw','cn'])
+              catalogs.push({ region, locale, events: (await window.desktop.getGarrisonEvents(region,locale)).length })
+            return { info, operators: dataset.operators.length, catalogs, title: document.title }
+          })()`)
+          if (
+            result.info.operatorCount !== result.operators ||
+            result.catalogs.some((catalog: { events: number }) => !catalog.events)
+          )
+            throw new Error('Packaged data smoke check failed')
+          const bundledRoot = app.isPackaged
+            ? join(process.resourcesPath, 'bundled-data')
+            : join(app.getAppPath(), 'resources/bundled-data')
+          const build = JSON.parse(
+            await readFile(join(bundledRoot, 'data-package-build.json'), 'utf8'),
+          )
+          const artwork = JSON.parse(
+            await readFile(join(bundledRoot, 'artwork-inventory.json'), 'utf8'),
+          )
+          await writeFile(
+            reportPath,
+            JSON.stringify(
+              {
+                ...result,
+                build,
+                artworkId: artwork.artworkId,
+                version: app.getVersion(),
+                packaged: app.isPackaged,
+              },
+              null,
+              2,
+            ),
+          )
+          app.exit(0)
+        })().catch((error: unknown) => {
+          console.error(error)
+          app.exit(1)
+        })
+        return
+      }
       setTimeout(() => app.quit(), 250)
     })
   } else {
     mainWindow.once('ready-to-show', () => mainWindow.show())
-    mainWindow.webContents.once('did-finish-load', () => {
-      void startPortraitSync()
-    })
   }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

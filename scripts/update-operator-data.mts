@@ -3,7 +3,6 @@ import { constants } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { UPSTREAM, validateOperatorDataset } from '../src/shared/operatorData.ts'
-import { operatorAvatarSourceFilename } from '../src/shared/operatorAvatar.ts'
 import {
   fetchAndBuildOperatorDataset,
   fetchLatestOperatorDatasetSources,
@@ -24,12 +23,10 @@ import {
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outputDir = join(projectRoot, 'resources', 'bundled-data', 'operators')
 const outputFile = join(outputDir, 'operators.json')
-const imageDir = join(outputDir, 'images')
 const classIconDir = join(outputDir, 'class-icons')
 const subclassIconDir = join(outputDir, 'subclass-icons')
 const factionIconDir = join(outputDir, 'faction-icons')
-const downloadImages = process.argv.includes('--download-images')
-const downloadImagesOnly = process.argv.includes('--download-images-only')
+const uiAssetsOnly = process.argv.includes('--ui-assets-only')
 const force = process.argv.includes('--force')
 const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer-data-updater' } as const
 
@@ -64,19 +61,6 @@ async function fileExists(path: string): Promise<boolean> {
   } catch {
     return false
   }
-}
-
-async function downloadAvatar(id: string): Promise<boolean> {
-  const destination = join(imageDir, `${id}.png`)
-  if (await fileExists(destination)) return true
-  const sourceFilename = operatorAvatarSourceFilename(id)
-  const response = await fetch(`${UPSTREAM.avatarBaseUrl}/${sourceFilename}`, {
-    headers: { 'User-Agent': 'arknights-randomizer-data-updater' },
-    signal: AbortSignal.timeout(60_000),
-  })
-  if (!response.ok) return false
-  await writeFile(destination, Buffer.from(await response.arrayBuffer()))
-  return true
 }
 
 async function downloadNamedAssets(
@@ -138,27 +122,12 @@ async function downloadUiAssets(dataset: OperatorDataset): Promise<void> {
   ])
 }
 
-async function downloadAvatars(ids: string[]): Promise<void> {
-  await mkdir(imageDir, { recursive: true })
-  const missing: string[] = []
-  const batchSize = 8
-  for (let index = 0; index < ids.length; index += batchSize) {
-    const batch = ids.slice(index, index + batchSize)
-    const results = await Promise.all(
-      batch.map(async (id) => ({ id, ok: await downloadAvatar(id) })),
-    )
-    missing.push(...results.filter((result) => !result.ok).map((result) => result.id))
-    process.stdout.write(
-      `\rDownloaded/checked avatars: ${Math.min(index + batchSize, ids.length)}/${ids.length}`,
-    )
-  }
-  process.stdout.write('\n')
-  if (missing.length > 0) console.warn(`Missing avatars (${missing.length}): ${missing.join(', ')}`)
-}
-
 async function readValidatedDataset(): Promise<OperatorDataset> {
   const dataset = JSON.parse(await readFile(outputFile, 'utf8')) as OperatorDataset
-  const validation = validateOperatorDataset(dataset, { requireSourceCommits: true })
+  const validation = validateOperatorDataset(dataset, {
+    requireSourceCommits: true,
+    requireArtworkSourceCommit: false,
+  })
   if (!validation.valid) {
     throw new Error(`Bundled dataset failed validation:\n${validation.errors.join('\n')}`)
   }
@@ -168,12 +137,8 @@ async function readValidatedDataset(): Promise<OperatorDataset> {
 async function main(): Promise<void> {
   await mkdir(outputDir, { recursive: true })
 
-  if (downloadImagesOnly) {
-    const dataset = await readValidatedDataset()
-    await Promise.all([
-      downloadAvatars(dataset.operators.map((operator) => operator.id)),
-      downloadUiAssets(dataset),
-    ])
+  if (uiAssetsOnly) {
+    await downloadUiAssets(await readValidatedDataset())
     return
   }
 
@@ -187,7 +152,7 @@ async function main(): Promise<void> {
     previousSources !== null &&
     operatorDatasetSourcesEqual(previousSources, versions)
 
-  if (unchanged && !force && !downloadImages) {
+  if (unchanged && !force) {
     console.log('Operator dataset is already current.')
     await downloadUiAssets(await readValidatedDataset())
     return
@@ -195,9 +160,7 @@ async function main(): Promise<void> {
 
   let dataset: OperatorDataset
 
-  if (unchanged && downloadImages && !force) {
-    dataset = await readValidatedDataset()
-  } else {
+  {
     console.log('Downloading operator tables, handbook metadata and release metadata...')
     const built = await fetchAndBuildOperatorDataset(
       versions,
@@ -214,7 +177,6 @@ async function main(): Promise<void> {
   }
 
   await downloadUiAssets(dataset)
-  if (downloadImages) await downloadAvatars(dataset.operators.map((operator) => operator.id))
 }
 
 main().catch((error) => {

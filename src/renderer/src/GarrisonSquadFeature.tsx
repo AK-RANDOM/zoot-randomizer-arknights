@@ -182,7 +182,7 @@ export default function GarrisonSquadFeature({
     return () => {
       active = false
     }
-  }, [metadataRegion, gameLocale])
+  }, [metadataRegion, gameLocale, operators])
 
   useLayoutEffect(() => {
     saveSavedGarrisons(library)
@@ -805,11 +805,7 @@ export default function GarrisonSquadFeature({
         <section className="garrison-participants" aria-labelledby="garrison-participants-heading">
           <div className="garrison-participant-heading">
             <strong id="garrison-participants-heading">Participating Operators</strong>
-            {working.duplicateOperatorsAllowed && (
-              <span>
-                {participation.length} unique
-              </span>
-            )}
+            {working.duplicateOperatorsAllowed && <span>{participation.length} unique</span>}
           </div>
           {participation.length === 0 ? (
             <p>No operators assigned yet.</p>

@@ -119,9 +119,11 @@ gh workflow run pages.yml --repo AK-RANDOM/ak-random.github.io --ref main
 
 The project consumes public Arknights community/game-data sources and normalizes them into its own application schema. Update scripts live in `scripts/`.
 
-Generated operator metadata and class icons under `resources/bundled-data` are intentionally not part of the public source snapshot; they are recreated with `npm run data:update` for development and packaging.
+Generated data under `resources/bundled-data` is intentionally not part of the application source snapshot. `npm run data:update` installs the exact reviewed data package selected by the source commit and prepares UI icons for development and packaging. The package includes operator metadata and all ten localized CN/Global Garrison catalogs. Windows and web builds use the same selection; manual data updates validate a complete package before activating it. See [data delivery](docs/DATA_PACKAGE_DELIVERY.md) and [data readers](docs/DATA_PACKAGE_READERS.md).
 
 Operator avatars and promotion artwork are not packaged with the public application source. They are downloaded into the persistent user-data artwork cache as needed so an installed copy can continue using cached artwork offline. Missing artwork falls back gracefully instead of making squad generation unavailable.
+
+Artwork has a separate pinned source revision and build inventory. Windows individual requests and **Download All / Resume** share one validated, source-keyed cache; valid files from older cache folders are reused. Bulk downloading is manual, cancellation keeps completed images, and clearing artwork leaves metadata and personal data intact. See [artwork handling](docs/ARTWORK_PIPELINE.md).
 
 Current upstream sources include:
 

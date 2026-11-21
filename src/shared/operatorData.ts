@@ -28,6 +28,7 @@ import {
   MONSTER_HUNTER_GLOBAL_RELEASE,
   RELEASE_METADATA_UPSTREAM,
   buildReleaseCategoryMap,
+  buildReleaseDateMap,
   releaseYearGroup,
   type OperatorReleaseCategory,
   type OperatorReleaseDates,
@@ -71,7 +72,6 @@ export const UPSTREAM = {
   releaseInfoUrl: RELEASE_METADATA_UPSTREAM.infoUrl,
   releaseCandidateUrl: RELEASE_METADATA_UPSTREAM.candidateUrl,
   releaseEventUrl: RELEASE_METADATA_UPSTREAM.eventUrl,
-  avatarBaseUrl: 'https://raw.githubusercontent.com/yuanyan3060/ArknightsGameResource/main/avatar',
   uiAssetRepo: OPERATOR_UI_ASSET_REPOSITORY,
   uiAssetRevision: OPERATOR_UI_ASSET_REVISION,
   classIconBaseUrl: `https://raw.githubusercontent.com/${OPERATOR_UI_ASSET_REPOSITORY}/${OPERATOR_UI_ASSET_REVISION}/classes`,
@@ -432,6 +432,14 @@ function alterGroups(...metas: Array<RawCharacterMetaTable | undefined>): Map<st
   return result
 }
 
+export function createReleaseDateMap(
+  infoSource: string,
+  candidateSource: string,
+  eventSource: string,
+): Record<string, OperatorReleaseDates> {
+  return buildReleaseDateMap(infoSource, candidateSource, eventSource)
+}
+
 export function createReleaseCategoryMap(
   infoSource: string,
 ): Record<string, OperatorReleaseCategory | null> {
@@ -693,6 +701,8 @@ export interface DatasetValidationOptions {
   minimumOperators?: number
   maximumOperators?: number
   requireSourceCommits?: boolean
+  /** Prepared metadata packages intentionally have no artwork source dependency. */
+  requireArtworkSourceCommit?: boolean
 }
 
 export interface DatasetValidationResult {
@@ -913,7 +923,7 @@ export function validateOperatorDataset(
       !sources.gamedataJpCommit ||
       !sources.gamedataKrCommit ||
       !sources.gamedataTwCommit ||
-      !sources.resourcesCommit ||
+      (options.requireArtworkSourceCommit !== false && !sources.resourcesCommit) ||
       !sources.releaseMetadataCommit
     ) {
       errors.push('Dataset is missing one or more upstream source commit SHAs.')

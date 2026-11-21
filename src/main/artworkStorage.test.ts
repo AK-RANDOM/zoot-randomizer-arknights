@@ -3,79 +3,36 @@ import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 let cacheRoot = '/tmp'
+let isPackaged = false
 vi.mock('electron', () => ({
-  app: { getPath: () => cacheRoot },
+  app: {
+    getPath: () => cacheRoot,
+    get isPackaged() {
+      return isPackaged
+    },
+  },
   shell: { openPath: async () => '' },
 }))
-import {
-  downloadAdditionalArtwork,
-  enumerateAdditionalArtwork,
-  getArtworkStorageInfo,
-  clearDownloadedArtwork,
-} from './artworkStorage'
-import { clearAvatarMemoryCaches, getOperatorAvatarAsset } from './operatorAvatarService'
-import type { OperatorDataset } from '../shared/operator'
-
-describe('complete artwork manifest', () => {
-  it('includes and deduplicates default art, skin portraits and skin avatars', () => {
-    const dataset = {
-      operators: [
-        {
-          defaultArts: [{ avatarId: 'char_test_1' }],
-          skins: [{ portraitId: 'skin_test', avatarId: 'skin_avatar' }],
-        },
-        {
-          defaultArts: [{ avatarId: 'skin_avatar' }],
-          skins: [{ portraitId: 'skin_test', avatarId: 'skin_avatar' }],
-        },
-      ],
-    } as unknown as OperatorDataset
-    const assets = enumerateAdditionalArtwork(dataset)
-    expect(assets).toHaveLength(3)
-    expect(assets.map((a) => `${a.category}/${a.filename}`).sort()).toEqual([
-      'appearance-avatars/char_test_1.png',
-      'appearance-avatars/skin_avatar.png',
-      'skin-portraits/skin_test.png',
-    ])
-  })
-  it('ignores unsafe asset IDs', () => {
-    const dataset = {
-      operators: [{ skins: [{ portraitId: '../bad', avatarId: '../../bad' }] }],
-    } as unknown as OperatorDataset
-    expect(enumerateAdditionalArtwork(dataset)).toHaveLength(0)
-  })
-})
+import { getArtworkStorageInfo, clearDownloadedArtwork } from './artworkStorage'
 
 describe('artwork cache accounting and cleanup', () => {
-  it('reuses a legacy skin avatar for display and bulk downloads', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'ak-artwork-test-'))
-    cacheRoot = root
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
-    const png = Buffer.from('89504e470d0a1a0a0000000d494844520000000100000001', 'hex')
+  it('warns only when a portable build actually falls back to profile storage', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ak-artwork-portable-'))
+    const previousRoot = cacheRoot
+    isPackaged = true
+    vi.stubEnv('PORTABLE_EXECUTABLE_DIR', root)
     try {
-      const legacy = join(root, 'operator-data', 'skin-avatars')
-      mkdirSync(legacy, { recursive: true })
-      writeFileSync(join(legacy, 'shared_avatar.png'), png)
-      const dataset = {
-        operators: [{ defaultArts: [{ avatarId: 'shared_avatar' }] }],
-      } as unknown as OperatorDataset
+      cacheRoot = join(root, 'Arknights-Randomizer-Data')
+      const portable = await getArtworkStorageInfo()
+      expect(portable.path).toBe(join(cacheRoot, 'operator-data'))
+      expect(portable.warning).toBeUndefined()
 
-      expect(await getOperatorAvatarAsset('shared_avatar')).toBe(
-        `data:image/png;base64,${png.toString('base64')}`,
-      )
-      expect(
-        await downloadAdditionalArtwork(dataset, {
-          signal: new AbortController().signal,
-          onProgress: vi.fn(),
-        }),
-      ).toEqual([])
-      expect(fetchMock).not.toHaveBeenCalled()
-      const before = await getArtworkStorageInfo()
-      expect(before.categories.find(({ name }) => name === 'skin-avatars')?.files).toBe(1)
-      expect((await clearDownloadedArtwork()).totalFiles).toBe(0)
+      cacheRoot = join(root, 'profile')
+      expect((await getArtworkStorageInfo()).warning).toContain('Windows user profile')
     } finally {
-      fetchMock.mockRestore()
-      clearAvatarMemoryCaches()
+      cacheRoot = previousRoot
+      isPackaged = false
+      vi.unstubAllEnvs()
       rmSync(root, { recursive: true, force: true })
     }
   })

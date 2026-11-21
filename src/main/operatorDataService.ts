@@ -1,424 +1,44 @@
 import { app } from 'electron'
-import {
-  access,
-  copyFile,
-  mkdir,
-  mkdtemp,
-  readFile,
-  readdir,
-  rename,
-  rm,
-  writeFile,
-} from 'node:fs/promises'
-import { constants } from 'node:fs'
 import { join } from 'node:path'
 import type { OperatorDataInfo, OperatorUpdateCheck, OperatorUpdateResult } from '../shared/desktop'
-import { OPERATOR_DATA_PIPELINE_VERSION, type OperatorDataset } from '../shared/operator'
-import { welfareAcquisitionOverride } from '../shared/acquisitionMetadata'
-import { operatorDatasetNeedsSkinMetadataRefresh } from '../shared/skinMetadata'
-import { operatorAvatarSourceFilename } from '../shared/operatorAvatar'
-import {
-  UPSTREAM,
-  validateOperatorDataset,
-  upgradeLegacyOperatorDataset,
-} from '../shared/operatorData'
-import {
-  fetchAndApplySkinMetadata,
-  fetchAndBuildOperatorDataset,
-  fetchLatestOperatorDatasetSources,
-  operatorDatasetSourcesEqual,
-  operatorDatasetNeedsPipelineRefresh,
-} from '../shared/operatorDataPipeline'
-
-const imageCache = new Map<string, string>()
+import type { OperatorDataset } from '../shared/operator'
+import { operatorAvatarAsset } from '../shared/artwork'
+import { operatorArtworkCache } from './operatorArtwork'
+import { createDataPackageRepository } from './dataPackageRepository'
 export function clearOperatorImageMemoryCaches(): void {
-  imageCache.clear()
+  operatorArtworkCache().clearMemory()
 }
-const avatarDownloadPromises = new Map<string, Promise<boolean>>()
-const PIPELINE_FETCH_OPTIONS = { userAgent: 'arknights-randomizer' } as const
-let skinMetadataRefreshPromise: Promise<OperatorDataset | null> | null = null
+let dataClient: ReturnType<typeof createDataPackageRepository> | undefined
 
-function bundledRoot(): string {
-  return app.isPackaged
-    ? join(process.resourcesPath, 'bundled-data', 'operators')
-    : join(app.getAppPath(), 'resources', 'bundled-data', 'operators')
-}
-
-function downloadedRoot(): string {
-  return join(app.getPath('userData'), 'operator-data')
-}
-
-function downloadedDatasetPath(): string {
-  return join(downloadedRoot(), 'operators.json')
-}
-
-function downloadedImagePath(operatorId: string): string {
-  return join(downloadedRoot(), 'images', `${operatorId}.png`)
-}
-
-function bundledImagePath(operatorId: string): string {
-  return join(bundledRoot(), 'images', `${operatorId}.png`)
-}
-
-async function exists(path: string): Promise<boolean> {
-  try {
-    await access(path, constants.F_OK)
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function readDataset(path: string): Promise<OperatorDataset | null> {
-  try {
-    const parsed = JSON.parse(await readFile(path, 'utf8')) as unknown
-    const legacy =
-      parsed !== null &&
-      typeof parsed === 'object' &&
-      (parsed as { schemaVersion?: unknown }).schemaVersion === 4
-    const upgraded = upgradeLegacyOperatorDataset(parsed)
-    const validation = validateOperatorDataset(upgraded, { requireSourceCommits: !legacy })
-    if (!validation.valid) return null
-
-    const dataset = upgraded as OperatorDataset
-    return {
-      ...dataset,
-      // Older bundled and downloaded data already contain these operators.
-      operators: dataset.operators.map((operator) => {
-        const acquisition = welfareAcquisitionOverride(operator.id)
-        return acquisition ? { ...operator, acquisition } : operator
-      }),
-    }
-  } catch {
-    return null
-  }
-}
-
-async function datasetWithOrigin(): Promise<{
-  dataset: OperatorDataset
-  origin: 'bundled' | 'downloaded'
-}> {
-  const downloaded = await readDataset(downloadedDatasetPath())
-  if (downloaded && !operatorDatasetNeedsPipelineRefresh(downloaded)) {
-    return { dataset: downloaded, origin: 'downloaded' }
-  }
-
-  const bundled = await readDataset(join(bundledRoot(), 'operators.json'))
-  // A rebuilt app can correct an old cache offline when both datasets contain
-  // the same upstream content. Never replace a newer downloaded source revision.
-  if (
-    downloaded &&
-    (!bundled ||
-      operatorDatasetNeedsPipelineRefresh(bundled) ||
-      !operatorDatasetSourcesEqual(downloaded.sources, bundled.sources))
-  ) {
-    if (downloaded.dataPipelineVersion !== OPERATOR_DATA_PIPELINE_VERSION) {
-      const confirmed = new Map(
-        bundled && !operatorDatasetNeedsPipelineRefresh(bundled)
-          ? bundled.operators.map((operator) => [operator.id, operator.release.cn] as const)
-          : [],
-      )
-      return {
-        dataset: {
-          ...downloaded,
-          operators: downloaded.operators.map((operator) => ({
-            ...operator,
-            release: {
-              ...operator.release,
-              cn: operator.availableOn.cn
-                ? (confirmed.get(operator.id) ?? { date: null, yearGroup: null })
-                : { date: null, yearGroup: null },
-            },
-          })),
-        },
-        origin: 'downloaded',
-      }
-    }
-    return { dataset: downloaded, origin: 'downloaded' }
-  }
-  if (!bundled) {
-    throw new Error(
-      'No valid operator dataset is available. Run the data updater or reinstall the application.',
-    )
-  }
-
-  return { dataset: bundled, origin: 'bundled' }
-}
-
-async function createUpdateStage(): Promise<string> {
-  const targetRoot = downloadedRoot()
-  await mkdir(targetRoot, { recursive: true })
-  // Portable data may be on a different volume from the system temp directory.
-  return mkdtemp(join(targetRoot, '.update-'))
-}
-
-async function refreshSkinMetadata(dataset: OperatorDataset): Promise<OperatorDataset> {
-  const refreshed = await fetchAndApplySkinMetadata(dataset, PIPELINE_FETCH_OPTIONS)
-  const validation = validateOperatorDataset(refreshed, { requireSourceCommits: true })
-  if (!validation.valid) {
-    throw new Error(`Refreshed skin metadata failed validation: ${validation.errors.join(' ')}`)
-  }
-
-  const stageRoot = await createUpdateStage()
-  const stageDataset = join(stageRoot, 'operators.json')
-  try {
-    await writeFile(stageDataset, `${JSON.stringify(refreshed, null, 2)}\n`, 'utf8')
-    await activateStagedData(stageRoot, stageDataset)
-  } finally {
-    await rm(stageRoot, { recursive: true, force: true })
-  }
-  return refreshed
+export function getOperatorDataClient() {
+  return (dataClient ??= createDataPackageRepository({
+    bundledRoot: app.isPackaged
+      ? join(process.resourcesPath, 'bundled-data')
+      : join(app.getAppPath(), 'resources', 'bundled-data'),
+    userDataRoot: app.getPath('userData'),
+  }))
 }
 
 export async function getOperatorDataset(): Promise<OperatorDataset> {
-  const dataset = (await datasetWithOrigin()).dataset
-  if (!operatorDatasetNeedsSkinMetadataRefresh(dataset)) return dataset
-
-  skinMetadataRefreshPromise ??= refreshSkinMetadata(dataset).catch(() => null)
-  return (await skinMetadataRefreshPromise) ?? dataset
+  return getOperatorDataClient().getDataset()
 }
 
 export async function getOperatorDataInfo(): Promise<OperatorDataInfo> {
-  const { dataset, origin } = await datasetWithOrigin()
-  return {
-    origin,
-    generatedAt: dataset.generatedAt,
-    operatorCount: dataset.operators.length,
-    sources: dataset.sources,
-  }
-}
-
-async function readOperatorImage(operatorId: string): Promise<string | null> {
-  const candidates = [downloadedImagePath(operatorId), bundledImagePath(operatorId)]
-  for (const path of candidates) {
-    if (!(await exists(path))) continue
-    try {
-      const data = await readFile(path)
-      const url = `data:image/png;base64,${data.toString('base64')}`
-      imageCache.set(operatorId, url)
-      return url
-    } catch {
-      // Try the next source before falling back to the card placeholder.
-    }
-  }
-  return null
-}
-
-async function downloadAvatarToCache(operatorId: string, signal?: AbortSignal): Promise<boolean> {
-  if (await exists(downloadedImagePath(operatorId))) return true
-
-  const current = avatarDownloadPromises.get(operatorId)
-  if (current) return current
-
-  const promise = (async () => {
-    const timeout = AbortSignal.timeout(60_000)
-    try {
-      const response = await fetch(
-        `${UPSTREAM.avatarBaseUrl}/${operatorAvatarSourceFilename(operatorId)}`,
-        {
-          headers: { 'User-Agent': 'arknights-randomizer' },
-          signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-        },
-      )
-      if (!response.ok) return false
-
-      await mkdir(join(downloadedRoot(), 'images'), { recursive: true })
-      await writeFile(downloadedImagePath(operatorId), Buffer.from(await response.arrayBuffer()))
-      imageCache.delete(operatorId)
-      return true
-    } catch (error) {
-      if (signal?.aborted) throw error
-      return false
-    } finally {
-      avatarDownloadPromises.delete(operatorId)
-    }
-  })()
-
-  avatarDownloadPromises.set(operatorId, promise)
-  return promise
+  return getOperatorDataClient().getInfo()
 }
 
 export async function getOperatorImage(operatorId: string): Promise<string | null> {
   if (!/^char_[a-z0-9_]+$/i.test(operatorId)) return null
-  const cached = imageCache.get(operatorId)
-  if (cached) return cached
-
-  const local = await readOperatorImage(operatorId)
-  if (local) return local
-
-  const dataset = await getOperatorDataset()
-  if (!dataset.operators.some((operator) => operator.id === operatorId)) return null
-
-  if (await downloadAvatarToCache(operatorId)) {
-    return readOperatorImage(operatorId)
-  }
-  return null
+  if (!(await getOperatorDataset()).operators.some((operator) => operator.id === operatorId))
+    return null
+  return operatorArtworkCache().image(operatorAvatarAsset(operatorId))
 }
-
-export async function syncOperatorAvatars(
-  operatorIds: readonly string[],
-  options: {
-    signal?: AbortSignal
-    onProgress?: (completed: number, total: number) => void
-  } = {},
-): Promise<string[]> {
-  const warnings: string[] = []
-  const batchSize = 8
-  let completed = 0
-
-  options.onProgress?.(completed, operatorIds.length)
-  for (let index = 0; index < operatorIds.length; index += batchSize) {
-    if (options.signal?.aborted) {
-      throw new DOMException('Avatar sync cancelled.', 'AbortError')
-    }
-
-    const batch = operatorIds.slice(index, index + batchSize)
-    const results = await Promise.all(
-      batch.map(async (operatorId) => ({
-        operatorId,
-        ok: await downloadAvatarToCache(operatorId, options.signal),
-      })),
-    )
-    warnings.push(
-      ...results
-        .filter((result) => !result.ok)
-        .map((result) => `No avatar found for ${result.operatorId}.`),
-    )
-    completed += batch.length
-    options.onProgress?.(completed, operatorIds.length)
-  }
-
-  imageCache.clear()
-  return warnings
-}
-
 export async function checkOperatorUpdates(): Promise<OperatorUpdateCheck> {
-  const current = (await getOperatorDataset()).sources
-
-  try {
-    const latest = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
-    const dataset = await getOperatorDataset()
-    const updateAvailable =
-      operatorDatasetNeedsPipelineRefresh(dataset) ||
-      operatorDatasetNeedsSkinMetadataRefresh(dataset) ||
-      !operatorDatasetSourcesEqual(current, latest)
-    return {
-      online: true,
-      updateAvailable,
-      current,
-      latest,
-      message: updateAvailable ? 'New operator data is available.' : 'Operator data is up to date.',
-    }
-  } catch {
-    return {
-      online: false,
-      updateAvailable: false,
-      current,
-      latest: null,
-      message: 'Unable to reach the update source. The local dataset remains available.',
-    }
-  }
-}
-
-async function downloadAvatar(operatorId: string, destination: string): Promise<boolean> {
-  const response = await fetch(
-    `${UPSTREAM.avatarBaseUrl}/${operatorAvatarSourceFilename(operatorId)}`,
-    {
-      headers: { 'User-Agent': 'arknights-randomizer' },
-      signal: AbortSignal.timeout(60_000),
-    },
-  )
-
-  if (!response.ok) return false
-  await writeFile(destination, Buffer.from(await response.arrayBuffer()))
-  return true
-}
-
-async function stageMissingImages(
-  dataset: OperatorDataset,
-  stageImages: string,
-): Promise<string[]> {
-  await mkdir(stageImages, { recursive: true })
-  const needsDownload: string[] = []
-
-  for (const operator of dataset.operators) {
-    if (
-      !(await exists(downloadedImagePath(operator.id))) &&
-      !(await exists(bundledImagePath(operator.id)))
-    ) {
-      needsDownload.push(operator.id)
-    }
-  }
-
-  const warnings: string[] = []
-  const batchSize = 6
-
-  for (let index = 0; index < needsDownload.length; index += batchSize) {
-    const batch = needsDownload.slice(index, index + batchSize)
-    const results = await Promise.all(
-      batch.map(async (operatorId) => ({
-        operatorId,
-        ok: await downloadAvatar(operatorId, join(stageImages, `${operatorId}.png`)),
-      })),
-    )
-
-    for (const result of results) {
-      if (!result.ok) warnings.push(`No avatar found for ${result.operatorId}.`)
-    }
-  }
-
-  return warnings
-}
-
-async function activateStagedData(stageRoot: string, stageDataset: string): Promise<void> {
-  const targetRoot = downloadedRoot()
-  const targetImages = join(targetRoot, 'images')
-  await mkdir(targetImages, { recursive: true })
-
-  const stageImages = join(stageRoot, 'images')
-  if (await exists(stageImages)) {
-    for (const filename of await readdir(stageImages)) {
-      await copyFile(join(stageImages, filename), join(targetImages, filename))
-    }
-  }
-
-  await rename(stageDataset, downloadedDatasetPath())
+  return getOperatorDataClient().checkUpdates()
 }
 
 export async function updateOperatorData(): Promise<OperatorUpdateResult> {
-  const current = await getOperatorDataset()
-  const latestSources = await fetchLatestOperatorDatasetSources(PIPELINE_FETCH_OPTIONS)
-
-  const needsSkinMetadata = operatorDatasetNeedsSkinMetadataRefresh(current)
-  if (
-    !needsSkinMetadata &&
-    !operatorDatasetNeedsPipelineRefresh(current) &&
-    operatorDatasetSourcesEqual(current.sources, latestSources)
-  ) {
-    return { updated: false, dataset: current, warnings: [] }
-  }
-
-  const { dataset, validation } = await fetchAndBuildOperatorDataset(
-    latestSources,
-    new Date().toISOString(),
-    PIPELINE_FETCH_OPTIONS,
-  )
-  if (!validation.valid) {
-    throw new Error(`Downloaded operator data failed validation: ${validation.errors.join(' ')}`)
-  }
-
-  const stageRoot = await createUpdateStage()
-  const stageDataset = join(stageRoot, 'operators.json')
-  const warnings = [...validation.warnings]
-
-  try {
-    warnings.push(...(await stageMissingImages(dataset, join(stageRoot, 'images'))))
-    await writeFile(stageDataset, `${JSON.stringify(dataset, null, 2)}\n`, 'utf8')
-    await activateStagedData(stageRoot, stageDataset)
-  } finally {
-    await rm(stageRoot, { recursive: true, force: true })
-  }
-
-  imageCache.clear()
-  return { updated: true, dataset, warnings }
+  const result = await getOperatorDataClient().installUpdate()
+  if (result.updated) operatorArtworkCache().clearMemory()
+  return result
 }

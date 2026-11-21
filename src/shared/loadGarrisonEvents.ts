@@ -4,7 +4,7 @@ import {
   localizeGarrisonEventNames,
   withGarrisonEventBannerMetadata,
   type GarrisonEvent,
-} from './garrisonEventCatalog'
+} from './garrisonEventCatalog.ts'
 
 export async function loadGarrisonEvents(
   region: ReleaseServer,

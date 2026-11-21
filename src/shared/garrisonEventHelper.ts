@@ -1,46 +1,13 @@
+import {
+  GARRISON_CHAPTER_HELPER_IDS,
+  GARRISON_EXPLICIT_EVENT_HELPER_IDS,
+} from './dataCorrections.ts'
+export {
+  GARRISON_CHAPTER_HELPER_IDS,
+  GARRISON_EXPLICIT_EVENT_HELPER_IDS,
+} from './dataCorrections.ts'
 import type { Operator, ReleaseServer } from './operator'
 import type { GarrisonEvent } from './garrisonEventCatalog'
-
-/**
- * Main Theme chapters have no reliable activity startTime once their stages
- * move to main_N zones. Tie their representative to the episode instead of
- * trying to infer one from nearby operator releases.
- *
- * Chapters 0–4 predate a featured new 6★ operator; Caster Amiya is the
- * explicitly requested fallback, rather than another Amiya class form.
- */
-export const GARRISON_CHAPTER_HELPER_IDS: Readonly<Record<number, string>> = {
-  0: 'char_002_amiya',
-  1: 'char_002_amiya',
-  2: 'char_002_amiya',
-  3: 'char_002_amiya',
-  4: 'char_002_amiya',
-  5: 'char_010_chen',
-  6: 'char_017_huang',
-  7: 'char_113_cqbw',
-  8: 'char_391_rosmon',
-  9: 'char_479_sleach',
-  10: 'char_4039_horn',
-  11: 'char_4072_ironmn',
-  12: 'char_4087_ines',
-  13: 'char_4088_hodrer',
-  14: 'char_1035_wisdel',
-  15: 'char_4179_monstr',
-  16: 'char_4204_mantra',
-  17: 'char_1052_kalts2',
-}
-
-/**
- * Crossover collaborations do not always share the event activity start date
- * with the featured operator's regional release metadata. Use the original
- * game's activity ID to identify a confirmed featured 6★ rather than relying
- * exclusively on a date within one day. Keep both the original and rerun ID:
- * depending on zone availability the catalog may retain either one.
- */
-export const GARRISON_EXPLICIT_EVENT_HELPER_IDS: Readonly<Record<string, string>> = {
-  act17d0: 'char_456_ash', // Operation Originium Dust (original)
-  act1r6sre: 'char_456_ash', // Operation Originium Dust (rerun)
-}
 
 const ONE_DAY_MS = 86_400_000
 

@@ -44,7 +44,8 @@ export default function ArtworkDownloadStatus(): React.JSX.Element {
   }
 
   const downloading = progress.status === 'downloading'
-  const canRetry = progress.status === 'cancelled' || progress.status === 'failed'
+  const canRetry =
+    progress.status === 'cancelled' || progress.status === 'failed' || (progress.failed ?? 0) > 0
   const percent = progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0
 
   return (
@@ -95,8 +96,16 @@ export default function ArtworkDownloadStatus(): React.JSX.Element {
         {storage?.categories.map((category) => (
           <div key={category.name}>
             <small>
-              {category.name}: {category.files.toLocaleString()} files ·{' '}
-              {(category.bytes / 1024 ** 2).toFixed(1)} MiB
+              {{
+                images: 'Operator avatars',
+                portraits: 'Promotion portraits',
+                'appearance-avatars': 'Appearance avatars',
+                'skin-portraits': 'Outfit portraits',
+                'skin-avatars': 'Outfit avatars',
+                'shared-artwork': 'Shared artwork',
+              }[category.name] ?? 'Artwork'}
+              : {category.files.toLocaleString()} files · {(category.bytes / 1024 ** 2).toFixed(1)}{' '}
+              MiB
             </small>
           </div>
         ))}
@@ -107,6 +116,12 @@ export default function ArtworkDownloadStatus(): React.JSX.Element {
         <div>
           <strong>Offline artwork cache</strong>
           <p>{progress.message}</p>
+          {progress.cached !== undefined && (
+            <small>
+              {progress.cached} reused · {progress.downloaded ?? 0} downloaded ·{' '}
+              {progress.unavailable ?? 0} unavailable · {progress.failed ?? 0} failed
+            </small>
+          )}
         </div>
         {downloading && (
           <button

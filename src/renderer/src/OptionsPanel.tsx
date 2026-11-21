@@ -11,8 +11,7 @@ import {
   useDraftActionConfirmationPreference,
 } from './draftConfirmationPreferences'
 
-const WINDOWS_DOWNLOAD =
-  'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest'
+const WINDOWS_DOWNLOAD = 'https://github.com/AK-RANDOM/zoot-randomizer-arknights/releases/latest'
 
 export default function OptionsPanel({
   operatorData,
@@ -163,25 +162,23 @@ export default function OptionsPanel({
         the bulk result without changing other operators.
       </p>
 
-      {!isBrowser && (
-        <>
-          <div className="option-setting option-setting--compact">
-            <div className="option-setting__copy">
-              <strong>Operator data</strong>
-              <p>Check for and install updated operator and event data.</p>
-            </div>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy || !dataset}
-              onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
-            >
-              {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
-            </button>
+      <>
+        <div className="option-setting option-setting--compact">
+          <div className="option-setting__copy">
+            <strong>Operator data</strong>
+            <p>Check for and install updated operator and event data.</p>
           </div>
-          <ArtworkDownloadStatus />
-        </>
-      )}
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy || !dataset}
+            onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
+          >
+            {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
+          </button>
+        </div>
+        {!isBrowser && <ArtworkDownloadStatus />}
+      </>
 
       {isBrowser && (
         <div className="option-setting option-setting--compact options-windows">

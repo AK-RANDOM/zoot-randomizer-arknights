@@ -33,10 +33,12 @@ jobs:
         shell: pwsh
         run: |
           $env:ELECTRON_SMOKE_TEST = '1'
+          $env:PORTABLE_EXECUTABLE_DIR = Join-Path $env:RUNNER_TEMP 'raw-data-smoke'
+          $env:AKR_SMOKE_REPORT = Join-Path $env:RUNNER_TEMP 'raw-data-provenance.json'
           $app = Get-ChildItem dist/win-unpacked/*.exe | Select-Object -First 1
           if (-not $app) { throw 'Raw Windows executable was not produced.' }
 
-          $process = Start-Process -FilePath $app.FullName -PassThru
+          $process = Start-Process -FilePath $app.FullName -PassThru -WindowStyle Hidden
           if (-not $process.WaitForExit(60000)) {
             $process.Kill()
             throw 'Raw Windows application did not complete the smoke launch.'
@@ -44,6 +46,10 @@ jobs:
 
           if ($process.ExitCode -ne 0) {
             throw "Raw Windows application exited with code $($process.ExitCode)."
+          }
+          $report = Get-Content -LiteralPath $env:AKR_SMOKE_REPORT -Raw | ConvertFrom-Json
+          if (-not $report.packaged -or $report.build.applicationCommit -ne $env:GITHUB_SHA -or $report.build.sourceDirty -or $report.info.packageId -ne $report.build.packageId -or $report.artworkId -ne $report.build.artworkId) {
+            throw 'Raw Windows provenance does not match this source/data/artwork selection.'
           }
       - uses: actions/upload-artifact@v7
         with:
@@ -53,11 +59,28 @@ jobs:
       - name: Package Windows portable app
         if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
         run: npx electron-builder --win portable --x64 --publish never
+      - name: Verify portable data and provenance
+        if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          $env:ELECTRON_SMOKE_TEST = '1'
+          $env:PORTABLE_EXECUTABLE_DIR = Join-Path $env:RUNNER_TEMP 'portable-data-smoke'
+          $env:AKR_SMOKE_REPORT = Join-Path $env:GITHUB_WORKSPACE 'dist/windows-build-provenance.json'
+          $app = Get-ChildItem dist/*-x64-Portable.exe | Select-Object -First 1
+          $process = Start-Process -FilePath $app.FullName -PassThru -WindowStyle Hidden
+          if (-not $process.WaitForExit(60000)) { $process.Kill(); throw 'Portable smoke test timed out.' }
+          if ($process.ExitCode -ne 0) { throw "Portable smoke test exited $($process.ExitCode)." }
+          $report = Get-Content -LiteralPath $env:AKR_SMOKE_REPORT -Raw | ConvertFrom-Json
+          if (-not $report.packaged -or $report.build.applicationCommit -ne $env:GITHUB_SHA -or $report.build.sourceDirty -or $report.info.packageId -ne $report.build.packageId -or $report.artworkId -ne $report.build.artworkId -or $report.catalogs.Count -ne 10) {
+            throw 'Portable provenance does not match this source/data/artwork selection.'
+          }
       - uses: actions/upload-artifact@v7
         if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
         with:
           name: windows-portable
-          path: dist/*-x64-Portable.exe
+          path: |
+            dist/*-x64-Portable.exe
+            dist/windows-build-provenance.json
           if-no-files-found: error
 
   release:
@@ -98,11 +121,11 @@ jobs:
           fi
           if draft=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null); then
             if [[ "$draft" == true ]]; then
-              gh release upload "$tag" "${assets[0]}" --clobber
+              gh release upload "$tag" "${assets[0]}" windows-build-provenance.json --clobber
               gh release edit "$tag" --draft=false --latest=false
             fi
           else
-            gh release create "$tag" "${assets[0]}" \
+            gh release create "$tag" "${assets[0]}" windows-build-provenance.json \
               --target "$GITHUB_SHA" --title "$title" \
               --generate-notes "${flags[@]}"
           fi

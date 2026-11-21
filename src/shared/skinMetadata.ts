@@ -4,6 +4,7 @@ import {
   type OperatorDefaultArt,
   type OperatorDataset,
   type OperatorSkin,
+  type ReleaseServer,
 } from './operator.ts'
 
 // v5 invalidates v4 caches that may lack avatar IDs, release times, form-aware ownership,
@@ -225,4 +226,9 @@ export function skinBrandName(skin: OperatorSkin, locale: GameLocale): string | 
 
 export function operatorDatasetNeedsSkinMetadataRefresh(dataset: OperatorDataset): boolean {
   return dataset.skinMetadataVersion !== OPERATOR_SKIN_METADATA_VERSION
+}
+
+/** EN names are populated only for skins present in the EN skin table. */
+export function skinAvailableInRegion(skin: OperatorSkin, region: ReleaseServer): boolean {
+  return region === 'cn' || skin.isDefault === true || Boolean(skin.names.en?.trim())
 }

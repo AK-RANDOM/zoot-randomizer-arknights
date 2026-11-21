@@ -8,7 +8,12 @@ import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import useOverflowScroll from './useOverflowScroll'
+import elite0Icon from './assets/elite-icon/e0.webp'
+import elite1Icon from './assets/elite-icon/e1.webp'
+import elite2Icon from './assets/elite-icon/e2.webp'
 import './OperatorCard.css'
+
+const eliteIcons = [elite0Icon, elite1Icon, elite2Icon] as const
 
 export interface OperatorCardInteractionLine {
   id: string
@@ -249,7 +254,19 @@ export default function OperatorCard({
       <div className="operator-card__caption">
         {progressionLabel && (
           <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
-            {progressionLabel}
+            {progression ? (
+              <>
+                <img
+                  className="operator-card__elite-icon"
+                  src={eliteIcons[progression.elite]}
+                  alt={`E${progression.elite}`}
+                  draggable={false}
+                />
+                <span>L{progression.level}</span>
+              </>
+            ) : (
+              progressionLabel
+            )}
           </span>
         )}
         <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>

@@ -169,12 +169,21 @@
   min-width: max-content;
 }
 .operator-card__account-progression {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin-bottom: 2px;
   color: #f0f0f1;
   font-size: 0.72rem;
   font-weight: 850;
   letter-spacing: 0.02em;
+}
+
+.operator-card__elite-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .operator-card__account-progression.is-unowned {

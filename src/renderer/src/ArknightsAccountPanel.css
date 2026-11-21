@@ -22,13 +22,13 @@
 }
 
 .arknights-account__account-info {
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  display: flex;
   gap: 10px;
   align-items: center;
 }
 
 .arknights-account__avatar {
+  flex: 0 0 52px;
   width: 52px;
   height: 52px;
   border-radius: 6px;
@@ -38,15 +38,15 @@
 
 .arknights-account__account-copy {
   display: grid;
+  flex: 1;
   gap: 4px;
   min-width: 0;
 }
 
 .arknights-account__account-copy span,
 .arknights-account__account-copy small {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .arknights-account__account-copy small,

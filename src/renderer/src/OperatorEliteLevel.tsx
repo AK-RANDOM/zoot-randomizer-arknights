@@ -2,7 +2,7 @@ import type { ImportedOperatorProgress } from '../../shared/arknightsAccount'
 import elite0Icon from './assets/elite-icon/e0.webp'
 import elite1Icon from './assets/elite-icon/e1.webp'
 import elite2Icon from './assets/elite-icon/e2.webp'
-import forfeitIcon from './assets/draft/forfeit-icon.png'
+import unavailableIcon from './assets/elite-icon/unavailable.webp'
 import './OperatorEliteLevel.css'
 
 const eliteIcons = [elite0Icon, elite1Icon, elite2Icon] as const
@@ -20,7 +20,7 @@ export function UnownedOperatorIndicator({
     >
       <span
         className="operator-elite-level__icon operator-elite-level__unowned-icon"
-        style={{ maskImage: `url(${forfeitIcon})` }}
+        style={{ maskImage: `url(${unavailableIcon})` }}
         aria-hidden="true"
       />
       {!iconOnly && <span>Not Owned</span>}

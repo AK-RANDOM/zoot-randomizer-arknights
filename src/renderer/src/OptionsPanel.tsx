@@ -38,12 +38,13 @@ export default function OptionsPanel({
   >('e2')
 
   const isBrowser = window.desktop.platform === 'browser'
+  const accountSyncAvailable = !isBrowser || Boolean(import.meta.env.VITE_WEB_ACCOUNT_API_ORIGIN)
   const { dataset, busy, updateCheck, checkUpdates, installUpdate } = operatorData
   const updateAvailable = updateCheck?.updateAvailable
 
   return (
     <section className="panel options-panel" aria-label="Options">
-      {!isBrowser && <ArknightsAccountPanel dataset={dataset} />}
+      {accountSyncAvailable && <ArknightsAccountPanel dataset={dataset} />}
 
       <div className="primary-settings">
         <label className="field">
@@ -144,7 +145,7 @@ export default function OptionsPanel({
               <option value="e1">Elite 1 for all</option>
               <option value="e2">Elite 2 for all</option>
               <option value="random">Randomize all</option>
-              {!isBrowser && <option value="account">Sync account outfits</option>}
+              {accountSyncAvailable && <option value="account">Sync account outfits</option>}
             </select>
           </label>
           <button

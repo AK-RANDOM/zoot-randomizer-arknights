@@ -151,18 +151,6 @@
   pointer-events: none;
 }
 
-.draft-squad-avatar::before {
-  position: absolute;
-  z-index: 2;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 45%;
-  content: '';
-  background: linear-gradient(0deg, rgba(5, 5, 7, 0.68), rgba(5, 5, 7, 0));
-  pointer-events: none;
-}
-
 .draft-squad-avatar__faction-logo {
   position: absolute;
   z-index: 0;
@@ -222,8 +210,9 @@
   z-index: 3;
   bottom: 3px;
   left: 5px;
-  padding: 0;
-  background: transparent;
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: rgba(7, 7, 9, 0.78);
   pointer-events: none;
 }
 

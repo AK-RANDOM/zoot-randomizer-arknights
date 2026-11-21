@@ -43,6 +43,8 @@ export interface OperatorPreferences {
   excludedOperatorIds: string[]
   /** Per-operator presentation choice. Missing IDs fall back to the legacy/default promotion choice. */
   operatorAppearances: Record<string, OperatorAppearanceChoice>
+  /** Last applied bulk appearance, also used when an outfit is unavailable in the region. */
+  defaultAppearance: Exclude<OperatorAppearanceChoice, `skin:${string}`>
   /** Stable seed used when an operator appearance is set to random. */
   appearanceRandomSeed: number
 }
@@ -61,6 +63,7 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
     showAccountProgression: false,
     excludedOperatorIds: [],
     operatorAppearances: {},
+    defaultAppearance: 'e2',
     appearanceRandomSeed: 1,
   }
 }
@@ -186,6 +189,13 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
         : defaults.showAccountProgression,
     excludedOperatorIds: normalizeIds(candidate.excludedOperatorIds),
     operatorAppearances: normalizeAppearanceMap(candidate.operatorAppearances),
+    defaultAppearance:
+      candidate.defaultAppearance === 'e1' ||
+      candidate.defaultAppearance === 'e2' ||
+      candidate.defaultAppearance === 'random' ||
+      candidate.defaultAppearance === 'account'
+        ? candidate.defaultAppearance
+        : defaults.defaultAppearance,
     appearanceRandomSeed:
       typeof candidate.appearanceRandomSeed === 'number' &&
       Number.isFinite(candidate.appearanceRandomSeed)

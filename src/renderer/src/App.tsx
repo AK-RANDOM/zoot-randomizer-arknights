@@ -28,7 +28,7 @@ import {
   warningIsDismissed,
   type AppTheme,
 } from './rendererPersistence'
-import { notifyOperatorAppearanceChanged } from './operatorAppearance'
+import { notifyOperatorAppearanceChanged, changeAppearanceRegion } from './operatorAppearance'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOwnedOperatorIds } from '../../shared/arknightsAccountReconciliation'
 
@@ -147,7 +147,15 @@ export default function App(): React.JSX.Element {
       window.alert(INVALID_RELEASE_RANGE_MESSAGE)
       return
     }
-    setOperatorPreferences((current) => ({ ...current, metadataRegion: server }))
+    const nextPreferences = changeAppearanceRegion(
+      operatorPreferences,
+      data.dataset.operators,
+      server,
+      importedAccount,
+    )
+    saveOperatorPreferences(nextPreferences)
+    setOperatorPreferences(nextPreferences)
+    notifyOperatorAppearanceChanged()
     setConstraints((current) => ({ ...current, release: nextRelease }))
     markPoolChanged()
     setMessage(`Metadata region changed to ${server === 'global' ? 'EN / Global' : 'CN'}.`)
@@ -184,6 +192,7 @@ export default function App(): React.JSX.Element {
     const nextPreferences: OperatorPreferences = {
       ...operatorPreferences,
       operatorAppearances,
+      defaultAppearance: choice,
       appearanceRandomSeed:
         choice === 'random' ? Date.now() : operatorPreferences.appearanceRandomSeed,
     }

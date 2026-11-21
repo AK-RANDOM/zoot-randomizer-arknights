@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountEquippedSkinId } from '../../shared/arknightsAccountReconciliation'
-import type { Operator } from '../../shared/operator'
+import type { Operator, ReleaseServer } from '../../shared/operator'
 import type { OperatorAppearanceChoice, OperatorPreferences } from '../../shared/operatorPool'
-import { skinDisplayName } from '../../shared/skinMetadata'
+import { skinDisplayName, skinAvailableInRegion } from '../../shared/skinMetadata'
 import { loadOperatorArtwork } from './rendererPersistence'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import {
@@ -58,6 +58,7 @@ function defaultArtAppearance(
 export function resolveAccountAppearance(
   operator: Operator,
   snapshot: ImportedArknightsAccount | null | undefined,
+  region: ReleaseServer = 'cn',
 ): AccountAppearanceResolution {
   if (!snapshot) return { equippedSkinId: null, choice: null, recognized: false }
 
@@ -68,7 +69,12 @@ export function resolveAccountAppearance(
   if (defaultChoice) return { equippedSkinId, choice: defaultChoice, recognized: true }
 
   const skin = operator.skins?.find((candidate) => candidate.id === equippedSkinId)
-  if (skin) return { equippedSkinId, choice: `skin:${skin.id}`, recognized: true }
+  if (skin)
+    return {
+      equippedSkinId,
+      choice: skinAvailableInRegion(skin, region) ? `skin:${skin.id}` : null,
+      recognized: true,
+    }
 
   return { equippedSkinId, choice: null, recognized: false }
 }
@@ -76,9 +82,12 @@ export function resolveAccountAppearance(
 export function resolveRandomAppearance(
   operator: Operator,
   seed: number,
+  region: ReleaseServer = 'cn',
 ): ResolvedOperatorAppearanceChoice {
   const candidates: ResolvedOperatorAppearanceChoice[] = ['e1', 'e2']
-  for (const skin of operator.skins ?? []) candidates.push(`skin:${skin.id}`)
+  for (const skin of operator.skins ?? []) {
+    if (skinAvailableInRegion(skin, region)) candidates.push(`skin:${skin.id}`)
+  }
   return candidates[hashString(`${seed}:${operator.id}`) % candidates.length]
 }
 
@@ -87,10 +96,70 @@ export function resolveAppearanceChoice(
   choice: OperatorAppearanceChoice,
   randomSeed: number,
   accountAppearance: ResolvedOperatorAppearanceChoice | null = null,
+  region: ReleaseServer = 'cn',
 ): ResolvedOperatorAppearanceChoice {
-  if (choice === 'account') return accountAppearance ?? 'e2'
-  if (choice !== 'random') return choice
-  return resolveRandomAppearance(operator, randomSeed)
+  if (choice === 'random') return resolveRandomAppearance(operator, randomSeed, region)
+  const resolved = choice === 'account' ? (accountAppearance ?? 'e2') : choice
+  return appearanceAvailableInRegion(operator, resolved, region) ? resolved : 'e2'
+}
+
+export function appearanceAvailableInRegion(
+  operator: Operator,
+  choice: ResolvedOperatorAppearanceChoice,
+  region: ReleaseServer,
+): boolean {
+  if (!choice.startsWith('skin:')) return true
+  const skin = operator.skins?.find((candidate) => candidate.id === choice.slice(5))
+  return Boolean(skin && skinAvailableInRegion(skin, region))
+}
+
+export function changeAppearanceRegion(
+  preferences: OperatorPreferences,
+  operators: Operator[],
+  region: ReleaseServer,
+  account: ImportedArknightsAccount | null = null,
+): OperatorPreferences {
+  if (preferences.metadataRegion === region) return preferences
+  const operatorAppearances = { ...preferences.operatorAppearances }
+  for (const operator of operators) {
+    const choice = appearanceChoiceForOperator(preferences, operator.id)
+    const accountChoice = resolveAccountAppearance(operator, account).choice
+    if (region === 'global') {
+      const resolved = resolveAppearanceChoice(
+        operator,
+        choice,
+        preferences.appearanceRandomSeed,
+        accountChoice,
+      )
+      if (!appearanceAvailableInRegion(operator, resolved, region)) {
+        const fallback =
+          preferences.defaultAppearance === 'account' ? 'e2' : preferences.defaultAppearance
+        operatorAppearances[operator.id] = resolveAppearanceChoice(
+          operator,
+          fallback,
+          preferences.appearanceRandomSeed,
+          null,
+          region,
+        )
+      } else if (choice === 'random') {
+        operatorAppearances[operator.id] = resolved
+      }
+    } else if (choice === 'random') {
+      // Preserve the displayed outfit when expanding the random pool from EN to CN.
+      operatorAppearances[operator.id] = resolveRandomAppearance(
+        operator,
+        preferences.appearanceRandomSeed,
+        preferences.metadataRegion,
+      )
+    } else if (
+      choice === 'account' &&
+      accountChoice &&
+      !appearanceAvailableInRegion(operator, accountChoice, preferences.metadataRegion)
+    ) {
+      operatorAppearances[operator.id] = 'e2'
+    }
+  }
+  return { ...preferences, metadataRegion: region, operatorAppearances }
 }
 
 export function appearanceLabel(
@@ -99,12 +168,14 @@ export function appearanceLabel(
   locale: OperatorPreferences['gameLocale'],
   randomSeed: number,
   accountResolution?: AccountAppearanceResolution | null,
+  region: ReleaseServer = 'cn',
 ): string {
   const resolved = resolveAppearanceChoice(
     operator,
     choice,
     randomSeed,
     accountResolution?.choice ?? null,
+    region,
   )
   if (choice === 'account') {
     if (!accountResolution?.equippedSkinId) return 'Account equipped · E2 fallback'
@@ -150,8 +221,18 @@ function useResolvedOperatorAppearance(operator: Operator, override?: Appearance
   )
   const choice = override?.choice ?? appearanceChoiceForOperator(preferences, operator.id)
   const randomSeed = override?.randomSeed ?? preferences.appearanceRandomSeed
-  const accountResolution = resolveAccountAppearance(operator, getCachedImportedArknightsAccount())
-  const resolved = resolveAppearanceChoice(operator, choice, randomSeed, accountResolution.choice)
+  const accountResolution = resolveAccountAppearance(
+    operator,
+    getCachedImportedArknightsAccount(),
+    preferences.metadataRegion,
+  )
+  const resolved = resolveAppearanceChoice(
+    operator,
+    choice,
+    randomSeed,
+    accountResolution.choice,
+    preferences.metadataRegion,
+  )
   return { choice, resolved }
 }
 

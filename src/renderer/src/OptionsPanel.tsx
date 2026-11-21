@@ -35,7 +35,7 @@ export default function OptionsPanel({
   const confirmDraftActions = useDraftActionConfirmationPreference()
   const [bulkAppearanceChoice, setBulkAppearanceChoice] = useState<
     'e1' | 'e2' | 'random' | 'account'
-  >('e2')
+  >(preferences.defaultAppearance)
 
   const isBrowser = window.desktop.platform === 'browser'
   const accountSyncAvailable = !isBrowser || Boolean(import.meta.env.VITE_WEB_ACCOUNT_API_ORIGIN)

@@ -6,9 +6,15 @@ import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { resolveAppearanceChoice } from './operatorAppearance'
 
-function PoolAvatar({ operator, choice, randomSeed, accountAppearance }) {
+function PoolAvatar({ operator, choice, randomSeed, accountAppearance, metadataRegion }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const resolved = resolveAppearanceChoice(operator, choice, randomSeed, accountAppearance)
+  const resolved = resolveAppearanceChoice(
+    operator,
+    choice,
+    randomSeed,
+    accountAppearance,
+    metadataRegion,
+  )
   useEffect(() => {
     let active = true
     setImageUrl(null)
@@ -157,6 +163,7 @@ function OperatorEntry({
   appearanceChoice,
   appearanceRandomSeed,
   accountAppearance,
+  metadataRegion,
   appearanceName,
   onToggle,
   onAppearance,
@@ -176,6 +183,7 @@ function OperatorEntry({
       choice={appearanceChoice}
       randomSeed={appearanceRandomSeed}
       accountAppearance={accountAppearance}
+      metadataRegion={metadataRegion}
     />
   )
   let entry

@@ -297,17 +297,27 @@ function PoolPanel({
                         included={!excludedIds.has(operator.id)}
                         presentation="imageGrid"
                         showName={preferences.showCurateNames ?? false}
+                        metadataRegion={preferences.metadataRegion}
                         appearanceChoice={appearanceChoice}
                         appearanceRandomSeed={preferences.appearanceRandomSeed}
                         accountAppearance={
-                          resolveAccountAppearance(operator, importedAccount).choice
+                          resolveAccountAppearance(
+                            operator,
+                            importedAccount,
+                            preferences.metadataRegion,
+                          ).choice
                         }
                         appearanceName={appearanceLabel(
                           operator,
                           appearanceChoice,
                           preferences.gameLocale,
                           preferences.appearanceRandomSeed,
-                          resolveAccountAppearance(operator, importedAccount),
+                          resolveAccountAppearance(
+                            operator,
+                            importedAccount,
+                            preferences.metadataRegion,
+                          ),
+                          preferences.metadataRegion,
                         )}
                         onToggle={() => toggleOperator(operator)}
                         onAppearance={() => setAppearanceOperator(operator)}

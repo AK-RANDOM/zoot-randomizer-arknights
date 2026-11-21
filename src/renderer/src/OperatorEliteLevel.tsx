@@ -9,7 +9,7 @@ const eliteIcons = [elite0Icon, elite1Icon, elite2Icon] as const
 
 export function UnownedOperatorIndicator(): React.JSX.Element {
   return (
-    <span className="operator-elite-level">
+    <span className="operator-elite-level is-unowned">
       <img className="operator-elite-level__icon" src={forfeitIcon} alt="" draggable={false} />
       <span>Not Owned</span>
     </span>

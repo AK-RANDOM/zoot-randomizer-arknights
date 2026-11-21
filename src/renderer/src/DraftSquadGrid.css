@@ -211,11 +211,7 @@
   bottom: 3px;
   left: 5px;
   padding: 0;
-  color: #f0f0f1;
   background: transparent;
-  font-size: 0.68rem;
-  font-weight: 850;
-  line-height: 1;
   pointer-events: none;
 }
 

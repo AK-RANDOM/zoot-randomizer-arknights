@@ -313,7 +313,6 @@ body {
 
 .operator-card__caption strong,
 .operator-card__rarity,
-.draft-squad-avatar__progression,
 .draft-squad-avatar__name {
   color: #ffffff;
   paint-order: stroke fill;

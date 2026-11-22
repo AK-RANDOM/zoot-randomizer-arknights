@@ -9,7 +9,9 @@ describe('Garrison Squad M1', () => {
     expect(app).toContain("type SquadMode = 'standard' | 'garrison' | 'draft'")
     expect(app).toContain("['garrison', 'Garrison']")
     expect(app).toContain('<GarrisonSquadFeature')
-    expect(app).toContain('This Garrison has unsaved changes')
+    expect(app).toContain("if (mode === 'garrison') setRetainGarrison(true)")
+    expect(app).not.toContain('setRetainGarrison(false)')
+    expect(app).not.toContain('This Garrison has unsaved changes')
   })
 
   it('reuses the preset toolbar pattern with Save Garrison as the primary action', () => {

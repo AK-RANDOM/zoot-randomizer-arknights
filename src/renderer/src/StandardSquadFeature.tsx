@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import SquadValidationBox from './SquadValidationBox'
+import GarrisonDispatchRibbon from './GarrisonDispatchRibbon'
+import type { GarrisonDispatchControls } from './garrisonDispatch'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
@@ -170,6 +172,7 @@ export default function StandardSquadFeature({
   onConstraintsChange,
   onMessage,
   onError,
+  garrisonDispatch,
 }: {
   dataset: OperatorDataset | null
   constraints: RandomizerConstraints
@@ -178,6 +181,7 @@ export default function StandardSquadFeature({
   onConstraintsChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
   onMessage: (message: string) => void
   onError: (message: string | null) => void
+  garrisonDispatch?: GarrisonDispatchControls
 }): React.JSX.Element {
   const [squad, setSquad] = useState<Operator[]>([])
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null)
@@ -665,6 +669,12 @@ export default function StandardSquadFeature({
 
   return (
     <>
+      {garrisonDispatch && (
+        <GarrisonDispatchRibbon controls={garrisonDispatch}
+          operatorIds={squad.map((operator) => operator.id)}
+          ready={!rolling && squad.length > 0 && squad.length === constraints.squadSize}
+          hint="Generate a Standard squad, then confirm it here." />
+      )}
       <section className="panel squad-panel" aria-labelledby="squad-heading">
         <div className="section-heading">
           <div>

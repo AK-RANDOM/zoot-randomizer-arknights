@@ -18,6 +18,7 @@ import {
   getGarrisonParticipation,
   garrisonHasOperatorConflicts,
   reorderGarrisonStages,
+  normalizeGarrisonStageOperatorIds,
   type Garrison,
   type GarrisonStage,
 } from '../../shared/garrison'
@@ -25,6 +26,8 @@ import { garrisonEventHelperOperator } from '../../shared/garrisonEventHelper'
 import EventSelectorDropdown from './EventSelectorDropdown'
 import GarrisonConflictDialog from './GarrisonConflictDialog'
 import GarrisonStageEditor from './GarrisonStageEditor'
+import GarrisonSquadMethodDialog from './GarrisonSquadMethodDialog'
+import { garrisonDispatchExclusions, type GarrisonDispatchRequest } from './garrisonDispatch'
 import CompactOperatorAvatar from './CompactOperatorAvatar'
 import SquadShareButton from './SquadShareButton'
 import TextInputDialog from './TextInputDialog'
@@ -34,7 +37,7 @@ type NameDialogMode = 'new' | 'save' | 'duplicate' | 'rename'
 function GarrisonActionIcon({
   action,
 }: {
-  action: 'new' | 'duplicate' | 'rename' | 'delete'
+  action: 'new' | 'duplicate' | 'rename' | 'delete' | 'generate' | 'clear'
 }): React.JSX.Element {
   return (
     <svg
@@ -68,6 +71,22 @@ function GarrisonActionIcon({
       {action === 'delete' && (
         <>
           <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+        </>
+      )}
+      {action === 'generate' && (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="8" r="1" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+          <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none" />
+        </>
+      )}
+      {action === 'clear' && (
+        <>
+          <path d="m16 3 5 5-11 13H5l-3-3L16 3Z" />
+          <path d="m8 11 7 7M10 21h11" />
         </>
       )}
     </svg>
@@ -127,16 +146,16 @@ export default function GarrisonSquadFeature({
   alterExclusivity,
   metadataRegion,
   gameLocale,
-  onDirtyChange,
   onMessage,
+  onDispatch,
 }: {
   operators: readonly Operator[]
   eligibleOperators: readonly Operator[]
   alterExclusivity: boolean
   metadataRegion: ReleaseServer
   gameLocale: GameLocale
-  onDirtyChange: (dirty: boolean) => void
   onMessage: (message: string) => void
+  onDispatch: (request: GarrisonDispatchRequest) => void
 }): React.JSX.Element {
   const [library, setLibrary] = useState<Garrison[]>(() => loadSavedGarrisons())
   const [recovery] = useState(() => (import.meta.env.PROD ? loadGarrisonRecovery() : null))
@@ -152,6 +171,7 @@ export default function GarrisonSquadFeature({
   const [stageEditor, setStageEditor] = useState<StageEditorState | null>(
     recovery?.stageEditor ?? null,
   )
+  const [squadMethod, setSquadMethod] = useState<StageEditorState | null>(null)
   const [events, setEvents] = useState<GarrisonEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsError, setEventsError] = useState<string | null>(null)
@@ -231,12 +251,6 @@ export default function GarrisonSquadFeature({
   useLayoutEffect(() => {
     saveSavedGarrisons(library)
   }, [library])
-
-  useEffect(() => {
-    onDirtyChange(hasUnsavedChanges)
-  }, [hasUnsavedChanges, onDirtyChange])
-
-  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
 
   useLayoutEffect(() => {
     if (import.meta.env.DEV) return
@@ -501,7 +515,7 @@ export default function GarrisonSquadFeature({
 
   const addStage = (): void => {
     if (stageEditor || conflictDraft) return
-    setStageEditor({
+    setSquadMethod({
       mode: 'new',
       stage: createGarrisonStage(nextStageName(working.stages)),
       undo: null,
@@ -516,6 +530,55 @@ export default function GarrisonSquadFeature({
       stage: cloneGarrisonStage(stage),
       undo: null,
       redo: null,
+    })
+  }
+
+  const generateStage = (stage: GarrisonStage): void => {
+    if (stageEditor || conflictDraft) return
+    setSquadMethod({
+      mode: 'existing',
+      stage: cloneGarrisonStage(stage),
+      undo: null,
+      redo: null,
+    })
+  }
+
+  const selectSquadMethod = (method: 'manual' | 'standard' | 'draft'): void => {
+    if (!squadMethod) return
+    const pending = squadMethod
+    setSquadMethod(null)
+    if (method === 'manual') {
+      setStageEditor(pending)
+      return
+    }
+    const excludedOperatorIds = garrisonDispatchExclusions(working, pending.stage.id)
+    const eligibleIds = new Set(eligibleOperators.map((operator) => operator.id))
+    onDispatch({
+      mode: method,
+      stageName: pending.stage.name.trim() || 'Untitled Stage',
+      excludedOperatorIds,
+      onConfirm: (operatorIds) => {
+        const normalized = normalizeGarrisonStageOperatorIds(operatorIds)
+        if (
+          !normalized.length ||
+          normalized.length !== operatorIds.length ||
+          normalized.some((id) => !eligibleIds.has(id) || excludedOperatorIds.includes(id))
+        ) {
+          onMessage('This squad cannot be assigned to the Garrison stage. Generate a new squad.')
+          return false
+        }
+        const committed = cloneGarrisonStage({ ...pending.stage, operatorIds: normalized })
+        committed.name = committed.name.trim() || 'Untitled Stage'
+        const next = cloneGarrison(working)
+        next.stages =
+          pending.mode === 'new'
+            ? [...next.stages, committed]
+            : next.stages.map((stage) => (stage.id === committed.id ? committed : stage))
+        if (!next.duplicateOperatorsAllowed && garrisonHasOperatorConflicts(next)) return false
+        applyWorkingEdit(next)
+        onMessage(`Assigned squad to “${committed.name}”. Save Garrison to keep the change.`)
+        return true
+      },
     })
   }
 
@@ -1091,9 +1154,18 @@ export default function GarrisonSquadFeature({
                       <span className="sr-only">Stage name</span>
                       <input
                         type="text"
-                        value={stage.name}
-                        disabled={stageEditor !== null || conflictDraft !== null}
-                        onChange={(event) => renameStage(stage.id, event.target.value)}
+                        value={
+                          stageEditor?.stage.id === stage.id ? stageEditor.stage.name : stage.name
+                        }
+                        disabled={
+                          (stageEditor !== null && stageEditor.stage.id !== stage.id) ||
+                          conflictDraft !== null
+                        }
+                        onChange={(event) =>
+                          stageEditor?.stage.id === stage.id
+                            ? changeStageEditor({ ...stageEditor.stage, name: event.target.value })
+                            : renameStage(stage.id, event.target.value)
+                        }
                       />
                     </label>
                   </div>
@@ -1125,15 +1197,28 @@ export default function GarrisonSquadFeature({
                   <div className="garrison-stage-actions" role="cell">
                     <button
                       type="button"
-                      className="secondary-button"
+                      className="secondary-button garrison-stage-icon-button"
+                      aria-label={`Edit ${stage.name}`}
+                      title="Edit"
                       disabled={stageEditor !== null || conflictDraft !== null}
                       onClick={() => editStage(stage)}
                     >
-                      Edit
+                      <GarrisonActionIcon action="rename" />
                     </button>
                     <button
                       type="button"
-                      className="secondary-button"
+                      className="secondary-button garrison-stage-icon-button"
+                      aria-label={`Generate squad for ${stage.name}`}
+                      title="Generate squad · Standard / Draft"
+                      disabled={stageEditor !== null || conflictDraft !== null}
+                      onClick={() => generateStage(stage)}
+                    >
+                      <GarrisonActionIcon action="generate" />
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button garrison-stage-icon-button"
+                      aria-label={`Clear squad for ${stage.name}`}
                       disabled={
                         stageEditor !== null ||
                         conflictDraft !== null ||
@@ -1142,15 +1227,17 @@ export default function GarrisonSquadFeature({
                       onClick={() => clearStageSquad(stage.id)}
                       title={`Clear operators from ${stage.name} without deleting the stage`}
                     >
-                      Clear
+                      <GarrisonActionIcon action="clear" />
                     </button>
                     <button
                       type="button"
-                      className="danger-button"
+                      className="danger-button garrison-stage-icon-button"
+                      aria-label={`Delete ${stage.name}`}
+                      title="Delete stage"
                       disabled={stageEditor !== null || conflictDraft !== null}
                       onClick={() => deleteStage(stage.id)}
                     >
-                      Delete
+                      <GarrisonActionIcon action="delete" />
                     </button>
                   </div>
                 </div>
@@ -1202,6 +1289,18 @@ export default function GarrisonSquadFeature({
           Add Stage
         </button>
       </section>
+
+      {squadMethod && (
+        <GarrisonSquadMethodDialog
+          stage={squadMethod.stage}
+          includeManual={squadMethod.mode === 'new'}
+          onNameChange={(name) =>
+            setSquadMethod({ ...squadMethod, stage: { ...squadMethod.stage, name } })
+          }
+          onSelect={selectSquadMethod}
+          onCancel={() => setSquadMethod(null)}
+        />
+      )}
 
       {nameDialog && (
         <TextInputDialog

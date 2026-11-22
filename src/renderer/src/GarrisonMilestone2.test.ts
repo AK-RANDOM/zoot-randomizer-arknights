@@ -31,11 +31,12 @@ describe('Garrison Squad M2', () => {
     expect(draftGrid).toContain('export function DraftRosterAvatar')
   })
 
-  it('wires the stage name into the Draft roster heading position', () => {
+  it('keeps the stage name in the stage row without a duplicate roster input', () => {
     const editor = read('./GarrisonStageEditor.tsx')
-    expect(editor).toContain('className="garrison-stage-editor-title"')
-    expect(editor).toContain('aria-label="Stage name"')
-    expect(editor).toContain('onChange={(name) => onChange({ ...stage, name })}')
+    const feature = read('./GarrisonSquadFeature.tsx')
+    expect(editor).not.toContain('StageNameInput')
+    expect(feature).toContain('className="garrison-stage-name"')
+    expect(feature).toContain('changeStageEditor({ ...stageEditor.stage, name: event.target.value })')
   })
 
   it('matches Standard Squad centered stacked Modify/Clear presentation', () => {

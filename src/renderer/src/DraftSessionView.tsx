@@ -42,7 +42,9 @@ function DraftPilesDebug({
           <section className="garrison-participants" key={label} aria-label={label}>
             <div className="garrison-participant-heading">
               <strong>{label}</strong>
-              <span>{ids.length} {ids.length === 1 ? 'operator' : 'operators'}</span>
+              <span>
+                {ids.length} {ids.length === 1 ? 'operator' : 'operators'}
+              </span>
             </div>
             {ids.length === 0 ? (
               <p>Empty</p>
@@ -389,15 +391,17 @@ export default function DraftSessionView({
         </div>
         <div className="preset-actions draft-status-actions">
           <span className="preset-actions-spacer" aria-hidden="true" />
-          <SquadShareButton result={shareResult} />
-          <button
-            className="randomize-button draft-status-new"
-            type="button"
-            disabled={draftOngoing ? !onFinalize : !canStart}
-            onClick={draftOngoing ? requestFinalize : requestStart}
-          >
-            {draftOngoing ? 'Finalize' : 'Start Draft'}
-          </button>
+          <div className="mode-primary-actions">
+            <button
+              className="randomize-button draft-status-new"
+              type="button"
+              disabled={draftOngoing ? !onFinalize : !canStart}
+              onClick={draftOngoing ? requestFinalize : requestStart}
+            >
+              {draftOngoing ? 'Finalize' : 'Start Draft'}
+            </button>
+            <SquadShareButton result={shareResult} />
+          </div>
         </div>
       </div>
       {validationErrors.length === 0 && (

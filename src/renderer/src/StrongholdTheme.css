@@ -1,0 +1,151 @@
+/* Palette inspired by juhkff.github.io/arknights-random-team/. */
+:root[data-theme='stronghold'] {
+  color-scheme: dark;
+  color: #edf4fa;
+  background: #101418;
+  --app-accent: #65e6c4;
+  --app-accent-hover: #8aefd6;
+  --app-accent-light: #a2f3de;
+  --app-accent-text: #65e6c4;
+  --app-accent-pale: #c9faed;
+  --app-accent-selected-border: #3b8d7d;
+  --app-accent-card-hover: #65e6c4;
+  --app-accent-hold-border: #31574f;
+  --line: #303c45;
+  --stronghold-panel: #191f25;
+  --stronghold-inset: #151b21;
+  --stronghold-control: #1d272e;
+  --stronghold-muted: #a5b2bf;
+}
+
+[data-theme='stronghold'] body {
+  background: #101418;
+}
+
+[data-theme='stronghold'] .panel {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-panel);
+}
+
+[data-theme='stronghold']
+  :is(
+    .main-tabs,
+    .squad-mode-tabs,
+    .draft-status-shell,
+    .preset-toolbar,
+    .current-constraint-summary,
+    .option-setting,
+    .option-toggle,
+    .squad-filter-disclosure,
+    .data-summary span
+  ) {
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold']
+  :is(
+    .field input,
+    .field select,
+    .preset-select select,
+    .compact-number input,
+    .draft-rulebook-select,
+    .secondary-button,
+    .bound-pill,
+    .criteria-chip,
+    .quick-select,
+    .artwork-choice
+  ) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold']
+  :is(.secondary-button, .bound-pill, .criteria-chip, .quick-select, .artwork-choice):hover:not(
+    :disabled
+  ) {
+  border-color: var(--app-accent-selected-border);
+  background: #24343b;
+}
+
+[data-theme='stronghold'] :is(.main-tabs, .squad-mode-tabs) button {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] :is(.main-tabs, .squad-mode-tabs) button:hover {
+  color: #edf4fa;
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] :is(.main-tabs, .squad-mode-tabs) button.is-active,
+[data-theme='stronghold'] :is(.criteria-chip, .quick-select, .artwork-choice).is-selected {
+  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: #193b37;
+}
+
+[data-theme='stronghold']
+  :is(
+    .randomize-button,
+    .update-banner button,
+    .draft-operator-action--pick,
+    .draft-candidate__action,
+    .operator-card__interaction-indicator
+  ) {
+  color: #09251f;
+}
+
+[data-theme='stronghold'] .slot-config-card:not(.is-constrained) {
+  color: var(--stronghold-muted);
+  background:
+    linear-gradient(135deg, transparent 49.6%, #24303a 50%, transparent 50.4%),
+    var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] :is(.random-operator-card, .disabled-slot) {
+  background-color: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .slot-config-card:hover {
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] .slot-config-card.is-constrained {
+  background:
+    linear-gradient(#151b21, #151b21) padding-box,
+    var(--slot-constraint-gradient, linear-gradient(135deg, #66666e, #66666e)) border-box !important;
+}
+
+[data-theme='stronghold']
+  :is(
+    .field small,
+    .option-note,
+    .option-setting__copy p,
+    .current-constraint-summary-content p,
+    .data-summary,
+    .artwork-choice small,
+    .draft-status-item span,
+    .draft-status-rulebook span
+  ) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .draft-squad-expand {
+  background:
+    linear-gradient(180deg, rgba(101, 230, 196, 0.18), rgba(101, 230, 196, 0.08)),
+    var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .draft-squad-expand:hover:not(:disabled),
+[data-theme='stronghold'] .draft-squad-expand:focus-visible {
+  background:
+    linear-gradient(180deg, rgba(101, 230, 196, 0.26), rgba(101, 230, 196, 0.12)),
+    var(--stronghold-control);
+}
+
+[data-theme='stronghold'] :is(button, input, select, summary, a):focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 3px;
+}

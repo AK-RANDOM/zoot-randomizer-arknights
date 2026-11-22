@@ -125,7 +125,7 @@ describe('Standard Squad layout refinements', () => {
 
     expect(toolbarStart).toBeGreaterThanOrEqual(0)
     expect(toolbarSource).toContain('<span className="preset-toolbar-label">Preset</span>')
-    expect(toolbarSource).toContain('Save as preset…')
+    expect(toolbarSource).toContain('aria-label="Save as preset"')
     expect(toolbarSource).toContain('Clear')
     expect(toolbarSource).toContain('Randomize')
     expect(toolbarSource).toContain('disabled={rolling || squad.length === 0}')

@@ -5,7 +5,7 @@ const source = (name: string): string => readFileSync(new URL(name, import.meta.
 describe('Garrison event quick-add toolbar', () => {
   it('appears directly after participating operators, before the stage table', () => {
     const code = source('./GarrisonSquadFeature.tsx')
-    const overview = code.indexOf('className="garrison-participants"')
+    const overview = code.indexOf('aria-labelledby="garrison-participants-heading"')
     const toolbar = code.indexOf('className="garrison-stage-quickadd"')
     const table = code.indexOf('className="garrison-stage-table"')
     expect(overview).toBeGreaterThan(-1)

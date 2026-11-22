@@ -24,6 +24,45 @@ const amiya: Operator = { ...silverAsh, id: 'amiya', name: 'Amiya', rarity: 5 }
 const generatedAt = new Date(2026, 10, 13)
 
 describe('squad sharing', () => {
+  it('shares ordered Garrison stages, repeated assignments, empty stages, and missing operators', () => {
+    expect(
+      formatSquadShareText({
+        mode: 'Garrison',
+        generatedAt,
+        members: [],
+        garrison: {
+          name: 'Event plan',
+          duplicateOperatorsAllowed: true,
+          stages: [
+            { name: 'Stage A', members: [silverAsh, amiya] },
+            {
+              name: 'Stage B',
+              members: [silverAsh, { id: 'missing', name: 'Unknown operator (missing)' }],
+            },
+            { name: 'Stage C', members: [] },
+          ],
+        },
+      }),
+    ).toBe(
+      [
+        'ZOOT Squad Dispatcher',
+        'Garrison: Event plan',
+        'Cross-stage duplicates: Allowed',
+        '',
+        '1. Stage A',
+        '  1. 6* SilverAsh',
+        '  2. 5* Amiya',
+        '',
+        '2. Stage B',
+        '  1. 6* SilverAsh',
+        '  2. Unknown operator (missing)',
+        '',
+        '3. Stage C',
+        '  No operators assigned',
+      ].join('\n'),
+    )
+  })
+
   it('shares only the concise IS setup and member names without Hope costs', () => {
     const result: SquadShareResult = {
       mode: 'IS Opening',

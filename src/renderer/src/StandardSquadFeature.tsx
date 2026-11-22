@@ -710,15 +710,15 @@ export default function StandardSquadFeature({
             </select>
           </label>
           <div className="preset-actions">
-            <button type="button" className="secondary-button" onClick={saveAsPreset}>
-              Save as preset…
+            <button type="button" className="secondary-button mode-icon-button" aria-label="Save as preset" title="Save as preset" onClick={saveAsPreset}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z" /><path d="M7 3v6h10V3M7 21v-8h10v8" /></svg>
             </button>
             {selectedPreset && (
-              <button type="button" className="secondary-button" onClick={duplicateSelectedPreset}>
-                Duplicate
+              <button type="button" className="secondary-button mode-icon-button" aria-label="Duplicate preset" title="Duplicate preset" onClick={duplicateSelectedPreset}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V4H4v12h4" /></svg>
               </button>
             )}
-            <label className="confirmation-checkbox">
+            <label className="mode-checkbox">
               <input
                 type="checkbox"
                 checked={chainMode}
@@ -759,26 +759,38 @@ export default function StandardSquadFeature({
                 {allKept ? 'Unkeep All' : 'Keep All'}
               </button>
             )}
-            {generatedAt && squad.length === constraints.squadSize && (
-              <SquadShareButton result={{ mode: 'Standard Mode', generatedAt, members: squad }} />
-            )}
-            {(!chain || rerollableCount > 0) && (
+            <div className="mode-primary-actions">
               <button
                 className="randomize-button"
                 type="button"
-                disabled={rolling || (useBatchReroll ? !rerolls?.batch : !dataset || !validation.valid)}
+                disabled={
+                  rolling || (useBatchReroll ? !rerolls?.batch : !dataset || !validation.valid)
+                }
                 title={
                   checkingRerolls || checkingInitial
                     ? 'Checking squad…'
                     : useBatchReroll && !rerolls?.batch
-                    ? 'No eligible replacements for the remaining slots'
-                    : undefined
+                      ? 'No eligible replacements for the remaining slots'
+                      : undefined
                 }
                 onClick={useBatchReroll ? () => rerollSquad() : randomize}
               >
-                {rolling ? 'Rolling…' : checkingRerolls || checkingInitial ? 'Checking…' : useBatchReroll ? batchRerollLabel : 'Randomize'}
+                {rolling
+                  ? 'Rolling…'
+                  : checkingRerolls || checkingInitial
+                    ? 'Checking…'
+                    : useBatchReroll
+                      ? batchRerollLabel
+                      : 'Randomize'}
               </button>
-            )}
+              <SquadShareButton
+                result={
+                  generatedAt && squad.length === constraints.squadSize
+                    ? { mode: 'Standard Mode', generatedAt, members: squad }
+                    : null
+                }
+              />
+            </div>
           </div>
         </div>
 
@@ -786,7 +798,7 @@ export default function StandardSquadFeature({
           <div className="current-constraint-summary-content">
             <strong>Current constraints</strong>
             {currentConstraintSummary.length > 0 ? (
-              <div>
+              <div className="constraint-summary-chips">
                 {currentConstraintSummary.map((summary) => (
                   <span key={summary}>{summary}</span>
                 ))}

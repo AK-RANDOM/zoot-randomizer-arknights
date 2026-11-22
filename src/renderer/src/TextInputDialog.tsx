@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 export default function TextInputDialog({
   title,
   initialValue = '',
   inputLabel = 'Preset name',
+  showInputLabel = false,
   confirmLabel,
   onCancel,
   onConfirm,
@@ -11,11 +12,13 @@ export default function TextInputDialog({
   title: string
   initialValue?: string
   inputLabel?: string
+  showInputLabel?: boolean
   confirmLabel: string
   onCancel: () => void
   onConfirm: (value: string) => void
 }): React.JSX.Element {
   const [value, setValue] = useState(initialValue)
+  const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -39,7 +42,13 @@ export default function TextInputDialog({
         onMouseDown={(event) => event.stopPropagation()}
       >
         <h3 id="preset-name-dialog-title">{title}</h3>
+        {showInputLabel && (
+          <label className="preset-name-dialog-label" htmlFor={inputId}>
+            {inputLabel}
+          </label>
+        )}
         <input
+          id={inputId}
           ref={inputRef}
           className="preset-name-dialog-input"
           value={value}

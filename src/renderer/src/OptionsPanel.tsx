@@ -87,6 +87,7 @@ export default function OptionsPanel({
           <select value={theme} onChange={(event) => onThemeChange(event.target.value as AppTheme)}>
             <option value="rhodes">Rhodes</option>
             <option value="zoot">ZOOT</option>
+            <option value="stronghold">Stronghold</option>
           </select>
         </label>
       </div>

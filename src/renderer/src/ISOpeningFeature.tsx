@@ -367,8 +367,8 @@ export default function ISOpeningFeature({
   return (
     <section className="panel squad-panel is-opening" aria-label="IS Opening">
       <div className="preset-toolbar is-opening__toolbar">
-        <div className="field is-opening__inline-field is-opening__theme">
-          <span>THEME</span>
+        <span className="preset-toolbar-label">Theme</span>
+        <div className="preset-select is-opening__theme">
           <EventSelectorDropdown
             label="Theme"
             showLabel={false}
@@ -412,26 +412,7 @@ export default function ISOpeningFeature({
             ))}
           </select>
         </label>
-        <div className="is-opening__toolbar-actions">
-          <SquadShareButton
-            result={
-              generatedAt && current.every(Boolean)
-                ? {
-                    mode: 'IS Opening',
-                    generatedAt,
-                    members: current,
-                    opening: {
-                      theme: `IS${theme.number}: ${theme.name}`,
-                      squad: squad.name,
-                      squadIconUrl: isSquadArtUrl(squad),
-                      voucherSet: theme.voucherSets.find((set) => set.id === voucherSetId)!.name,
-                      voucherSetIconUrl: isVoucherSetArtUrl(voucherSetId),
-                      startingHope,
-                    },
-                  }
-                : null
-            }
-          />
+        <div className="mode-primary-actions is-opening__toolbar-actions">
           <button
             type="button"
             className="randomize-button"
@@ -460,6 +441,25 @@ export default function ISOpeningFeature({
           >
             Randomize All
           </button>
+          <SquadShareButton
+            result={
+              generatedAt && current.every(Boolean)
+                ? {
+                    mode: 'IS Opening',
+                    generatedAt,
+                    members: current,
+                    opening: {
+                      theme: `IS${theme.number}: ${theme.name}`,
+                      squad: squad.name,
+                      squadIconUrl: isSquadArtUrl(squad),
+                      voucherSet: theme.voucherSets.find((set) => set.id === voucherSetId)!.name,
+                      voucherSetIconUrl: isVoucherSetArtUrl(voucherSetId),
+                      startingHope,
+                    },
+                  }
+                : null
+            }
+          />
         </div>
       </div>
       <div className="is-opening__columns">

@@ -26,10 +26,54 @@ import EventSelectorDropdown from './EventSelectorDropdown'
 import GarrisonConflictDialog from './GarrisonConflictDialog'
 import GarrisonStageEditor from './GarrisonStageEditor'
 import CompactOperatorAvatar from './CompactOperatorAvatar'
+import SquadShareButton from './SquadShareButton'
 import TextInputDialog from './TextInputDialog'
 import { loadSavedGarrisons, saveSavedGarrisons } from './rendererPersistence'
 
-type NameDialogMode = 'duplicate' | 'rename'
+type NameDialogMode = 'new' | 'save' | 'duplicate' | 'rename'
+function GarrisonActionIcon({
+  action,
+}: {
+  action: 'new' | 'duplicate' | 'rename' | 'delete'
+}): React.JSX.Element {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {action === 'new' && (
+        <>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <path d="M12 8v8M8 12h8" />
+        </>
+      )}
+      {action === 'duplicate' && (
+        <>
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V4H4v12h4" />
+        </>
+      )}
+      {action === 'rename' && (
+        <>
+          <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z" />
+        </>
+      )}
+      {action === 'delete' && (
+        <>
+          <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 type StageEditorState = {
   mode: 'new' | 'existing'
   stage: GarrisonStage
@@ -247,15 +291,7 @@ export default function GarrisonSquadFeature({
   }
 
   const beginNewGarrison = (): void => {
-    const next = createGarrison()
-    setWorking(next)
-    setBaseline(cloneGarrison(next))
-    setSelectedGarrisonId(null)
-    setStageEditor(null)
-    setConflictDraft(null)
-    setConflictPurpose(null)
-    resetHistory()
-    onMessage('Started a new Garrison.')
+    setNameDialog({ mode: 'new', initialValue: '' })
   }
 
   const confirmDiscardIfNeeded = (action: () => void): boolean => {
@@ -306,6 +342,10 @@ export default function GarrisonSquadFeature({
 
   const saveGarrison = (): void => {
     if (stageEditor || conflictDraft) return
+    if (selectedGarrisonId === null && working.name === 'Untitled Garrison') {
+      setNameDialog({ mode: 'save', initialValue: '' })
+      return
+    }
     persistGarrison(
       cloneGarrison({
         ...working,
@@ -378,7 +418,26 @@ export default function GarrisonSquadFeature({
   const confirmNameDialog = (name: string): void => {
     const action = nameDialog
     if (!action) return
+    if (action.mode === 'new') {
+      confirmDiscardIfNeeded(() => {
+        const next = createGarrison(name)
+        setWorking(next)
+        setBaseline(cloneGarrison(next))
+        setSelectedGarrisonId(null)
+        setStageEditor(null)
+        setConflictDraft(null)
+        setConflictPurpose(null)
+        resetHistory()
+        setNameDialog(null)
+        onMessage('Started a new Garrison.')
+      })
+      return
+    }
     setNameDialog(null)
+    if (action.mode === 'save') {
+      persistGarrison(cloneGarrison({ ...working, name }))
+      return
+    }
     if (action.mode === 'rename') {
       applyWorkingEdit({ ...working, name })
       onMessage('Garrison renamed in the working copy. Save Garrison to keep the change.')
@@ -692,9 +751,7 @@ export default function GarrisonSquadFeature({
                 const id = event.target.value
                 if (id === 'new') {
                   if (selectedGarrisonId === null) return
-                  if (!confirmDiscardIfNeeded(beginNewGarrison)) {
-                    event.currentTarget.value = selectedGarrisonId
-                  }
+                  beginNewGarrison()
                   return
                 }
                 const garrison = library.find((candidate) => candidate.id === id)
@@ -703,12 +760,16 @@ export default function GarrisonSquadFeature({
                 }
               }}
             >
-              <option value="new">New Garrison</option>
+              <option value="new">
+                {selectedGarrisonId === null && working.name !== 'Untitled Garrison'
+                  ? working.name
+                  : 'New Garrison'}
+              </option>
               {library.length > 0 && (
                 <optgroup label="Saved">
                   {library.map((garrison) => (
                     <option key={garrison.id} value={garrison.id}>
-                      {garrison.name}
+                      {garrison.id === selectedGarrisonId ? working.name : garrison.name}
                     </option>
                   ))}
                 </optgroup>
@@ -718,66 +779,47 @@ export default function GarrisonSquadFeature({
           <div className="preset-actions">
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action"
+              aria-label="New Garrison"
+              title="New Garrison"
               disabled={stageEditor !== null || conflictDraft !== null}
-              onClick={() => confirmDiscardIfNeeded(beginNewGarrison)}
+              onClick={beginNewGarrison}
             >
-              New
+              <GarrisonActionIcon action="new" />
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action"
+              aria-label="Duplicate Garrison"
+              title="Duplicate Garrison"
               disabled={stageEditor !== null || conflictDraft !== null}
               onClick={() =>
                 setNameDialog({ mode: 'duplicate', initialValue: `${working.name} copy` })
               }
             >
-              Duplicate
+              <GarrisonActionIcon action="duplicate" />
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action"
+              aria-label="Rename Garrison"
+              title="Rename Garrison"
               disabled={stageEditor !== null || conflictDraft !== null}
               onClick={() => setNameDialog({ mode: 'rename', initialValue: working.name })}
             >
-              Rename
+              <GarrisonActionIcon action="rename" />
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action garrison-library-action--delete"
+              aria-label="Delete Garrison"
+              title="Delete Garrison"
               disabled={!selectedGarrison || stageEditor !== null || conflictDraft !== null}
               onClick={deleteSelectedGarrison}
             >
-              Delete
+              <GarrisonActionIcon action="delete" />
             </button>
-            <span className="preset-actions-spacer" aria-hidden="true" />
-            <button
-              type="button"
-              className="randomize-button"
-              disabled={
-                stageEditor !== null ||
-                conflictDraft !== null ||
-                (selectedGarrison !== null && !dirty)
-              }
-              onClick={saveGarrison}
-            >
-              Save Garrison
-            </button>
-          </div>
-        </div>
-
-        <div className="garrison-document-heading">
-          <label className="garrison-name-field">
-            <span>Garrison name</span>
-            <input
-              type="text"
-              value={working.name}
-              disabled={stageEditor !== null || conflictDraft !== null}
-              onChange={(event) => applyWorkingEdit({ ...working, name: event.target.value })}
-            />
-          </label>
-          <div className="garrison-document-controls">
-            <label className="garrison-repeat-toggle">
+            <label className="garrison-repeat-toggle mode-checkbox">
               <input
                 type="checkbox"
                 checked={working.duplicateOperatorsAllowed}
@@ -786,84 +828,134 @@ export default function GarrisonSquadFeature({
               />
               <span>Allow duplicates</span>
             </label>
-            <span
-              className={hasUnsavedChanges ? 'garrison-save-state is-dirty' : 'garrison-save-state'}
-            >
-              {stageEditor
-                ? 'Editing stage'
-                : conflictDraft
-                  ? 'Resolve conflict'
-                  : dirty
-                    ? 'Unsaved changes'
-                    : selectedGarrison
-                      ? 'Saved'
-                      : 'New'}
-            </span>
+            <span className="preset-actions-spacer" aria-hidden="true" />
+            <div className="mode-primary-actions">
+              <button
+                type="button"
+                className="randomize-button garrison-save-button"
+                aria-label="Save Garrison"
+                aria-describedby="garrison-save-status"
+                disabled={
+                  stageEditor !== null ||
+                  conflictDraft !== null ||
+                  (selectedGarrison !== null && !dirty)
+                }
+                onClick={saveGarrison}
+              >
+                <span>Save Garrison</span>
+                <small id="garrison-save-status" role="status">
+                  {stageEditor
+                    ? 'Editing Stage'
+                    : conflictDraft
+                      ? 'Resolve Conflict'
+                      : dirty
+                        ? 'Unsaved Changes'
+                        : selectedGarrison
+                          ? 'Saved'
+                          : 'New Garrison'}
+                </small>
+              </button>
+              <SquadShareButton
+                label="Share Garrison"
+                result={
+                  working.stages.length && !stageEditor && !conflictDraft
+                    ? {
+                        mode: 'Garrison',
+                        generatedAt: new Date(),
+                        members: [],
+                        garrison: {
+                          name: working.name,
+                          duplicateOperatorsAllowed: working.duplicateOperatorsAllowed,
+                          stages: working.stages.map((stage) => ({
+                            name: stage.name,
+                            members: stage.operatorIds.map(
+                              (id) =>
+                                operatorById.get(id) ?? { id, name: `Unknown operator (${id})` },
+                            ),
+                          })),
+                        },
+                      }
+                    : null
+                }
+              />
+            </div>
           </div>
         </div>
 
-        <section className="garrison-participants" aria-labelledby="garrison-participants-heading">
-          <div className="garrison-participant-heading">
-            <strong id="garrison-participants-heading">Participating Operators</strong>
-            {working.duplicateOperatorsAllowed && <span>{participation.length} unique</span>}
-          </div>
-          {participation.length === 0 ? (
-            <p>No operators assigned yet.</p>
-          ) : (
-            <div
-              className="garrison-participant-list"
-              aria-label="Participating operators by stage count"
-            >
-              {participation.map(({ operatorId, stageCount }) => {
-                const operator = operatorById.get(operatorId)
-                const label = operator?.name ?? operatorId
-                return (
-                  <span
-                    className="garrison-participant-entry"
-                    key={operatorId}
-                    title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
-                    style={{ position: 'relative', display: 'inline-flex' }}
-                  >
-                    {operator ? (
-                      <CompactOperatorAvatar operator={operator} />
-                    ) : (
-                      <span
-                        className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
-                        title={operatorId}
-                      >
-                        ?
-                      </span>
-                    )}
-                    {stageCount >= 2 && (
-                      <span
-                        className="garrison-participant-count"
-                        aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
-                        style={{
-                          position: 'absolute',
-                          right: -4,
-                          bottom: -4,
-                          display: 'grid',
-                          minWidth: 19,
-                          height: 19,
-                          placeItems: 'center',
-                          padding: '0 4px',
-                          border: '1px solid rgba(255, 255, 255, 0.42)',
-                          borderRadius: 999,
-                          color: '#fff',
-                          background: '#171719',
-                          fontSize: '0.62rem',
-                          fontWeight: 900,
-                          lineHeight: 1,
-                        }}
-                      >
-                        ×{stageCount}
-                      </span>
-                    )}
-                  </span>
-                )
-              })}
+        <section
+          className="current-constraint-summary garrison-participation-summary"
+          aria-labelledby="garrison-participants-heading"
+        >
+          <div className="current-constraint-summary-content">
+            <strong className="constraint-summary-heading" id="garrison-participants-heading">
+              Participating Operators
+            </strong>
+            <div className="constraint-summary-chips">
+              <span className="constraint-summary-chip">
+                {working.stages.length} {working.stages.length === 1 ? 'stage' : 'stages'}
+              </span>
+              <span className="constraint-summary-chip">
+                {participation.length} unique operators
+              </span>
             </div>
-          )}
+            {participation.length === 0 ? (
+              <p>No operators assigned yet.</p>
+            ) : (
+              <div
+                className="garrison-participant-list"
+                aria-label="Participating operators by stage count"
+              >
+                {participation.map(({ operatorId, stageCount }) => {
+                  const operator = operatorById.get(operatorId)
+                  const label = operator?.name ?? operatorId
+                  return (
+                    <span
+                      className="garrison-participant-entry"
+                      key={operatorId}
+                      title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
+                      style={{ position: 'relative', display: 'inline-flex' }}
+                    >
+                      {operator ? (
+                        <CompactOperatorAvatar operator={operator} />
+                      ) : (
+                        <span
+                          className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
+                          title={operatorId}
+                        >
+                          ?
+                        </span>
+                      )}
+                      {stageCount >= 2 && (
+                        <span
+                          className="garrison-participant-count"
+                          aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
+                          style={{
+                            position: 'absolute',
+                            right: -4,
+                            bottom: -4,
+                            display: 'grid',
+                            minWidth: 19,
+                            height: 19,
+                            placeItems: 'center',
+                            padding: '0 4px',
+                            border: '1px solid rgba(255, 255, 255, 0.42)',
+                            borderRadius: 999,
+                            color: '#fff',
+                            background: '#171719',
+                            fontSize: '0.62rem',
+                            fontWeight: 900,
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×{stageCount}
+                        </span>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         <div className="garrison-stage-quickadd" aria-label="Garrison stage tools">
@@ -1113,10 +1205,27 @@ export default function GarrisonSquadFeature({
 
       {nameDialog && (
         <TextInputDialog
-          title={nameDialog.mode === 'duplicate' ? 'Duplicate Garrison' : 'Rename Garrison'}
+          title={
+            nameDialog.mode === 'new'
+              ? 'New Garrison'
+              : nameDialog.mode === 'save'
+                ? 'Save Garrison'
+                : nameDialog.mode === 'duplicate'
+                  ? 'Duplicate Garrison'
+                  : 'Rename Garrison'
+          }
           initialValue={nameDialog.initialValue}
-          inputLabel="Garrison name"
-          confirmLabel={nameDialog.mode === 'duplicate' ? 'Duplicate' : 'Rename'}
+          inputLabel="Garrison Name"
+          showInputLabel
+          confirmLabel={
+            nameDialog.mode === 'new'
+              ? 'Create'
+              : nameDialog.mode === 'save'
+                ? 'Save'
+                : nameDialog.mode === 'duplicate'
+                  ? 'Duplicate'
+                  : 'Rename'
+          }
           onCancel={() => setNameDialog(null)}
           onConfirm={confirmNameDialog}
         />

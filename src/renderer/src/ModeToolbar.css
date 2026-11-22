@@ -1,0 +1,180 @@
+/* Shared dimensions for the four mode toolbars, including wrapped layouts. */
+.squad-panel > .preset-toolbar.is-opening__toolbar {
+  gap: 8px;
+}
+
+:root {
+  --mode-control-background: #0f0f11;
+  --mode-control-border: #3a3a40;
+  --mode-control-text: #f2f2f2;
+  --mode-label-text: #a7a7ad;
+}
+
+:root[data-theme='stronghold'] {
+  --mode-control-background: var(--stronghold-control);
+  --mode-control-border: var(--line);
+  --mode-control-text: #edf4fa;
+  --mode-label-text: var(--stronghold-muted);
+}
+
+.squad-panel > .preset-toolbar > .preset-toolbar-label {
+  flex: 0 0 64px;
+  width: 64px;
+  margin: 0;
+  color: var(--mode-label-text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.squad-panel > .preset-toolbar > .preset-select {
+  flex: 0 0 250px;
+  width: 250px;
+  min-width: 0;
+  max-width: calc(100% - 72px);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.squad-panel > .preset-toolbar .preset-select :is(select, summary),
+.squad-panel > .preset-toolbar .is-opening__difficulty select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 38px;
+  min-height: 38px;
+  border: 1px solid var(--mode-control-border);
+  border-radius: 4px;
+  padding: 0 10px;
+  color: var(--mode-control-text);
+  background: var(--mode-control-background);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.squad-panel > .preset-toolbar .preset-select summary > span:not([class]) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.squad-panel > .preset-toolbar .preset-select .release-date-options {
+  border-color: var(--mode-control-border);
+  color: var(--mode-control-text);
+  background: var(--mode-control-background);
+}
+
+.squad-panel > .preset-toolbar .preset-select .release-date-options button {
+  color: var(--mode-control-text);
+  background: var(--mode-control-background);
+}
+
+.squad-panel
+  > .preset-toolbar
+  .preset-select
+  .release-date-options
+  button:is(:hover, :focus-visible, [aria-pressed='true']) {
+  background: color-mix(in srgb, var(--app-accent) 15%, var(--mode-control-background));
+}
+
+.squad-panel > .preset-toolbar .mode-primary-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.squad-panel > .preset-toolbar .mode-primary-actions > .randomize-button {
+  box-sizing: border-box;
+  flex: 0 0 160px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.squad-share-trigger {
+  display: inline-flex;
+  box-sizing: border-box;
+  flex: 0 0 38px;
+  justify-content: center;
+  align-items: center;
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.squad-share-formats[hidden] {
+  display: none;
+}
+
+.preset-toolbar .mode-checkbox {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--mode-control-text);
+  background: transparent;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.preset-toolbar .mode-checkbox input {
+  box-sizing: border-box;
+  flex: 0 0 16px;
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--app-accent);
+}
+
+.preset-toolbar .mode-icon-button {
+  display: inline-flex;
+  box-sizing: border-box;
+  flex: 0 0 32px;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+
+@media (max-width: 680px) {
+  .squad-panel > .preset-toolbar > .preset-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .squad-panel > .preset-toolbar > .preset-actions > button {
+    width: auto;
+  }
+  .squad-panel > .preset-toolbar .mode-primary-actions {
+    margin-left: auto;
+  }
+}

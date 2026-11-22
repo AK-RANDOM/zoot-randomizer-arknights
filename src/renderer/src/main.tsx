@@ -11,6 +11,8 @@ import './StandardSquadFeature.css'
 import './StandardSquadLayoutOverrides.css'
 import './PresentationPreferences.css'
 import './RendererTheme.css'
+import './StrongholdTheme.css'
+import './ModeToolbar.css'
 
 const rootElement = document.getElementById('root')!
 if (__WEB_BUILD__) window.desktop ??= browserApi

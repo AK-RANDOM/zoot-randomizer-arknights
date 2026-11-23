@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { useEffect, useMemo, useState } from 'react'
 import type { DraftConfigurationInput } from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
@@ -125,17 +126,21 @@ export default function DraftPanel({
   garrisonDispatch,
   allowedOperatorIds,
 }: DraftPanelProps): React.JSX.Element {
+  const { confirmAction } = useAppDialogs()
   const [selectedId, setSelectedId] = useState(() => loadSelectedDraftRulebookId())
   const [draftActive, setDraftActive] = useState(false)
   const selected =
     BUILT_IN_DRAFT_RULEBOOKS.find((rulebook) => rulebook.identifier.id === selectedId) ??
     STANDARD_DRAFT_RULEBOOK
 
-  const selectRulebook = (rulebookId: string): void => {
+  const selectRulebook = async (rulebookId: string): Promise<void> => {
     if (rulebookId === selected.identifier.id) return
     if (
       draftActive &&
-      !window.confirm('Changing Draft Rulebook will abandon the current Draft. Continue?')
+      !(await confirmAction({
+        title: 'Change Draft Rulebook?',
+        message: 'Changing Draft Rulebook will abandon the current Draft.',
+      }))
     )
       return
     setSelectedId(rulebookId)

@@ -1,8 +1,6 @@
+import { useAppDialogs } from './AppDialogs'
 import { useRef, type ChangeEvent } from 'react'
-import {
-  BUILT_IN_DRAFT_RULEBOOKS,
-  serializeDraftRulebook,
-} from '../../shared/draftRulebook'
+import { BUILT_IN_DRAFT_RULEBOOKS, serializeDraftRulebook } from '../../shared/draftRulebook'
 import {
   MAX_DRAFT_RULEBOOK_FILE_BYTES,
   draftRulebookExportFileName,
@@ -17,6 +15,7 @@ export default function DraftRulebookLibrary({
   library: DraftRulebookLibraryController
   overrideCount: number
 }): React.JSX.Element {
+  const { confirmAction } = useAppDialogs()
   const importInputRef = useRef<HTMLInputElement>(null)
 
   const importRulebook = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
@@ -28,7 +27,9 @@ export default function DraftRulebookLibrary({
         library.setPortabilityStatus({
           tone: 'error',
           title: 'Draft Rulebook import rejected',
-          details: [`The selected file is larger than ${MAX_DRAFT_RULEBOOK_FILE_BYTES / (1024 * 1024)} MiB.`],
+          details: [
+            `The selected file is larger than ${MAX_DRAFT_RULEBOOK_FILE_BYTES / (1024 * 1024)} MiB.`,
+          ],
         })
         return
       }
@@ -60,7 +61,9 @@ export default function DraftRulebookLibrary({
       library.setPortabilityStatus({
         tone: 'success',
         title: 'Draft Rulebook exported',
-        details: [`Exported ${library.selected.identifier.name} as portable schema v${library.selected.schemaVersion} JSON.`],
+        details: [
+          `Exported ${library.selected.identifier.name} as portable schema v${library.selected.schemaVersion} JSON.`,
+        ],
       })
     } catch (reason) {
       library.setPortabilityStatus({
@@ -71,8 +74,15 @@ export default function DraftRulebookLibrary({
     }
   }
 
-  const deleteSelected = (): void => {
-    if (library.builtIn || !window.confirm(`Delete Draft Rulebook “${library.selected.identifier.name}”?`)) return
+  const deleteSelected = async (): Promise<void> => {
+    if (
+      library.builtIn ||
+      !(await confirmAction({
+        title: `Delete Draft Rulebook “${library.selected.identifier.name}”?`,
+        message: `Delete “${library.selected.identifier.name}” from your saved Draft Rulebooks.`,
+      }))
+    )
+      return
     library.deleteSelected()
   }
 
@@ -84,17 +94,48 @@ export default function DraftRulebookLibrary({
           <h2 id="rulebook-heading">Draft Rulebooks</h2>
         </div>
         <div className="section-actions">
-          <button type="button" className="secondary-button" onClick={library.createNew}>New</button>
-          <button type="button" className="secondary-button" onClick={() => importInputRef.current?.click()}>Import</button>
-          <button type="button" className="secondary-button" disabled={!library.validation.valid} onClick={exportSelected}>Export</button>
-          <button type="button" className="secondary-button" disabled={!library.validation.valid} onClick={library.duplicateSelected}>Duplicate</button>
-          <button type="button" className="secondary-button" disabled={library.builtIn} onClick={deleteSelected}>Delete</button>
+          <button type="button" className="secondary-button" onClick={library.createNew}>
+            New
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => importInputRef.current?.click()}
+          >
+            Import
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!library.validation.valid}
+            onClick={exportSelected}
+          >
+            Export
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!library.validation.valid}
+            onClick={library.duplicateSelected}
+          >
+            Duplicate
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={library.builtIn}
+            onClick={deleteSelected}
+          >
+            Delete
+          </button>
           <input
             ref={importInputRef}
             type="file"
             accept=".json,.draft-rulebook.json,application/json"
             hidden
-            onChange={(event) => { void importRulebook(event) }}
+            onChange={(event) => {
+              void importRulebook(event)
+            }}
           />
         </div>
       </div>
@@ -102,7 +143,10 @@ export default function DraftRulebookLibrary({
       <div className="rulebook-library-toolbar">
         <label className="field">
           <span>Rulebook</span>
-          <select value={library.selectedId} onChange={(event) => library.select(event.target.value)}>
+          <select
+            value={library.selectedId}
+            onChange={(event) => library.select(event.target.value)}
+          >
             <optgroup label="Built-in">
               {BUILT_IN_DRAFT_RULEBOOKS.map((rulebook) => (
                 <option key={rulebook.identifier.id} value={rulebook.identifier.id}>
@@ -113,48 +157,86 @@ export default function DraftRulebookLibrary({
             {library.importedEntries.length > 0 && (
               <optgroup label="Imported">
                 {library.importedEntries.map((entry) => (
-                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>{entry.document.identifier.name}</option>
+                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
+                    {entry.document.identifier.name}
+                  </option>
                 ))}
               </optgroup>
             )}
             {library.localEntries.length > 0 && (
               <optgroup label="Local">
                 {library.localEntries.map((entry) => (
-                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>{entry.document.identifier.name}</option>
+                  <option key={entry.document.identifier.id} value={entry.document.identifier.id}>
+                    {entry.document.identifier.name}
+                  </option>
                 ))}
               </optgroup>
             )}
           </select>
         </label>
         <div className="rulebook-library-summary">
-          <strong>{library.builtIn ? 'Built-in • read-only' : library.imported ? 'Imported Rulebook' : 'Local Rulebook'}</strong>
+          <strong>
+            {library.builtIn
+              ? 'Built-in • read-only'
+              : library.imported
+                ? 'Imported Rulebook'
+                : 'Local Rulebook'}
+          </strong>
           <span>Schema v{library.selected.schemaVersion}</span>
           <span>Revision {library.selected.identifier.revision}</span>
-          <span>{selectorCount(library.selected)} pool selector{selectorCount(library.selected) === 1 ? '' : 's'}</span>
-          <span>{overrideCount} override{overrideCount === 1 ? '' : 's'}</span>
-          <span>{library.selected.interactions.length} interaction{library.selected.interactions.length === 1 ? '' : 's'}</span>
+          <span>
+            {selectorCount(library.selected)} pool selector
+            {selectorCount(library.selected) === 1 ? '' : 's'}
+          </span>
+          <span>
+            {overrideCount} override{overrideCount === 1 ? '' : 's'}
+          </span>
+          <span>
+            {library.selected.interactions.length} interaction
+            {library.selected.interactions.length === 1 ? '' : 's'}
+          </span>
         </div>
       </div>
 
-      {library.portabilityStatus && (
-        library.portabilityStatus.tone === 'error' ? (
+      {library.portabilityStatus &&
+        (library.portabilityStatus.tone === 'error' ? (
           <div className="validation-box" role="alert">
             <strong>{library.portabilityStatus.title}</strong>
-            {library.portabilityStatus.details.length > 0 && <ul>{library.portabilityStatus.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>}
+            {library.portabilityStatus.details.length > 0 && (
+              <ul>
+                {library.portabilityStatus.details.map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
+            )}
           </div>
         ) : (
           <div className="rulebook-placeholder-box" role="status">
             <strong>{library.portabilityStatus.title}</strong>
-            {library.portabilityStatus.details.length > 0 && <ul>{library.portabilityStatus.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>}
+            {library.portabilityStatus.details.length > 0 && (
+              <ul>
+                {library.portabilityStatus.details.map((detail) => (
+                  <li key={detail}>{detail}</li>
+                ))}
+              </ul>
+            )}
           </div>
-        )
-      )}
+        ))}
 
       {!library.validation.valid && (
         <div className="validation-box" role="alert">
           <strong>Rulebook needs attention</strong>
-          <ul>{library.validation.errors.map((error) => <li key={error}>{error}</li>)}</ul>
-          {!library.builtIn && <small className="filter-note">This draft remains saved while invalid, but execution and export stay blocked until the errors are fixed.</small>}
+          <ul>
+            {library.validation.errors.map((error) => (
+              <li key={error}>{error}</li>
+            ))}
+          </ul>
+          {!library.builtIn && (
+            <small className="filter-note">
+              This draft remains saved while invalid, but execution and export stay blocked until
+              the errors are fixed.
+            </small>
+          )}
         </div>
       )}
     </>

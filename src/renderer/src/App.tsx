@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DraftPanel from './DraftPanel'
 import DraftConfirmationDialog from './DraftConfirmationDialog'
@@ -61,6 +62,7 @@ function displayDate(value: string | null | undefined): string {
 }
 
 export default function App(): React.JSX.Element {
+  const { showNotice } = useAppDialogs()
   const curatePresentation = useCuratePresentation()
   const [theme, setTheme] = useState(() => loadRendererPersistence().theme)
   const [operatorPreferences, setOperatorPreferences] = useState<OperatorPreferences>(() =>
@@ -198,7 +200,7 @@ export default function App(): React.JSX.Element {
       data.dataset.operators,
     )
     if (!releaseRangeIsValid(nextRelease)) {
-      window.alert(INVALID_RELEASE_RANGE_MESSAGE)
+      showNotice(INVALID_RELEASE_RANGE_MESSAGE)
       return
     }
     const nextPreferences = changeAppearanceRegion(
@@ -216,8 +218,6 @@ export default function App(): React.JSX.Element {
   }
   const setGameLocale = (gameLocale: GameLocale): void =>
     setOperatorPreferences((current) => ({ ...current, gameLocale }))
-  const setCurateNames = (showCurateNames: boolean): void =>
-    setOperatorPreferences((current) => ({ ...current, showCurateNames }))
   const setBulkAppearance = (choice: 'e1' | 'e2' | 'random' | 'account'): void => {
     if (!data.dataset) return
     if (choice === 'account' && !importedAccount) {
@@ -263,17 +263,17 @@ export default function App(): React.JSX.Element {
     )
   }
 
-  const confirmDraftExit = (): boolean => {
-    if (!draftActive) return true
-    if (
-      !window.confirm(
-        'A Draft round is currently in progress. Leaving this page will abandon the Draft. Continue?',
-      )
-    )
-      return false
+  const confirmDraftExit = (): void => {
+    if (!pendingNavigation) return
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
     setDraftActive(false)
-    return true
+    setError(null)
+    if ('tab' in pendingNavigation) setActiveTab(pendingNavigation.tab)
+    else {
+      if (pendingNavigation.mode === 'garrison') setRetainGarrison(true)
+      setSquadMode(pendingNavigation.mode)
+    }
+    setPendingNavigation(null)
   }
   const selectMainTab = (tab: AppTab): void => {
     if (tab === activeTab) return
@@ -281,8 +281,10 @@ export default function App(): React.JSX.Element {
       setPendingNavigation({ tab })
       return
     }
-    if (!garrisonDispatch && activeTab === 'squads' && squadMode === 'draft' && !confirmDraftExit())
+    if (activeTab === 'squads' && squadMode === 'draft' && draftActive) {
+      setPendingNavigation({ tab })
       return
+    }
     setGarrisonDispatch(null)
     setError(null)
     setActiveTab(tab)
@@ -293,7 +295,10 @@ export default function App(): React.JSX.Element {
       setPendingNavigation({ mode })
       return
     }
-    if (!garrisonDispatch && squadMode === 'draft' && !confirmDraftExit()) return
+    if (squadMode === 'draft' && draftActive) {
+      setPendingNavigation({ mode })
+      return
+    }
     if (mode === 'garrison') setRetainGarrison(true)
     setGarrisonDispatch(null)
     setError(null)
@@ -327,8 +332,7 @@ export default function App(): React.JSX.Element {
       {showWindowsDownloadNotice && (
         <aside className="windows-download-notice" aria-label="Windows app available">
           <p>
-            <strong>Windows app available.</strong> Download it from Options to sync your Arknights
-            account.
+            <strong>Windows app available.</strong> Download the standalone app from Options.
           </p>
           <button
             className="secondary-button"
@@ -453,7 +457,7 @@ export default function App(): React.JSX.Element {
                 accountProgressionRank(next.accountProgressionMax) <
                 accountProgressionRank(next.accountProgressionMin)
               ) {
-                window.alert(
+                showNotice(
                   'Invalid account progression range\n\nEnd progression cannot be lower than Start progression.',
                 )
                 return
@@ -477,8 +481,23 @@ export default function App(): React.JSX.Element {
           onThemeChange={changeTheme}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}
-          onCurateNamesChange={setCurateNames}
           onBulkAppearanceChange={setBulkAppearance}
+        />
+      )}
+
+      {pendingNavigation && !garrisonDispatch && (
+        <DraftConfirmationDialog
+          copy={{
+            title: 'Abandon this Draft?',
+            body: 'A Draft round is currently in progress. Leaving this page will abandon the Draft. Continue?',
+            confirmLabel: 'Abandon & Leave',
+            suppressionLabel: '',
+          }}
+          allowSuppression={false}
+          suppressSession={false}
+          onSuppressSessionChange={() => {}}
+          onCancel={() => setPendingNavigation(null)}
+          onConfirm={confirmDraftExit}
         />
       )}
 

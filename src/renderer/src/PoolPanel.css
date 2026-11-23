@@ -499,10 +499,16 @@
   opacity: 0;
   pointer-events: none;
 }
-.pool-entry-shell:hover .pool-card-actions,
+.pool-entry-shell[data-touch-actions-open] .pool-card-actions,
 .pool-entry-shell:has(:focus-visible) .pool-card-actions {
   opacity: 1;
   pointer-events: auto;
+}
+@media (hover: hover) {
+  .pool-entry-shell:hover .pool-card-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 .pool-card-actions button {
   min-width: 64px;

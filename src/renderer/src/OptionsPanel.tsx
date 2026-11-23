@@ -1,3 +1,4 @@
+import type { DraftConfirmationMode } from './draftConfirmationPolicy'
 import { useState } from 'react'
 import type { OperatorPreferences } from '../../shared/operatorPool'
 import { gameLocales, type GameLocale, type ReleaseServer } from '../../shared/operator'
@@ -20,7 +21,6 @@ export default function OptionsPanel({
   onThemeChange,
   onMetadataRegionChange,
   onGameLocaleChange,
-  onCurateNamesChange,
   onBulkAppearanceChange,
 }: {
   operatorData: OperatorDatasetController
@@ -29,7 +29,6 @@ export default function OptionsPanel({
   onThemeChange: (theme: AppTheme) => void
   onMetadataRegionChange: (region: ReleaseServer) => void
   onGameLocaleChange: (locale: GameLocale) => void
-  onCurateNamesChange: (enabled: boolean) => void
   onBulkAppearanceChange: (choice: 'e1' | 'e2' | 'random' | 'account') => void
 }): React.JSX.Element {
   const confirmDraftActions = useDraftActionConfirmationPreference()
@@ -46,9 +45,16 @@ export default function OptionsPanel({
     <section className="panel options-panel" aria-label="Options">
       {accountSyncAvailable && <ArknightsAccountPanel dataset={dataset} />}
 
-      <div className="primary-settings">
+      <div className="option-setting option-setting--compact">
+        <div className="option-setting__copy">
+          <strong id="metadata-region-heading">Metadata region</strong>
+          <p>
+            Controls operator and Garrison event availability, event release order, release-year
+            grouping, Kernel pool membership, and release previews.
+          </p>
+        </div>
         <label className="field">
-          <span>Metadata region</span>
+          <span className="sr-only">Metadata region</span>
           <select
             value={preferences.metadataRegion}
             onChange={(event) => onMetadataRegionChange(event.target.value as ReleaseServer)}
@@ -56,14 +62,19 @@ export default function OptionsPanel({
             <option value="global">EN / Global</option>
             <option value="cn">CN</option>
           </select>
-          <small>
-            Controls operator and Garrison event availability, event release order, release-year
-            grouping, Kernel pool membership, and release previews.
-          </small>
         </label>
+      </div>
 
+      <div className="option-setting option-setting--compact">
+        <div className="option-setting__copy">
+          <strong id="app-localization-heading">App Localization</strong>
+          <p>
+            Controls localized names (including Garrison events) and game terminology. App interface
+            text remains English.
+          </p>
+        </div>
         <label className="field">
-          <span>App Localization</span>
+          <span className="sr-only">App Localization</span>
           <select
             value={preferences.gameLocale}
             onChange={(event) => onGameLocaleChange(event.target.value as GameLocale)}
@@ -74,10 +85,6 @@ export default function OptionsPanel({
               </option>
             ))}
           </select>
-          <small>
-            Controls localized names (including Garrison events) and game terminology. App interface
-            text remains English.
-          </small>
         </label>
       </div>
 
@@ -94,35 +101,25 @@ export default function OptionsPanel({
 
       <div className="option-setting option-setting--compact">
         <div className="option-setting__copy">
-          <strong id="curate-names-heading">Show operator names in Curate</strong>
-          <p>Display operator names on tiles in Setup → Curate.</p>
-        </div>
-        <label className="option-toggle">
-          <input
-            type="checkbox"
-            aria-labelledby="curate-names-heading"
-            checked={preferences.showCurateNames ?? false}
-            onChange={(event) => onCurateNamesChange(event.target.checked)}
-          />
-          <span>Show names</span>
-        </label>
-      </div>
-
-      <div className="option-setting option-setting--compact">
-        <div className="option-setting__copy">
           <strong>Draft action confirmations</strong>
           <p>
-            Ask before Pick, Hold, Forfeit, Reroll, Release, Expand, and New Draft. Session-level
-            suppression remains available inside each confirmation.
+            Choose when to confirm Draft actions. A Draft run lasts until it is finalized or
+            abandoned. An app session lasts until the app is closed or the page is reloaded.
           </p>
         </div>
-        <label className="option-toggle">
-          <input
-            type="checkbox"
-            checked={confirmDraftActions}
-            onChange={(event) => setDraftActionConfirmationPreference(event.target.checked)}
-          />
-          <span>Confirm Draft actions</span>
+        <label className="field">
+          <span>Confirmation frequency</span>
+          <select
+            value={confirmDraftActions}
+            onChange={(event) =>
+              setDraftActionConfirmationPreference(event.target.value as DraftConfirmationMode)
+            }
+          >
+            <option value="action">Confirm every action</option>
+            <option value="run">Confirm every Draft run</option>
+            <option value="session">Confirm every app session</option>
+            <option value="never">Never</option>
+          </select>
         </label>
       </div>
 
@@ -159,34 +156,31 @@ export default function OptionsPanel({
         </div>
       </div>
 
-      <p className="option-note">
-        Bulk changes do not affect Pool inclusion. Later per-operator appearance changes override
-        the bulk result without changing other operators.
-      </p>
-
-      <>
-        <div className="option-setting option-setting--compact">
-          <div className="option-setting__copy">
-            <strong>Operator data</strong>
-            <p>Check for and install updated operator and event data.</p>
+      {!isBrowser && (
+        <>
+          <div className="option-setting option-setting--compact">
+            <div className="option-setting__copy">
+              <strong>Operator data</strong>
+              <p>Check for and install updated operator and event data.</p>
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={busy || !dataset}
+              onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
+            >
+              {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
+            </button>
           </div>
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={busy || !dataset}
-            onClick={() => void (updateAvailable ? installUpdate() : checkUpdates())}
-          >
-            {busy ? 'Working…' : updateAvailable ? 'Update data' : 'Check data updates'}
-          </button>
-        </div>
-        {!isBrowser && <ArtworkDownloadStatus />}
-      </>
+          <ArtworkDownloadStatus />
+        </>
+      )}
 
       {isBrowser && (
         <div className="option-setting option-setting--compact options-windows">
           <div className="option-setting__copy">
             <strong>Windows app</strong>
-            <p>Sync your Arknights roster, progression, and equipped outfits.</p>
+            <p>Download the standalone Windows app.</p>
           </div>
           <a className="secondary-button options-windows-download" href={WINDOWS_DOWNLOAD}>
             Windows downloads (x64)

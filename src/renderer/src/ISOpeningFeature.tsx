@@ -488,6 +488,11 @@ export default function ISOpeningFeature({
             <p className="is-opening__squad-description">{squad.description}</p>
           </div>
           <div className="draft-operator-actions is-opening__choice-actions is-opening__control-box">
+            <KeepButton
+              label="squad"
+              kept={keptSquad}
+              onClick={() => setKeptSquad((value) => !value)}
+            />
             <button
               className="draft-operator-action draft-operator-action--pick"
               type="button"
@@ -512,11 +517,6 @@ export default function ISOpeningFeature({
             >
               Reroll
             </button>
-            <KeepButton
-              label="squad"
-              kept={keptSquad}
-              onClick={() => setKeptSquad((value) => !value)}
-            />
           </div>
         </div>
         <div className="is-opening__recruitment">
@@ -535,6 +535,11 @@ export default function ISOpeningFeature({
               />
             </div>
             <div className="draft-operator-actions is-opening__choice-actions">
+              <KeepButton
+                label="voucher set"
+                kept={keptVouchers}
+                onClick={() => setKeptVouchers((value) => !value)}
+              />
               <button
                 className="draft-operator-action draft-operator-action--pick"
                 type="button"
@@ -558,11 +563,6 @@ export default function ISOpeningFeature({
               >
                 Reroll
               </button>
-              <KeepButton
-                label="voucher set"
-                kept={keptVouchers}
-                onClick={() => setKeptVouchers((value) => !value)}
-              />
             </div>
           </div>
           <div className="is-opening__recruitment-details">

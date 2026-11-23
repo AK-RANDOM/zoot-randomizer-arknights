@@ -578,7 +578,7 @@
   align-items: flex-start;
 }
 .garrison-participation-summary .garrison-participant-list {
-  padding: 0 0 4px;
+  padding: 4px 0 0;
 }
 .garrison-participation-summary .garrison-document-controls {
   flex-wrap: wrap;

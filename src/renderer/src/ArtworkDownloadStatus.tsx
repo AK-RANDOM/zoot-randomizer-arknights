@@ -1,7 +1,9 @@
+import { useAppDialogs } from './AppDialogs'
 import { useEffect, useState } from 'react'
 import type { ArtworkStorageInfo, PortraitSyncProgress } from '../../shared/desktop'
 
 export default function ArtworkDownloadStatus(): React.JSX.Element {
+  const { confirmAction } = useAppDialogs()
   const [progress, setProgress] = useState<PortraitSyncProgress | null>(null)
   const [storage, setStorage] = useState<ArtworkStorageInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -78,11 +80,12 @@ export default function ArtworkDownloadStatus(): React.JSX.Element {
           type="button"
           className="secondary-button"
           disabled={downloading}
-          onClick={() => {
+          onClick={async () => {
             if (
-              window.confirm(
-                'Delete downloaded artwork? Bundled assets and personal data will be preserved.',
-              )
+              await confirmAction({
+                title: 'Delete downloaded artwork?',
+                message: 'Bundled assets and personal data will be preserved.',
+              })
             )
               run(() => window.desktop.clearDownloadedArtwork())
           }}

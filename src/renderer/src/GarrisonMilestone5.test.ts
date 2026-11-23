@@ -15,8 +15,9 @@ describe('Garrison Squad M5 persistence and polish', () => {
   it('confirms deletion before removing a populated stage', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     expect(feature).toContain('stage.operatorIds.length > 0')
+    expect(feature).toContain('title: `Delete stage “${stage.name}”?`')
     expect(feature).toContain(
-      'Delete stage “${stage.name}” and its ${stage.operatorIds.length} assigned operator',
+      'This removes the stage and its ${stage.operatorIds.length} operator assignment',
     )
     expect(feature).toContain('Deleted stage “${stage.name}” from the working Garrison')
   })

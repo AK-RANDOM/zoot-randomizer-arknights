@@ -129,9 +129,6 @@
   margin: 0;
   width: auto;
 }
-.is-opening__voucher-toolbar .is-opening__choice-actions .draft-operator-action {
-  min-width: 64px;
-}
 .is-opening__squad-actions > button {
   min-height: 40px;
 }
@@ -240,8 +237,9 @@
   backdrop-filter: none;
 }
 .is-opening__choice-actions .draft-operator-action {
-  width: auto;
-  min-width: 80px;
+  flex: 0 0 88px;
+  width: 88px;
+  min-width: 88px;
 }
 .is-opening .is-opening__card-actions {
   display: flex;

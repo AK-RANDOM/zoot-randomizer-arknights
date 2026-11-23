@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { DragEvent, KeyboardEvent } from 'react'
 import type { GameLocale, Operator, ReleaseServer } from '../../shared/operator'
@@ -157,6 +158,7 @@ export default function GarrisonSquadFeature({
   onMessage: (message: string) => void
   onDispatch: (request: GarrisonDispatchRequest) => void
 }): React.JSX.Element {
+  const { confirmAction, showNotice, chooseSaveBeforeClose } = useAppDialogs()
   const [library, setLibrary] = useState<Garrison[]>(() => loadSavedGarrisons())
   const [recovery] = useState(() => (import.meta.env.PROD ? loadGarrisonRecovery() : null))
   const [working, setWorking] = useState<Garrison>(() => recovery?.working ?? createGarrison())
@@ -282,7 +284,30 @@ export default function GarrisonSquadFeature({
     onMessage,
   ])
 
-  // Native Electron close guard replaces the unresponsive beforeunload blocker.
+  // Electron waits for an in-app decision before closing or requesting a save.
+  useEffect(
+    () =>
+      window.desktop.onGarrisonCloseDecisionRequested(() => {
+        void chooseSaveBeforeClose({
+          title: 'Save your Garrison before closing the application?',
+          message:
+            'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
+        }).then((choice) => window.desktop.completeGarrisonCloseDecision(choice))
+      }),
+    [chooseSaveBeforeClose],
+  )
+
+  useEffect(
+    () =>
+      window.desktop.onGarrisonCloseSaveFailed(() => {
+        showNotice({
+          title: 'Garrison could not be saved',
+          message: 'Resolve unfinished edits or conflicts, then try again.',
+        })
+      }),
+    [showNotice],
+  )
+
   useEffect(() => {
     if (import.meta.env.DEV) window.desktop.setGarrisonCloseDirty(hasUnsavedChanges)
   }, [hasUnsavedChanges])
@@ -308,10 +333,13 @@ export default function GarrisonSquadFeature({
     setNameDialog({ mode: 'new', initialValue: '' })
   }
 
-  const confirmDiscardIfNeeded = (action: () => void): boolean => {
+  const confirmDiscardIfNeeded = async (action: () => void): Promise<boolean> => {
     if (
       hasUnsavedChanges &&
-      !window.confirm('Discard unsaved Garrison changes? Your saved Garrisons will not be changed.')
+      !(await confirmAction({
+        title: 'Discard unsaved Garrison changes?',
+        message: 'Your saved Garrisons will not be changed.',
+      }))
     )
       return false
     action()
@@ -415,10 +443,16 @@ export default function GarrisonSquadFeature({
     })
   }, [working, library, stageEditor, conflictDraft, onMessage])
 
-  const deleteSelectedGarrison = (): void => {
+  const deleteSelectedGarrison = async (): Promise<void> => {
     if (!selectedGarrison || stageEditor || conflictDraft) return
     const extra = dirty ? ' Unsaved working changes will also be discarded.' : ''
-    if (!window.confirm(`Delete Garrison “${selectedGarrison.name}”?${extra}`)) return
+    if (
+      !(await confirmAction({
+        title: `Delete Garrison “${selectedGarrison.name}”?`,
+        message: `This removes the Garrison from your saved Garrisons.${extra}`,
+      }))
+    )
+      return
     setLibrary((current) => current.filter((garrison) => garrison.id !== selectedGarrison.id))
     const deletedName = selectedGarrison.name
     const next = createGarrison()
@@ -711,28 +745,30 @@ export default function GarrisonSquadFeature({
     onMessage(`Cleared operators from “${stage.name}”. Stage retained; use Undo Edit to restore.`)
   }
 
-  const clearEverySquad = (): void => {
+  const clearEverySquad = async (): Promise<void> => {
     if (stageEditor || conflictDraft || !working.stages.some((stage) => stage.operatorIds.length))
       return
     if (
-      !window.confirm(
-        'Clear all operator assignments? The stage table will be kept, and you can undo this edit.',
-      )
+      !(await confirmAction({
+        title: 'Clear all operator assignments?',
+        message: 'The stage table will be kept, and you can undo this edit.',
+      }))
     )
       return
     applyWorkingEdit(clearAllGarrisonSquads(working))
     onMessage('Cleared all stage squads without removing any stages. Use Undo Edit to restore.')
   }
 
-  const deleteStage = (stageId: string): void => {
+  const deleteStage = async (stageId: string): Promise<void> => {
     if (stageEditor || conflictDraft) return
     const stage = working.stages.find((candidate) => candidate.id === stageId)
     if (!stage) return
     if (
       stage.operatorIds.length > 0 &&
-      !window.confirm(
-        `Delete stage “${stage.name}” and its ${stage.operatorIds.length} assigned operator${stage.operatorIds.length === 1 ? '' : 's'}?`,
-      )
+      !(await confirmAction({
+        title: `Delete stage “${stage.name}”?`,
+        message: `This removes the stage and its ${stage.operatorIds.length} operator assignment${stage.operatorIds.length === 1 ? '' : 's'}.`,
+      }))
     )
       return
     const next = cloneGarrison(working)
@@ -793,6 +829,9 @@ export default function GarrisonSquadFeature({
     onMessage('Redid the previous Garrison edit.')
   }
 
+  const displayedStages =
+    stageEditor?.mode === 'new' ? [...working.stages, stageEditor.stage] : working.stages
+
   return (
     <>
       <section className="panel squad-panel garrison-panel" aria-labelledby="garrison-heading">
@@ -810,16 +849,17 @@ export default function GarrisonSquadFeature({
             <select
               value={selectedGarrisonId ?? 'new'}
               disabled={stageEditor !== null || conflictDraft !== null}
-              onChange={(event) => {
-                const id = event.target.value
+              onChange={async (event) => {
+                const select = event.currentTarget
+                const id = select.value
                 if (id === 'new') {
                   if (selectedGarrisonId === null) return
                   beginNewGarrison()
                   return
                 }
                 const garrison = library.find((candidate) => candidate.id === id)
-                if (garrison && !confirmDiscardIfNeeded(() => loadGarrison(garrison))) {
-                  event.currentTarget.value = selectedGarrisonId ?? 'new'
+                if (garrison && !(await confirmDiscardIfNeeded(() => loadGarrison(garrison)))) {
+                  select.value = selectedGarrisonId ?? 'new'
                 }
               }}
             >
@@ -1116,10 +1156,10 @@ export default function GarrisonSquadFeature({
             <span role="columnheader">Squad</span>
             <span role="columnheader">Actions</span>
           </div>
-          {working.stages.length === 0 ? (
+          {displayedStages.length === 0 ? (
             <div className="garrison-empty-stages">No stages yet. Add a stage to begin.</div>
           ) : (
-            working.stages.map((stage) => (
+            displayedStages.map((stage) => (
               <Fragment key={stage.id}>
                 <div
                   className={[
@@ -1241,7 +1281,7 @@ export default function GarrisonSquadFeature({
                     </button>
                   </div>
                 </div>
-                {stageEditor?.mode === 'existing' && stageEditor.stage.id === stage.id && (
+                {stageEditor?.stage.id === stage.id && (
                   <div className="garrison-stage-editor-inline" role="row">
                     <GarrisonStageEditor
                       mode={stageEditor.mode}
@@ -1261,22 +1301,6 @@ export default function GarrisonSquadFeature({
                 )}
               </Fragment>
             ))
-          )}
-          {stageEditor?.mode === 'new' && (
-            <div className="garrison-stage-editor-inline" role="row">
-              <GarrisonStageEditor
-                mode={stageEditor.mode}
-                stage={stageEditor.stage}
-                otherStages={working.stages}
-                duplicateOperatorsAllowed={working.duplicateOperatorsAllowed}
-                alterExclusivity={alterExclusivity}
-                operators={operators}
-                eligibleOperators={eligibleOperators}
-                onChange={changeStageEditor}
-                onCancel={cancelStageEditor}
-                onConfirm={confirmStageEditor}
-              />
-            </div>
           )}
         </div>
 

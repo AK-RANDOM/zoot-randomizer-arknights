@@ -19,8 +19,8 @@ describe('Garrison event region vs App Localization integration', () => {
   })
 
   it('calls Metadata Region and App Localization by their correct names', () => {
-    expect(options).toContain('<span>Metadata region</span>')
-    expect(options).toContain('<span>App Localization</span>')
+    expect(options).toContain('<span className="sr-only">Metadata region</span>')
+    expect(options).toContain('<span className="sr-only">App Localization</span>')
     expect(options).not.toContain('<span>Game localization</span>')
   })
 

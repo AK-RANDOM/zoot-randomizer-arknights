@@ -1,0 +1,14 @@
+.app-dialog {
+  color: #f3f3f3;
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+}
+
+.app-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.app-dialog p {
+  white-space: pre-line;
+  line-height: 1.5;
+}

@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { useMemo } from 'react'
 import type { Operator } from '../../shared/operator'
 import {
@@ -43,6 +44,7 @@ export default function GarrisonConflictDialog({
   onCancel: () => void
   onApply: (garrison: Garrison) => void
 }): React.JSX.Element {
+  const { confirmAction } = useAppDialogs()
   const operatorById = useMemo(
     () => new Map(operators.map((operator) => [operator.id, operator] as const)),
     [operators],
@@ -64,13 +66,14 @@ export default function GarrisonConflictDialog({
     onChange(next)
   }
 
-  const applyChanges = (): void => {
+  const applyChanges = async (): Promise<void> => {
     if (
       conflicts.length > 0 &&
-      !window.confirm(
-        `${conflicts.length} operator conflict${conflicts.length === 1 ? '' : 's'} remain. ` +
+      !(await confirmAction({
+        title: `${conflicts.length} operator conflict${conflicts.length === 1 ? '' : 's'} remain`,
+        message:
           'Apply these changes anyway? Allow duplicates will remain enabled because assignments are still duplicated.',
-      )
+      }))
     )
       return
     onApply(cloneGarrison(garrison))

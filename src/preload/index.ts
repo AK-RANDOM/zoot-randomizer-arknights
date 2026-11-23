@@ -7,7 +7,21 @@ const desktopApi: DesktopApi = {
   getOperatorDataset: () => ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.operatorDataGet),
   getGarrisonEvents: (region, locale) =>
     ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.garrisonEventsGet, region, locale),
-  setGarrisonCloseDirty: (dirty) => ipcRenderer.send(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, dirty),
+  setGarrisonCloseDirty: (dirty) =>
+    ipcRenderer.send(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, dirty),
+  onGarrisonCloseDecisionRequested: (listener) => {
+    const handler = (): void => listener()
+    ipcRenderer.on(DESKTOP_IPC_CHANNELS.garrisonCloseDecisionRequest, handler)
+    return () =>
+      ipcRenderer.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseDecisionRequest, handler)
+  },
+  completeGarrisonCloseDecision: (choice) =>
+    ipcRenderer.send(DESKTOP_IPC_CHANNELS.garrisonCloseDecision, choice),
+  onGarrisonCloseSaveFailed: (listener) => {
+    const handler = (): void => listener()
+    ipcRenderer.on(DESKTOP_IPC_CHANNELS.garrisonCloseSaveFailed, handler)
+    return () => ipcRenderer.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseSaveFailed, handler)
+  },
   onGarrisonCloseSaveRequested: (listener) => {
     const handler = (): void => listener()
     ipcRenderer.on(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest, handler)

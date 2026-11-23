@@ -54,7 +54,7 @@ export function createDefaultOperatorPreferences(): OperatorPreferences {
     version: OPERATOR_PREFERENCES_VERSION,
     metadataRegion: 'global',
     gameLocale: 'en',
-    showCurateNames: false,
+    showCurateNames: true,
     poolPresentation: 'imageGrid',
     accountFilterMode: 'ignore',
     accountProgressionMin: { elite: 0, level: 1 },
@@ -165,7 +165,7 @@ export function normalizeOperatorPreferences(value: unknown): OperatorPreference
         ? candidate.metadataRegion
         : defaults.metadataRegion,
     gameLocale: isGameLocale(candidate.gameLocale) ? candidate.gameLocale : defaults.gameLocale,
-    showCurateNames: candidate.showCurateNames === true,
+    showCurateNames: true,
     poolPresentation: isPoolPresentationMode(candidate.poolPresentation)
       ? candidate.poolPresentation
       : defaults.poolPresentation,

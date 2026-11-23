@@ -296,7 +296,7 @@ function PoolPanel({
                         classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
                         included={!excludedIds.has(operator.id)}
                         presentation="imageGrid"
-                        showName={preferences.showCurateNames ?? false}
+                        showName
                         metadataRegion={preferences.metadataRegion}
                         appearanceChoice={appearanceChoice}
                         appearanceRandomSeed={preferences.appearanceRandomSeed}

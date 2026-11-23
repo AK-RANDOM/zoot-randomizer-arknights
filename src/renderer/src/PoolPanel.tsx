@@ -245,7 +245,7 @@ function PoolPanel({
         </div>
       )}
 
-      <div className={`pool-groups pool-presentation--imageGrid`}>
+      <div className="pool-groups pool-presentation--imageGrid">
         {groups.map(([label, operators]) => {
           const collapsed = groupBy !== 'none' && collapsedGroups.has(label)
           const reversed = reversedGroups.has(label)

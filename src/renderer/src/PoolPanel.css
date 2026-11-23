@@ -3,6 +3,76 @@
   gap: 1rem;
 }
 
+.pool-groups.pool-presentation--imageGrid .pool-entries {
+  grid-template-columns: repeat(auto-fill, 90px);
+  gap: 6px;
+  padding: 5px;
+}
+
+.pool-presentation--imageGrid .pool-entry-shell--imageGrid,
+.pool-presentation--imageGrid .pool-entry--image {
+  max-width: none;
+  width: 90px;
+  aspect-ratio: 1;
+  border-radius: 0;
+}
+
+/* Override the shared .pool-entry[data-rarity] border rule from RendererTheme. */
+.pool-presentation--imageGrid .pool-entry--image[data-rarity] {
+  display: block;
+  box-sizing: border-box;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  background: #171719;
+  box-shadow: none;
+}
+
+.pool-presentation--imageGrid .pool-entry--image::after {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--rarity-border-color);
+  content: '';
+  pointer-events: none;
+}
+
+.pool-presentation--imageGrid .pool-card-class {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.pool-presentation--imageGrid .pool-card-class img {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(1);
+}
+
+.pool-presentation--imageGrid .pool-card-class .class-icon__fallback {
+  color: #fff;
+}
+
+.pool-presentation--imageGrid .pool-card-name {
+  display: flex;
+  align-items: center;
+  top: 0;
+  bottom: auto;
+  left: 22px;
+  min-height: 18px;
+}
+
 .pool-search-row,
 .pool-search {
   width: 100%;

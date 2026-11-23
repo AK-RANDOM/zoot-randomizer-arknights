@@ -5,6 +5,7 @@ import { releaseGroupLabel } from '../../shared/releaseBounds'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { resolveAppearanceChoice } from './operatorAppearance'
+import ClassIcon from './ClassIcon'
 
 function PoolAvatar({ operator, choice, randomSeed, accountAppearance, metadataRegion }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -209,6 +210,7 @@ function OperatorEntry({
         className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}
       >
         {avatar}
+        <ClassIcon operatorClass={operator.class} variant="simple" className="pool-card-class" />
         {showName && (
           <span className="pool-card-name">
             <ScrollingOutfitName text={operator.name} />

@@ -398,6 +398,7 @@ export default function ISOpeningFeature({
           />
         </div>
         <label className="field is-opening__difficulty">
+          <span className="mode-toolbar-secondary-label">Difficulty</span>
           <select
             aria-label="Difficulty Level"
             value={difficultyLevel}

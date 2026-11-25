@@ -8,7 +8,7 @@ import useCompactDispatchViewport from './useCompactDispatchViewport'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
-import useOverflowScroll from './useOverflowScroll'
+import MiniOperatorCard from './MiniOperatorCard'
 import useWrappedOperatorName from './useWrappedOperatorName'
 import OperatorEliteLevel, { UnownedOperatorIndicator } from './OperatorEliteLevel'
 import './OperatorCard.css'
@@ -100,10 +100,8 @@ function OperatorCardBody({
   const touchPointer = useRef(false)
   const [touchActionsOpen, setTouchActionsOpen] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
-  const { viewportRef: nameViewportRef, textRef: nameTextRef } = useOverflowScroll<HTMLDivElement>(
-    operator.name,
-    scrollName && compact,
-  )
+  const nameViewportRef = useRef<HTMLDivElement>(null)
+  const nameTextRef = useRef<HTMLSpanElement>(null)
   useWrappedOperatorName(nameViewportRef, nameTextRef, operator.name, !compact)
   const [tooltipPosition, setTooltipPosition] = useState<{
     top?: number
@@ -150,10 +148,35 @@ function OperatorCardBody({
     }
   }
 
+  const artworkImage =
+    imageUrl && imageUrl !== failedImageUrl ? (
+      <img
+        key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
+        className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
+        src={imageUrl}
+        alt=""
+        draggable={false}
+        onError={() => setFailedImageUrl(imageUrl)}
+      />
+    ) : (
+      <span className={compact ? undefined : 'operator-card__fallback'} aria-hidden="true">
+        {operator.name.slice(0, 1)}
+      </span>
+    )
+  const progressionBadge = progressionLabel && (
+    <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
+      {progression ? (
+        <OperatorEliteLevel elite={progression.elite} level={progression.level} />
+      ) : (
+        <UnownedOperatorIndicator />
+      )}
+    </span>
+  )
+
   return (
     <article
       ref={cardRef}
-      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}${compact ? ' operator-card--mini' : ''}${!compact ? ' operator-card--framed' : ''}`}
+      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}${compact ? ' operator-card--mini mini-operator-card-host' : ''}${!compact ? ' operator-card--framed' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
       data-artwork-loading={loading || undefined}
@@ -183,31 +206,23 @@ function OperatorCardBody({
           : undefined
       }
     >
-      <div className="operator-card__art">
-        {operator.faction.main && (
-          <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
-        )}
-        {imageUrl && imageUrl !== failedImageUrl ? (
-          <img
-            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
-            className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
-            src={imageUrl}
-            alt=""
-            draggable={false}
-            onError={() => setFailedImageUrl(imageUrl)}
-          />
-        ) : (
-          <div className="operator-card__fallback" aria-hidden="true">
-            {operator.name.slice(0, 1)}
+      {compact ? (
+        <MiniOperatorCard operator={operator} scrollName={scrollName} artwork={artworkImage} />
+      ) : (
+        <>
+          <div className="operator-card__art">
+            {operator.faction.main && (
+              <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
+            )}
+            {artworkImage}
           </div>
-        )}
-      </div>
-
-      <ClassIcon
-        operatorClass={operator.class}
-        variant={compact ? 'simple' : 'regular'}
-        className="operator-card__class-icon"
-      />
+          <ClassIcon
+            operatorClass={operator.class}
+            variant={compact ? 'simple' : 'regular'}
+            className="operator-card__class-icon"
+          />
+        </>
+      )}
 
       {topRightAdornment && (
         <div className="operator-card__top-right-adornment">{topRightAdornment}</div>
@@ -280,27 +295,23 @@ function OperatorCardBody({
 
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
-      <div className="operator-card__caption">
-        {progressionLabel && (
-          <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
-            {progression ? (
-              <OperatorEliteLevel elite={progression.elite} level={progression.level} />
-            ) : (
-              <UnownedOperatorIndicator />
-            )}
+      {compact ? (
+        progressionBadge
+      ) : (
+        <div className="operator-card__caption">
+          {progressionBadge}
+          <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
+            {'★'.repeat(operator.rarity)}
           </span>
-        )}
-        <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
-          {'★'.repeat(operator.rarity)}
-        </span>
-        <div ref={nameViewportRef} className="operator-card__name-viewport">
-          <strong>
-            <span ref={nameTextRef} className="operator-card__name-text">
-              {operator.name}
-            </span>
-          </strong>
+          <div ref={nameViewportRef} className="operator-card__name-viewport">
+            <strong>
+              <span ref={nameTextRef} className="operator-card__name-text">
+                {operator.name}
+              </span>
+            </strong>
+          </div>
         </div>
-      </div>
+      )}
     </article>
   )
 }

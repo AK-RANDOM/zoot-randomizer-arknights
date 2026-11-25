@@ -166,15 +166,131 @@
   padding: 0;
 }
 
-@media (max-width: 680px) {
-  .squad-panel > .preset-toolbar > .preset-actions {
-    display: flex;
-    flex-wrap: wrap;
+/* One layout owner for Standard, Draft, Garrison, and IS Opening. */
+.squad-panel {
+  container: dispatch-squad / inline-size;
+}
+
+.squad-panel > .preset-toolbar {
+  display: grid;
+  padding-inline: 12px;
+  grid-template-columns: 64px minmax(180px, 250px) minmax(0, 1fr);
+  align-items: center;
+  justify-content: normal;
+  gap: 8px;
+}
+
+.squad-panel > .preset-toolbar.is-opening__toolbar {
+  grid-template-columns: 64px minmax(180px, 250px) minmax(0, 1fr) auto;
+}
+
+.squad-panel > .preset-toolbar > .preset-select {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.squad-panel > .preset-toolbar > .preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.squad-panel > .preset-toolbar > .preset-actions > button {
+  width: auto;
+}
+
+.squad-panel > .preset-toolbar .preset-actions-spacer {
+  display: none;
+}
+
+.squad-panel > .preset-toolbar .draft-status-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.squad-panel > .preset-toolbar .draft-status-item {
+  min-width: 0;
+}
+
+.squad-panel > .preset-toolbar > .is-opening__difficulty {
+  min-width: 0;
+  margin: 0;
+}
+
+.mode-toolbar-secondary-label {
+  display: none;
+}
+
+.squad-panel > .preset-toolbar .mode-primary-actions > .mode-clear-button {
+  flex: 0 0 32px;
+  width: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+}
+
+@container dispatch-squad (max-width: 1050px) {
+  .squad-panel > .preset-toolbar,
+  .squad-panel > .preset-toolbar.is-opening__toolbar {
+    grid-template-columns: 64px minmax(0, 1fr);
   }
-  .squad-panel > .preset-toolbar > .preset-actions > button {
-    width: auto;
+
+  .squad-panel > .preset-toolbar > .preset-toolbar-label {
+    align-self: center;
   }
+
+  .squad-panel > .preset-toolbar > :is(.preset-actions, .draft-status-main, .mode-primary-actions) {
+    grid-column: 1 / -1;
+  }
+
+  .squad-panel > .preset-toolbar > .is-opening__difficulty {
+    display: contents;
+  }
+
+  .is-opening__difficulty .mode-toolbar-secondary-label {
+    display: block;
+    color: var(--mode-label-text);
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .squad-panel > .preset-toolbar > .mode-primary-actions {
+    justify-self: end;
+  }
+}
+
+@container dispatch-squad (max-width: 500px) {
   .squad-panel > .preset-toolbar .mode-primary-actions {
-    margin-left: auto;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    justify-self: stretch;
+    margin-left: 0;
+  }
+
+  .squad-panel > .preset-toolbar .mode-primary-actions > .randomize-button {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .squad-panel > .preset-toolbar .draft-status-main {
+    gap: 4px;
+  }
+
+  .squad-panel > .preset-toolbar .draft-status-item {
+    padding: 4px;
+    border: 0;
   }
 }

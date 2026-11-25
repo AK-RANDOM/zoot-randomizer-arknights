@@ -116,15 +116,12 @@
   }
 
   .app-shell .draft-decision-plane {
-    display: grid;
-    grid-template-columns: repeat(var(--draft-strip-count), minmax(0, 1fr));
+    display: flex;
     gap: var(--draft-card-gap);
   }
 
   .app-shell .draft-decision-plane :is(.draft-decision-group--offers, .draft-decision-side-rail) {
-    grid-column: span var(--draft-group-count);
-    width: 100%;
-    max-width: none;
+    width: auto;
     min-width: 0;
   }
 

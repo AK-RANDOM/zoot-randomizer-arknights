@@ -837,14 +837,6 @@ export default function StandardSquadFeature({
               </>
             )}
             <span className="preset-actions-spacer" aria-hidden="true" />
-            <button
-              className="danger-button"
-              type="button"
-              disabled={rolling || squad.length === 0}
-              onClick={clearSquad}
-            >
-              Clear
-            </button>
             {squad.length > 0 && (
               <button
                 className="secondary-button"
@@ -856,6 +848,28 @@ export default function StandardSquadFeature({
               </button>
             )}
             <div className="mode-primary-actions">
+              <button
+                className="danger-button mode-icon-button mode-clear-button"
+                type="button"
+                aria-label="Clear squad"
+                title="Clear squad"
+                disabled={rolling || squad.length === 0}
+                onClick={clearSquad}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
+                </svg>
+              </button>
               <button
                 className="randomize-button"
                 type="button"

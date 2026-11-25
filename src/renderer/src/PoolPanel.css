@@ -17,60 +17,8 @@
   border-radius: var(--operator-card-radius, 4px);
 }
 
-/* Override the shared .pool-entry[data-rarity] border rule from RendererTheme. */
-.pool-presentation--imageGrid .pool-entry--image[data-rarity] {
-  display: block;
-  box-sizing: border-box;
-  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
-  background: #171719;
-  box-shadow: none;
-}
-
-.pool-presentation--imageGrid .pool-entry--image::after {
-  position: absolute;
-  z-index: 3;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 3px;
-  background: var(--rarity-border-color);
-  content: '';
-  pointer-events: none;
-}
-
-.pool-presentation--imageGrid .pool-card-class {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  left: 0;
-  box-sizing: content-box;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: none;
-  pointer-events: none;
-}
-
-.pool-presentation--imageGrid .pool-card-class img {
-  width: 100%;
-  height: 100%;
-  filter: brightness(0) invert(1);
-}
-
-.pool-presentation--imageGrid .pool-card-class .class-icon__fallback {
-  color: #fff;
-}
-
-.pool-presentation--imageGrid .pool-card-name {
-  display: flex;
-  align-items: center;
-  top: 0;
-  bottom: auto;
-  left: 22px;
-  min-height: 18px;
+.pool-presentation--imageGrid .pool-entry-shell--imageGrid {
+  height: 90px;
 }
 
 .pool-search-row,
@@ -556,15 +504,7 @@
   position: absolute;
   z-index: 4;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px;
   border-radius: inherit;
-  background: rgba(8, 8, 10, 0.68);
-  backdrop-filter: blur(1px);
   transition: opacity 120ms ease;
   opacity: 0;
   pointer-events: none;
@@ -578,40 +518,5 @@
   .pool-entry-shell:hover .pool-card-actions {
     opacity: 1;
     pointer-events: auto;
-  }
-}
-.pool-card-actions button {
-  min-width: 64px;
-  min-height: 24px;
-  padding: 3px 8px;
-  font-size: 0.65rem;
-  cursor: pointer;
-}
-.pool-card-name {
-  position: absolute;
-  z-index: 2;
-  top: 4px;
-  left: 4px;
-  right: 4px;
-  text-align: left;
-  pointer-events: none;
-  text-shadow: 0 1px 3px #000;
-}
-.pool-card-name .pool-appearance-outfit-name {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  font-size: 0.6rem;
-  color: #fff;
-}
-.pool-card-name .pool-appearance-outfit-name strong {
-  font-size: inherit;
-}
-.pool-card-name .is-overflowing strong {
-  animation: pool-appearance-text-scroll 2.75s ease-in-out infinite alternate;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pool-card-name .is-overflowing strong {
-    animation: none;
   }
 }

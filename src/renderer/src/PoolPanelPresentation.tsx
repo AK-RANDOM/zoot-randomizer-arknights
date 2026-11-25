@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ScrollingOutfitName } from './PoolAppearancePicker'
 import { operatorClasses, type Operator } from '../../shared/operator'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { resolveAppearanceChoice } from './operatorAppearance'
-import ClassIcon from './ClassIcon'
+import MiniOperatorCard from './MiniOperatorCard'
 
 function PoolAvatar({ operator, choice, randomSeed, accountAppearance, metadataRegion }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -207,15 +206,9 @@ function OperatorEntry({
     entry = (
       <button
         {...commonProps}
-        className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}
+        className={`pool-entry pool-entry--image mini-operator-card-host${included ? '' : ' is-excluded'}`}
       >
-        {avatar}
-        <ClassIcon operatorClass={operator.class} variant="simple" className="pool-card-class" />
-        {showName && (
-          <span className="pool-card-name">
-            <ScrollingOutfitName text={operator.name} />
-          </span>
-        )}
+        <MiniOperatorCard operator={operator} artwork={avatar} showName={showName} />
       </button>
     )
   } else if (presentation === 'compactCard') {

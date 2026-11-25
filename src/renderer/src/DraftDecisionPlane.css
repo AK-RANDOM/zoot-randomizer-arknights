@@ -18,6 +18,36 @@
 .draft-decision-group {
   min-width: 0;
 }
+
+.draft-play-status {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-column: 1 / -1;
+  flex: 0 0 100%;
+  width: 100%;
+  padding: 8px 0;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 4px;
+  background: var(--stronghold-inset, #111113);
+}
+
+.draft-play-status .draft-status-item {
+  min-width: 0;
+  padding: 0 12px;
+  border: 0;
+  border-right: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+}
+
+.draft-play-status .draft-status-item:last-child {
+  border-right: 0;
+}
+
+@container dispatch-squad (max-width: 500px) {
+  .draft-play-status .draft-status-item {
+    padding: 0 6px;
+  }
+}
 .draft-decision-group--offers,
 .draft-decision-side-rail {
   /* The groups wrap as a unit when the cards would become too narrow. */
@@ -43,6 +73,14 @@
 }
 .draft-decision-side-rail {
   align-items: flex-start;
+}
+.draft-decision-offer-grid {
+  /* Keep offers together until even a row without the side rail is too narrow. */
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--draft-min-card-width), 100%), 1fr));
+}
+.draft-decision-offer-grid > .operator-card {
+  max-width: var(--draft-max-card-width);
+  justify-self: center;
 }
 .draft-decision-offer-grid > *,
 .draft-decision-side-rail > * {

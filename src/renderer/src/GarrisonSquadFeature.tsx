@@ -1210,7 +1210,7 @@ export default function GarrisonSquadFeature({
                     </label>
                   </div>
                   <div className="garrison-stage-squad-preview" role="cell">
-                    {stage.operatorIds.length === 0 ? (
+                    {stageEditor?.stage.id === stage.id ? null : stage.operatorIds.length === 0 ? (
                       <span className="garrison-stage-squad-placeholder">Empty</span>
                     ) : (
                       <div

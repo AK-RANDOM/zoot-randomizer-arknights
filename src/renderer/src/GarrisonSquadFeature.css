@@ -138,7 +138,6 @@
 }
 .garrison-stage-editor-inline {
   padding: 12px;
-  padding-inline: clamp(4px, calc((100% - 1082px) / 2), 12px);
   background: #131315;
 }
 .garrison-stage-editor {

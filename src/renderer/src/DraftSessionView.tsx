@@ -305,6 +305,31 @@ export default function DraftSessionView({
     execute()
   }
 
+  const draftProgress = (
+    <div className="draft-play-status" role="status" aria-label="Current draft progress">
+      <div className="draft-status-item">
+        <span>Round</span>
+        <strong>{status.roundNumber ?? '—'}</strong>
+      </div>
+      <div className="draft-status-item">
+        <span>Selected</span>
+        <strong>
+          {status.selectedCount} / {status.targetSize}
+        </strong>
+      </div>
+      {status.points !== null && (
+        <div className="draft-status-item">
+          <span>Points</span>
+          <strong>{status.points}</strong>
+        </div>
+      )}
+      <div className="draft-status-item">
+        <span>Capacity</span>
+        <strong>{status.capacity.label}</strong>
+      </div>
+    </div>
+  )
+
   return (
     <section className="panel squad-panel draft-panel" aria-label="Draft mode">
       <div className="preset-toolbar draft-status-shell">
@@ -313,28 +338,6 @@ export default function DraftSessionView({
           <span className="sr-only">Draft preset</span>
           {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
         </label>
-        <div className="draft-status-main">
-          <div className="draft-status-item">
-            <span>Round</span>
-            <strong>{status.roundNumber ?? '—'}</strong>
-          </div>
-          <div className="draft-status-item">
-            <span>Selected</span>
-            <strong>
-              {status.selectedCount} / {status.targetSize}
-            </strong>
-          </div>
-          {status.points !== null && (
-            <div className="draft-status-item">
-              <span>Points</span>
-              <strong>{status.points}</strong>
-            </div>
-          )}
-          <div className="draft-status-item">
-            <span>Capacity</span>
-            <strong>{status.capacity.label}</strong>
-          </div>
-        </div>
         <div className="preset-actions draft-status-actions">
           <span className="preset-actions-spacer" aria-hidden="true" />
           <div className="mode-primary-actions">
@@ -393,6 +396,7 @@ export default function DraftSessionView({
         </div>
       ) : state.status === 'complete' ? null : configuration && onAction ? (
         <DraftDecisionPlane
+          progress={draftProgress}
           state={state}
           operators={operators}
           rulebook={rulebook}
@@ -402,24 +406,27 @@ export default function DraftSessionView({
           onAction={requestEngineAction}
         />
       ) : (
-        <div className="draft-offer-grid">
-          {state.currentOfferIds.map((operatorId) => {
-            const operator = operatorById.get(operatorId)
-            if (!operator) return null
-            return (
-              <article className="draft-candidate-card" key={operator.id}>
-                <OperatorCard operator={operator} />
-                <button
-                  type="button"
-                  className="draft-candidate__action"
-                  onClick={() => requestPick(operator.id)}
-                >
-                  Draft {operator.name}
-                </button>
-              </article>
-            )
-          })}
-        </div>
+        <>
+          {draftProgress}
+          <div className="draft-offer-grid">
+            {state.currentOfferIds.map((operatorId) => {
+              const operator = operatorById.get(operatorId)
+              if (!operator) return null
+              return (
+                <article className="draft-candidate-card" key={operator.id}>
+                  <OperatorCard operator={operator} />
+                  <button
+                    type="button"
+                    className="draft-candidate__action"
+                    onClick={() => requestPick(operator.id)}
+                  >
+                    Draft {operator.name}
+                  </button>
+                </article>
+              )
+            })}
+          </div>
+        </>
       )}
       {state && configuration && onAction && (
         <DraftSquadGrid

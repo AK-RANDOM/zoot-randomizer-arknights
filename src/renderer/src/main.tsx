@@ -12,10 +12,11 @@ import './StandardSquadLayoutOverrides.css'
 import './PresentationPreferences.css'
 import './RendererTheme.css'
 import './StrongholdTheme.css'
-import './ModeToolbar.css'
 import './CompactDispatch.css'
 import './OperatorCardLayout.css'
 import './OperatorCardSurfaces.css'
+import './ModeToolbar.css'
+import './MiniOperatorCard.css'
 
 const rootElement = document.getElementById('root')!
 if (__WEB_BUILD__) window.desktop ??= browserApi

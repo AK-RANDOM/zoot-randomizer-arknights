@@ -3,7 +3,7 @@
   .squad-panel {
     overflow-x: visible;
     container: dispatch-squad / inline-size;
-    --compact-squad-card-size: min(90px, calc((100cqi - 12px) / 3));
+    --compact-squad-card-size: 90px;
   }
 
   .squad-panel > .squad-grid--responsive,
@@ -30,7 +30,7 @@
   }
 
   .operator-card.operator-card--portrait.operator-card--mini,
-  .draft-panel .draft-squad-avatar {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-avatar {
     width: 90px;
     height: 90px;
     aspect-ratio: 1;
@@ -40,70 +40,19 @@
   }
 
   .squad-grid--responsive .squad-slot .operator-card.operator-card--mini,
-  .draft-panel .draft-squad-avatar {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-avatar {
     width: var(--compact-squad-card-size);
     height: var(--compact-squad-card-size);
   }
 
   .operator-card.operator-card--mini::after,
-  .draft-panel .draft-squad-avatar::after {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-avatar::after {
     top: auto;
     right: 0;
     bottom: 0;
     left: 0;
     height: 3px;
     background: var(--rarity-border-color);
-  }
-
-  .operator-card--mini .operator-card__faction-logo,
-  .operator-card--mini .operator-card__rarity,
-  .draft-panel .draft-squad-avatar__faction-logo {
-    display: none;
-  }
-
-  .operator-card--mini .operator-card__art img:not(.operator-card__faction-logo) {
-    object-position: center;
-  }
-
-  .operator-card--portrait.operator-card--mini .operator-card__class-icon,
-  .draft-panel .draft-squad-avatar__identity .draft-squad-avatar__class-icon {
-    display: grid;
-    top: 0;
-    left: 0;
-    width: 18px;
-    height: 18px;
-    flex: 0 0 18px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: rgba(0, 0, 0, 0.6);
-    box-shadow: none;
-    backdrop-filter: none;
-    filter: none;
-  }
-
-  .operator-card--portrait.operator-card--mini .operator-card__class-icon img,
-  .draft-panel .draft-squad-avatar__identity .draft-squad-avatar__class-icon img {
-    width: 100%;
-    height: 100%;
-    filter: brightness(0) invert(1);
-  }
-
-  .operator-card--portrait.operator-card--mini .operator-card__caption {
-    top: 0;
-    right: 3px;
-    bottom: auto;
-    left: 22px;
-    min-height: 18px;
-    align-content: center;
-    gap: 0;
-    pointer-events: none;
-  }
-
-  .operator-card--portrait.operator-card--mini .operator-card__caption strong {
-    font-size: 0.6rem;
-    line-height: 1.1;
-    text-shadow: 0 1px 3px #000;
   }
 
   .operator-card--mini .operator-card__account-progression {
@@ -172,17 +121,6 @@
     width: 20px;
     height: 20px;
     font-size: 0.65rem;
-  }
-
-  .operator-card--mini .draft-operator-actions {
-    gap: 3px;
-    padding: 3px;
-  }
-
-  .operator-card--mini .draft-operator-action {
-    min-height: 24px;
-    padding: 2px 5px;
-    font-size: 0.6rem;
   }
 
   .squad-grid--responsive .random-operator-card > .slot-config-number,
@@ -297,7 +235,9 @@
     filter: brightness(0) invert(1);
   }
 
-  .squad-grid--responsive .slot-locked-card.has-class-indicator .operator-card__class-icon {
+  .squad-grid--responsive
+    .slot-locked-card.has-class-indicator
+    :is(.operator-card__class-icon, .mini-operator-card__class) {
     display: none;
   }
 
@@ -306,33 +246,33 @@
     line-height: 1;
   }
 
-  .draft-decision-offer-grid {
-    grid-template-columns: repeat(var(--draft-group-count), minmax(0, 1fr));
+  .draft-decision-offer-grid,
+  .draft-decision-side-rail {
+    grid-template-columns: repeat(auto-fit, 90px);
     justify-content: center;
   }
 
   .draft-panel .draft-decision-plane {
-    display: grid;
-    grid-template-columns: repeat(var(--draft-strip-count), minmax(0, 1fr));
+    display: flex;
     max-width: calc(var(--draft-strip-count) * 90px + (var(--draft-strip-count) - 1) * 6px);
     gap: 6px;
   }
 
   .draft-decision-plane :is(.draft-decision-group--offers, .draft-decision-side-rail) {
-    grid-column: span var(--draft-group-count);
-    width: 100%;
-    max-width: none;
+    width: auto;
   }
 
   .draft-panel .draft-decision-plane .operator-card--mini {
-    width: 100%;
-    height: auto;
+    width: 90px;
+    height: 90px;
   }
 
   .draft-decision-plane .draft-forfeit-surface,
   .draft-decision-plane .draft-hold-surface {
+    box-sizing: border-box;
+    width: 90px;
+    height: 90px;
     aspect-ratio: 1;
-    height: auto;
     padding: 0;
     border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
     border-radius: var(--operator-card-radius, 4px);
@@ -384,21 +324,21 @@
     font-size: 0.6rem;
   }
 
-  .draft-panel .draft-squad-layout {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-layout {
     width: 100%;
     grid-template-columns: minmax(0, 1fr);
     gap: 6px;
   }
 
-  .draft-panel .draft-squad-layout--with-capacity {
-    --compact-squad-card-size: min(90px, calc((100cqi - 18px) / 4));
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-layout--with-capacity {
+    --compact-squad-card-size: 90px;
     width: max-content;
     max-width: 100%;
     grid-template-columns: max-content var(--compact-squad-card-size);
     align-items: start;
   }
 
-  .draft-panel .draft-squad-grid {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-grid {
     width: 100%;
     grid-template-columns: repeat(var(--compact-squad-columns, 6), var(--compact-squad-card-size));
     grid-template-rows: repeat(var(--compact-squad-rows, 2), var(--compact-squad-card-size));
@@ -406,7 +346,7 @@
     gap: 6px;
   }
 
-  .draft-panel .draft-squad-capacity-column {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-capacity-column {
     width: var(--compact-squad-card-size);
     grid-template-columns: var(--compact-squad-card-size);
     grid-template-rows: repeat(2, var(--compact-squad-card-size));
@@ -415,21 +355,23 @@
     align-self: start;
   }
 
-  .draft-panel .draft-squad-overflow {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-overflow {
     grid-row: 1;
   }
 
-  .draft-panel .draft-squad-expand {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-expand {
     grid-row: 2;
   }
 
-  .draft-panel :is(.draft-squad-overflow, .draft-squad-expand, .draft-squad-slot__frame) {
+  :is(.draft-panel, .garrison-stage-editor)
+    :is(.draft-squad-overflow, .draft-squad-expand, .draft-squad-slot__frame) {
     border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
     border-radius: var(--operator-card-radius, 4px);
     box-shadow: none;
   }
 
-  .draft-panel :is(.draft-squad-overflow, .draft-squad-expand, .draft-squad-slot__frame)::after {
+  :is(.draft-panel, .garrison-stage-editor)
+    :is(.draft-squad-overflow, .draft-squad-expand, .draft-squad-slot__frame)::after {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -440,11 +382,11 @@
     pointer-events: none;
   }
 
-  .draft-panel .draft-squad-expand::after {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-expand::after {
     background: var(--app-accent);
   }
 
-  .draft-panel .draft-squad-expand__price {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-expand__price {
     top: auto;
     right: 0;
     bottom: 3px;
@@ -462,18 +404,18 @@
     font-size: 0.6rem;
   }
 
-  .draft-panel .draft-squad-overflow__empty strong {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-overflow__empty strong {
     position: absolute;
     top: 3px;
     left: 3px;
     font-size: 0.6rem;
   }
 
-  .draft-panel .draft-squad-overflow__empty {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-overflow__empty {
     padding: 4px;
   }
 
-  .draft-panel .draft-squad-slot__number {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-slot__number {
     display: grid;
     place-items: center;
     text-align: center;
@@ -487,7 +429,7 @@
     background: rgba(0, 0, 0, 0.6);
   }
 
-  .draft-panel .draft-squad-slot__frame strong {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-slot__frame strong {
     position: absolute;
     top: 0;
     right: 2px;
@@ -498,7 +440,7 @@
     font-size: 0.6rem;
   }
 
-  .draft-panel .draft-squad-avatar__identity {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-avatar__identity {
     top: 0;
     left: 0;
     max-width: calc(100% - 3px);
@@ -506,13 +448,28 @@
     font-size: 0.6rem;
   }
 
-  .draft-panel .draft-squad-slot__frame {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-slot__frame {
     padding: 4px;
     border-radius: var(--operator-card-radius, 4px);
   }
 
-  .draft-panel .draft-squad-slot__icon {
+  :is(.draft-panel, .garrison-stage-editor) .draft-squad-slot__icon {
     max-height: 40px;
+  }
+
+  .garrison-stage-editor {
+    container: garrison-stage / inline-size;
+  }
+
+  .garrison-stage-editor .garrison-stage-editor-actions {
+    grid-row: 2;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+  }
+
+  .garrison-stage-editor .garrison-stage-editor-actions button {
+    min-height: 0;
+    font-size: 0.65rem;
   }
 
   .squad-mode-tabs,
@@ -554,17 +511,71 @@
     }
   }
 
-  @container dispatch-squad (width < 666px) {
+  /* Preserve the 90px cards; reduce column counts instead of scaling cards. */
+  @container dispatch-squad (width < 282px) {
+    .squad-grid--responsive {
+      --compact-squad-columns: 2;
+      --compact-squad-rows: 6;
+    }
+  }
+
+  @container dispatch-squad (width < 186px) {
+    .squad-grid--responsive {
+      --compact-squad-columns: 1;
+      --compact-squad-rows: 12;
+    }
+  }
+
+  /* Use the nearest container: the inline editor can be narrower than the panel. */
+
+  @container (width < 666px) {
     .draft-squad-layout--with-capacity {
       --compact-squad-columns: 4;
       --compact-squad-rows: 3;
     }
   }
 
-  @container dispatch-squad (width < 474px) {
+  @container (width < 474px) {
     .draft-squad-layout--with-capacity {
       --compact-squad-columns: 3;
       --compact-squad-rows: 4;
+    }
+  }
+
+  @container (width < 378px) {
+    :is(.draft-panel, .garrison-stage-editor) .draft-squad-layout--with-capacity {
+      grid-template-columns: max-content;
+    }
+
+    :is(.draft-panel, .garrison-stage-editor) .draft-squad-capacity-column {
+      width: 100%;
+      grid-template-columns: repeat(2, 90px);
+      grid-template-rows: 90px;
+      justify-content: center;
+    }
+
+    :is(.draft-panel, .garrison-stage-editor)
+      :is(.draft-squad-overflow, .draft-squad-expand, .garrison-stage-editor-actions) {
+      grid-row: auto;
+    }
+  }
+
+  @container (width < 282px) {
+    .draft-squad-layout--with-capacity {
+      --compact-squad-columns: 2;
+      --compact-squad-rows: 6;
+    }
+  }
+
+  @container (width < 186px) {
+    .draft-squad-layout--with-capacity {
+      --compact-squad-columns: 1;
+      --compact-squad-rows: 12;
+    }
+
+    :is(.draft-panel, .garrison-stage-editor) .draft-squad-capacity-column {
+      grid-template-columns: 90px;
+      grid-template-rows: repeat(2, 90px);
     }
   }
 }

@@ -10,8 +10,12 @@
   gap: 4px;
   pointer-events: none;
 }
-.slot-class-constraint-indicator.is-left { left: 8px; }
-.slot-class-constraint-indicator.is-right { right: 8px; }
+.slot-class-constraint-indicator.is-left {
+  left: 8px;
+}
+.slot-class-constraint-indicator.is-right {
+  right: 8px;
+}
 .slot-class-constraint-item {
   position: relative;
   display: block;
@@ -22,21 +26,20 @@
 }
 .slot-class-constraint-subcount {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
+  right: 0;
+  bottom: 0;
   z-index: 1;
   display: grid;
-  min-width: 15px;
-  height: 15px;
-  padding: 0 3px;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0;
   place-items: center;
-  border: 1px solid var(--app-accent);
-  border-radius: 999px;
-  color: #071014;
-  background: var(--app-accent);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--app-accent) 24%, transparent),
-    0 1px 5px rgba(0, 0, 0, 0.45);
+  border: 0;
+  border-radius: 0;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.8);
+  box-shadow: none;
   font-size: 0.48rem;
   font-weight: 900;
   line-height: 1;

@@ -48,29 +48,13 @@
   gap: 3px;
 }
 
-.random-operator-card__rarity {
-  width: max-content;
-  font-size: 0.66rem;
-  letter-spacing: -0.055em;
-  white-space: nowrap;
-}
-
-/* Keep colored rarity stars in normal inline text flow so their baseline and
-   spacing match the selected operator card's continuous star run. */
-.random-operator-card__star {
-  position: relative;
-  top: -1px;
-  display: inline;
-}
-
-/* Unavailable Standard capacity uses the same unfilled-card composition, but the
-   destructive palette is shared with Draft's Forfeit surface. */
+/* Unavailable capacity is rendered with the shared Draft locked-slot frame. */
 .squad-grid .disabled-slot {
   position: relative;
   overflow: hidden;
   padding: 0;
-  color: #f1d4d6;
-  background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
+  color: #77777f;
+  background: #101012;
   text-align: inherit;
 }
 

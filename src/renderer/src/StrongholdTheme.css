@@ -627,7 +627,8 @@
 :root[data-theme='stronghold']
   .draft-decision-offer-grid
   .operator-card--portrait
-  .operator-card__art {
+  .operator-card__art,
+:root[data-theme='stronghold'] .draft-panel .draft-squad-avatar {
   background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
 }
 

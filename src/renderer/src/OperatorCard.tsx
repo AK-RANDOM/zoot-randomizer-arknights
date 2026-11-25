@@ -3,11 +3,13 @@ import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import { useOperatorAppearanceImage } from './operatorAppearance'
+import { useOperatorAppearanceAvatar, useOperatorAppearanceImage } from './operatorAppearance'
+import useCompactDispatchViewport from './useCompactDispatchViewport'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
 import useOverflowScroll from './useOverflowScroll'
+import useWrappedOperatorName from './useWrappedOperatorName'
 import OperatorEliteLevel, { UnownedOperatorIndicator } from './OperatorEliteLevel'
 import './OperatorCard.css'
 
@@ -26,6 +28,7 @@ export interface OperatorCardInteractionDetails {
 }
 
 interface OperatorCardProps {
+  responsiveCompact?: boolean
   operator: Operator
   interactionDetails?: OperatorCardInteractionDetails
   variant?: 'standard' | 'draft-compact'
@@ -37,7 +40,34 @@ interface OperatorCardProps {
   scrollName?: boolean
 }
 
-export default function OperatorCard({
+export default function OperatorCard(props: OperatorCardProps): React.JSX.Element {
+  const smallViewport = useCompactDispatchViewport()
+  return props.responsiveCompact && smallViewport ? (
+    <CompactOperatorCard {...props} />
+  ) : (
+    <PortraitOperatorCard {...props} />
+  )
+}
+
+function CompactOperatorCard(props: OperatorCardProps): React.JSX.Element {
+  const avatar = useOperatorAppearanceAvatar(props.operator)
+  return (
+    <OperatorCardBody
+      {...props}
+      compact
+      artwork={{ ...avatar, usingPortrait: false, loading: avatar.imageUrl === null }}
+    />
+  )
+}
+
+function PortraitOperatorCard(props: OperatorCardProps): React.JSX.Element {
+  const artwork = useOperatorAppearanceImage(props.operator)
+  return <OperatorCardBody {...props} artwork={artwork} />
+}
+
+function OperatorCardBody({
+  artwork,
+  compact = false,
   operator,
   interactionDetails,
   variant = 'standard',
@@ -47,13 +77,11 @@ export default function OperatorCard({
   replayOnRandomize = true,
   showPersonalProgression = true,
   scrollName = true,
-}: OperatorCardProps): React.JSX.Element {
-  const {
-    imageUrl,
-    usingPortrait,
-    loading,
-    choice: artworkPreference,
-  } = useOperatorAppearanceImage(operator)
+}: OperatorCardProps & {
+  artwork: ReturnType<typeof useOperatorAppearanceImage>
+  compact?: boolean
+}): React.JSX.Element {
+  const { imageUrl, usingPortrait, loading, choice: artworkPreference } = artwork
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const importedAccount = useImportedArknightsAccount() ?? null
   const preferences = loadOperatorPreferences()
@@ -74,8 +102,9 @@ export default function OperatorCard({
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
   const { viewportRef: nameViewportRef, textRef: nameTextRef } = useOverflowScroll<HTMLDivElement>(
     operator.name,
-    scrollName,
+    scrollName && compact,
   )
+  useWrappedOperatorName(nameViewportRef, nameTextRef, operator.name, !compact)
   const [tooltipPosition, setTooltipPosition] = useState<{
     top?: number
     bottom?: number
@@ -124,7 +153,7 @@ export default function OperatorCard({
   return (
     <article
       ref={cardRef}
-      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
+      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}${compact ? ' operator-card--mini' : ''}${!compact ? ' operator-card--framed' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
       data-artwork-loading={loading || undefined}
@@ -174,7 +203,11 @@ export default function OperatorCard({
         )}
       </div>
 
-      <ClassIcon operatorClass={operator.class} className="operator-card__class-icon" />
+      <ClassIcon
+        operatorClass={operator.class}
+        variant={compact ? 'simple' : 'regular'}
+        className="operator-card__class-icon"
+      />
 
       {topRightAdornment && (
         <div className="operator-card__top-right-adornment">{topRightAdornment}</div>

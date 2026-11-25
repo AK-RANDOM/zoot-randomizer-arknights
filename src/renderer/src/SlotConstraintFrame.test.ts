@@ -1,17 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import {
-  NEUTRAL_SLOT_CONSTRAINT_GRADIENT,
-  slotConstraintFrameStyle,
-  slotConstraintGradient,
-} from './SlotConstraintFrame'
+import { NEUTRAL_SLOT_CONSTRAINT_GRADIENT, slotConstraintGradient } from './SlotConstraintFrame'
 
-describe('slot constraint frame presentation', () => {
-  it('uses a neutral gray frame when there is no rarity lock', () => {
+describe('slot constraint strip presentation', () => {
+  it('uses a neutral gray strip when there is no rarity lock', () => {
     expect(slotConstraintGradient([])).toBe(NEUTRAL_SLOT_CONSTRAINT_GRADIENT)
-    expect(slotConstraintFrameStyle([])).toMatchObject({ border: '3px solid transparent' })
   })
 
-  it('uses a solid rarity frame for one selected rarity', () => {
+  it('uses a solid rarity strip for one selected rarity', () => {
     expect(slotConstraintGradient([5])).toBe(
       'linear-gradient(135deg, var(--rarity-5), var(--rarity-5))',
     )

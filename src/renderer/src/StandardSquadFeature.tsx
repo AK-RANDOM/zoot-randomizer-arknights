@@ -8,6 +8,7 @@ import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
 import OperatorCard from './OperatorCard'
 import RandomOperatorCard from './RandomOperatorCard'
+import UnavailableOperatorCard from './UnavailableOperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
@@ -916,7 +917,7 @@ export default function StandardSquadFeature({
         )}
         {chainRerolls?.error && <SquadValidationBox errors={[chainRerolls.error]} />}
 
-        <div className="squad-grid">
+        <div className="squad-grid squad-grid--responsive">
           {slots.map((slot, index) => {
             const operator = squad[index]
             const inRange = index < constraints.squadSize
@@ -939,15 +940,10 @@ export default function StandardSquadFeature({
             return (
               <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>
                 {!inRange ? (
-                  <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}>
-                    <span className="slot-config-number" aria-hidden="true">
-                      /
-                    </span>
-                    <span>Unavailable</span>
-                    <small>Squad size {constraints.squadSize}</small>
-                  </div>
+                  <UnavailableOperatorCard slot={slot} />
                 ) : operator ? (
                   <OperatorCard
+                    responsiveCompact
                     operator={operator}
                     replayOnRandomize={!kept && !(locked && useBatchReroll)}
                     topRightAdornment={

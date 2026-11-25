@@ -1,0 +1,462 @@
+/* Permanent full-size operator-card defaults. Mini cards keep their compact sizing. */
+:root {
+  --operator-card-border: 1px;
+  --operator-card-radius: 4px;
+  --operator-card-rarity-strip: 3px;
+  --operator-card-icon-size: 28px;
+  --operator-card-icon-padding: 0px;
+  --operator-card-badge-opacity: 0.75;
+  --operator-card-name-size: 12px;
+  --operator-card-faction-opacity: 0.4;
+}
+
+@media (min-width: 961px) {
+  .app-shell .squad-grid--responsive .squad-slot > .random-operator-card {
+    border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+    border-radius: var(--operator-card-radius, 4px);
+    background: #171719 !important;
+    box-shadow: none;
+  }
+
+  .app-shell .random-operator-card::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--operator-card-rarity-strip, 3px);
+    content: '';
+    background: var(--slot-rarity-strip, var(--line, #66666e));
+    pointer-events: none;
+  }
+
+  .app-shell .random-operator-card__rarity {
+    display: none;
+  }
+
+  .app-shell .random-operator-card > .slot-config-number {
+    top: 0;
+    left: 0;
+    display: grid;
+    place-items: center;
+    width: var(--operator-card-icon-size, 28px);
+    height: var(--operator-card-icon-size, 28px);
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+    box-shadow: none;
+  }
+
+  .app-shell .random-operator-card__caption {
+    top: 0;
+    right: 4px;
+    bottom: auto;
+    left: calc(var(--operator-card-icon-size, 28px) + 4px);
+    min-height: var(--operator-card-icon-size, 28px);
+    align-content: center;
+  }
+
+  .app-shell .random-operator-card__caption strong {
+    font-size: var(--operator-card-name-size, 12px);
+  }
+
+  .app-shell .squad-grid .slot-locked-card {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: var(--operator-card-radius, 4px);
+  }
+
+  .app-shell .slot-locked-card .operator-card::after {
+    background: var(--slot-rarity-strip, var(--rarity-border-color));
+  }
+
+  .app-shell .slot-locked-card.has-class-indicator .slot-class-constraint-indicator {
+    top: 1px;
+    left: 1px;
+    gap: 3px;
+  }
+
+  .app-shell .squad-grid .slot-locked-card .slot-class-constraint-item {
+    width: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    height: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    flex-basis: calc(
+      var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px)
+    );
+  }
+
+  .app-shell .slot-class-constraint-item .class-icon {
+    display: grid;
+    place-items: center;
+    box-sizing: content-box;
+    width: var(--operator-card-icon-size, 28px);
+    height: var(--operator-card-icon-size, 28px);
+    padding: var(--operator-card-icon-padding, 0);
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .app-shell .slot-class-constraint-item .class-icon img {
+    width: 100%;
+    height: 100%;
+    filter: brightness(0) invert(1);
+  }
+
+  .app-shell .slot-class-constraint-overflow {
+    width: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    height: 18px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+    box-shadow: none;
+    font-size: 0.6rem;
+    line-height: 1;
+  }
+
+  .app-shell .draft-decision-plane {
+    display: grid;
+    grid-template-columns: repeat(var(--draft-strip-count), minmax(0, 1fr));
+    gap: var(--draft-card-gap);
+  }
+
+  .app-shell .draft-decision-plane :is(.draft-decision-group--offers, .draft-decision-side-rail) {
+    grid-column: span var(--draft-group-count);
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .app-shell
+    .draft-decision-plane
+    :is(.operator-card, .draft-hold-surface, .draft-forfeit-surface) {
+    height: auto;
+  }
+}
+
+@media (min-width: 961px) {
+  .app-shell
+    .draft-panel
+    :is(
+      .draft-squad-avatar,
+      .draft-squad-slot__frame,
+      .draft-squad-overflow,
+      .draft-squad-expand,
+      .draft-hold-surface,
+      .draft-forfeit-surface
+    ) {
+    border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+    border-radius: var(--operator-card-radius, 4px);
+    box-shadow: none;
+  }
+
+  .app-shell .draft-panel .draft-squad-avatar::after {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--operator-card-rarity-strip, 3px);
+    background: var(--rarity-border-color);
+  }
+
+  .app-shell
+    .draft-panel
+    :is(.draft-squad-slot__frame, .draft-squad-overflow, .draft-squad-expand)::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--operator-card-rarity-strip, 3px);
+    content: '';
+    background: var(--line, #66666e);
+    pointer-events: none;
+  }
+
+  .app-shell .draft-panel .draft-squad-expand::after {
+    background: var(--app-accent);
+  }
+
+  .app-shell .draft-panel .draft-squad-avatar__faction-logo {
+    opacity: var(--operator-card-faction-opacity, 0.4);
+  }
+
+  .app-shell .draft-panel .draft-squad-avatar__identity {
+    top: 0;
+    left: 0;
+    max-width: calc(100% - 4px);
+    gap: 4px;
+    font-size: var(--operator-card-name-size, 12px);
+  }
+
+  .app-shell .draft-panel .draft-squad-avatar__identity .draft-squad-avatar__class-icon {
+    display: grid;
+    place-items: center;
+    box-sizing: content-box;
+    width: var(--operator-card-icon-size, 28px);
+    height: var(--operator-card-icon-size, 28px);
+    flex: 0 0 var(--operator-card-icon-size, 28px);
+    padding: var(--operator-card-icon-padding, 0);
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+    box-shadow: none;
+    filter: none;
+  }
+
+  .app-shell .draft-panel .draft-squad-avatar__identity .draft-squad-avatar__class-icon img {
+    width: 100%;
+    height: 100%;
+    filter: brightness(0) invert(1);
+  }
+
+  .app-shell .draft-panel .draft-squad-avatar__name {
+    text-shadow: 0 1px 3px #000;
+  }
+
+  .app-shell .draft-panel :is(.draft-hold-surface, .draft-forfeit-surface) {
+    padding: 0;
+    background: #171719;
+    text-align: left;
+  }
+
+  .app-shell .draft-panel :is(.draft-hold-surface, .draft-forfeit-surface)::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: var(--operator-card-rarity-strip, 3px);
+    content: '';
+    background: var(--line, #66666e);
+    pointer-events: none;
+  }
+
+  .app-shell .draft-panel .draft-forfeit-surface::after {
+    background: #cf494f;
+  }
+
+  .app-shell .draft-panel .draft-forfeit-surface {
+    background: linear-gradient(180deg, rgba(122, 32, 38, 0.28), rgba(43, 16, 19, 0.92)), #171113;
+  }
+
+  .app-shell .draft-panel .draft-forfeit-surface:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgba(151, 38, 45, 0.4), rgba(52, 17, 21, 0.95)), #1b1114;
+  }
+
+  .app-shell .draft-panel .draft-forfeit-surface:disabled {
+    background: #171719;
+  }
+
+  .app-shell .draft-panel :is(.draft-hold-surface__body, .draft-forfeit-surface__body) {
+    position: absolute;
+    top: 0;
+    right: 4px;
+    left: 4px;
+    height: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    align-content: center;
+    gap: 0;
+  }
+
+  .app-shell .draft-panel :is(.draft-hold-surface__body, .draft-forfeit-surface__body) strong {
+    color: #fff;
+    font-size: var(--operator-card-name-size, 12px);
+    line-height: 1.1;
+  }
+
+  .app-shell .draft-panel .draft-decision-economy {
+    top: auto;
+    right: 0;
+    bottom: var(--operator-card-rarity-strip, 3px);
+    width: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    height: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+    box-shadow: none;
+  }
+
+  .app-shell .draft-panel .draft-squad-expand__price {
+    top: auto;
+    right: 0;
+    bottom: var(--operator-card-rarity-strip, 3px);
+    width: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    height: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+  }
+}
+
+/* Shared operator-card presentation, including editors, dialogs, and PNG capture. */
+.operator-card--framed {
+  border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+}
+
+.operator-card.operator-card--portrait.operator-card--framed {
+  border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+}
+
+.operator-card.operator-card--framed::after {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--operator-card-rarity-strip, 3px);
+  background: var(--rarity-border-color);
+}
+
+.operator-card--framed .operator-card__rarity {
+  display: none;
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__faction-logo {
+  opacity: var(--operator-card-faction-opacity, 0.4);
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__class-icon {
+  top: 0;
+  left: 0;
+  box-sizing: content-box;
+  width: var(--operator-card-icon-size, 28px);
+  height: var(--operator-card-icon-size, 28px);
+  padding: var(--operator-card-icon-padding, 0);
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__class-icon img {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(1);
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__caption {
+  top: 0;
+  right: 4px;
+  bottom: auto;
+  left: calc(
+    var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px) + 4px
+  );
+  min-height: calc(
+    var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px)
+  );
+  height: 100%;
+  padding-top: max(
+    0px,
+    calc(
+      (
+          var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px) -
+            var(--operator-card-name-size, 12px) * 1.1
+        ) /
+        2
+    )
+  );
+  align-content: start;
+  gap: 0;
+  pointer-events: none;
+}
+
+.operator-card--framed .operator-card__caption strong {
+  font-size: var(--operator-card-name-size, 12px);
+  line-height: 1.1;
+  text-shadow: 0 1px 3px #000;
+}
+
+.operator-card--framed .operator-card__account-progression {
+  position: absolute;
+  top: auto;
+  bottom: 7px;
+  left: calc(
+    -1 * (var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px))
+  );
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.operator-card--framed .operator-card__top-right-adornment {
+  top: auto;
+  right: 4px;
+  bottom: 7px;
+}
+
+.operator-card--framed .operator-card__interaction-control {
+  top: 34px;
+  right: 4px;
+}
+
+.operator-card--framed .operator-card__top-right-adornment:has(.standard-squad-padlock) {
+  right: 0;
+  bottom: var(--operator-card-rarity-strip, 3px);
+}
+
+.operator-card--framed .draft-operator-price,
+.operator-card--framed .draft-hold-upkeep {
+  display: grid;
+  place-items: center;
+  width: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+  height: calc(var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px));
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+  box-shadow: none;
+}
+
+.operator-card--framed .operator-card__top-right-adornment {
+  right: 0;
+  bottom: var(--operator-card-rarity-strip, 3px);
+}
+
+.operator-card--framed .standard-squad-padlock {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(1);
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__caption {
+  padding-top: 0;
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__name-viewport {
+  display: flex;
+  align-items: center;
+  min-height: calc(
+    var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px)
+  );
+  white-space: normal;
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__name-viewport strong {
+  width: 100%;
+  white-space: normal;
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__name-text {
+  display: -webkit-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.operator-card--portrait.operator-card--framed .operator-card__name-text[data-wraps='true'] {
+  font-size: max(1px, calc(var(--operator-card-name-size, 12px) - 2pt));
+}

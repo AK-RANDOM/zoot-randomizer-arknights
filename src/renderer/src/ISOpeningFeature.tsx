@@ -701,7 +701,7 @@ export default function ISOpeningFeature({
                       />
                     ) : (
                       <div
-                        className="slot-config-card standard-slot-action-card is-opening__voucher-card"
+                        className="slot-config-card standard-slot-action-card is-opening__voucher-card operator-card operator-card--portrait operator-card--framed"
                         tabIndex={0}
                         aria-label={`Slot ${index + 1}: ${operatorClass ?? 'Choose voucher'}`}
                       >
@@ -712,7 +712,23 @@ export default function ISOpeningFeature({
                             alt={`${operatorClass ?? 'Recruitment'} voucher`}
                           />
                         </div>
-                        <strong>{operatorClass ?? 'Choose voucher'}</strong>
+                        {operatorClass ? (
+                          <ClassIcon
+                            operatorClass={operatorClass}
+                            className="operator-card__class-icon"
+                          />
+                        ) : (
+                          <span className="operator-card__class-icon">{index + 1}</span>
+                        )}
+                        <div className="operator-card__caption">
+                          <div className="operator-card__name-viewport">
+                            <strong>
+                              <span className="operator-card__name-text">
+                                {operatorClass ?? 'Choose voucher'}
+                              </span>
+                            </strong>
+                          </div>
+                        </div>
                         <div className="standard-slot-actions-overlay">{actions}</div>
                       </div>
                     )}
@@ -807,7 +823,7 @@ export default function ISOpeningFeature({
               <div className="slot-editor-section is-opening__class-picker">
                 {operatorClasses.map((value) => (
                   <button
-                    className="secondary-button"
+                    className="operator-selector-option is-opening__class-option"
                     key={value}
                     aria-label={value}
                     type="button"
@@ -823,8 +839,10 @@ export default function ISOpeningFeature({
                       onError(null)
                     }}
                   >
-                    <ClassIcon operatorClass={value} />
-                    {value}
+                    <ClassIcon operatorClass={value} className="is-opening__class-thumbnail" />
+                    <span className="operator-selector-copy">
+                      <strong>{value}</strong>
+                    </span>
                   </button>
                 ))}
               </div>

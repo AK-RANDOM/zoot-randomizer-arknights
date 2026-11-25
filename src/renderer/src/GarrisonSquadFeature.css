@@ -221,12 +221,9 @@
 }
 .garrison-stage-squad-icons {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 5px;
-  overflow-x: auto;
-  overflow-y: hidden;
   padding: 2px 0;
-  scrollbar-width: thin;
 }
 .garrison-stage-squad-icons .draft-history__operator-icon {
   flex: 0 0 42px;

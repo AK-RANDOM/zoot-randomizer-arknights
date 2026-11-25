@@ -36,7 +36,9 @@ describe('Garrison Squad M2', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     expect(editor).not.toContain('StageNameInput')
     expect(feature).toContain('className="garrison-stage-name"')
-    expect(feature).toContain('changeStageEditor({ ...stageEditor.stage, name: event.target.value })')
+    expect(feature).toContain(
+      'changeStageEditor({ ...stageEditor.stage, name: event.target.value })',
+    )
   })
 
   it('matches Standard Squad centered stacked Modify/Clear presentation', () => {
@@ -80,13 +82,13 @@ describe('Garrison Squad M2', () => {
     expect(feature).toContain('Save Garrison to keep the change.')
   })
 
-  it('renders stage table squads as a single row of Draft History-style icons', () => {
+  it('renders stage squads as wrapping Draft History-style icons', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     const css = read('./GarrisonSquadFeature.css')
     expect(feature).toContain('CompactOperatorAvatar')
     expect(feature).toContain('release-representative draft-history__operator-icon')
     expect(feature).toContain('className="garrison-stage-squad-icons"')
-    expect(css).toContain('flex-wrap: nowrap')
+    expect(css).toContain('flex-wrap: wrap')
   })
 
   it('exposes Allow duplicates and resolves conflicts on stage Confirm', () => {

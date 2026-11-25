@@ -53,7 +53,7 @@ describe('Garrison Squad M5 persistence and polish', () => {
     const css = read('./GarrisonSquadFeature.css')
     expect(css).toContain('text-overflow: ellipsis')
     expect(css).toContain('@media (max-width: 820px)')
-    expect(css).toContain('overflow-x: auto')
+    expect(css).toContain('flex-wrap: wrap')
     expect(css).toContain('.garrison-conflict-summary-row')
   })
 })

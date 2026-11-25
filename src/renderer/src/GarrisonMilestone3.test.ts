@@ -25,7 +25,7 @@ describe('Garrison Squad M3', () => {
     expect(feature).toContain('×{stageCount}')
   })
 
-  it('keeps stage squads as one horizontal row of Draft History-style operator icons', () => {
+  it('wraps stage squad thumbnails so every operator remains visible without horizontal scrolling', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     const css = read('./GarrisonSquadFeature.css')
 
@@ -33,8 +33,9 @@ describe('Garrison Squad M3', () => {
     expect(read('./CompactOperatorAvatar.tsx')).toContain(
       'release-representative draft-history__operator-icon',
     )
-    expect(css).toContain('.garrison-stage-squad-icons')
-    expect(css).toContain('flex-wrap: nowrap')
+    const previewRule = css.match(/\.garrison-stage-squad-icons\s*\{([^}]+)\}/)?.[1]
+    expect(previewRule).toContain('flex-wrap: wrap')
+    expect(previewRule).not.toContain('overflow-x: auto')
   })
 
   it('uses the latest selected-appearance avatar path for Garrison overview icons', () => {

@@ -64,13 +64,17 @@
 
 .operator-selector-option {
   grid-template-columns: 42px minmax(0, 1fr) auto;
-  min-height: 48px;
-  padding: 4px;
+  min-height: 44px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
 }
 
 .operator-selector-selected {
   grid-template-columns: 42px minmax(0, 1fr) auto auto;
-  padding: 5px;
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
   border-color: var(--rarity-border-color, #8d6728);
 }
 
@@ -124,6 +128,15 @@
   gap: 2px;
 }
 
+.operator-selector-option > .operator-selector-copy,
+.operator-selector-selected > .operator-selector-copy {
+  padding: 0 8px;
+}
+
+.operator-selector-selected > .text-button {
+  margin: 0 6px;
+}
+
 .operator-selector-option strong,
 .operator-selector-selected strong,
 .operator-selector-unresolved strong {
@@ -156,11 +169,14 @@
 .operator-selector-right-meta {
   display: flex;
   min-width: 0;
-  align-items: center;
+  align-items: stretch;
+  align-self: stretch;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 0;
 }
 .operator-selector-availability-warning {
+  align-self: center;
+  padding: 0 6px;
   max-width: 96px;
   overflow: hidden;
   color: #e2a0a6;
@@ -172,40 +188,45 @@
   overflow-wrap: anywhere;
 }
 
-.operator-selector-avatar {
-  width: 42px;
-  height: 42px;
-  box-sizing: border-box;
-  padding: 3px;
-  object-fit: contain;
-  border-radius: 3px;
-  background: transparent;
+.operator-selector-class-stack {
+  position: relative;
+  display: flex;
+  min-width: 42px;
+  min-height: 42px;
+  align-items: stretch;
+  align-self: stretch;
+  justify-content: center;
+  gap: 0;
 }
 
-.operator-selector-avatar--fallback {
+.operator-selector-class-count {
+  position: absolute;
+  right: 0;
+  bottom: 0;
   display: grid;
   place-items: center;
-  color: #8c8c93;
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 10px;
   font-weight: 850;
-}
-
-.operator-selector-class-stack {
-  display: flex;
-  min-width: 32px;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
+  line-height: 1;
 }
 
 .operator-selector-class-stack .class-icon {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  min-height: 42px;
+  height: 100%;
   box-sizing: border-box;
   padding: 3px;
   place-items: center;
   flex: 0 0 auto;
+  border: 0;
+  border-left: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .operator-selector-class-stack .class-icon img {
@@ -222,8 +243,8 @@
 }
 
 .operator-selector-class-stack.is-multiple .class-icon {
-  width: 26px;
-  height: 26px;
+  width: 42px;
+  min-height: 42px;
   padding: 3px;
 }
 

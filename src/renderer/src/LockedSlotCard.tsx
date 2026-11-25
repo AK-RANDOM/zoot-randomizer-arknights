@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import OperatorCard from './OperatorCard'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
-import { slotConstraintFrameStyle } from './SlotConstraintFrame'
+import { slotConstraintGradient } from './SlotConstraintFrame'
+import type { CSSProperties } from 'react'
 import type { SlotConstraint } from '../../shared/constraints'
 import type { Operator, OperatorClass, OperatorRarity } from '../../shared/operator'
 import { operatorMatchesSlotConstraint } from '../../shared/randomizer'
@@ -103,12 +104,29 @@ export default function LockedSlotCard({
     <div
       className={`slot-locked-card${showClassIndicator ? ' has-class-indicator' : ''}`}
       data-rarity={presentation.operator.rarity}
-      style={slotConstraintFrameStyle(presentation.rarities, 'transparent')}
+      style={
+        {
+          '--slot-rarity-strip': slotConstraintGradient(presentation.rarities, 90),
+        } as CSSProperties
+      }
       aria-label={`Squad slot ${slot}, locked to ${presentation.operator.name}`}
     >
       <OperatorCard
+        responsiveCompact
         operator={presentation.operator}
         animationKey={animationKey}
+        topRightAdornment={
+          <span
+            className="draft-operator-price draft-operator-price--neutral"
+            title="Locked by slot constraint"
+          >
+            <img
+              className="standard-squad-padlock"
+              src={new URL('./assets/draft/locked-slot-icon.png', import.meta.url).href}
+              alt="Locked by slot constraint"
+            />
+          </span>
+        }
         overlay={
           <div
             className="draft-operator-actions"

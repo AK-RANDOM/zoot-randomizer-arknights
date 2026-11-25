@@ -1,11 +1,8 @@
 import ClassIcon from './ClassIcon'
 import type { SlotConstraint } from '../../shared/constraints'
-import {
-  operatorClasses,
-  type Operator,
-  type OperatorClass,
-} from '../../shared/operator'
+import { operatorClasses, type Operator, type OperatorClass } from '../../shared/operator'
 import './SlotClassConstraintIndicator.css'
+import useCompactDispatchViewport from './useCompactDispatchViewport'
 
 export interface SlotClassIndicatorItem {
   operatorClass: OperatorClass
@@ -80,6 +77,7 @@ export default function SlotClassConstraintIndicator({
   maxVisible?: number
 }): React.JSX.Element | null {
   const items = buildSlotClassIndicatorItems(constraint, operators, classes)
+  const smallViewport = useCompactDispatchViewport()
   if (items.length === 0) return null
 
   const { visible, overflow } = splitSlotClassIndicatorItems(items, maxVisible)
@@ -104,7 +102,7 @@ export default function SlotClassConstraintIndicator({
           key={operatorClass}
           className={`slot-class-constraint-item${subclassCount !== null ? ' is-subfiltered' : ''}`}
         >
-          <ClassIcon operatorClass={operatorClass} />
+          <ClassIcon operatorClass={operatorClass} variant={smallViewport ? 'simple' : 'regular'} />
           {subclassCount !== null && (
             <span className="slot-class-constraint-subcount" aria-hidden="true">
               {subclassCount}

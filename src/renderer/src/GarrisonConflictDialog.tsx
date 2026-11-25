@@ -23,9 +23,19 @@ function ConflictOperatorIcon({ operator }: { operator: Operator | undefined }):
 function KnownConflictOperatorIcon({ operator }: { operator: Operator }): React.JSX.Element {
   const { imageUrl } = useOperatorAppearanceAvatar(operator)
   return imageUrl ? (
-    <img className="garrison-conflict-avatar" src={imageUrl} alt="" draggable={false} />
+    <img
+      className="garrison-conflict-avatar"
+      data-rarity={operator.rarity}
+      src={imageUrl}
+      alt=""
+      draggable={false}
+    />
   ) : (
-    <span className="garrison-conflict-avatar garrison-stage-missing-icon" aria-hidden="true">
+    <span
+      className="garrison-conflict-avatar garrison-stage-missing-icon"
+      data-rarity={operator.rarity}
+      aria-hidden="true"
+    >
       {operator.name.slice(0, 1)}
     </span>
   )

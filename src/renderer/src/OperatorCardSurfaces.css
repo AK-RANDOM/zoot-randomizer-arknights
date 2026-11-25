@@ -1,0 +1,292 @@
+/* Square operator cards shared by Draft and Garrison, including dialog previews. */
+.draft-squad-avatar[data-card-style='framed'] {
+  --roster-icon-size: var(--operator-card-icon-size, 28px);
+  --roster-icon-padding: var(--operator-card-icon-padding, 0px);
+  --roster-name-size: var(--operator-card-name-size, 12px);
+  border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  background: color-mix(in srgb, var(--rarity-color) 8%, var(--stronghold-inset, #171719));
+  box-shadow: none;
+}
+
+.draft-squad-avatar[data-card-style='framed']::after {
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--operator-card-rarity-strip, 3px);
+  background: var(--rarity-border-color);
+}
+
+:root[data-theme='stronghold'] .draft-squad-avatar[data-card-style='framed'] {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+.draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__identity {
+  top: 0;
+  left: 0;
+  max-width: calc(100% - 4px);
+  gap: 4px;
+  font-size: var(--roster-name-size);
+}
+
+.draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__identity .class-icon {
+  display: grid;
+  place-items: center;
+  box-sizing: content-box;
+  flex: 0 0 var(--roster-icon-size);
+  width: var(--roster-icon-size);
+  height: var(--roster-icon-size);
+  padding: var(--roster-icon-padding);
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+  box-shadow: none;
+  filter: none;
+}
+
+.draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__identity .class-icon img {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(1);
+}
+
+.draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__faction-logo {
+  opacity: var(--operator-card-faction-opacity, 0.4);
+}
+
+/* Small thumbnails retain their row layout and use a neutral frame with rarity below. */
+.draft-squad-slot__frame[data-card-style='framed'],
+.app-shell .is-opening__voucher-card {
+  border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+}
+
+.draft-squad-slot__frame[data-card-style='framed'] {
+  overflow: hidden;
+  --roster-icon-size: calc(
+    var(--operator-card-icon-size, 28px) + 2 * var(--operator-card-icon-padding, 0px)
+  );
+}
+
+.draft-squad-slot__frame[data-card-style='framed'] .draft-squad-slot__number {
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: var(--roster-icon-size);
+  height: var(--roster-icon-size);
+  background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+  text-align: center;
+}
+
+.draft-squad-slot__frame[data-card-style='framed'] strong {
+  position: absolute;
+  top: 0;
+  right: 4px;
+  left: calc(var(--roster-icon-size) + 4px);
+  display: flex;
+  align-items: center;
+  min-height: var(--roster-icon-size);
+  font-size: var(--operator-card-name-size, 12px);
+}
+
+.draft-squad-slot__frame[data-card-style='framed']::after,
+.app-shell .is-opening__voucher-card::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--operator-card-rarity-strip, 3px);
+  background: var(--line, #66666e);
+  content: '';
+  pointer-events: none;
+}
+
+.release-representative[data-rarity],
+.garrison-conflict-avatar[data-rarity],
+.garrison-event-helper-avatar[data-rarity] {
+  box-sizing: border-box;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-bottom: 2px solid var(--rarity-border-color);
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--rarity-color) 8%, var(--stronghold-inset, #171719));
+}
+
+/* Curate's row presentations keep their information layout, with rarity below. */
+.pool-entry[data-rarity]:not(.pool-entry--image) {
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-bottom: 3px solid var(--rarity-border-color);
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+}
+
+/* Selector rows use a plain frame; rarity belongs to the thumbnail inside. */
+.operator-selector-option[data-rarity],
+.operator-selector-option[data-rarity]:is(:hover, .is-selected),
+.operator-selector-selected[data-rarity] {
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+}
+
+.pool-entry:not(.pool-entry--image) .pool-avatar {
+  box-sizing: border-box;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-bottom: 2px solid var(--rarity-border-color);
+  border-radius: var(--operator-card-radius, 4px);
+}
+
+/* Outfit choices are square artwork previews rather than full operator cards. */
+.pool-appearance-dialog[data-rarity] .pool-appearance-avatar {
+  box-sizing: border-box;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-bottom: 3px solid var(--rarity-border-color);
+  border-radius: var(--operator-card-radius, 4px);
+  background: color-mix(in srgb, var(--rarity-color) 8%, var(--stronghold-inset, #171719));
+}
+
+/* Unavailable and unresolved slots share the alternate card's neutral frame. */
+.app-shell .squad-grid .disabled-slot,
+.app-shell .garrison-unresolved-slot {
+  border: var(--operator-card-border, 1px) solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  box-shadow: none;
+}
+
+.app-shell .squad-grid .disabled-slot::after,
+.app-shell .garrison-unresolved-slot::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--operator-card-rarity-strip, 3px);
+  background: var(--line, #66666e);
+  content: '';
+  pointer-events: none;
+}
+
+.app-shell .squad-grid .disabled-slot > .slot-config-number {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, var(--operator-card-badge-opacity, 0.75));
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+@media (min-width: 961px) {
+  .app-shell .squad-grid .disabled-slot > .slot-config-number {
+    top: 0;
+    left: 0;
+    width: var(--operator-card-icon-size, 28px);
+    height: var(--operator-card-icon-size, 28px);
+  }
+
+  .app-shell .squad-grid .disabled-slot > span:not(.slot-config-number) {
+    top: 0;
+    right: 4px;
+    bottom: auto;
+    left: calc(var(--operator-card-icon-size, 28px) + 4px);
+    display: grid;
+    align-content: center;
+    min-height: var(--operator-card-icon-size, 28px);
+    font-size: var(--operator-card-name-size, 12px);
+  }
+}
+
+@media (max-width: 960px) {
+  .draft-squad-slot__frame[data-card-style='framed'] {
+    --roster-icon-size: 18px;
+    border-width: 1px;
+    border-radius: var(--operator-card-radius, 4px);
+    padding: 4px;
+  }
+
+  .draft-squad-slot__frame[data-card-style='framed'] .draft-squad-slot__number {
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .draft-squad-slot__frame[data-card-style='framed'] .draft-squad-slot__icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 65%;
+    height: 65%;
+    max-width: none;
+    max-height: none;
+    transform: translate(-50%, -50%);
+  }
+
+  .draft-squad-slot__frame[data-card-style='framed']::after,
+  .draft-squad-avatar[data-card-style='framed']::after {
+    height: 3px;
+  }
+
+  .draft-squad-slot__frame[data-card-style='framed'] strong {
+    font-size: 0.6rem;
+  }
+
+  .draft-squad-avatar[data-card-style='framed'] {
+    --roster-icon-size: 18px;
+    --roster-icon-padding: 0px;
+    --roster-name-size: 0.6rem;
+    border-width: 1px;
+    border-radius: var(--operator-card-radius, 4px);
+  }
+
+  .draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__faction-logo {
+    display: none;
+  }
+
+  .draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__identity .class-icon {
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* Standard unavailable capacity uses the very same frame as Draft's locked slots. */
+.app-shell .squad-grid .disabled-slot.disabled-slot--shared-frame {
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: var(--operator-card-radius, 4px);
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+}
+
+.disabled-slot--shared-frame .draft-squad-slot__frame {
+  width: 100%;
+  height: 100%;
+}
+
+.disabled-slot--shared-frame strong {
+  letter-spacing: 0;
+}
+
+.squad-grid .disabled-slot.disabled-slot--shared-frame::before,
+.squad-grid .disabled-slot.disabled-slot--shared-frame::after {
+  content: none;
+}
+
+@media (min-width: 961px) {
+  .draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__name-text[data-wraps='true'] {
+    font-size: max(1px, calc(var(--operator-card-name-size, 12px) - 2pt));
+  }
+  .draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__name {
+    white-space: normal;
+  }
+
+  .draft-squad-avatar[data-card-style='framed'] .draft-squad-avatar__name-text {
+    display: -webkit-box;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}

@@ -139,20 +139,20 @@
 .draft-squad-avatar {
   position: relative;
   overflow: hidden;
-  border: 2px solid var(--rarity-border-color, #66666e);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
   background: #171719;
-  box-shadow: 0 5px 14px rgba(0, 0, 0, 0.24);
+  box-shadow: none;
 }
 
 .draft-squad-avatar::after {
   position: absolute;
   z-index: 2;
-  top: 0;
+  bottom: 0;
   right: 0;
   left: 0;
-  height: 42%;
+  height: 3px;
   content: '';
-  background: linear-gradient(180deg, rgba(5, 5, 7, 0.82), rgba(5, 5, 7, 0));
+  background: var(--rarity-border-color);
   pointer-events: none;
 }
 
@@ -247,14 +247,20 @@
 }
 
 .draft-squad-avatar__name {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   color: #ffffff;
   font-size: inherit;
   font-weight: 900;
   line-height: 1.1;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   white-space: nowrap;
+}
+
+.draft-squad-avatar__name-text {
+  display: inline-block;
+  min-width: max-content;
 }
 
 .draft-squad-avatar--overflow {

@@ -14,7 +14,7 @@
   max-width: none;
   width: 90px;
   aspect-ratio: 1;
-  border-radius: 0;
+  border-radius: var(--operator-card-radius, 4px);
 }
 
 /* Override the shared .pool-entry[data-rarity] border rule from RendererTheme. */

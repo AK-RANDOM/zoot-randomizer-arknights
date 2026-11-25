@@ -169,12 +169,12 @@
 .draft-action-artwork {
   position: absolute;
   z-index: 1;
-  inset: 22px 12px 38px;
-  width: calc(100% - 24px);
-  height: calc(100% - 60px);
+  inset: 8px;
+  width: calc(100% - 16px);
+  height: calc(100% - 16px);
   object-fit: contain;
   object-position: center;
-  transform: scale(0.75);
+  transform: none;
   transform-origin: center;
   opacity: 0.76;
   pointer-events: none;

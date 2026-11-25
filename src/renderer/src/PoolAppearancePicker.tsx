@@ -187,6 +187,7 @@ function AppearancePicker({ operator, preferences, importedAccount, onChoose, on
     <div className="pool-appearance-backdrop" role="presentation" onMouseDown={onClose}>
       <div
         className="pool-appearance-dialog"
+        data-rarity={operator.rarity}
         role="dialog"
         aria-modal="true"
         aria-labelledby="pool-appearance-heading"

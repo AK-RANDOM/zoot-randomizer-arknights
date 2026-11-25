@@ -7,7 +7,8 @@ describe('Garrison review refinements', () => {
     const picker = read('./GarrisonStageEditor.tsx')
     const selector = read('./OperatorSelectorBase.tsx')
     expect(picker).toContain('includeInternalId={false}')
-    expect(selector).toContain('useOperatorAppearanceAvatar(operator)')
+    expect(selector).toContain("import OperatorAvatar from './CompactOperatorAvatar'")
+    expect(read('./CompactOperatorAvatar.tsx')).toContain('useOperatorAppearanceAvatar(operator)')
   })
 
   it('keeps Standard reserved operators and alters visible with disabled reasons', () => {
@@ -53,9 +54,7 @@ describe('Garrison review refinements', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     expect(app).toContain("['garrison', 'Garrison']")
     expect(feature).toContain('<span>Allow duplicates</span>')
-    expect(feature).toContain(
-      'stageEditor?.stage.id === stage.id',
-    )
+    expect(feature).toContain('stageEditor?.stage.id === stage.id')
     expect(feature).toContain('garrison-stage-editor-inline')
     expect(feature).toContain('displayedStages.map((stage) => (')
     expect(feature).toContain('stages: working.stages.map((stage) => ({')

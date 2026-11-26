@@ -1,4 +1,5 @@
 import type { Operator, OperatorClass } from './operator'
+import { AMIYA_FORM_IDS } from './dataCorrections'
 
 // IS-only predefined recruits from the EN character/roguelike tables. The unused
 // char_512_aprot variant is deliberately excluded; regular Shalem is not an Elite.
@@ -50,11 +51,20 @@ export function isOpeningPool(operators: readonly Operator[]): Operator[] {
   ]
 }
 
+/** Amiya shares all three classes for IS recruitment and class squad effects. */
+export function matchesISRecruitmentClass(
+  operator: Operator,
+  operatorClass: OperatorClass,
+): boolean {
+  if (AMIYA_FORM_IDS.has(operator.id)) return ['Caster', 'Guard', 'Medic'].includes(operatorClass)
+  return operator.class === operatorClass
+}
+
 export function matchesISVoucher(operator: Operator, voucher: OperatorClass): boolean {
   if (operator.id === 'char_504_rguard')
     return ['Vanguard', 'Guard', 'Specialist'].includes(voucher)
   if (operator.id === 'char_505_rcast') return ['Caster', 'Supporter'].includes(voucher)
-  return operator.class === voucher
+  return matchesISRecruitmentClass(operator, voucher)
 }
 
 export function isTemporaryArtwork(operator: Operator, avatar = false): string | null {

@@ -1,3 +1,5 @@
+import DispatchSetupPanel from './DispatchSetupPanel'
+import { BUILT_IN_DRAFT_PRICING_PROFILES } from '../../shared/draftPricingProfile'
 import {
   shouldConfirmDraftAction,
   hasConfirmedDraftAppSession,
@@ -217,6 +219,11 @@ export default function DraftSessionView({
   const canStart =
     ready && validationErrors.length === 0 && operators.length >= rulebook.generalRules.offerSize
   const status = resolveDraftStatusPresentation(state, targetSize)
+  const pricingName = rulebook.generalRules.pricingProfileId
+    ? (BUILT_IN_DRAFT_PRICING_PROFILES.find(
+        (profile) => profile.id === rulebook.generalRules.pricingProfileId,
+      )?.name ?? 'Custom pricing')
+    : 'Rulebook pricing'
   const draftOngoing = state?.status === 'active'
   const shareResult: SquadShareResult | null =
     state?.status === 'complete'
@@ -332,14 +339,20 @@ export default function DraftSessionView({
 
   return (
     <section className="panel squad-panel draft-panel" aria-label="Draft mode">
-      <div className="preset-toolbar draft-status-shell">
-        <span className="preset-toolbar-label">Preset</span>
-        <label className="preset-select">
-          <span className="sr-only">Draft preset</span>
-          {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
-        </label>
-        <div className="preset-actions draft-status-actions">
-          <span className="preset-actions-spacer" aria-hidden="true" />
+      <DispatchSetupPanel
+        mode="draft"
+        summary={
+          <>
+            <strong>{rulebook.identifier.name}</strong>
+            <span>
+              {pricingName} ·{' '}
+              {configuration?.economyRules.enabled
+                ? String(configuration.economyRules.startingPoints) + ' starting points'
+                : 'No point limit'}
+            </span>
+          </>
+        }
+        actions={
           <div className="mode-primary-actions">
             <button
               className="randomize-button draft-status-new"
@@ -351,13 +364,31 @@ export default function DraftSessionView({
             </button>
             <SquadShareButton result={shareResult} />
           </div>
+        }
+        submenu={
+          <>
+            {validationErrors.length === 0 && (
+              <DraftProbabilitySummary
+                distribution={
+                  configuration?.pullDistribution ?? rulebook.generalRules.pullDistribution
+                }
+              />
+            )}
+          </>
+        }
+      >
+        <div className="preset-toolbar draft-status-shell">
+          <span className="preset-toolbar-label">Preset</span>
+          <label className="preset-select">
+            <span className="sr-only">Draft preset</span>
+            {rulebookControl ?? <strong>{rulebook.identifier.name}</strong>}
+          </label>
+          <div className="preset-actions draft-status-actions">
+            <span className="preset-actions-spacer" aria-hidden="true" />
+          </div>
         </div>
-      </div>
-      {validationErrors.length === 0 && (
-        <DraftProbabilitySummary
-          distribution={configuration?.pullDistribution ?? rulebook.generalRules.pullDistribution}
-        />
-      )}
+      </DispatchSetupPanel>
+
       {validationErrors.length > 0 && (
         <div className="validation-box" role="alert">
           <strong>This Draft Rulebook cannot be executed.</strong>

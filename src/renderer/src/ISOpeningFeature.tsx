@@ -1,3 +1,4 @@
+import DispatchSetupPanel from './DispatchSetupPanel'
 import { useEffect, useId, useState } from 'react'
 import {
   operatorClasses,
@@ -17,6 +18,7 @@ import {
   isOpeningDifficultyLabel,
   isOpeningDifficultyLevels,
   isOpeningSelectionCosts,
+  isOpeningBaseHopeCost,
   isOpeningConflicts,
   isSquadArtUrl,
   isVoucherArtUrl,
@@ -28,6 +30,7 @@ import {
   isOpeningPool,
   matchesISVoucher,
   isISTemporaryOperator,
+  matchesISRecruitmentClass,
 } from '../../shared/isOpeningTemporaryOperators'
 import OperatorCard from './OperatorCard'
 import OperatorSelector, { type OperatorSelectorOption } from './OperatorSelector'
@@ -41,12 +44,10 @@ const hopeIcon = new URL('./assets/hope.webp', import.meta.url).href
 
 const strategyDescriptions: Record<ISOpeningStrategy, string> = {
   'true-random': 'Every valid opening has an equal chance, within the available Hope.',
-  'squad-six':
-    'Tries a squad-associated 6★ first, then fills the other slots randomly within the available Hope.',
-  greedy:
-    'Locks a random feasible 5★ or 6★ first, then maximizes Hope spending. Free slots favor non-reserve operators and higher rarity.',
-  'exhaust-hope':
-    'Maximizes total Hope spending without a first pick. Free slots favor non-reserve operators and higher rarity.',
+  'prioritize-squad':
+    'Picks the highest affordable rarity associated with the squad, then fills the other slots randomly.',
+  'prioritize-six': 'Picks a random affordable 6★, then fills the other slots randomly.',
+  'exhaust-hope': 'Maximizes total Hope spending.',
 }
 
 function GameArt({ src, alt }: { src: string; alt: string }): React.JSX.Element {
@@ -106,6 +107,8 @@ export default function ISOpeningFeature({
   const strategyHelpId = useId()
   const selectedStrategy = IS_OPENING_STRATEGIES.find((value) => value.id === strategy)!
   const [startingHope, setStartingHope] = useState(6)
+  const [hopeInput, setHopeInput] = useState('6')
+  const [upscaleZeroHope, setUpscaleZeroHope] = useState(false)
   const [difficultyLevel, setDifficultyLevel] = useState(0)
   const [selected, setSelected] = useState<(Operator | null)[]>([null, null, null])
   const [keptSlots, setKeptSlots] = useState([false, false, false])
@@ -128,6 +131,8 @@ export default function ISOpeningFeature({
   const budget = startingHope + squad.hopeBonus
   const keptOperatorIds = current.map((op, index) => (keptSlots[index] ? (op?.id ?? null) : null))
   const fixedOperatorIds = keptOperatorIds
+
+  useEffect(() => setHopeInput(String(startingHope)), [startingHope])
 
   useEffect(() => {
     if (!picker) return
@@ -179,6 +184,7 @@ export default function ISOpeningFeature({
           squad,
           voucherSetId,
           strategy,
+          upscaleZeroHope,
           alterExclusivity,
           themeId,
           startingHope,
@@ -230,6 +236,7 @@ export default function ISOpeningFeature({
           squad,
           voucherSetId,
           strategy,
+          upscaleZeroHope,
           alterExclusivity,
           themeId,
           startingHope,
@@ -250,42 +257,46 @@ export default function ISOpeningFeature({
       )
       const preferred = candidates.filter(
         (op) =>
-          op.rarity === 6 &&
-          squad.classes.includes(op.class) &&
+          squad.classes.some((operatorClass) => matchesISRecruitmentClass(op, operatorClass)) &&
           (!squad.subclasses || squad.subclasses.includes(op.subclass.id)),
       )
       let choices = candidates
-      if (strategy === 'squad-six' && preferred.length) choices = preferred
-      if (strategy === 'greedy' || strategy === 'exhaust-hope') {
-        const initial = strategy === 'greedy' ? candidates.filter((op) => op.rarity >= 5) : []
-        if (initial.length) choices = initial
-        else {
-          const priced = candidates.map((op) => {
-            const prices = isOpeningSelectionCosts(
-              current.map((value, index) => (index === slot ? op : value)),
-              theme,
-              squad,
-              voucherSetId,
-              difficultyLevel,
-            )
-            return {
-              op,
-              spent: prices.reduce((sum, cost) => sum + cost, 0),
-              free: prices[slot] === 0,
-            }
-          })
-          const maximum = Math.max(...priced.map((value) => value.spent))
-          const optimal = priced.filter((value) => value.spent === maximum)
-          choices = optimal.map((value) => value.op)
-          if (optimal.every((value) => value.free)) {
-            const regular = choices.filter((op) => !isISTemporaryOperator(op))
-            if (regular.length) choices = regular
-            const rarity = Math.max(...choices.map((op) => op.rarity))
-            choices = choices.filter((op) => op.rarity === rarity)
-          }
-        }
+      const prioritized =
+        strategy === 'prioritize-squad'
+          ? preferred
+          : strategy === 'prioritize-six'
+            ? candidates.filter((op) => op.rarity >= 5)
+            : []
+      if (prioritized.length) {
+        const rarity = Math.max(...prioritized.map((op) => op.rarity))
+        choices = prioritized.filter((op) => op.rarity === rarity)
       }
-      selectOperator(randomChoice(choices), slot)
+      const pricesFor = (op: Operator): number[] =>
+        isOpeningSelectionCosts(
+          current.map((value, index) => (index === slot ? op : value)),
+          theme,
+          squad,
+          voucherSetId,
+          difficultyLevel,
+        )
+      if (strategy === 'exhaust-hope') {
+        const maximum = Math.max(...choices.map((op) => pricesFor(op).reduce((a, b) => a + b, 0)))
+        choices = choices.filter((op) => pricesFor(op).reduce((a, b) => a + b, 0) === maximum)
+      }
+      let choice = randomChoice(choices)
+      if (upscaleZeroHope && isOpeningBaseHopeCost(choice, theme) === 0) {
+        const originalCosts = pricesFor(choice)
+        let free = candidates.filter(
+          (op) =>
+            isOpeningBaseHopeCost(op, theme) === 0 &&
+            pricesFor(op).every((cost, index) => index === slot || cost === originalCosts[index]),
+        )
+        const regular = free.filter((op) => !isISTemporaryOperator(op))
+        if (regular.length) free = regular
+        const rarity = Math.max(...free.map((op) => op.rarity))
+        choice = randomChoice(free.filter((op) => op.rarity === rarity))
+      }
+      selectOperator(choice, slot)
     } catch {
       onError('No other operator fits this voucher and the remaining Hope.')
     }
@@ -366,103 +377,226 @@ export default function ISOpeningFeature({
 
   return (
     <section className="panel squad-panel is-opening" aria-label="IS Opening">
-      <div className="preset-toolbar is-opening__toolbar">
-        <span className="preset-toolbar-label">Theme</span>
-        <div className="preset-select is-opening__theme">
-          <EventSelectorDropdown
-            label="Theme"
-            showLabel={false}
-            value={themeId}
-            options={themes.map((value) => ({
-              id: value.id,
-              name: `IS${value.number}: ${value.name}`,
-              representative: null,
-              imageUrl: isThemeAvatarUrl(value),
-              imageKind: 'avatar',
-            }))}
-            onChange={(id) => {
-              const next = themes.find((value) => value.id === id)!
-              setThemeId(next.id)
-              setSquadId(
-                next.squads.find((value) => value.name === 'Leader Squad')?.id ?? next.squads[0].id,
-              )
-              setVoucherSetId(next.voucherSets[0].id)
-              setVoucherChoices(['', '', ''])
-              setDifficultyLevel(0)
-              setKeptSquad(false)
-              setKeptVouchers(false)
-              setPicker(null)
-              clearOpening()
-              return true
-            }}
-          />
-        </div>
-        <label className="field is-opening__difficulty">
-          <span className="mode-toolbar-secondary-label">Difficulty</span>
-          <select
-            aria-label="Difficulty Level"
-            value={difficultyLevel}
-            onChange={(event) => {
-              changeBudget(startingHope, Number(event.target.value))
-            }}
-          >
-            {isOpeningDifficultyLevels(themeId).map((level) => (
-              <option key={level} value={level}>
-                {isOpeningDifficultyLabel(themeId, level)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="mode-primary-actions is-opening__toolbar-actions">
-          <button
-            type="button"
-            className="randomize-button"
-            disabled={!canRandomizeAll}
-            onClick={() => {
-              try {
-                const next = randomizeISOpening({
-                  operators,
-                  themeId,
-                  startingHope,
-                  difficultyLevel,
-                  strategy,
-                  alterExclusivity,
-                  keptSquadId: keptSquad ? squad.id : undefined,
-                  keptVoucherSetId: keptVouchers ? voucherSetId : undefined,
-                  voucherClasses: voucherChoices.filter((c) => c !== ''),
-                  fixedOperatorIds: keptOperatorIds,
-                })
-                setSquadId(next.squadId)
-                setVoucherSetId(next.voucherSetId)
-                showResult(next.result)
-              } catch (error) {
-                reportError(error)
+      <DispatchSetupPanel
+        mode="is-opening"
+        summary={
+          <>
+            <strong>
+              IS{theme.number}: {theme.name}
+            </strong>
+            <span>
+              {isOpeningDifficultyLabel(themeId, difficultyLevel)} · {startingHope} Hope ·{' '}
+              {selectedStrategy.name}
+              {upscaleZeroHope ? ' · Upscale on' : ''}
+            </span>
+          </>
+        }
+        actions={
+          <div className="mode-primary-actions is-opening__toolbar-actions">
+            <button
+              type="button"
+              className="randomize-button"
+              disabled={!canRandomizeAll}
+              onClick={() => {
+                try {
+                  const next = randomizeISOpening({
+                    operators,
+                    themeId,
+                    startingHope,
+                    difficultyLevel,
+                    strategy,
+                    upscaleZeroHope,
+                    alterExclusivity,
+                    keptSquadId: keptSquad ? squad.id : undefined,
+                    keptVoucherSetId: keptVouchers ? voucherSetId : undefined,
+                    voucherClasses: voucherChoices.filter((c) => c !== ''),
+                    fixedOperatorIds: keptOperatorIds,
+                  })
+                  setSquadId(next.squadId)
+                  setVoucherSetId(next.voucherSetId)
+                  showResult(next.result)
+                } catch (error) {
+                  reportError(error)
+                }
+              }}
+            >
+              Randomize All
+            </button>
+            <SquadShareButton
+              result={
+                generatedAt && current.every(Boolean)
+                  ? {
+                      mode: 'IS Opening',
+                      generatedAt,
+                      members: current,
+                      opening: {
+                        theme: `IS${theme.number}: ${theme.name}`,
+                        squad: squad.name,
+                        squadIconUrl: isSquadArtUrl(squad),
+                        voucherSet: theme.voucherSets.find((set) => set.id === voucherSetId)!.name,
+                        voucherSetIconUrl: isVoucherSetArtUrl(voucherSetId),
+                        startingHope,
+                      },
+                    }
+                  : null
               }
-            }}
-          >
-            Randomize All
-          </button>
-          <SquadShareButton
-            result={
-              generatedAt && current.every(Boolean)
-                ? {
-                    mode: 'IS Opening',
-                    generatedAt,
-                    members: current,
-                    opening: {
-                      theme: `IS${theme.number}: ${theme.name}`,
-                      squad: squad.name,
-                      squadIconUrl: isSquadArtUrl(squad),
-                      voucherSet: theme.voucherSets.find((set) => set.id === voucherSetId)!.name,
-                      voucherSetIconUrl: isVoucherSetArtUrl(voucherSetId),
-                      startingHope,
-                    },
-                  }
-                : null
-            }
-          />
+            />
+          </div>
+        }
+        submenu={
+          <>
+            <div className="is-opening__submenu">
+              <div className="is-opening__hope-summary" role="group" aria-label="Opening Hope">
+                <div className="is-opening__hope-total">
+                  <img className="is-opening__hope-icon" src={hopeIcon} alt="" />
+                  <div aria-live="polite">
+                    <strong>Hope: {budget - spent}</strong>
+                    {squad.hopeBonus > 0 && <small>Includes +{squad.hopeBonus} from squad</small>}
+                  </div>
+                </div>
+                <div className="is-opening__hope-control" role="group" aria-label="Starting Hope">
+                  <span>Starting Hope</span>
+                  <div className="is-opening__hope-stepper">
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      aria-label="Decrease starting Hope"
+                      disabled={startingHope <= 4}
+                      onClick={() => changeBudget(startingHope - 1, difficultyLevel)}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      aria-label="Starting Hope value"
+                      min={4}
+                      max={12}
+                      step={1}
+                      value={hopeInput}
+                      onChange={(event) => {
+                        setHopeInput(event.target.value)
+                        const hope = event.target.valueAsNumber
+                        if (Number.isInteger(hope) && hope >= 4 && hope <= 12)
+                          changeBudget(hope, difficultyLevel)
+                      }}
+                      onBlur={() => setHopeInput(String(startingHope))}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') event.currentTarget.blur()
+                      }}
+                    />
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      aria-label="Increase starting Hope"
+                      disabled={startingHope >= 12}
+                      onClick={() => changeBudget(startingHope + 1, difficultyLevel)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div
+                className="is-opening__generation-options"
+                role="group"
+                aria-label="Generation options"
+              >
+                <div className="is-opening__strategy-control">
+                  <label className="field is-opening__strategy">
+                    <span>Strategy</span>
+                    <select
+                      value={strategy}
+                      onChange={(event) => setStrategy(event.target.value as ISOpeningStrategy)}
+                    >
+                      {IS_OPENING_STRATEGIES.map((value) => (
+                        <option key={value.id} value={value.id}>
+                          {value.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span className="is-opening__strategy-help">
+                    <button
+                      type="button"
+                      aria-label={`About ${selectedStrategy.name}`}
+                      aria-describedby={strategyHelpId}
+                    >
+                      ?
+                    </button>
+                    <span
+                      id={strategyHelpId}
+                      role="tooltip"
+                      className="is-opening__strategy-tooltip"
+                    >
+                      <strong>{selectedStrategy.name}</strong>
+                      <span>{strategyDescriptions[strategy]}</span>
+                    </span>
+                  </span>
+                </div>
+                <label className="is-opening__upscale">
+                  <input
+                    type="checkbox"
+                    checked={upscaleZeroHope}
+                    onChange={(event) => setUpscaleZeroHope(event.target.checked)}
+                  />
+                  <span>Upscale 0 Hope options</span>
+                </label>
+              </div>
+            </div>
+          </>
+        }
+      >
+        <div className="preset-toolbar is-opening__toolbar">
+          <span className="preset-toolbar-label">Theme</span>
+          <div className="preset-select is-opening__theme">
+            <EventSelectorDropdown
+              label="Theme"
+              showLabel={false}
+              value={themeId}
+              options={themes.map((value) => ({
+                id: value.id,
+                name: `IS${value.number}: ${value.name}`,
+                representative: null,
+                imageUrl: isThemeAvatarUrl(value),
+                imageKind: 'avatar',
+              }))}
+              onChange={(id) => {
+                const next = themes.find((value) => value.id === id)!
+                setThemeId(next.id)
+                setSquadId(
+                  next.squads.find((value) => value.name === 'Leader Squad')?.id ??
+                    next.squads[0].id,
+                )
+                setVoucherSetId(next.voucherSets[0].id)
+                setVoucherChoices(['', '', ''])
+                setDifficultyLevel(0)
+                setKeptSquad(false)
+                setKeptVouchers(false)
+                setPicker(null)
+                clearOpening()
+                return true
+              }}
+            />
+          </div>
+          <label className="field is-opening__difficulty">
+            <span className="mode-toolbar-secondary-label">Difficulty</span>
+            <select
+              aria-label="Difficulty Level"
+              value={difficultyLevel}
+              onChange={(event) => {
+                changeBudget(startingHope, Number(event.target.value))
+              }}
+            >
+              {isOpeningDifficultyLevels(themeId).map((level) => (
+                <option key={level} value={level}>
+                  {isOpeningDifficultyLabel(themeId, level)}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
-      </div>
+      </DispatchSetupPanel>
+
       <div className="is-opening__columns">
         <div className="is-opening__squad" role="group" aria-label="Squad setup">
           <EventSelectorDropdown
@@ -567,39 +701,6 @@ export default function ISOpeningFeature({
             </div>
           </div>
           <div className="is-opening__recruitment-details">
-            <div className="is-opening__hope-summary" role="group" aria-label="Opening Hope">
-              <div className="is-opening__hope-total">
-                <img className="is-opening__hope-icon" src={hopeIcon} alt="" />
-                <div aria-live="polite">
-                  <strong>Hope: {budget - spent}</strong>
-                  {squad.hopeBonus > 0 && <small>Includes +{squad.hopeBonus} from squad</small>}
-                </div>
-              </div>
-              <div className="is-opening__hope-control" role="group" aria-label="Starting Hope">
-                <span>Starting Hope</span>
-                <div className="is-opening__hope-stepper">
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    aria-label="Decrease starting Hope"
-                    disabled={startingHope <= 4}
-                    onClick={() => changeBudget(startingHope - 1, difficultyLevel)}
-                  >
-                    −
-                  </button>
-                  <output aria-label="Starting Hope value">{startingHope}</output>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    aria-label="Increase starting Hope"
-                    disabled={startingHope >= 8}
-                    onClick={() => changeBudget(startingHope + 1, difficultyLevel)}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
             <div
               className="squad-grid is-opening__operators"
               aria-label="Opening operators"
@@ -739,34 +840,6 @@ export default function ISOpeningFeature({
             </div>
           </div>
           <div className="is-opening__squad-actions is-opening__control-box">
-            <div className="is-opening__strategy-control">
-              <label className="field is-opening__strategy">
-                <span>Strategy</span>
-                <select
-                  value={strategy}
-                  onChange={(event) => setStrategy(event.target.value as ISOpeningStrategy)}
-                >
-                  {IS_OPENING_STRATEGIES.map((value) => (
-                    <option key={value.id} value={value.id}>
-                      {value.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <span className="is-opening__strategy-help">
-                <button
-                  type="button"
-                  aria-label={`About ${selectedStrategy.name}`}
-                  aria-describedby={strategyHelpId}
-                >
-                  ?
-                </button>
-                <span id={strategyHelpId} role="tooltip" className="is-opening__strategy-tooltip">
-                  <strong>{selectedStrategy.name}</strong>
-                  <span>{strategyDescriptions[strategy]}</span>
-                </span>
-              </span>
-            </div>
             <button
               className="danger-button"
               type="button"

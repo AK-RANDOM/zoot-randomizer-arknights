@@ -1,3 +1,4 @@
+import DispatchSetupPanel from './DispatchSetupPanel'
 import { useAppDialogs } from './AppDialogs'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import SquadValidationBox from './SquadValidationBox'
@@ -178,6 +179,7 @@ export default function StandardSquadFeature({
   onConstraintsChange,
   onMessage,
   onError,
+
   garrisonDispatch,
 }: {
   dataset: OperatorDataset | null
@@ -187,6 +189,7 @@ export default function StandardSquadFeature({
   onConstraintsChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
   onMessage: (message: string) => void
   onError: (message: string | null) => void
+
   garrisonDispatch?: GarrisonDispatchControls
 }): React.JSX.Element {
   const { confirmAction } = useAppDialogs()
@@ -731,49 +734,24 @@ export default function StandardSquadFeature({
           </div>
         </div>
 
-        <div className="preset-toolbar" aria-busy={rolling || checkingInitial || checkingRerolls}>
-          <span className="preset-toolbar-label">Preset</span>
-          <label className="preset-select">
-            <span className="sr-only">Squad preset</span>
-            <select
-              disabled={rolling}
-              value={presetIsDirty ? 'custom' : selectedPresetId}
-              onChange={(event) => {
-                const id = event.target.value
-                if (id === 'custom') {
-                  setSelectedPresetId('custom')
-                  return
-                }
-                const preset = allPresets.find((candidate) => candidate.id === id)
-                if (preset) applyPreset(preset)
-              }}
-            >
-              <option value="custom">Custom</option>
-              <optgroup label="Built-in">
-                {BUILT_IN_SQUAD_PRESETS.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.name}
-                  </option>
-                ))}
-              </optgroup>
-              {userPresets.length > 0 && (
-                <optgroup label="Saved">
-                  {userPresets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </label>
-          <div className="preset-actions">
+        <DispatchSetupPanel
+          mode="standard"
+          summary={
+            <>
+              <strong>{presetIsDirty ? 'Custom' : (selectedPreset?.name ?? 'Custom')}</strong>
+              <span>
+                {currentConstraintSummary.length} constraints · Chain {chainMode ? 'on' : 'off'}
+              </span>
+            </>
+          }
+          secondaryActions={
             <button
+              className="danger-button mode-icon-button mode-clear-button"
               type="button"
-              className="secondary-button mode-icon-button"
-              aria-label="Save as preset"
-              title="Save as preset"
-              onClick={saveAsPreset}
+              aria-label="Clear squad"
+              title="Clear squad"
+              disabled={rolling || squad.length === 0}
+              onClick={clearSquad}
             >
               <svg
                 width="16"
@@ -786,90 +764,12 @@ export default function StandardSquadFeature({
                 strokeLinejoin="round"
                 aria-hidden="true"
               >
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z" />
-                <path d="M7 3v6h10V3M7 21v-8h10v8" />
+                <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
               </svg>
             </button>
-            {selectedPreset && (
-              <button
-                type="button"
-                className="secondary-button mode-icon-button"
-                aria-label="Duplicate preset"
-                title="Duplicate preset"
-                onClick={duplicateSelectedPreset}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <rect x="8" y="8" width="12" height="12" rx="2" />
-                  <path d="M16 8V4H4v12h4" />
-                </svg>
-              </button>
-            )}
-            <label className="mode-checkbox">
-              <input
-                type="checkbox"
-                checked={chainMode}
-                disabled={rolling}
-                onChange={(event) => toggleChainMode(event.target.checked)}
-              />
-              <span>Chain Mode</span>
-            </label>
-            {selectedPreset && !selectedPreset.builtIn && (
-              <>
-                <button type="button" className="secondary-button" onClick={updateSelectedPreset}>
-                  Update
-                </button>
-                <button type="button" className="secondary-button" onClick={renameSelectedPreset}>
-                  Rename
-                </button>
-                <button type="button" className="secondary-button" onClick={deleteSelectedPreset}>
-                  Delete
-                </button>
-              </>
-            )}
-            <span className="preset-actions-spacer" aria-hidden="true" />
-            {squad.length > 0 && (
-              <button
-                className="secondary-button"
-                type="button"
-                disabled={rolling || keepableSlots.length === 0}
-                onClick={() => setKeptSlots(allKept ? [] : keepableSlots)}
-              >
-                {allKept ? 'Unkeep All' : 'Keep All'}
-              </button>
-            )}
+          }
+          actions={
             <div className="mode-primary-actions">
-              <button
-                className="danger-button mode-icon-button mode-clear-button"
-                type="button"
-                aria-label="Clear squad"
-                title="Clear squad"
-                disabled={rolling || squad.length === 0}
-                onClick={clearSquad}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
-                </svg>
-              </button>
               <button
                 className="randomize-button"
                 type="button"
@@ -901,31 +801,154 @@ export default function StandardSquadFeature({
                 }
               />
             </div>
-          </div>
-        </div>
-
-        <div className="current-constraint-summary" aria-label="Current squad constraints">
-          <div className="current-constraint-summary-content">
-            <strong>Current constraints</strong>
-            {currentConstraintSummary.length > 0 ? (
-              <div className="constraint-summary-chips">
-                {currentConstraintSummary.map((summary) => (
-                  <span key={summary}>{summary}</span>
-                ))}
+          }
+          submenu={
+            <>
+              <div className="current-constraint-summary" aria-label="Current squad constraints">
+                <div className="current-constraint-summary-content">
+                  <strong>Current constraints</strong>
+                  {currentConstraintSummary.length > 0 ? (
+                    <div className="constraint-summary-chips">
+                      {currentConstraintSummary.map((summary) => (
+                        <span key={summary}>{summary}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>No active squad-wide constraints.</p>
+                  )}
+                </div>
+                <button
+                  className="danger-button"
+                  type="button"
+                  disabled={!canResetConstraints}
+                  onClick={resetConstraints}
+                >
+                  Reset
+                </button>
               </div>
-            ) : (
-              <p>No active squad-wide constraints.</p>
-            )}
+            </>
+          }
+        >
+          <div className="preset-toolbar" aria-busy={rolling || checkingInitial || checkingRerolls}>
+            <span className="preset-toolbar-label">Preset</span>
+            <label className="preset-select">
+              <span className="sr-only">Squad preset</span>
+              <select
+                disabled={rolling}
+                value={presetIsDirty ? 'custom' : selectedPresetId}
+                onChange={(event) => {
+                  const id = event.target.value
+                  if (id === 'custom') {
+                    setSelectedPresetId('custom')
+                    return
+                  }
+                  const preset = allPresets.find((candidate) => candidate.id === id)
+                  if (preset) applyPreset(preset)
+                }}
+              >
+                <option value="custom">Custom</option>
+                <optgroup label="Built-in">
+                  {BUILT_IN_SQUAD_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </optgroup>
+                {userPresets.length > 0 && (
+                  <optgroup label="Saved">
+                    {userPresets.map((preset) => (
+                      <option key={preset.id} value={preset.id}>
+                        {preset.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </label>
+            <div className="preset-actions">
+              <button
+                type="button"
+                className="secondary-button mode-icon-button"
+                aria-label="Save as preset"
+                title="Save as preset"
+                onClick={saveAsPreset}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z" />
+                  <path d="M7 3v6h10V3M7 21v-8h10v8" />
+                </svg>
+              </button>
+              {selectedPreset && (
+                <button
+                  type="button"
+                  className="secondary-button mode-icon-button"
+                  aria-label="Duplicate preset"
+                  title="Duplicate preset"
+                  onClick={duplicateSelectedPreset}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path d="M16 8V4H4v12h4" />
+                  </svg>
+                </button>
+              )}
+              <label className="mode-checkbox">
+                <input
+                  type="checkbox"
+                  checked={chainMode}
+                  disabled={rolling}
+                  onChange={(event) => toggleChainMode(event.target.checked)}
+                />
+                <span>Chain Mode</span>
+              </label>
+              {selectedPreset && !selectedPreset.builtIn && (
+                <>
+                  <button type="button" className="secondary-button" onClick={updateSelectedPreset}>
+                    Update
+                  </button>
+                  <button type="button" className="secondary-button" onClick={renameSelectedPreset}>
+                    Rename
+                  </button>
+                  <button type="button" className="secondary-button" onClick={deleteSelectedPreset}>
+                    Delete
+                  </button>
+                </>
+              )}
+              <span className="preset-actions-spacer" aria-hidden="true" />
+              {squad.length > 0 && (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={rolling || keepableSlots.length === 0}
+                  onClick={() => setKeptSlots(allKept ? [] : keepableSlots)}
+                >
+                  {allKept ? 'Unkeep All' : 'Keep All'}
+                </button>
+              )}
+            </div>
           </div>
-          <button
-            className="danger-button"
-            type="button"
-            disabled={!canResetConstraints}
-            onClick={resetConstraints}
-          >
-            Reset
-          </button>
-        </div>
+        </DispatchSetupPanel>
+
         {dataset && !validation.valid && validation.errors.length > 0 && (
           <SquadValidationBox errors={validation.errors} />
         )}

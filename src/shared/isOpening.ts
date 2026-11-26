@@ -6,6 +6,7 @@ import {
   isISReserveOperator,
   isOpeningPool,
   matchesISVoucher,
+  matchesISRecruitmentClass,
 } from './isOpeningTemporaryOperators'
 
 export interface ISOpeningSquad {
@@ -51,8 +52,8 @@ export const IS_RANDOM_VOUCHER_SET_ID = 'recruit_group_random'
 
 export const IS_OPENING_STRATEGIES = [
   { id: 'true-random', name: 'True Random' },
-  { id: 'squad-six', name: 'Prioritize Squad 6★' },
-  { id: 'greedy', name: 'Greedy' },
+  { id: 'prioritize-squad', name: 'Prioritize Squad' },
+  { id: 'prioritize-six', name: 'Prioritize 6★' },
   { id: 'exhaust-hope', name: 'Exhaust Hope' },
 ] as const
 export type ISOpeningStrategy = (typeof IS_OPENING_STRATEGIES)[number]['id']
@@ -155,6 +156,10 @@ export function isVoucherArtUrl(themeId: string, operatorClass?: OperatorClass):
 // https://arknights.wiki.gg/wiki/Integrated_Strategies
 // https://arknights.wiki.gg/wiki/Sarkaz%27s_Furnaceside_Fables#Updates
 // Squad modifiers/bonuses and temporary recruitment rarities come from the source table above.
+export function isOpeningBaseHopeCost(operator: Operator, theme: ISOpeningTheme): number {
+  return isISTemporaryOperator(operator) ? 0 : theme.hopeCosts[operator.rarity - 1]
+}
+
 export function isOpeningHopeCost(
   operator: Operator,
   theme: ISOpeningTheme,
@@ -164,7 +169,7 @@ export function isOpeningHopeCost(
   if (isISTemporaryOperator(operator)) return 0
   return Math.max(
     0,
-    theme.hopeCosts[operator.rarity - 1] +
+    isOpeningBaseHopeCost(operator, theme) +
       (theme.id === 'rogue_1' && difficultyLevel >= 4 && operator.rarity >= 4
         ? difficultyLevel >= 13
           ? 2
@@ -182,7 +187,10 @@ export function isOpeningHopeCost(
         (delta, modifier) =>
           delta +
           (modifier.rarities.includes(operator.rarity) &&
-          (!modifier.classes.length || modifier.classes.includes(operator.class)) &&
+          (!modifier.classes.length ||
+            modifier.classes.some((operatorClass) =>
+              matchesISRecruitmentClass(operator, operatorClass),
+            )) &&
           (!modifier.subclasses || modifier.subclasses.includes(operator.subclass.id))
             ? modifier.delta
             : 0),
@@ -296,6 +304,7 @@ function generateOpeningStrategy({
   difficultyLevel,
   fixedOperatorIds,
   excludedOperatorIdsBySlot,
+  upscaleZeroHope,
   random,
 }: {
   operators: readonly Operator[]
@@ -309,6 +318,7 @@ function generateOpeningStrategy({
   difficultyLevel: number
   fixedOperatorIds: readonly (string | null)[]
   excludedOperatorIdsBySlot: readonly (string | null)[]
+  upscaleZeroHope: boolean
   random: () => number
 }): ISOpeningResult {
   const pool = shuffled(isOpeningPool(operators), random)
@@ -329,8 +339,7 @@ function generateOpeningStrategy({
   )
   const pins = Array.from({ length: 3 }, (_, slot) => fixedOperatorIds[slot] ?? null)
   const preferred = (index: number): boolean =>
-    pool[index].rarity === 6 &&
-    squad.classes.includes(pool[index].class) &&
+    squad.classes.some((operatorClass) => matchesISRecruitmentClass(pool[index], operatorClass)) &&
     (!squad.subclasses || squad.subclasses.includes(pool[index].subclass.id))
   type Pick = [number, number, number]
   type Costs = [number, number, number]
@@ -381,34 +390,29 @@ function generateOpeningStrategy({
       // Reservoir sampling: all complete valid operator triples have equal weight.
       if (random() * count < 1) selected = pick
     })
-  } else if (strategy === 'squad-six' || strategy === 'greedy') {
-    const alreadyFixed = pins.findIndex((id) => {
-      const index = pool.findIndex((op) => op.id === id)
-      return index >= 0 && (strategy === 'squad-six' ? preferred(index) : pool[index].rarity >= 5)
-    })
-    if (alreadyFixed >= 0) firstPickIndex = alreadyFixed
-    else {
-      const feasible = [new Set<number>(), new Set<number>(), new Set<number>()]
-      visit(pins, (pick) => {
-        selected ??= pick
-        pick.forEach((index, slot) => {
-          if (
-            !pins[slot] &&
-            (strategy === 'squad-six' ? preferred(index) : pool[index].rarity >= 5)
-          )
-            feasible[slot].add(index)
-        })
+  } else if (strategy === 'prioritize-squad' || strategy === 'prioritize-six') {
+    const feasible = [new Set<number>(), new Set<number>(), new Set<number>()]
+    let highestRarity = 0
+    visit(pins, (pick) => {
+      pick.forEach((index, slot) => {
+        const eligible =
+          strategy === 'prioritize-squad' ? preferred(index) : pool[index].rarity >= 5
+        if (!eligible) return
+        const rarity = pool[index].rarity
+        if (rarity > highestRarity) {
+          highestRarity = rarity
+          feasible.forEach((indices) => indices.clear())
+        }
+        if (rarity === highestRarity) feasible[slot].add(index)
       })
-      const slots = feasible.flatMap((indices, slot) => (indices.size ? [slot] : []))
-      if (slots.length) {
-        firstPickIndex = randomChoice(slots, random)
-        const index = randomChoice([...feasible[firstPickIndex]], random)
-        pins[firstPickIndex] = pool[index].id
-      }
+    })
+    const slots = feasible.flatMap((indices, slot) => (indices.size ? [slot] : []))
+    if (slots.length) {
+      firstPickIndex = randomChoice(slots, random)
+      pins[firstPickIndex] = pool[randomChoice([...feasible[firstPickIndex]], random)].id
     }
-    if (strategy === 'squad-six') firstValid(pins)
-  }
-  if (strategy === 'greedy' || strategy === 'exhaust-hope') {
+    firstValid(pins)
+  } else if (strategy === 'exhaust-hope') {
     let bestSpent = -1
     visit(pins, (pick, _costs, spent) => {
       if (spent > bestSpent) {
@@ -417,43 +421,46 @@ function generateOpeningStrategy({
       }
       return spent === availableHope
     })
-    if (selected) {
-      const paidPick: Pick = selected
-      const paidCosts = isOpeningSelectionCosts(
-        paidPick.map((index) => pool[index]),
-        theme,
-        squad,
-        voucherSetId,
-        difficultyLevel,
-      )
-      // Final backtracking check: keep paid choices and all locks fixed. Improve
-      // only free fillers, so their quality cannot change the paid-composition tie policy.
-      const finalPins = pins.map(
-        (id, slot) => id || (paidCosts[slot] > 0 ? pool[paidPick[slot]].id : null),
-      )
-      const quality = (pick: Pick): number[] => {
-        const free = pick.filter((_, slot) => paidCosts[slot] === 0).map((index) => pool[index])
-        return [
-          free.filter((op) => !isISReserveOperator(op)).length,
-          free.reduce((sum, op) => sum + op.rarity, 0),
-          ...free.map((op) => op.rarity).sort((a, b) => b - a),
-        ]
-      }
-      let bestQuality = quality(paidPick)
-      visit(
-        finalPins,
-        (pick, costs, spent) => {
-          if (spent !== bestSpent || costs.some((cost, slot) => cost !== paidCosts[slot])) return
-          const score = quality(pick)
-          const difference = score.findIndex((value, index) => value !== bestQuality[index])
-          if (difference >= 0 && score[difference] > bestQuality[difference]) {
-            selected = pick
-            bestQuality = score
-          }
-        },
-        bestSpent,
-      )
+  }
+  if (selected && upscaleZeroHope) {
+    const original: Pick = selected
+    const originalCosts = isOpeningSelectionCosts(
+      original.map((index) => pool[index]),
+      theme,
+      squad,
+      voucherSetId,
+      difficultyLevel,
+    )
+    const finalPins = pins.map(
+      (_, slot) =>
+        fixedOperatorIds[slot] ||
+        (isOpeningBaseHopeCost(pool[original[slot]], theme) > 0 ? pool[original[slot]].id : null),
+    )
+    const quality = (pick: Pick): number[] => {
+      const free = pick.filter((_, slot) => !finalPins[slot]).map((index) => pool[index])
+      return [
+        free.filter((op) => !isISReserveOperator(op)).length,
+        free.reduce((sum, op) => sum + op.rarity, 0),
+        ...free.map((op) => op.rarity).sort((a, b) => b - a),
+      ]
     }
+    let bestQuality = quality(original)
+    visit(finalPins, (pick, costs) => {
+      if (
+        pick.some((index, slot) =>
+          finalPins[slot]
+            ? costs[slot] !== originalCosts[slot]
+            : isOpeningBaseHopeCost(pool[index], theme) !== 0,
+        )
+      )
+        return
+      const score = quality(pick)
+      const difference = score.findIndex((value, index) => value !== bestQuality[index])
+      if (difference >= 0 && score[difference] > bestQuality[difference]) {
+        selected = pick
+        bestQuality = score
+      }
+    })
   }
   if (!selected)
     throw new Error(
@@ -484,6 +491,7 @@ export function generateISOpening({
   squad,
   voucherSetId,
   prioritizeSixStars = false,
+  upscaleZeroHope = false,
   strategy,
   alterExclusivity,
   themeId = squad.id.split('_band_')[0],
@@ -499,6 +507,7 @@ export function generateISOpening({
   voucherSetId: string
   prioritizeSixStars?: boolean
   strategy?: ISOpeningStrategy
+  upscaleZeroHope?: boolean
   alterExclusivity: boolean
   themeId?: string
   startingHope?: number
@@ -511,8 +520,8 @@ export function generateISOpening({
   const theme = IS_OPENING_THEMES.find((value) => value.id === themeId)
   if (!theme || !theme.squads.some((value) => value.id === squad.id))
     throw new Error('Unknown IS theme or squad.')
-  if (!Number.isSafeInteger(startingHope) || startingHope < 0)
-    throw new Error('Starting Hope must be a non-negative integer.')
+  if (!Number.isSafeInteger(startingHope) || startingHope < 0 || startingHope > 12)
+    throw new Error('Starting Hope must be an integer between 0 and 12.')
   if (
     !Number.isInteger(difficultyLevel) ||
     difficultyLevel < 0 ||
@@ -535,13 +544,14 @@ export function generateISOpening({
   )
     throw new Error('Choose all three voucher classes before randomizing.')
   const classOptions = (presetClasses ?? voucherClasses!).map((c) => [c])
-  if (strategy) {
+  if (strategy || upscaleZeroHope) {
     return generateOpeningStrategy({
       operators,
       theme,
       squad,
       voucherSetId,
-      strategy,
+      strategy: strategy ?? (prioritizeSixStars ? 'prioritize-squad' : 'true-random'),
+      upscaleZeroHope,
       alterExclusivity,
       classes: classOptions.map(([operatorClass]) => operatorClass),
       availableHope,
@@ -663,6 +673,7 @@ export function randomizeISOpening({
   difficultyLevel: number
   prioritizeSixStars?: boolean
   strategy?: ISOpeningStrategy
+  upscaleZeroHope?: boolean
   alterExclusivity: boolean
   keptSquadId?: string
   keptVoucherSetId?: string

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   generateISOpening,
   isOpeningHopeCost,
+  isOpeningBaseHopeCost,
   IS_OPENING_THEMES,
   IS_VOUCHER_CLASSES,
   randomizeISOpening,
@@ -18,7 +19,7 @@ import {
   matchesISVoucher,
   IS_TEMPORARY_OPERATORS,
 } from './isOpeningTemporaryOperators'
-import type { Operator, OperatorClass } from './operator'
+import { operatorClasses, type Operator, type OperatorClass } from './operator'
 
 type TestOperator = Operator & { mandatoryExclusivityGroup: string | null }
 
@@ -60,6 +61,75 @@ const pool = [
   operator('supporter', 'Supporter'),
   operator('medic', 'Medic'),
 ]
+
+describe('Amiya IS recruitment', () => {
+  const forms = [
+    operator('char_002_amiya', 'Caster', 5, { mandatoryExclusivityGroup: 'amiya-forms' }),
+    operator('char_1001_amiya2', 'Guard', 5, { mandatoryExclusivityGroup: 'amiya-forms' }),
+    operator('char_1037_amiya3', 'Medic', 5, { mandatoryExclusivityGroup: 'amiya-forms' }),
+  ]
+  const classes: OperatorClass[] = ['Caster', 'Guard', 'Medic']
+
+  it.each(forms)('$id accepts exactly Caster, Guard and Medic vouchers', (form) => {
+    for (const voucher of operatorClasses) {
+      expect(matchesISVoucher(form, voucher)).toBe(classes.includes(voucher))
+    }
+    expect(
+      matchesISVoucher(
+        operator('regular', form.class, 5),
+        classes.find((c) => c !== form.class)!,
+      ),
+    ).toBe(false)
+  })
+
+  it.each(forms)('$id receives each related class squad discount once', (form) => {
+    for (const theme of IS_OPENING_THEMES) {
+      for (const squad of theme.squads) {
+        for (const operatorClass of classes) {
+          // A regular five-star of the discounted class is the pricing reference,
+          // including difficulty surcharges and squads with no applicable discount.
+          if (squad.subclasses || squad.costModifiers.some((modifier) => modifier.subclasses))
+            continue
+          if (squad.classes.length && !squad.classes.includes(operatorClass)) continue
+          for (const difficulty of isOpeningDifficultyLevels(theme.id)) {
+            expect(isOpeningHopeCost(form, theme, squad, difficulty)).toBe(
+              isOpeningHopeCost(operator('reference', operatorClass, 5), theme, squad, difficulty),
+            )
+          }
+        }
+      }
+    }
+  })
+
+  it.each(forms)('$id can be pinned to each voucher across all generation strategies', (form) => {
+    const theme = IS_OPENING_THEMES.find((theme) => theme.number === 3)!
+    const squad = theme.squads.find((squad) => squad.name === 'Tactical Assault Squad')!
+    for (const voucher of classes) {
+      for (const strategy of [undefined, ...IS_OPENING_STRATEGIES.map((value) => value.id)]) {
+        const result = generateISOpening({
+          operators: [form],
+          squad,
+          voucherSetId: 'recruit_group_random',
+          voucherClasses: [voucher, 'Sniper', 'Defender'],
+          fixedOperatorIds: [form.id, null, null],
+          startingHope: 1,
+          alterExclusivity: false,
+          strategy,
+          random: () => 0.5,
+        })
+        expect(result.operators[0].id).toBe(form.id)
+        expect(result.classes[0]).toBe(voucher)
+        expect(result.hopeCosts[0]).toBe(1)
+      }
+    }
+  })
+
+  it('keeps different Amiya forms mutually exclusive regardless of voucher', () => {
+    for (const form of forms) {
+      for (const other of forms) expect(isOpeningConflicts(form, [other], false)).toBe(true)
+    }
+  })
+})
 
 describe('IS opening selection', () => {
   const is5 = IS_OPENING_THEMES.find((theme) => theme.number === 5)!
@@ -124,7 +194,7 @@ describe('IS opening selection', () => {
       expect(Math.abs(observed - mean)).toBeLessThan(mean * 0.25)
   })
 
-  it('locks a random feasible five/six-star before Greedy optimizes the remainder', () => {
+  it('prioritizes an affordable six-star before filling the remaining slots randomly', () => {
     const operators = [
       operator('g5', 'Guard', 5),
       operator('g6', 'Guard', 6),
@@ -134,11 +204,11 @@ describe('IS opening selection', () => {
     const greedy = generateISOpening({
       ...strategyOptions,
       operators,
-      strategy: 'greedy',
+      strategy: 'prioritize-six',
       random: () => 0,
     })
     expect(greedy.firstPickIndex).toBe(0)
-    expect(greedy.operators[0].rarity).toBeGreaterThanOrEqual(5)
+    expect(greedy.operators[0].rarity).toBe(6)
     expect(greedy.totalHopeCost).toBe(4)
     const exhausted = generateISOpening({
       ...strategyOptions,
@@ -150,22 +220,27 @@ describe('IS opening selection', () => {
     expect(exhausted.firstPickIndex).toBeNull()
   })
 
-  it('Prioritize Squad 6★ finds a feasible matching six-star and falls back when none exists', () => {
+  it('Prioritize Squad finds a feasible matching operator and falls back when none exists', () => {
     const operators = [
       operator('g6', 'Guard', 6),
       operator('s5', 'Supporter', 5),
       operator('m5', 'Medic', 5),
     ]
-    const selected = generateISOpening({ ...strategyOptions, operators, strategy: 'squad-six' })
+    const selected = generateISOpening({
+      ...strategyOptions,
+      operators,
+      strategy: 'prioritize-squad',
+    })
     expect(selected.operators[0].id).toBe('g6')
     expect(selected.totalHopeCost).toBe(4)
     expect(
-      generateISOpening({ ...strategyOptions, operators: [], strategy: 'squad-six' }).operators,
+      generateISOpening({ ...strategyOptions, operators: [], strategy: 'prioritize-squad' })
+        .operators,
     ).toHaveLength(3)
   })
 
-  it.each(['greedy', 'exhaust-hope'] as const)(
-    '%s backtracks jointly over free fillers without changing paid or kept choices',
+  it.each(['prioritize-six', 'exhaust-hope'] as const)(
+    '%s upscales free fillers jointly without changing paid or kept choices',
     (strategy) => {
       const operators = [
         operator('paid', 'Guard', 6),
@@ -180,6 +255,7 @@ describe('IS opening selection', () => {
         operators,
         strategy,
         fixedOperatorIds: ['paid', null, null],
+        upscaleZeroHope: true,
       })
       expect(result.operators[0].id).toBe('paid')
       expect(result.totalHopeCost).toBe(6)
@@ -199,6 +275,7 @@ describe('IS opening selection', () => {
       operators: [paid, regular, medic],
       strategy: 'exhaust-hope',
       fixedOperatorIds: [paid.id, null, null],
+      upscaleZeroHope: true,
     })
     expect(result.operators[1].id).toBe(regular.id)
     const reserve = IS_TEMPORARY_OPERATORS.find((op) => op.class === 'Medic')!
@@ -208,6 +285,7 @@ describe('IS opening selection', () => {
       operators: [paid, regular, medic],
       strategy: 'exhaust-hope',
       fixedOperatorIds: [paid.id, null, reserve.id],
+      upscaleZeroHope: true,
     })
     expect(kept.operators[2].id).toBe(reserve.id)
     const fallback = generateISOpening({
@@ -289,6 +367,114 @@ describe('IS opening selection', () => {
       expect(result.classes).toEqual(['Guard', 'Guard', 'Guard'])
     },
   )
+
+  it('Prioritize Squad chooses the highest affordable associated rarity, including five-stars', () => {
+    const operators = [
+      operator('g6', 'Guard', 6),
+      operator('g5', 'Guard', 5),
+      operator('g4', 'Guard', 4),
+    ]
+    const options = { ...strategyOptions, operators, strategy: 'prioritize-squad' as const }
+    expect(generateISOpening({ ...options, startingHope: 4 }).operators[0].id).toBe('g6')
+    expect(generateISOpening({ ...options, startingHope: 1 }).operators[0].id).toBe('g5')
+    expect(generateISOpening({ ...options, startingHope: 0 }).operators[0].id).toBe('g4')
+  })
+
+  it('Prioritize 6★ falls back to a feasible five-star when a six-star is unaffordable', () => {
+    const result = generateISOpening({
+      ...strategyOptions,
+      squad: leader5,
+      operators: [operator('g6', 'Guard', 6), operator('g5', 'Guard', 5)],
+      strategy: 'prioritize-six',
+      startingHope: 3,
+    })
+    expect(result.operators[result.firstPickIndex!].id).toBe('g5')
+  })
+
+  it.each(IS_OPENING_STRATEGIES)(
+    '$name only upscales free picks when enabled',
+    ({ id: strategy }) => {
+      const operators = [operator('s4', 'Supporter', 4), operator('m4', 'Medic', 4)]
+      const options = {
+        ...strategyOptions,
+        squad: leader5,
+        operators,
+        strategy,
+        startingHope: 0,
+        difficultyLevel: 0,
+        fixedOperatorIds: ['char_504_rguard', null, null],
+      }
+      const plain = generateISOpening({ ...options, random: () => 0 })
+      const upgraded = generateISOpening({ ...options, upscaleZeroHope: true, random: () => 0 })
+      expect(plain.operators.slice(1).some(isISTemporaryOperator)).toBe(true)
+      expect(upgraded.operators.map((op) => op.id)).toEqual(['char_504_rguard', 's4', 'm4'])
+      expect(upgraded.hopeCosts).toEqual([0, 0, 0])
+      expect(upgraded.totalHopeCost).toBe(plain.totalHopeCost)
+    },
+  )
+
+  it('upscaling uses base costs rather than squad discounts or temporary offers', () => {
+    const theme = IS_OPENING_THEMES.find((value) => value.number === 5)!
+    const squad = theme.squads.find((value) => value.name === 'Tactical Assault Squad')!
+    const five = operator('g5', 'Guard', 5)
+    expect(isOpeningHopeCost(five, theme, squad)).toBe(0)
+    expect(isOpeningBaseHopeCost(five, theme)).toBe(2)
+    const options = {
+      ...base,
+      squad,
+      strategy: 'true-random' as const,
+      upscaleZeroHope: true,
+      operators: [operator('g4', 'Guard', 4), five],
+      fixedOperatorIds: [null, 'char_505_rcast', 'char_506_rmedic'],
+      startingHope: 0,
+      random: () => 0.99,
+    }
+    expect(generateISOpening(options).operators[0].id).toBe('g4')
+    const temporary = generateISOpening({
+      ...options,
+      squad: theme.squads.find((value) => value.name === 'Leader Squad')!,
+      voucherSetId: 'recruit_group_random',
+      voucherClasses: ['Guard', 'Supporter', 'Medic'],
+    })
+    expect(temporary.operators[0].id).toBe('g4')
+  })
+
+  it('upscaling considers base-free recruits even when difficulty adds a Hope surcharge', () => {
+    const theme = IS_OPENING_THEMES.find((value) => value.number === 3)!
+    const squad = theme.squads.find((value) => value.name === 'Leader Squad')!
+    const result = generateISOpening({
+      ...base,
+      squad,
+      strategy: 'true-random',
+      upscaleZeroHope: true,
+      operators: [operator('s3', 'Supporter', 3)],
+      difficultyLevel: 4,
+      startingHope: 1,
+      fixedOperatorIds: ['char_504_rguard', null, 'char_506_rmedic'],
+      random: () => 0,
+    })
+    expect(result.operators[1].id).toBe('s3')
+    expect(result.hopeCosts).toEqual([0, 1, 0])
+  })
+
+  it('upscaling respects the theme base costs and actual affordability', () => {
+    const theme = IS_OPENING_THEMES.find((value) => value.number === 3)!
+    const squad = theme.squads.find((value) => value.name === 'Leader Squad')!
+    const operators = [operator('s4', 'Supporter', 4), operator('s3', 'Supporter', 3)]
+    const options = {
+      ...base,
+      squad,
+      operators,
+      strategy: 'true-random' as const,
+      upscaleZeroHope: true,
+      startingHope: 0,
+      fixedOperatorIds: ['char_504_rguard', null, 'char_506_rmedic'],
+    }
+    expect(generateISOpening(options).operators[1].id).toBe('s3')
+    const difficult = generateISOpening({ ...options, difficultyLevel: 4 })
+    expect(isISTemporaryOperator(difficult.operators[1])).toBe(true)
+    expect(difficult.totalHopeCost).toBe(0)
+  })
 
   it('uses fully upgraded squad descriptions and their additional starting Hope', () => {
     const is5 = IS_OPENING_THEMES.find((theme) => theme.number === 5)!
@@ -709,7 +895,7 @@ describe('IS opening selection', () => {
     ).toThrow('within 6 Hope')
   })
 
-  it.each([4, 6, 8])('keeps all generated openings within %i starting Hope', (startingHope) => {
+  it.each([4, 6, 8, 12])('keeps all generated openings within %i starting Hope', (startingHope) => {
     let state = 391
     const random = (): number => {
       state = (Math.imul(state, 1664525) + 1013904223) >>> 0
@@ -750,7 +936,7 @@ describe('IS opening selection', () => {
   })
 
   it('rejects invalid Hope values', () => {
-    for (const startingHope of [-1, NaN, Infinity, 5.5]) {
+    for (const startingHope of [-1, NaN, Infinity, 5.5, 13]) {
       expect(() => generateISOpening({ ...base, operators: pool, startingHope })).toThrow(
         'Starting Hope',
       )

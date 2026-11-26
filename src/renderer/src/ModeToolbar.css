@@ -1,5 +1,5 @@
 /* Shared dimensions for the four mode toolbars, including wrapped layouts. */
-.squad-panel > .preset-toolbar.is-opening__toolbar {
+.squad-panel .preset-toolbar.is-opening__toolbar {
   gap: 8px;
 }
 
@@ -17,7 +17,7 @@
   --mode-label-text: var(--stronghold-muted);
 }
 
-.squad-panel > .preset-toolbar > .preset-toolbar-label {
+.squad-panel .preset-toolbar > .preset-toolbar-label {
   flex: 0 0 64px;
   width: 64px;
   margin: 0;
@@ -28,7 +28,7 @@
   letter-spacing: 0.06em;
 }
 
-.squad-panel > .preset-toolbar > .preset-select {
+.squad-panel .preset-toolbar > .preset-select {
   flex: 0 0 250px;
   width: 250px;
   min-width: 0;
@@ -37,8 +37,8 @@
   letter-spacing: normal;
 }
 
-.squad-panel > .preset-toolbar .preset-select :is(select, summary),
-.squad-panel > .preset-toolbar .is-opening__difficulty select {
+.squad-panel .preset-toolbar .preset-select :is(select, summary),
+.squad-panel .preset-toolbar .is-opening__difficulty select {
   box-sizing: border-box;
   width: 100%;
   height: 38px;
@@ -55,32 +55,32 @@
   letter-spacing: normal;
 }
 
-.squad-panel > .preset-toolbar .preset-select summary > span:not([class]) {
+.squad-panel .preset-toolbar .preset-select summary > span:not([class]) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.squad-panel > .preset-toolbar .preset-select .release-date-options {
+.squad-panel .preset-toolbar .preset-select .release-date-options {
   border-color: var(--mode-control-border);
   color: var(--mode-control-text);
   background: var(--mode-control-background);
 }
 
-.squad-panel > .preset-toolbar .preset-select .release-date-options button {
+.squad-panel .preset-toolbar .preset-select .release-date-options button {
   color: var(--mode-control-text);
   background: var(--mode-control-background);
 }
 
 .squad-panel
-  > .preset-toolbar
+  .preset-toolbar
   .preset-select
   .release-date-options
   button:is(:hover, :focus-visible, [aria-pressed='true']) {
   background: color-mix(in srgb, var(--app-accent) 15%, var(--mode-control-background));
 }
 
-.squad-panel > .preset-toolbar .mode-primary-actions {
+.squad-panel .mode-primary-actions {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -88,7 +88,7 @@
   margin-left: auto;
 }
 
-.squad-panel > .preset-toolbar .mode-primary-actions > .randomize-button {
+.squad-panel .mode-primary-actions > .randomize-button {
   box-sizing: border-box;
   flex: 0 0 160px;
   width: 160px;
@@ -152,7 +152,7 @@
   accent-color: var(--app-accent);
 }
 
-.preset-toolbar .mode-icon-button {
+:is(.preset-toolbar, .dispatch-setup__actions) .mode-icon-button {
   display: inline-flex;
   box-sizing: border-box;
   flex: 0 0 32px;
@@ -171,7 +171,7 @@
   container: dispatch-squad / inline-size;
 }
 
-.squad-panel > .preset-toolbar {
+.squad-panel .preset-toolbar {
   display: grid;
   padding-inline: 12px;
   grid-template-columns: 64px minmax(180px, 250px) minmax(0, 1fr);
@@ -180,18 +180,18 @@
   gap: 8px;
 }
 
-.squad-panel > .preset-toolbar.is-opening__toolbar {
+.squad-panel .preset-toolbar.is-opening__toolbar {
   grid-template-columns: 64px minmax(180px, 250px) minmax(0, 1fr) auto;
 }
 
-.squad-panel > .preset-toolbar > .preset-select {
+.squad-panel .preset-toolbar > .preset-select {
   width: 100%;
   min-width: 0;
   max-width: none;
   margin: 0;
 }
 
-.squad-panel > .preset-toolbar > .preset-actions {
+.squad-panel .preset-toolbar > .preset-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -200,25 +200,25 @@
   margin: 0;
 }
 
-.squad-panel > .preset-toolbar > .preset-actions > button {
+.squad-panel .preset-toolbar > .preset-actions > button {
   width: auto;
 }
 
-.squad-panel > .preset-toolbar .preset-actions-spacer {
+.squad-panel .preset-toolbar .preset-actions-spacer {
   display: none;
 }
 
-.squad-panel > .preset-toolbar .draft-status-main {
+.squad-panel .preset-toolbar .draft-status-main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
-.squad-panel > .preset-toolbar .draft-status-item {
+.squad-panel .preset-toolbar .draft-status-item {
   min-width: 0;
 }
 
-.squad-panel > .preset-toolbar > .is-opening__difficulty {
+.squad-panel .preset-toolbar > .is-opening__difficulty {
   min-width: 0;
   margin: 0;
 }
@@ -227,7 +227,7 @@
   display: none;
 }
 
-.squad-panel > .preset-toolbar .mode-primary-actions > .mode-clear-button {
+.squad-panel .mode-primary-actions > .mode-clear-button {
   flex: 0 0 32px;
   width: 32px;
   min-width: 32px;
@@ -238,20 +238,20 @@
 }
 
 @container dispatch-squad (max-width: 1050px) {
-  .squad-panel > .preset-toolbar,
-  .squad-panel > .preset-toolbar.is-opening__toolbar {
+  .squad-panel .preset-toolbar,
+  .squad-panel .preset-toolbar.is-opening__toolbar {
     grid-template-columns: 64px minmax(0, 1fr);
   }
 
-  .squad-panel > .preset-toolbar > .preset-toolbar-label {
+  .squad-panel .preset-toolbar > .preset-toolbar-label {
     align-self: center;
   }
 
-  .squad-panel > .preset-toolbar > :is(.preset-actions, .draft-status-main, .mode-primary-actions) {
+  .squad-panel .preset-toolbar > :is(.preset-actions, .draft-status-main, .mode-primary-actions) {
     grid-column: 1 / -1;
   }
 
-  .squad-panel > .preset-toolbar > .is-opening__difficulty {
+  .squad-panel .preset-toolbar > .is-opening__difficulty {
     display: contents;
   }
 
@@ -264,13 +264,13 @@
     letter-spacing: 0.06em;
   }
 
-  .squad-panel > .preset-toolbar > .mode-primary-actions {
+  .squad-panel .preset-toolbar > .mode-primary-actions {
     justify-self: end;
   }
 }
 
 @container dispatch-squad (max-width: 500px) {
-  .squad-panel > .preset-toolbar .mode-primary-actions {
+  .squad-panel .mode-primary-actions {
     flex: 1 1 100%;
     width: 100%;
     min-width: 0;
@@ -278,18 +278,18 @@
     margin-left: 0;
   }
 
-  .squad-panel > .preset-toolbar .mode-primary-actions > .randomize-button {
+  .squad-panel .mode-primary-actions > .randomize-button {
     flex: 1 1 auto;
     width: auto;
     min-width: 0;
     max-width: none;
   }
 
-  .squad-panel > .preset-toolbar .draft-status-main {
+  .squad-panel .preset-toolbar .draft-status-main {
     gap: 4px;
   }
 
-  .squad-panel > .preset-toolbar .draft-status-item {
+  .squad-panel .preset-toolbar .draft-status-item {
     padding: 4px;
     border: 0;
   }

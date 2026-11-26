@@ -245,7 +245,7 @@ function PoolPanel({
         </div>
       )}
 
-      <div className={`pool-groups pool-presentation--imageGrid`}>
+      <div className="pool-groups pool-presentation--imageGrid">
         {groups.map(([label, operators]) => {
           const collapsed = groupBy !== 'none' && collapsedGroups.has(label)
           const reversed = reversedGroups.has(label)
@@ -296,7 +296,7 @@ function PoolPanel({
                         classLabel={dataset.classLabels?.[operator.class] ?? operator.class}
                         included={!excludedIds.has(operator.id)}
                         presentation="imageGrid"
-                        showName={preferences.showCurateNames ?? false}
+                        showName
                         metadataRegion={preferences.metadataRegion}
                         appearanceChoice={appearanceChoice}
                         appearanceRandomSeed={preferences.appearanceRandomSeed}

@@ -3,11 +3,13 @@ import { createPortal } from 'react-dom'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
 import { FactionIcon } from './FilterAssetIcon'
-import { useOperatorAppearanceImage } from './operatorAppearance'
+import { useOperatorAppearanceAvatar, useOperatorAppearanceImage } from './operatorAppearance'
+import useCompactDispatchViewport from './useCompactDispatchViewport'
 import { useImportedArknightsAccount } from './arknightsAccountState'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { loadOperatorPreferences } from './operatorPreferencesStorage'
-import useOverflowScroll from './useOverflowScroll'
+import MiniOperatorCard from './MiniOperatorCard'
+import useWrappedOperatorName from './useWrappedOperatorName'
 import OperatorEliteLevel, { UnownedOperatorIndicator } from './OperatorEliteLevel'
 import './OperatorCard.css'
 
@@ -26,6 +28,7 @@ export interface OperatorCardInteractionDetails {
 }
 
 interface OperatorCardProps {
+  responsiveCompact?: boolean
   operator: Operator
   interactionDetails?: OperatorCardInteractionDetails
   variant?: 'standard' | 'draft-compact'
@@ -37,7 +40,34 @@ interface OperatorCardProps {
   scrollName?: boolean
 }
 
-export default function OperatorCard({
+export default function OperatorCard(props: OperatorCardProps): React.JSX.Element {
+  const smallViewport = useCompactDispatchViewport()
+  return props.responsiveCompact && smallViewport ? (
+    <CompactOperatorCard {...props} />
+  ) : (
+    <PortraitOperatorCard {...props} />
+  )
+}
+
+function CompactOperatorCard(props: OperatorCardProps): React.JSX.Element {
+  const avatar = useOperatorAppearanceAvatar(props.operator)
+  return (
+    <OperatorCardBody
+      {...props}
+      compact
+      artwork={{ ...avatar, usingPortrait: false, loading: avatar.imageUrl === null }}
+    />
+  )
+}
+
+function PortraitOperatorCard(props: OperatorCardProps): React.JSX.Element {
+  const artwork = useOperatorAppearanceImage(props.operator)
+  return <OperatorCardBody {...props} artwork={artwork} />
+}
+
+function OperatorCardBody({
+  artwork,
+  compact = false,
   operator,
   interactionDetails,
   variant = 'standard',
@@ -47,13 +77,11 @@ export default function OperatorCard({
   replayOnRandomize = true,
   showPersonalProgression = true,
   scrollName = true,
-}: OperatorCardProps): React.JSX.Element {
-  const {
-    imageUrl,
-    usingPortrait,
-    loading,
-    choice: artworkPreference,
-  } = useOperatorAppearanceImage(operator)
+}: OperatorCardProps & {
+  artwork: ReturnType<typeof useOperatorAppearanceImage>
+  compact?: boolean
+}): React.JSX.Element {
+  const { imageUrl, usingPortrait, loading, choice: artworkPreference } = artwork
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const importedAccount = useImportedArknightsAccount() ?? null
   const preferences = loadOperatorPreferences()
@@ -72,10 +100,9 @@ export default function OperatorCard({
   const touchPointer = useRef(false)
   const [touchActionsOpen, setTouchActionsOpen] = useState(false)
   const interactionIndicatorRef = useRef<HTMLButtonElement | null>(null)
-  const { viewportRef: nameViewportRef, textRef: nameTextRef } = useOverflowScroll<HTMLDivElement>(
-    operator.name,
-    scrollName,
-  )
+  const nameViewportRef = useRef<HTMLDivElement>(null)
+  const nameTextRef = useRef<HTMLSpanElement>(null)
+  useWrappedOperatorName(nameViewportRef, nameTextRef, operator.name, !compact)
   const [tooltipPosition, setTooltipPosition] = useState<{
     top?: number
     bottom?: number
@@ -121,10 +148,35 @@ export default function OperatorCard({
     }
   }
 
+  const artworkImage =
+    imageUrl && imageUrl !== failedImageUrl ? (
+      <img
+        key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
+        className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
+        src={imageUrl}
+        alt=""
+        draggable={false}
+        onError={() => setFailedImageUrl(imageUrl)}
+      />
+    ) : (
+      <span className={compact ? undefined : 'operator-card__fallback'} aria-hidden="true">
+        {operator.name.slice(0, 1)}
+      </span>
+    )
+  const progressionBadge = progressionLabel && (
+    <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
+      {progression ? (
+        <OperatorEliteLevel elite={progression.elite} level={progression.level} />
+      ) : (
+        <UnownedOperatorIndicator />
+      )}
+    </span>
+  )
+
   return (
     <article
       ref={cardRef}
-      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}`}
+      className={`operator-card operator-card--portrait${variant === 'draft-compact' ? ' operator-card--draft-compact' : ''}${compact ? ' operator-card--mini mini-operator-card-host' : ''}${!compact ? ' operator-card--framed' : ''}`}
       data-rarity={operator.rarity}
       data-artwork={artworkPreference}
       data-artwork-loading={loading || undefined}
@@ -154,27 +206,23 @@ export default function OperatorCard({
           : undefined
       }
     >
-      <div className="operator-card__art">
-        {operator.faction.main && (
-          <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
-        )}
-        {imageUrl && imageUrl !== failedImageUrl ? (
-          <img
-            key={`${operator.id}:${artworkPreference}:${usingPortrait ? 'portrait' : 'avatar'}:${animationKey}:${randomizeReplayKey}`}
-            className={usingPortrait ? 'is-portrait' : 'is-avatar-fallback'}
-            src={imageUrl}
-            alt=""
-            draggable={false}
-            onError={() => setFailedImageUrl(imageUrl)}
-          />
-        ) : (
-          <div className="operator-card__fallback" aria-hidden="true">
-            {operator.name.slice(0, 1)}
+      {compact ? (
+        <MiniOperatorCard operator={operator} scrollName={scrollName} artwork={artworkImage} />
+      ) : (
+        <>
+          <div className="operator-card__art">
+            {operator.faction.main && (
+              <FactionIcon id={operator.faction.main} className="operator-card__faction-logo" />
+            )}
+            {artworkImage}
           </div>
-        )}
-      </div>
-
-      <ClassIcon operatorClass={operator.class} className="operator-card__class-icon" />
+          <ClassIcon
+            operatorClass={operator.class}
+            variant={compact ? 'simple' : 'regular'}
+            className="operator-card__class-icon"
+          />
+        </>
+      )}
 
       {topRightAdornment && (
         <div className="operator-card__top-right-adornment">{topRightAdornment}</div>
@@ -247,27 +295,23 @@ export default function OperatorCard({
 
       {overlay && <div className="operator-card__overlay">{overlay}</div>}
 
-      <div className="operator-card__caption">
-        {progressionLabel && (
-          <span className={`operator-card__account-progression${progression ? '' : ' is-unowned'}`}>
-            {progression ? (
-              <OperatorEliteLevel elite={progression.elite} level={progression.level} />
-            ) : (
-              <UnownedOperatorIndicator />
-            )}
+      {compact ? (
+        progressionBadge
+      ) : (
+        <div className="operator-card__caption">
+          {progressionBadge}
+          <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
+            {'★'.repeat(operator.rarity)}
           </span>
-        )}
-        <span className="operator-card__rarity" aria-label={`${operator.rarity} star`}>
-          {'★'.repeat(operator.rarity)}
-        </span>
-        <div ref={nameViewportRef} className="operator-card__name-viewport">
-          <strong>
-            <span ref={nameTextRef} className="operator-card__name-text">
-              {operator.name}
-            </span>
-          </strong>
+          <div ref={nameViewportRef} className="operator-card__name-viewport">
+            <strong>
+              <span ref={nameTextRef} className="operator-card__name-text">
+                {operator.name}
+              </span>
+            </strong>
+          </div>
         </div>
-      </div>
+      )}
     </article>
   )
 }

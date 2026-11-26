@@ -29,10 +29,9 @@ describe('Draft and Standard slot icon assets', () => {
   it('reuses the Open and Locked icons for Standard Squad placeholders', () => {
     const source = read('./StandardSquadFeature.tsx')
     const styles = read('./RandomOperatorCard.css')
-    expect(source).toContain('className="disabled-slot"')
-    expect(styles).toContain("url('./assets/draft/locked-slot-icon.png')")
-    expect(styles).toContain('.squad-grid .disabled-slot::before {')
+    expect(source).toContain('<UnavailableOperatorCard slot={slot} />')
+    expect(read('./UnavailableOperatorCard.tsx')).toContain('<DraftEmptySlotFrame')
+    expect(read('./UnavailableOperatorCard.tsx')).toContain('variant="expandable"')
     expect(styles).toContain("url('./assets/draft/open-slot-icon.png')")
-    expect(read('./RendererTheme.css')).toMatch(/\.squad-grid \.disabled-slot\s*\{\s*border: 3px dashed/)
   })
 })

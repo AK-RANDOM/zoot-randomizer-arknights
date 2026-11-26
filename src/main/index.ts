@@ -1,6 +1,6 @@
 import { enumerateArtwork } from '../shared/artwork'
 import { operatorArtworkCache } from './operatorArtwork'
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { PortraitSyncProgress } from '../shared/desktop'
@@ -296,6 +296,7 @@ function createWindow(): void {
   // copy. Keep close ownership in Electron, and wait for the renderer to write
   // the Garrison before honoring the user's Save choice.
   let garrisonDirty = false
+  let waitingForDecision = false
   let waitingForSave = false
   let allowClose = false
   const onDirty = (event: Electron.IpcMainEvent, dirty: unknown): void => {
@@ -309,43 +310,35 @@ function createWindow(): void {
       allowClose = true
       mainWindow.close()
     } else {
-      dialog.showMessageBoxSync(mainWindow, {
-        type: 'warning',
-        title: 'Garrison was not saved',
-        message:
-          'The Garrison could not be saved. Resolve unfinished edits or conflicts, then try again.',
-        buttons: ['Return to Garrison'],
-      })
+      mainWindow.webContents.send(DESKTOP_IPC_CHANNELS.garrisonCloseSaveFailed)
+    }
+  }
+  const onCloseDecision = (event: Electron.IpcMainEvent, choice: unknown): void => {
+    if (event.sender !== mainWindow.webContents || !waitingForDecision) return
+    if (choice !== 'save' && choice !== 'discard' && choice !== 'cancel') return
+    waitingForDecision = false
+    if (choice === 'discard') {
+      allowClose = true
+      mainWindow.close()
+    } else if (choice === 'save') {
+      waitingForSave = true
+      mainWindow.webContents.send(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest)
     }
   }
   ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, onDirty)
+  ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseDecision, onCloseDecision)
   ipcMain.on(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, onSaveResult)
   mainWindow.on('closed', () => {
     ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseDirty, onDirty)
+    ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseDecision, onCloseDecision)
     ipcMain.removeListener(DESKTOP_IPC_CHANNELS.garrisonCloseSaveResult, onSaveResult)
   })
   mainWindow.on('close', (event) => {
     if (smokeTest || allowClose || !garrisonDirty) return
     event.preventDefault()
-    if (waitingForSave) return
-    const choice = dialog.showMessageBoxSync(mainWindow, {
-      type: 'question',
-      title: 'Unsaved Garrison',
-      message: 'Save your Garrison before closing the application?',
-      detail:
-        'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
-      buttons: ['Save Garrison', 'Discard Changes', 'Cancel'],
-      defaultId: 0,
-      cancelId: 2,
-      noLink: true,
-    })
-    if (choice === 1) {
-      allowClose = true
-      mainWindow.close()
-    } else if (choice === 0) {
-      waitingForSave = true
-      mainWindow.webContents.send(DESKTOP_IPC_CHANNELS.garrisonCloseSaveRequest)
-    }
+    if (waitingForSave || waitingForDecision) return
+    waitingForDecision = true
+    mainWindow.webContents.send(DESKTOP_IPC_CHANNELS.garrisonCloseDecisionRequest)
   })
 
   if (smokeTest) {

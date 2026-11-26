@@ -289,11 +289,29 @@ describe('constraints', () => {
     expect(eligible.map((item) => item.id)).toEqual(['char_year_2'])
   })
 
-  it('lets 4★ and below bypass both release bounds while respecting other filters', () => {
+  it('lets 4★ and below bypass only minimum release bounds while respecting maximum bounds and other filters', () => {
     const items = [
       operator('four', 4, 'Guard'),
       operator('one', 1, 'Guard'),
       operator('five', 5, 'Guard'),
+      operator('after_max_date', 4, 'Guard', true, {
+        release: {
+          cn: { date: '2026-02-01', yearGroup: 6 },
+          global: { date: '2026-02-01', yearGroup: 6 },
+        },
+      }),
+      operator('after_max_year', 4, 'Guard', true, {
+        release: {
+          cn: { date: '2025-06-01', yearGroup: 7 },
+          global: { date: '2025-06-01', yearGroup: 7 },
+        },
+      }),
+      operator('at_max', 4, 'Guard', true, {
+        release: {
+          cn: { date: '2026-01-01', yearGroup: 6 },
+          global: { date: '2026-01-01', yearGroup: 6 },
+        },
+      }),
       operator('cn_only', 4, 'Guard', false),
       operator('excluded_subclass', 4, 'Guard', true, {
         subclass: { id: 'excluded', name: 'Excluded' },
@@ -311,9 +329,13 @@ describe('constraints', () => {
       },
     }
 
-    expect(filterEligibleOperators(items, constraints)).toEqual([])
+    expect(filterEligibleOperators(items, constraints).map(({ id }) => id)).toEqual(['at_max'])
     constraints.release.ignoreBoundsForLowRarity = true
-    expect(filterEligibleOperators(items, constraints).map(({ id }) => id)).toEqual(['four', 'one'])
+    expect(filterEligibleOperators(items, constraints).map(({ id }) => id)).toEqual([
+      'four',
+      'one',
+      'at_max',
+    ])
   })
 
   it('filters Recruitment welfare separately from Standard and other Welfare operators', () => {

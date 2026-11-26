@@ -154,6 +154,10 @@
 }
 
 /* Standard Squad filter: two peer panels on top, classes full width below. */
+.squad-filter-content {
+  container: squad-filters / inline-size;
+}
+
 .squad-panel .squad-filter-disclosure[open] {
   overflow: visible;
 }
@@ -194,7 +198,8 @@
   left: auto;
 }
 
-@media (max-width: 720px) {
+/* Eight class controls need about 900px to keep their icons and labels clear. */
+@container squad-filters (max-width: 900px) {
   .squad-panel .squad-bounds-layout {
     grid-template-columns: 1fr;
   }
@@ -215,6 +220,27 @@
 
   .squad-panel .bound-grid--classes .bound-control:nth-child(4n + 3) .bound-popover,
   .squad-panel .bound-grid--classes .bound-control:nth-child(4n + 4) .bound-popover {
+    right: 0;
+    left: auto;
+  }
+}
+
+@container squad-filters (max-width: 420px) {
+  .squad-panel .bound-grid,
+  .squad-panel .bound-grid--aggregate {
+    grid-template-columns: 1fr;
+  }
+
+  .squad-panel .bound-grid--classes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .squad-panel .bound-grid--classes .bound-control:nth-child(2n + 1) .bound-popover {
+    right: auto;
+    left: 0;
+  }
+
+  .squad-panel .bound-grid--classes .bound-control:nth-child(2n) .bound-popover {
     right: 0;
     left: auto;
   }

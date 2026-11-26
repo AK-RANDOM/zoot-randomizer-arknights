@@ -3,6 +3,24 @@
   gap: 1rem;
 }
 
+.pool-groups.pool-presentation--imageGrid .pool-entries {
+  grid-template-columns: repeat(auto-fill, 90px);
+  gap: 6px;
+  padding: 5px;
+}
+
+.pool-presentation--imageGrid .pool-entry-shell--imageGrid,
+.pool-presentation--imageGrid .pool-entry--image {
+  max-width: none;
+  width: 90px;
+  aspect-ratio: 1;
+  border-radius: var(--operator-card-radius, 4px);
+}
+
+.pool-presentation--imageGrid .pool-entry-shell--imageGrid {
+  height: 90px;
+}
+
 .pool-search-row,
 .pool-search {
   width: 100%;
@@ -486,56 +504,19 @@
   position: absolute;
   z-index: 4;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 6px;
   border-radius: inherit;
-  background: rgba(8, 8, 10, 0.68);
-  backdrop-filter: blur(1px);
   transition: opacity 120ms ease;
   opacity: 0;
   pointer-events: none;
 }
-.pool-entry-shell:hover .pool-card-actions,
+.pool-entry-shell[data-touch-actions-open] .pool-card-actions,
 .pool-entry-shell:has(:focus-visible) .pool-card-actions {
   opacity: 1;
   pointer-events: auto;
 }
-.pool-card-actions button {
-  min-width: 64px;
-  min-height: 24px;
-  padding: 3px 8px;
-  font-size: 0.65rem;
-  cursor: pointer;
-}
-.pool-card-name {
-  position: absolute;
-  z-index: 2;
-  top: 4px;
-  left: 4px;
-  right: 4px;
-  text-align: left;
-  pointer-events: none;
-  text-shadow: 0 1px 3px #000;
-}
-.pool-card-name .pool-appearance-outfit-name {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  font-size: 0.6rem;
-  color: #fff;
-}
-.pool-card-name .pool-appearance-outfit-name strong {
-  font-size: inherit;
-}
-.pool-card-name .is-overflowing strong {
-  animation: pool-appearance-text-scroll 2.75s ease-in-out infinite alternate;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pool-card-name .is-overflowing strong {
-    animation: none;
+@media (hover: hover) {
+  .pool-entry-shell:hover .pool-card-actions {
+    opacity: 1;
+    pointer-events: auto;
   }
 }

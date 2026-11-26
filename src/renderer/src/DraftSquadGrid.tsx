@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import type { DraftAction, DraftState, ResolvedDraftConfiguration } from '../../shared/draft'
 import type { Operator } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
@@ -17,6 +17,9 @@ import {
   type DraftActionPresentation,
 } from './draftPresentation'
 import './DraftSquadGrid.css'
+import useCompactDispatchViewport from './useCompactDispatchViewport'
+import useWrappedOperatorName from './useWrappedOperatorName'
+import MiniOperatorCard from './MiniOperatorCard'
 
 const openSlotIconUrl = new URL('./assets/draft/open-slot-icon.png', import.meta.url).href
 const overflowSlotIconUrl = new URL('./assets/draft/overflow-slot-icon.png', import.meta.url).href
@@ -33,15 +36,20 @@ interface DraftSquadGridProps {
 export function DraftEmptySlotFrame({
   slotNumber,
   variant,
+  label,
 }: {
   slotNumber: number
   variant: 'valid' | 'expandable' | 'invalid'
+  label?: string
 }): React.JSX.Element {
   const title = variant === 'valid' ? 'Open' : variant === 'expandable' ? 'Locked' : 'Unavailable'
   const iconUrl = variant === 'valid' ? openSlotIconUrl : lockedSlotIconUrl
 
   return (
-    <div className={`draft-squad-slot__frame draft-squad-slot__frame--${variant}`}>
+    <div
+      className={`draft-squad-slot__frame draft-squad-slot__frame--${variant}`}
+      data-card-style="framed"
+    >
       <span className="draft-squad-slot__number">{slotNumber}</span>
       <img
         className="draft-squad-slot__icon"
@@ -54,7 +62,7 @@ export function DraftEmptySlotFrame({
           }
         }}
       />
-      <strong>{title}</strong>
+      <strong>{label ?? title}</strong>
     </div>
   )
 }
@@ -81,6 +89,10 @@ export function DraftRosterAvatar({
   overflow?: boolean
 }): React.JSX.Element {
   const { imageUrl } = useOperatorAppearanceAvatar(operator)
+  const compact = useCompactDispatchViewport()
+  const viewportRef = useRef<HTMLSpanElement>(null)
+  const textRef = useRef<HTMLSpanElement>(null)
+  useWrappedOperatorName(viewportRef, textRef, operator.name, !compact)
   const importedAccount = useImportedArknightsAccount() ?? null
   const showProgression =
     loadOperatorPreferences().showAccountProgression && importedAccount !== null
@@ -90,25 +102,49 @@ export function DraftRosterAvatar({
 
   return (
     <div
-      className={`draft-squad-avatar${overflow ? ' draft-squad-avatar--overflow' : ''}`}
+      className={`draft-squad-avatar${compact ? ' mini-operator-card-host' : ''}${overflow ? ' draft-squad-avatar--overflow' : ''}`}
       data-rarity={operator.rarity}
+      data-card-style="framed"
       title={operator.name}
       aria-label={overflow ? `${operator.name} in Overflow` : operator.name}
     >
-      {operator.faction.main && (
-        <FactionIcon id={operator.faction.main} className="draft-squad-avatar__faction-logo" />
-      )}
-      {imageUrl ? (
-        <img src={imageUrl} alt="" draggable={false} />
+      {compact ? (
+        <MiniOperatorCard
+          operator={operator}
+          artwork={
+            imageUrl ? (
+              <img src={imageUrl} alt="" draggable={false} />
+            ) : (
+              <span aria-hidden="true">{operator.name.slice(0, 1)}</span>
+            )
+          }
+        />
       ) : (
-        <span className="draft-squad-avatar__fallback" aria-hidden="true">
-          {operator.name.slice(0, 1)}
-        </span>
+        <>
+          {operator.faction.main && (
+            <FactionIcon id={operator.faction.main} className="draft-squad-avatar__faction-logo" />
+          )}
+          {imageUrl ? (
+            <img src={imageUrl} alt="" draggable={false} />
+          ) : (
+            <span className="draft-squad-avatar__fallback" aria-hidden="true">
+              {operator.name.slice(0, 1)}
+            </span>
+          )}
+          <span className="draft-squad-avatar__identity">
+            <ClassIcon
+              operatorClass={operator.class}
+              variant={compact ? 'simple' : 'regular'}
+              className="draft-squad-avatar__class-icon"
+            />
+            <span ref={viewportRef} className="draft-squad-avatar__name">
+              <span ref={textRef} className="draft-squad-avatar__name-text">
+                {operator.name}
+              </span>
+            </span>
+          </span>
+        </>
       )}
-      <span className="draft-squad-avatar__identity">
-        <ClassIcon operatorClass={operator.class} className="draft-squad-avatar__class-icon" />
-        <span className="draft-squad-avatar__name">{operator.name}</span>
-      </span>
       {showProgression && (
         <span className="draft-squad-avatar__progression">
           {progression ? (

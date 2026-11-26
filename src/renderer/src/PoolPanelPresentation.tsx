@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import { ScrollingOutfitName } from './PoolAppearancePicker'
+import { useEffect, useRef, useState } from 'react'
 import { operatorClasses, type Operator } from '../../shared/operator'
 import { releaseGroupLabel } from '../../shared/releaseBounds'
 import type { ImportedArknightsAccount } from '../../shared/arknightsAccount'
 import { importedAccountOperatorState } from '../../shared/arknightsAccountReconciliation'
 import { resolveAppearanceChoice } from './operatorAppearance'
+import MiniOperatorCard from './MiniOperatorCard'
 
 function PoolAvatar({ operator, choice, randomSeed, accountAppearance, metadataRegion }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null)
@@ -168,6 +168,21 @@ function OperatorEntry({
   onToggle,
   onAppearance,
 }) {
+  const entryRef = useRef<HTMLDivElement>(null)
+  const touchPointer = useRef(false)
+  const [touchActionsOpen, setTouchActionsOpen] = useState(false)
+
+  useEffect(() => {
+    if (!touchActionsOpen) return
+    const dismissOutsideEntry = (event: PointerEvent): void => {
+      if (event.target instanceof Node && !entryRef.current?.contains(event.target)) {
+        setTouchActionsOpen(false)
+      }
+    }
+    document.addEventListener('pointerdown', dismissOutsideEntry)
+    return () => document.removeEventListener('pointerdown', dismissOutsideEntry)
+  }, [touchActionsOpen])
+
   const stateLabel = included ? 'Included' : 'Excluded'
   const commonProps = {
     type: 'button' as const,
@@ -191,14 +206,9 @@ function OperatorEntry({
     entry = (
       <button
         {...commonProps}
-        className={`pool-entry pool-entry--image${included ? '' : ' is-excluded'}`}
+        className={`pool-entry pool-entry--image mini-operator-card-host${included ? '' : ' is-excluded'}`}
       >
-        {avatar}
-        {showName && (
-          <span className="pool-card-name">
-            <ScrollingOutfitName text={operator.name} />
-          </span>
-        )}
+        <MiniOperatorCard operator={operator} artwork={avatar} showName={showName} />
       </button>
     )
   } else if (presentation === 'compactCard') {
@@ -245,7 +255,21 @@ function OperatorEntry({
     )
   }
   return (
-    <div className={`pool-entry-shell pool-entry-shell--${presentation}`}>
+    <div
+      ref={entryRef}
+      className={`pool-entry-shell pool-entry-shell--${presentation}`}
+      data-touch-actions-open={touchActionsOpen || undefined}
+      onPointerDownCapture={(event) => {
+        touchPointer.current = event.pointerType === 'touch'
+      }}
+      onClickCapture={(event) => {
+        if (event.detail === 0 || !touchPointer.current || touchActionsOpen) return
+        // Suppress the revealing tap even if synthesized hover targets an action.
+        event.preventDefault()
+        event.stopPropagation()
+        setTouchActionsOpen(true)
+      }}
+    >
       {entry}
       <div className="pool-card-actions">
         <button

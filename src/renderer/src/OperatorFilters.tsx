@@ -236,7 +236,7 @@ export default function OperatorFilters({
             }
           />
           <span>
-            <strong>Allow only one version from each character family</strong>
+            <strong>Allow only one Operator version in squad</strong>
             <small>Amiya forms remain mutually exclusive regardless of this toggle.</small>
           </span>
         </label>

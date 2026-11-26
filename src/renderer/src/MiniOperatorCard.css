@@ -1,0 +1,186 @@
+/* Curate's square layout, with the same tint handling as Draft's main cards.
+   Host wrappers retain their actions; layouts wrap these fixed-size cards. */
+.app-shell .mini-operator-card-host[data-rarity] {
+  --rarity-border-color: var(--rarity-color);
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
+  height: 90px;
+  min-height: 90px;
+  max-height: 90px;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: var(--operator-card-radius, 4px);
+  background: color-mix(in srgb, var(--rarity-color) 8%, var(--stronghold-inset, #171719));
+  box-shadow: none;
+}
+
+:root[data-theme='stronghold'] .app-shell .mini-operator-card-host[data-rarity] {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+.app-shell .mini-operator-card-host[data-rarity]::after {
+  position: absolute;
+  z-index: 3;
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  content: '';
+  background: var(--rarity-border-color);
+  pointer-events: none;
+}
+
+.mini-operator-card__art {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #85858d;
+  font-weight: 800;
+}
+
+.mini-operator-card__art > :is(img, .pool-avatar) {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  object-fit: cover;
+  object-position: center;
+}
+
+.mini-operator-card-host .mini-operator-card__class {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.mini-operator-card__class img {
+  width: 100%;
+  height: 100%;
+  filter: brightness(0) invert(1);
+}
+
+.mini-operator-card__class .class-icon__fallback {
+  color: #fff;
+}
+
+.mini-operator-card__name {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 4px;
+  left: 22px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 18px;
+  overflow: hidden;
+  color: #fff;
+  text-align: left;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px #000;
+  pointer-events: none;
+}
+
+.mini-operator-card__name strong {
+  display: inline-block;
+  min-width: max-content;
+  font-size: 0.6rem;
+  line-height: 1.1;
+}
+
+.mini-operator-card-host
+  > :is(.operator-card__account-progression, .draft-squad-avatar__progression) {
+  position: absolute;
+  z-index: 2;
+  top: auto;
+  bottom: 3px;
+  left: 0;
+  margin: 0;
+  padding: 1px 3px;
+  background: rgba(0, 0, 0, 0.6);
+  transform: scale(0.8);
+  transform-origin: left bottom;
+}
+
+/* Curate is the action-layout reference for every square operator card. */
+.mini-operator-card-host > .operator-card__overlay {
+  z-index: 10;
+}
+
+.pool-card-actions,
+.mini-operator-card-host .draft-operator-actions,
+.garrison-stage-slot:has(> .mini-operator-card-host) .draft-operator-actions {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  background: rgba(8, 8, 10, 0.68);
+  backdrop-filter: blur(1px);
+}
+
+.pool-card-actions button,
+.mini-operator-card-host .draft-operator-actions button,
+.garrison-stage-slot:has(> .mini-operator-card-host) .draft-operator-actions button {
+  box-sizing: border-box;
+  flex: 0 0 24px;
+  width: 64px;
+  min-width: 64px;
+  height: 24px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  line-height: normal;
+  cursor: pointer;
+}
+
+.mini-operator-card-host .draft-operator-actions button:disabled {
+  cursor: not-allowed;
+}
+
+/* Placeholder cards have the same actions before an operator is selected. */
+@media (max-width: 960px) {
+  .squad-grid--responsive .random-operator-card .draft-operator-actions {
+    box-sizing: border-box;
+    gap: 4px;
+    padding: 6px;
+  }
+
+  .squad-grid--responsive .random-operator-card .draft-operator-actions button {
+    box-sizing: border-box;
+    flex: 0 0 24px;
+    width: 64px;
+    min-width: 64px;
+    height: 24px;
+    min-height: 24px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    line-height: normal;
+  }
+}

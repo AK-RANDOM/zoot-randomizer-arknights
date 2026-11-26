@@ -1,4 +1,10 @@
-import { gameLocales, operatorClasses, type GameLocale, type OperatorClass, type ReleaseServer } from './operator'
+import {
+  gameLocales,
+  operatorClasses,
+  type GameLocale,
+  type OperatorClass,
+  type ReleaseServer,
+} from './operator'
 import type { PromotionArt } from './portraits'
 import type { ArknightsAccountServer } from './arknightsAccount'
 
@@ -6,6 +12,9 @@ export const DESKTOP_IPC_CHANNELS = {
   operatorDataGet: 'operator-data:get',
   garrisonEventsGet: 'garrison-events:get',
   garrisonCloseDirty: 'garrison-close:dirty',
+  garrisonCloseDecisionRequest: 'garrison-close:decision-request',
+  garrisonCloseDecision: 'garrison-close:decision',
+  garrisonCloseSaveFailed: 'garrison-close:save-failed',
   garrisonCloseSaveRequest: 'garrison-close:save-request',
   garrisonCloseSaveResult: 'garrison-close:save-result',
   operatorDataInfo: 'operator-data:info',

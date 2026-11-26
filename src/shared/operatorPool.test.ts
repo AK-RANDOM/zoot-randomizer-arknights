@@ -45,12 +45,12 @@ const roster = [
 ]
 
 describe('Iteration 6 Pool persistence model', () => {
-  it('preserves the Curate name option and defaults legacy preferences to names hidden', () => {
+  it('always shows Curate names, including for legacy preferences', () => {
     expect(
       normalizeOperatorPreferences({ version: 7, showCurateNames: true }).showCurateNames,
     ).toBe(true)
     expect(normalizeOperatorPreferences({ poolPresentation: 'detailedList' }).showCurateNames).toBe(
-      false,
+      true,
     )
   })
   it('defaults to Global metadata, image grid, and no explicit exclusions', () => {
@@ -64,7 +64,7 @@ describe('Iteration 6 Pool persistence model', () => {
       accountProgressionMax: { elite: 2, level: 90 },
       accountIncludeCappedLowRarity: false,
       showAccountProgression: false,
-      showCurateNames: false,
+      showCurateNames: true,
       excludedOperatorIds: [],
       operatorAppearances: {},
       defaultAppearance: 'e2',
@@ -90,7 +90,7 @@ describe('Iteration 6 Pool persistence model', () => {
       accountProgressionMax: { elite: 2, level: 90 },
       accountIncludeCappedLowRarity: false,
       showAccountProgression: false,
-      showCurateNames: false,
+      showCurateNames: true,
       excludedOperatorIds: ['char_a', 'char_b'],
       operatorAppearances: {},
       defaultAppearance: 'e2',

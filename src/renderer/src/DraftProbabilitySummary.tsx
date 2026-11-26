@@ -25,32 +25,37 @@ export default function DraftProbabilitySummary({
   const totalWeight = buckets.reduce((total, bucket) => total + bucket.weight, 0)
 
   return (
-    <section className="draft-probability-summary" aria-labelledby="draft-probability-heading">
-      <h2 id="draft-probability-heading">Pull probability</h2>
-      {totalWeight > 0 ? (
-        <>
-          <dl aria-label="Base rates per candidate">
-            {buckets.map(({ id, rarities, weight }) => (
-              <div key={id}>
-                <dt>{rarities.map((rarity) => `${rarity}★`).join(' / ')}</dt>
-                <dd>{percent.format(weight / totalWeight)}</dd>
-              </div>
-            ))}
-          </dl>
-          <p>
-            Base rates per candidate. Odds adjust when a rarity group has no eligible operators.
-          </p>
-          {distribution?.type === 'arknights' && (
+    <section
+      className="current-constraint-summary draft-probability-summary"
+      aria-labelledby="draft-probability-heading"
+    >
+      <div className="current-constraint-summary-content">
+        <h2 id="draft-probability-heading">Pull probability</h2>
+        {totalWeight > 0 ? (
+          <>
+            <dl aria-label="Base rates per candidate">
+              {buckets.map(({ id, rarities, weight }) => (
+                <div className="constraint-summary-chip" key={id}>
+                  <dt>{rarities.map((rarity) => `${rarity}★`).join(' / ')}</dt>
+                  <dd>{percent.format(weight / totalWeight)}</dd>
+                </div>
+              ))}
+            </dl>
             <p>
-              The 6★ rate rises after 50 candidates without a 6★.
-              {distribution.firstTenActualFiveStarGuarantee &&
-                ' A 5★ is guaranteed in the first 10 candidates if one is eligible.'}
+              Base rates per candidate. Odds adjust when a rarity group has no eligible operators.
             </p>
-          )}
-        </>
-      ) : (
-        <p>Every eligible operator has the same chance to appear in each candidate slot.</p>
-      )}
+            {distribution?.type === 'arknights' && (
+              <p>
+                The 6★ rate rises after 50 candidates without a 6★.
+                {distribution.firstTenActualFiveStarGuarantee &&
+                  ' A 5★ is guaranteed in the first 10 candidates if one is eligible.'}
+              </p>
+            )}
+          </>
+        ) : (
+          <p>Every eligible operator has the same chance to appear in each candidate slot.</p>
+        )}
+      </div>
     </section>
   )
 }

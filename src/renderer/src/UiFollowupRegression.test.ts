@@ -66,7 +66,7 @@ describe('Standard and Draft UI follow-up', () => {
     expect(theme).not.toContain(
       '.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left',
     )
-    expect(indicator).toContain('.slot-class-constraint-indicator.is-left { left: 8px; }')
+    expect(indicator).toMatch(/\.slot-class-constraint-indicator\.is-left\s*\{\s*left: 8px;/)
     expect(indicator).toContain('.squad-slot > .slot-class-constraint-indicator {\n  top: 11px;')
     expect(indicator).toContain(
       '.squad-slot > .slot-class-constraint-indicator.is-left {\n  left: 11px;',

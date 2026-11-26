@@ -206,8 +206,10 @@ function ShareImage({ result }: { result: SquadShareResult }): React.JSX.Element
 
 export default function SquadShareButton({
   result,
+  label = 'Share Squad',
 }: {
   result: SquadShareResult | null
+  label?: string
 }): React.JSX.Element {
   const titleId = useId()
   const dialog = useRef<HTMLDialogElement>(null)
@@ -222,7 +224,9 @@ export default function SquadShareButton({
     <>
       <button
         type="button"
-        className="secondary-button"
+        className="secondary-button squad-share-trigger"
+        aria-label={label}
+        title={label}
         aria-haspopup="dialog"
         disabled={result === null}
         onClick={() => {
@@ -231,7 +235,22 @@ export default function SquadShareButton({
           setSnapshot(result)
         }}
       >
-        Share
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4" />
+        </svg>
       </button>
       {createPortal(
         <dialog
@@ -243,7 +262,9 @@ export default function SquadShareButton({
           {snapshot && (
             <>
               <div className="squad-share-heading">
-                <h2 id={titleId}>Share Squad</h2>
+                <h2 id={titleId}>
+                  {snapshot.mode === 'Garrison' ? 'Share Garrison' : 'Share Squad'}
+                </h2>
                 <button
                   className="secondary-button"
                   type="button"
@@ -252,7 +273,12 @@ export default function SquadShareButton({
                   Close
                 </button>
               </div>
-              <div className="squad-share-formats" role="group" aria-label="Share format">
+              <div
+                className="squad-share-formats"
+                role="group"
+                aria-label="Share format"
+                hidden={snapshot.mode === 'Garrison'}
+              >
                 <button
                   className="secondary-button"
                   type="button"

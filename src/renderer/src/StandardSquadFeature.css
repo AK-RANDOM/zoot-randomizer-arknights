@@ -92,11 +92,11 @@
 
 .current-constraint-summary {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin: -7px 0 14px;
-  padding: 10px 12px;
+  padding: 12px;
   border: 1px solid #2c2c31;
   border-radius: 5px;
   background: #111113;
@@ -106,12 +106,16 @@
   display: grid;
   flex: 1 1 auto;
   min-width: 0;
-  gap: 7px;
+  gap: 8px;
 }
 
-.current-constraint-summary-content > strong {
+.current-constraint-summary-content > strong,
+.current-constraint-summary-content > h2,
+.current-constraint-summary-content .constraint-summary-heading {
+  margin: 0;
   color: #a7a7ad;
   font-size: 0.68rem;
+  line-height: 1.2;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -122,7 +126,12 @@
   gap: 6px;
 }
 
-.current-constraint-summary span {
+.current-constraint-summary-content > .constraint-summary-chips > span,
+.current-constraint-summary .constraint-summary-chip {
+  display: inline-flex;
+  box-sizing: border-box;
+  align-items: center;
+  min-height: 24px;
   padding: 4px 7px;
   border: 1px solid #38383e;
   border-radius: 999px;
@@ -130,12 +139,14 @@
   background: #18181b;
   font-size: 0.66rem;
   font-weight: 700;
+  line-height: 14px;
 }
 
 .current-constraint-summary-content p {
   margin: 0;
   color: #727279;
   font-size: 0.68rem;
+  line-height: 1.4;
 }
 
 .squad-size-control {

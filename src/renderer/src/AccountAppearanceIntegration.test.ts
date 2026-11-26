@@ -87,7 +87,7 @@ describe('Issue #78 follow-up account UX', () => {
     expect(appSource).toContain('accountProgressionRank(next.accountProgressionMax)')
     expect(appSource).toContain('accountProgressionRank(next.accountProgressionMin)')
     expect(appSource).toContain('End progression cannot be lower than Start progression.')
-    expect(appSource).toContain('window.alert(')
+    expect(appSource).toContain('showNotice(')
   })
 
   it('moves the synced progression toggle into the Account row of Global Filter', () => {

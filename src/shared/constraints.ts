@@ -51,6 +51,7 @@ export interface ReleaseConstraint {
   maxYear: number | null
   minDate: string
   maxDate: string
+  /** Bypass only the minimum release year/date for 4★ and below. */
   ignoreBoundsForLowRarity?: boolean
 }
 

@@ -1,0 +1,647 @@
+/* Palette inspired by juhkff.github.io/arknights-random-team/. */
+:root[data-theme='stronghold'] {
+  color-scheme: dark;
+  color: #edf4fa;
+  background: #101418;
+  --app-accent: #65e6c4;
+  --app-accent-hover: #8aefd6;
+  --app-accent-light: #a2f3de;
+  --app-accent-text: #65e6c4;
+  --app-accent-pale: #c9faed;
+  --app-accent-selected-border: #3b8d7d;
+  --app-accent-card-hover: #65e6c4;
+  --app-accent-hold-border: #31574f;
+  --rarity-1: var(--app-accent);
+  --rarity-2: var(--app-accent);
+  --rarity-3: var(--app-accent);
+  --rarity-4: var(--app-accent);
+  --rarity-5: var(--app-accent);
+  --rarity-6: var(--app-accent);
+  --line: #303c45;
+  --stronghold-panel: #191f25;
+  --stronghold-inset: #151b21;
+  --stronghold-control: #1d272e;
+  --stronghold-muted: #a5b2bf;
+}
+
+[data-theme='stronghold'] body {
+  background: #101418;
+}
+
+:root[data-theme='stronghold'] [data-rarity] {
+  --rarity-color: var(--app-accent);
+  --rarity-border-color: var(--app-accent);
+}
+
+[data-theme='stronghold'] .panel {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-panel);
+}
+
+[data-theme='stronghold'] :is(.arknights-account__auth, .arknights-account__compact) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .arknights-account__operator-info {
+  border-color: var(--line);
+}
+
+[data-theme='stronghold'] .arknights-account__avatar {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+[data-theme='stronghold']
+  :is(
+    .arknights-account__auth p,
+    .arknights-account__account-copy small,
+    .arknights-account__server,
+    .arknights-account__operator-info small,
+    .arknights-account__status
+  ) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .arknights-account__warnings {
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .pool-appearance-dialog {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-panel);
+}
+
+[data-theme='stronghold']
+  :is(.pool-appearance-tile, .pool-appearance-random, .pool-appearance-account) {
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold']
+  :is(.pool-appearance-tile, .pool-appearance-random, .pool-appearance-account):is(
+    :hover,
+    :focus-visible
+  ) {
+  border-color: var(--app-accent-selected-border);
+  background: #24343b;
+}
+
+[data-theme='stronghold']
+  :is(.pool-appearance-tile, .pool-appearance-random, .pool-appearance-account).is-selected {
+  border-color: var(--app-accent);
+  background: #193b37;
+}
+
+[data-theme='stronghold'] .pool-appearance-avatar {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+[data-theme='stronghold'] .pool-appearance-account-note {
+  color: var(--stronghold-muted);
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .pool-appearance-dialog .icon-button {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] .squad-share-dialog {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-panel);
+}
+
+[data-theme='stronghold']
+  :is(.squad-share-dialog textarea, .squad-share-preview, .squad-share-image) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .squad-share-image-header {
+  color: #edf4fa;
+  border-color: var(--line);
+}
+
+[data-theme='stronghold'] :is(.squad-share-image-header > div, .squad-share-actions span) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .squad-share-formats button[aria-pressed='true'] {
+  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: #193b37;
+}
+
+[data-theme='stronghold'] .slot-editor {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-panel);
+}
+
+[data-theme='stronghold']
+  .slot-editor
+  :is(.slot-editor-section, .slot-constraint-subclass-selector) {
+  border-color: var(--line);
+}
+
+[data-theme='stronghold'] .slot-editor :is(.icon-button, .operator-selector-search input) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold']
+  .slot-editor
+  :is(.operator-selector-option, .operator-selector-selected, .operator-selector-unresolved) {
+  color: #edf4fa;
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .slot-editor .operator-selector-option:hover:not(:disabled),
+[data-theme='stronghold'] .slot-editor .operator-selector-option.is-selected {
+  background: #24343b;
+}
+
+[data-theme='stronghold']
+  .slot-editor
+  :is(.slot-constraint-class-icon-button, .slot-constraint-subclass-icon-button):not(
+    .is-active,
+    .is-unavailable
+  ) {
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] .slot-editor :is(.slot-editor-label-row span, .quick-select-row > span) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold']
+  :is(
+    .main-tabs,
+    .squad-mode-tabs,
+    .draft-status-shell,
+    .preset-toolbar,
+    .current-constraint-summary,
+    .option-setting,
+    .option-toggle,
+    .squad-filter-disclosure,
+    .release-bound-card,
+    .release-preview,
+    .release-date-options,
+    .source-tree-group,
+    .source-standalone,
+    .garrison-stage-table,
+    .garrison-conflict-table,
+    .garrison-participants,
+    .garrison-stage-editor-inline,
+    .is-opening__squad-details,
+    .draft-empty-state,
+    .data-summary span
+  ) {
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] :is(.garrison-stage-row, .garrison-conflict-row) {
+  border-color: var(--line);
+}
+
+[data-theme='stronghold'] :is(.garrison-stage-row--header, .garrison-conflict-row--header) {
+  color: var(--stronghold-muted);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold']
+  :is(
+    .field input,
+    .field select,
+    .release-date-dropdown summary,
+    .garrison-stage-name input,
+    .is-opening__strategy-help > button,
+    .is-opening__strategy-tooltip,
+    .current-constraint-summary-content > .constraint-summary-chips > span,
+    .current-constraint-summary .constraint-summary-chip,
+    .preset-select select,
+    .compact-number input,
+    .draft-rulebook-select,
+    .secondary-button,
+    .bound-pill,
+    .criteria-chip,
+    .quick-select,
+    .artwork-choice
+  ) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] .draft-empty-state {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .draft-history {
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold']
+  :is(.draft-history__heading, .draft-history__table th, .draft-history__table td) {
+  border-color: var(--line);
+}
+
+[data-theme='stronghold'] .draft-history__table thead th {
+  color: var(--stronghold-muted);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold']
+  :is(
+    .draft-history__heading > span,
+    .draft-history__missing-operator,
+    .draft-history__entry span,
+    .draft-history__muted,
+    .draft-history__empty
+  ) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .is-opening__hope-summary .secondary-button {
+  color: var(--is-opening-hope-color);
+}
+
+[data-theme='stronghold'] .is-opening__squad-art {
+  background: radial-gradient(ellipse, var(--stronghold-control), transparent 70%);
+}
+
+[data-theme='stronghold'] .is-opening__voucher-card.slot-config-card {
+  color: var(--stronghold-muted);
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+[data-theme='stronghold']
+  .is-opening
+  .draft-operator-action:not(.draft-operator-action--pick, .danger-button) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold']
+  .is-opening
+  .draft-operator-action:not(.draft-operator-action--pick, .danger-button):hover {
+  border-color: var(--app-accent-selected-border);
+  background: #24343b;
+}
+
+:root[data-theme='stronghold'] .is-opening .draft-operator-action[aria-pressed='true'] {
+  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: #193b37;
+}
+
+[data-theme='stronghold'] .release-date-options button {
+  color: #edf4fa;
+  border-color: transparent;
+  background: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .release-date-options button:hover,
+[data-theme='stronghold'] .release-date-options button:focus-visible,
+[data-theme='stronghold'] .release-date-options button[aria-pressed='true'] {
+  background: #24343b;
+}
+
+[data-theme='stronghold']
+  :is(.secondary-button, .bound-pill, .criteria-chip, .quick-select, .artwork-choice):hover:not(
+    :disabled
+  ) {
+  border-color: var(--app-accent-selected-border);
+  background: #24343b;
+}
+
+[data-theme='stronghold'] :is(.main-tabs, .squad-mode-tabs) button {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] :is(.main-tabs, .squad-mode-tabs) button:hover {
+  color: #edf4fa;
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] :is(.main-tabs, .squad-mode-tabs) button.is-active,
+[data-theme='stronghold'] :is(.criteria-chip, .quick-select, .artwork-choice).is-selected {
+  color: var(--app-accent);
+  border-color: var(--app-accent);
+  background: #193b37;
+}
+
+[data-theme='stronghold']
+  :is(
+    .randomize-button,
+    .update-banner button,
+    .draft-operator-action--pick,
+    .draft-candidate__action,
+    .operator-card__interaction-indicator
+  ) {
+  color: #09251f;
+}
+
+[data-theme='stronghold'] .slot-config-card:not(.is-constrained) {
+  color: var(--stronghold-muted);
+  background:
+    linear-gradient(135deg, transparent 49.6%, #24303a 50%, transparent 50.4%),
+    var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .squad-grid .slot-config-card:not(.is-constrained) {
+  border-color: var(--app-accent-selected-border);
+}
+
+[data-theme='stronghold'] .squad-grid .slot-config-card:not(.is-constrained):hover {
+  border-color: var(--app-accent);
+}
+
+[data-theme='stronghold']
+  :is(.random-operator-card__art, .draft-squad-avatar, .release-representative) {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+[data-theme='stronghold'] .draft-squad-slot__frame--valid {
+  color: var(--stronghold-muted);
+  border-color: var(--app-accent-selected-border);
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+[data-theme='stronghold'] .draft-squad-slot__frame--valid .draft-squad-slot__number {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .draft-squad-slot__frame--expandable {
+  color: var(--stronghold-muted);
+  border-color: var(--app-accent-selected-border);
+  background:
+    linear-gradient(
+      135deg,
+      transparent 49.6%,
+      var(--app-accent-hold-border) 50%,
+      transparent 50.4%
+    ),
+    var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .draft-squad-slot__frame--invalid {
+  color: var(--stronghold-muted);
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+  filter: none;
+}
+
+[data-theme='stronghold'] .draft-squad-overflow {
+  border-color: var(--app-accent-selected-border);
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+[data-theme='stronghold']
+  :is(
+    .draft-squad-slot__number,
+    .draft-squad-overflow__empty,
+    .draft-squad-overflow__empty strong,
+    .draft-squad-capacity-label,
+    .draft-roster-heading__capacity
+  ) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold']
+  .garrison-stage-slot.is-interactive:hover
+  .draft-squad-slot__frame--valid {
+  border-color: var(--app-accent);
+}
+
+[data-theme='stronghold'] :is(.random-operator-card, .disabled-slot) {
+  background-color: var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .slot-config-card:hover {
+  background: var(--stronghold-control);
+}
+
+[data-theme='stronghold'] .slot-config-card.is-constrained {
+  background:
+    linear-gradient(#151b21, #151b21) padding-box,
+    linear-gradient(var(--app-accent), var(--app-accent)) border-box !important;
+}
+
+[data-theme='stronghold']
+  :is(
+    .field small,
+    .option-note,
+    .option-setting__copy p,
+    .current-constraint-summary-content p,
+    .data-summary,
+    .artwork-choice small,
+    .draft-status-item span,
+    .draft-status-rulebook span
+  ) {
+  color: var(--stronghold-muted);
+}
+
+[data-theme='stronghold'] .draft-squad-expand {
+  background:
+    linear-gradient(180deg, rgba(101, 230, 196, 0.18), rgba(101, 230, 196, 0.08)),
+    var(--stronghold-inset);
+}
+
+[data-theme='stronghold'] .draft-squad-expand:hover:not(:disabled),
+[data-theme='stronghold'] .draft-squad-expand:focus-visible {
+  background:
+    linear-gradient(180deg, rgba(101, 230, 196, 0.26), rgba(101, 230, 196, 0.12)),
+    var(--stronghold-control);
+}
+
+/* Secondary surfaces and controls shared by editors and less common states. */
+:root[data-theme='stronghold']
+  :is(
+    .confirmation-dialog,
+    .draft-confirmation-dialog,
+    .bound-popover,
+    .operator-card__interaction-tooltip
+  ) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-panel);
+}
+
+:root[data-theme='stronghold']
+  :is(
+    .squad-size-control,
+    .bound-control,
+    .pool-group,
+    .operator-filter-subclass-panel,
+    .operator-filter-faction-group,
+    .account-progression-bound,
+    .draft-action-bar,
+    .draft-hold-surface,
+    .rulebook-action-card,
+    .rulebook-bucket-editor,
+    .rulebook-eligibility-section,
+    .rulebook-selector-editor,
+    .rulebook-readout,
+    .rulebook-placeholder-box,
+    .rulebook-override-card,
+    .rulebook-interaction-card,
+    .rulebook-progressive-step,
+    .rulebook-section-tabs,
+    .pricing-operator-row,
+    .garrison-conflict-summary-row,
+    .garrison-event-helper-avatar,
+    .garrison-save-state,
+    .garrison-dispatch-ribbon,
+    .windows-download-notice,
+    .artwork-download-status,
+    .squad-result-empty
+  ) {
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+:root[data-theme='stronghold']
+  :is(
+    .icon-button,
+    .bound-popover input,
+    .bound-popover select,
+    .preset-name-dialog-input,
+    .operator-selector-search input,
+    .rulebook-editor-section textarea,
+    .rulebook-edited-date strong,
+    .garrison-stage-editor-title input,
+    .garrison-squad-method-name input,
+    .garrison-stage-quickadd select,
+    .garrison-stage-drag-handle,
+    .pool-group-heading,
+    .pool-group-direction-toggle,
+    .pool-group-sort-toggle,
+    .operator-filter-class-tab,
+    .operator-filter-subclass-tile,
+    .operator-filter-faction-parent,
+    .operator-filter-faction-chip
+  ) {
+  color: #edf4fa;
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+:root[data-theme='stronghold']
+  :is(.operator-selector-option, .operator-selector-selected, .operator-selector-unresolved) {
+  color: #edf4fa;
+  background: var(--stronghold-inset);
+}
+
+:root[data-theme='stronghold']
+  :is(
+    .icon-button,
+    .tree-toggle,
+    .pool-group-direction-toggle,
+    .pool-group-sort-toggle,
+    .operator-selector-option,
+    .operator-filter-class-tab,
+    .operator-filter-subclass-tile,
+    .operator-filter-faction-parent,
+    .operator-filter-faction-chip
+  ):hover:not(:disabled) {
+  border-color: var(--app-accent-selected-border);
+  background: #24343b;
+}
+
+:root[data-theme='stronghold']
+  :is(
+    .operator-filter-class-tab.is-active,
+    .operator-filter-subclass-tile.is-enabled,
+    .operator-filter-faction-parent.is-enabled,
+    .operator-filter-faction-chip.is-enabled,
+    .operator-selector-option.is-selected,
+    .rulebook-section-tabs button.is-active
+  ) {
+  border-color: var(--app-accent);
+  background: #193b37;
+}
+
+:root[data-theme='stronghold']
+  :is(.operator-filter-faction-parent.is-mixed, .operator-filter-faction-chip.is-mixed) {
+  border-color: var(--app-accent-selected-border);
+  background: #24343b;
+}
+
+:root[data-theme='stronghold'] .pricing-operator-row--header {
+  color: var(--stronghold-muted);
+  background: var(--stronghold-control);
+}
+
+:root[data-theme='stronghold'] .rulebook-section-tabs button:hover {
+  background: var(--stronghold-control);
+}
+
+:root[data-theme='stronghold']
+  :is(.draft-confirmation-dialog p, .draft-confirmation-suppress, .draft-hold-surface) {
+  color: var(--stronghold-muted);
+}
+
+:root[data-theme='stronghold'] .draft-operator-action--hold-neutral {
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+:root[data-theme='stronghold']
+  :is(
+    .draft-squad-expand:disabled,
+    .draft-forfeit-surface:disabled,
+    .draft-operator-action:disabled
+  ) {
+  color: var(--stronghold-muted);
+  border-color: var(--line);
+  background: var(--stronghold-inset);
+}
+
+:root[data-theme='stronghold'] .garrison-save-state.is-dirty {
+  color: var(--app-accent);
+  border-color: var(--app-accent-selected-border);
+}
+
+:root[data-theme='stronghold'] .garrison-dispatch-ribbon {
+  border-color: var(--app-accent);
+}
+
+:root[data-theme='stronghold'] .slot-locked-card {
+  background: var(--app-accent);
+}
+
+:root[data-theme='stronghold'] .squad-grid .operator-card--portrait .operator-card__art,
+:root[data-theme='stronghold']
+  .draft-decision-offer-grid
+  .operator-card--portrait
+  .operator-card__art,
+:root[data-theme='stronghold'] .draft-panel .draft-squad-avatar {
+  background: color-mix(in srgb, var(--app-accent) 8%, var(--stronghold-inset));
+}
+
+:root[data-theme='stronghold'] .garrison-conflict-operator:not(:hover, :focus-visible) {
+  border-color: var(--line);
+  background: var(--stronghold-control);
+}
+
+:root[data-theme='stronghold'] .squad-result-grid .squad-result-slot--overflow .operator-card {
+  border-color: var(--app-accent-selected-border);
+}
+
+[data-theme='stronghold'] :is(button, input, select, summary, a):focus-visible {
+  outline: 2px solid var(--app-accent);
+  outline-offset: 3px;
+}

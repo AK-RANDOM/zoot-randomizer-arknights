@@ -115,11 +115,9 @@
 }
 
 .squad-grid .operator-card--portrait {
-  border: 3px solid var(--rarity-color, #66666e);
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
   border-radius: 4px;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 8px 20px rgba(0, 0, 0, 0.28);
+  box-shadow: none;
 }
 
 .squad-grid .slot-config-card:not(.is-constrained) {
@@ -127,7 +125,7 @@
 }
 
 .squad-grid .disabled-slot {
-  border: 3px dashed #66666e;
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
 }
 
 .squad-grid .slot-config-card,

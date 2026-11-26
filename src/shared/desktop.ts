@@ -61,8 +61,11 @@ export interface DesktopApi {
   platform: NodeJS.Platform | 'browser'
   getOperatorDataset(): Promise<OperatorDataset>
   getGarrisonEvents(region: ReleaseServer, locale: GameLocale): Promise<GarrisonEvent[]>
-  /** Track unsaved edits so the native window close guard can offer Save/Discard/Cancel. */
+  /** Track unsaved edits so the in-app close guard can offer Save/Discard/Cancel. */
   setGarrisonCloseDirty(dirty: boolean): void
+  onGarrisonCloseDecisionRequested(listener: () => void): () => void
+  completeGarrisonCloseDecision(choice: 'save' | 'discard' | 'cancel'): void
+  onGarrisonCloseSaveFailed(listener: () => void): () => void
   onGarrisonCloseSaveRequested(listener: () => void): () => void
   completeGarrisonCloseSave(success: boolean): void
   getOperatorDataInfo(): Promise<OperatorDataInfo>

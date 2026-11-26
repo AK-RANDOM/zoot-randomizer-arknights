@@ -1,10 +1,14 @@
+import { useAppDialogs } from './AppDialogs'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import SquadValidationBox from './SquadValidationBox'
+import GarrisonDispatchRibbon from './GarrisonDispatchRibbon'
+import type { GarrisonDispatchControls } from './garrisonDispatch'
 import BoundPill from './BoundPill'
 import ClassIcon from './ClassIcon'
 import LockedSlotCard, { lockedSlotPresentation } from './LockedSlotCard'
 import OperatorCard from './OperatorCard'
 import RandomOperatorCard from './RandomOperatorCard'
+import UnavailableOperatorCard from './UnavailableOperatorCard'
 import SquadConstraintEditor from './SquadConstraintEditor'
 import SlotClassConstraintIndicator from './SlotClassConstraintIndicator'
 import TextInputDialog from './TextInputDialog'
@@ -15,7 +19,11 @@ import CompactOperatorAvatar from './CompactOperatorAvatar'
 import SquadShareButton from './SquadShareButton'
 import useOverflowScroll from './useOverflowScroll'
 import { checkStandardRerolls } from './standardRerollChecks'
-import { useStandardSquadCheck, useStandardSquadWorker, type StandardSquadRequest } from './useStandardSquadWorker'
+import {
+  useStandardSquadCheck,
+  useStandardSquadWorker,
+  type StandardSquadRequest,
+} from './useStandardSquadWorker'
 import {
   cloneSlotConstraint,
   createEmptySlotConstraint,
@@ -170,6 +178,7 @@ export default function StandardSquadFeature({
   onConstraintsChange,
   onMessage,
   onError,
+  garrisonDispatch,
 }: {
   dataset: OperatorDataset | null
   constraints: RandomizerConstraints
@@ -178,7 +187,9 @@ export default function StandardSquadFeature({
   onConstraintsChange: (update: (current: RandomizerConstraints) => RandomizerConstraints) => void
   onMessage: (message: string) => void
   onError: (message: string | null) => void
+  garrisonDispatch?: GarrisonDispatchControls
 }): React.JSX.Element {
+  const { confirmAction } = useAppDialogs()
   const [squad, setSquad] = useState<Operator[]>([])
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null)
   const [keptSlots, setKeptSlots] = useState<number[]>([])
@@ -202,17 +213,26 @@ export default function StandardSquadFeature({
   const runWorker = useStandardSquadWorker()
   const [rolling, setRolling] = useState(false)
   const activeRoll = useRef<(() => void) | null>(null)
-  useEffect(() => () => {
-    if (!activeRoll.current) return
-    activeRoll.current()
-    activeRoll.current = null
-    setRolling(false)
-  }, [constraints, finalOperatorPool, resetRevision])
+  useEffect(
+    () => () => {
+      if (!activeRoll.current) return
+      activeRoll.current()
+      activeRoll.current = null
+      setRolling(false)
+    },
+    [constraints, finalOperatorPool, resetRevision],
+  )
   const chainValidationRequest = useMemo<StandardSquadRequest | null>(
-    () => chainMode && !chain && dataset ? { type: 'validate', constraints, pool: finalOperatorPool } : null,
+    () =>
+      chainMode && !chain && dataset
+        ? { type: 'validate', constraints, pool: finalOperatorPool }
+        : null,
     [chainMode, chain, dataset, constraints, finalOperatorPool],
   )
-  const chainValidation = useStandardSquadCheck<ConstraintValidationResult>(chainValidationRequest, runWorker)
+  const chainValidation = useStandardSquadCheck<ConstraintValidationResult>(
+    chainValidationRequest,
+    runWorker,
+  )
 
   useEffect(() => {
     saveUserSquadPresets(userPresets)
@@ -231,16 +251,19 @@ export default function StandardSquadFeature({
     setEditingSlot(null)
   }, [chain, resetRevision])
 
-  const validation = useMemo(
-    () => {
-      if (chain) return { valid: true, errors: [] }
-      if (chainMode) return chainValidation?.result ?? { valid: false, errors: chainValidation?.error ? [chainValidation.error] : [] }
-      return dataset
-        ? validateConstraints(constraints, finalOperatorPool)
-        : { valid: false, errors: [] }
-    },
-    [chain, chainMode, chainValidation, constraints, dataset, finalOperatorPool],
-  )
+  const validation = useMemo(() => {
+    if (chain) return { valid: true, errors: [] }
+    if (chainMode)
+      return (
+        chainValidation?.result ?? {
+          valid: false,
+          errors: chainValidation?.error ? [chainValidation.error] : [],
+        }
+      )
+    return dataset
+      ? validateConstraints(constraints, finalOperatorPool)
+      : { valid: false, errors: [] }
+  }, [chain, chainMode, chainValidation, constraints, dataset, finalOperatorPool])
   const currentSquadConfiguration = useMemo(
     () => squadConfigurationFromConstraints(constraints),
     [constraints],
@@ -501,11 +524,14 @@ export default function StandardSquadFeature({
         : `Saved squad preset “${preset.name}”.`,
     )
   }
-  const deleteSelectedPreset = (): void => {
+  const deleteSelectedPreset = async (): Promise<void> => {
     if (
       !selectedPreset ||
       selectedPreset.builtIn ||
-      !window.confirm(`Delete squad preset “${selectedPreset.name}”?`)
+      !(await confirmAction({
+        title: `Delete squad preset “${selectedPreset.name}”?`,
+        message: `Delete “${selectedPreset.name}” from your saved squad presets.`,
+      }))
     )
       return
     setUserPresets((current) => current.filter((preset) => preset.id !== selectedPreset.id))
@@ -517,15 +543,26 @@ export default function StandardSquadFeature({
       ? applySquadConfiguration(chain.constraints, currentSquadConfiguration)
       : constraints
     if (!dataset || squad.length !== current.squadSize) return null
-    return { current, squad, pool: chain?.pool ?? finalOperatorPool, exhausted: chain?.exhausted ?? [], keptSlots, chainMode: Boolean(chain) }
+    return {
+      current,
+      squad,
+      pool: chain?.pool ?? finalOperatorPool,
+      exhausted: chain?.exhausted ?? [],
+      keptSlots,
+      chainMode: Boolean(chain),
+    }
   }, [chain, constraints, currentSquadConfiguration, dataset, finalOperatorPool, keptSlots, squad])
   const rerollRequest = useMemo<StandardSquadRequest | null>(
-    () => rerollInput?.chainMode ? { type: 'check', input: rerollInput } : null,
+    () => (rerollInput?.chainMode ? { type: 'check', input: rerollInput } : null),
     [rerollInput],
   )
-  const chainRerolls = useStandardSquadCheck<ReturnType<typeof checkStandardRerolls>>(rerollRequest, runWorker)
+  const chainRerolls = useStandardSquadCheck<ReturnType<typeof checkStandardRerolls>>(
+    rerollRequest,
+    runWorker,
+  )
   const rerolls = useMemo(
-    () => rerollRequest ? chainRerolls?.result : rerollInput ? checkStandardRerolls(rerollInput) : null,
+    () =>
+      rerollRequest ? chainRerolls?.result : rerollInput ? checkStandardRerolls(rerollInput) : null,
     [rerollRequest, chainRerolls, rerollInput],
   )
   const checkingRerolls = Boolean(rerollRequest && !chainRerolls)
@@ -534,15 +571,15 @@ export default function StandardSquadFeature({
   const keepableSlots = squad.flatMap((_, index) =>
     index < constraints.squadSize && !constraints.slots[index]?.operatorId ? [index] : [],
   )
-  const allKept = keepableSlots.length > 0 && keepableSlots.every((index) => keptSlots.includes(index))
+  const allKept =
+    keepableSlots.length > 0 && keepableSlots.every((index) => keptSlots.includes(index))
   const rerollableCount = keepableSlots.filter((index) => !keptSlots.includes(index)).length
   const batchRerollLabel =
     rerollableCount === squad.length
       ? 'Reroll All'
       : `Reroll ${rerollableCount} ${rerollableCount === 1 ? 'Slot' : 'Slots'}`
-  const chainInitialPool = chainMode && !chain
-    ? filterEligibleOperators(finalOperatorPool, constraints)
-    : []
+  const chainInitialPool =
+    chainMode && !chain ? filterEligibleOperators(finalOperatorPool, constraints) : []
   const availableChainOperators = useMemo(() => {
     if (!chain) return chainInitialPool
     const used = new Set([...squad, ...chain.exhausted].map(({ id }) => id))
@@ -550,7 +587,9 @@ export default function StandardSquadFeature({
   }, [chain, chainInitialPool, squad])
   const chainPoolSize = chain?.pool.length ?? chainInitialPool.length
   const showingExhausted = chainPoolView === 'exhausted'
-  const displayedChainOperators = showingExhausted ? (chain?.exhausted ?? []) : availableChainOperators
+  const displayedChainOperators = showingExhausted
+    ? (chain?.exhausted ?? [])
+    : availableChainOperators
   const chainOperatorGroups = useMemo(() => {
     if (!dataset || !chainPoolOpen) return []
     const poolConstraints = chain?.constraints ?? constraints
@@ -563,13 +602,24 @@ export default function StandardSquadFeature({
     }
     const entries = [...groups]
     for (const [, members] of entries) {
-      members.sort((left, right) => comparePoolOperators(left, right, chainPoolSort, poolConstraints))
+      members.sort((left, right) =>
+        comparePoolOperators(left, right, chainPoolSort, poolConstraints),
+      )
     }
     const direction = chainPoolGroup === 'rarity' ? 'desc' : 'asc'
     return entries.sort((left, right) =>
       comparePoolGroups(left, right, chainPoolGroup, poolConstraints, direction),
     )
-  }, [dataset, chainPoolOpen, chain, constraints, displayedChainOperators, chainPoolGroup, chainPoolSort, importedAccount])
+  }, [
+    dataset,
+    chainPoolOpen,
+    chain,
+    constraints,
+    displayedChainOperators,
+    chainPoolGroup,
+    chainPoolSort,
+    importedAccount,
+  ])
 
   const toggleChainMode = (enabled: boolean): void => {
     const apply = (): void => {
@@ -665,6 +715,14 @@ export default function StandardSquadFeature({
 
   return (
     <>
+      {garrisonDispatch && (
+        <GarrisonDispatchRibbon
+          controls={garrisonDispatch}
+          operatorIds={squad.map((operator) => operator.id)}
+          ready={!rolling && squad.length > 0 && squad.length === constraints.squadSize}
+          hint="Generate a Standard squad, then confirm it here."
+        />
+      )}
       <section className="panel squad-panel" aria-labelledby="squad-heading">
         <div className="section-heading">
           <div>
@@ -710,15 +768,53 @@ export default function StandardSquadFeature({
             </select>
           </label>
           <div className="preset-actions">
-            <button type="button" className="secondary-button" onClick={saveAsPreset}>
-              Save as preset…
+            <button
+              type="button"
+              className="secondary-button mode-icon-button"
+              aria-label="Save as preset"
+              title="Save as preset"
+              onClick={saveAsPreset}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z" />
+                <path d="M7 3v6h10V3M7 21v-8h10v8" />
+              </svg>
             </button>
             {selectedPreset && (
-              <button type="button" className="secondary-button" onClick={duplicateSelectedPreset}>
-                Duplicate
+              <button
+                type="button"
+                className="secondary-button mode-icon-button"
+                aria-label="Duplicate preset"
+                title="Duplicate preset"
+                onClick={duplicateSelectedPreset}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="8" y="8" width="12" height="12" rx="2" />
+                  <path d="M16 8V4H4v12h4" />
+                </svg>
               </button>
             )}
-            <label className="confirmation-checkbox">
+            <label className="mode-checkbox">
               <input
                 type="checkbox"
                 checked={chainMode}
@@ -741,14 +837,6 @@ export default function StandardSquadFeature({
               </>
             )}
             <span className="preset-actions-spacer" aria-hidden="true" />
-            <button
-              className="danger-button"
-              type="button"
-              disabled={rolling || squad.length === 0}
-              onClick={clearSquad}
-            >
-              Clear
-            </button>
             {squad.length > 0 && (
               <button
                 className="secondary-button"
@@ -759,26 +847,60 @@ export default function StandardSquadFeature({
                 {allKept ? 'Unkeep All' : 'Keep All'}
               </button>
             )}
-            {generatedAt && squad.length === constraints.squadSize && (
-              <SquadShareButton result={{ mode: 'Standard Mode', generatedAt, members: squad }} />
-            )}
-            {(!chain || rerollableCount > 0) && (
+            <div className="mode-primary-actions">
+              <button
+                className="danger-button mode-icon-button mode-clear-button"
+                type="button"
+                aria-label="Clear squad"
+                title="Clear squad"
+                disabled={rolling || squad.length === 0}
+                onClick={clearSquad}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
+                </svg>
+              </button>
               <button
                 className="randomize-button"
                 type="button"
-                disabled={rolling || (useBatchReroll ? !rerolls?.batch : !dataset || !validation.valid)}
+                disabled={
+                  rolling || (useBatchReroll ? !rerolls?.batch : !dataset || !validation.valid)
+                }
                 title={
                   checkingRerolls || checkingInitial
                     ? 'Checking squad…'
                     : useBatchReroll && !rerolls?.batch
-                    ? 'No eligible replacements for the remaining slots'
-                    : undefined
+                      ? 'No eligible replacements for the remaining slots'
+                      : undefined
                 }
                 onClick={useBatchReroll ? () => rerollSquad() : randomize}
               >
-                {rolling ? 'Rolling…' : checkingRerolls || checkingInitial ? 'Checking…' : useBatchReroll ? batchRerollLabel : 'Randomize'}
+                {rolling
+                  ? 'Rolling…'
+                  : checkingRerolls || checkingInitial
+                    ? 'Checking…'
+                    : useBatchReroll
+                      ? batchRerollLabel
+                      : 'Randomize'}
               </button>
-            )}
+              <SquadShareButton
+                result={
+                  generatedAt && squad.length === constraints.squadSize
+                    ? { mode: 'Standard Mode', generatedAt, members: squad }
+                    : null
+                }
+              />
+            </div>
           </div>
         </div>
 
@@ -786,7 +908,7 @@ export default function StandardSquadFeature({
           <div className="current-constraint-summary-content">
             <strong>Current constraints</strong>
             {currentConstraintSummary.length > 0 ? (
-              <div>
+              <div className="constraint-summary-chips">
                 {currentConstraintSummary.map((summary) => (
                   <span key={summary}>{summary}</span>
                 ))}
@@ -809,7 +931,7 @@ export default function StandardSquadFeature({
         )}
         {chainRerolls?.error && <SquadValidationBox errors={[chainRerolls.error]} />}
 
-        <div className="squad-grid">
+        <div className="squad-grid squad-grid--responsive">
           {slots.map((slot, index) => {
             const operator = squad[index]
             const inRange = index < constraints.squadSize
@@ -832,15 +954,10 @@ export default function StandardSquadFeature({
             return (
               <div className={`squad-slot${!inRange ? ' squad-slot--disabled' : ''}`} key={slot}>
                 {!inRange ? (
-                  <div className="disabled-slot" aria-label={`Squad slot ${slot} unavailable`}>
-                    <span className="slot-config-number" aria-hidden="true">
-                      /
-                    </span>
-                    <span>Unavailable</span>
-                    <small>Squad size {constraints.squadSize}</small>
-                  </div>
+                  <UnavailableOperatorCard slot={slot} />
                 ) : operator ? (
                   <OperatorCard
+                    responsiveCompact
                     operator={operator}
                     replayOnRandomize={!kept && !(locked && useBatchReroll)}
                     topRightAdornment={
@@ -848,7 +965,9 @@ export default function StandardSquadFeature({
                         <span className="draft-operator-price draft-operator-price--neutral">
                           <img
                             className="standard-squad-padlock"
-                            src={new URL('./assets/draft/locked-slot-icon.png', import.meta.url).href}
+                            src={
+                              new URL('./assets/draft/locked-slot-icon.png', import.meta.url).href
+                            }
                             alt={locked ? 'Locked by slot constraint' : 'Kept'}
                           />
                         </span>
@@ -859,7 +978,10 @@ export default function StandardSquadFeature({
                     overlay={
                       <div className="draft-operator-actions">
                         {singleWarning && (
-                          <span className="standard-squad-single-reroll-reason" id={singleWarningId}>
+                          <span
+                            className="standard-squad-single-reroll-reason"
+                            id={singleWarningId}
+                          >
                             {singleWarning}
                           </span>
                         )}
@@ -870,7 +992,11 @@ export default function StandardSquadFeature({
                           aria-describedby={singleWarning ? singleWarningId : undefined}
                           disabled={rolling || !canReroll}
                           title={
-                            kept ? 'Turn off Keep to reroll' : canReroll || singleWarning ? undefined : 'No eligible replacement'
+                            kept
+                              ? 'Turn off Keep to reroll'
+                              : canReroll || singleWarning
+                                ? undefined
+                                : 'No eligible replacement'
                           }
                           onClick={() => rerollSquad(index)}
                         >
@@ -882,11 +1008,13 @@ export default function StandardSquadFeature({
                           aria-label={`Keep ${operator.name}`}
                           aria-pressed={kept}
                           disabled={rolling || locked}
-                          onClick={() => setKeptSlots((current) =>
-                            current.includes(index)
-                              ? current.filter((slotIndex) => slotIndex !== index)
-                              : [...current, index],
-                          )}
+                          onClick={() =>
+                            setKeptSlots((current) =>
+                              current.includes(index)
+                                ? current.filter((slotIndex) => slotIndex !== index)
+                                : [...current, index],
+                            )
+                          }
                         >
                           Keep
                         </button>
@@ -923,11 +1051,20 @@ export default function StandardSquadFeature({
         </div>
 
         {chainMode && (
-          <details className="squad-filter-disclosure" onToggle={(event) => setChainPoolOpen(event.currentTarget.open)}>
-            <summary>Operator Pool ({availableChainOperators.length} / {chainPoolSize})</summary>
+          <details
+            className="squad-filter-disclosure"
+            onToggle={(event) => setChainPoolOpen(event.currentTarget.open)}
+          >
+            <summary>
+              Operator Pool ({availableChainOperators.length} / {chainPoolSize})
+            </summary>
             <div className="squad-filter-content">
               <div className="chain-pool-toolbar">
-                <div className="draft-status-main chain-pool-views" role="group" aria-label="Operator Pool view">
+                <div
+                  className="draft-status-main chain-pool-views"
+                  role="group"
+                  aria-label="Operator Pool view"
+                >
                   <div className="draft-status-item">
                     <span>Pool</span>
                     <strong>{chainPoolSize}</strong>
@@ -963,20 +1100,37 @@ export default function StandardSquadFeature({
               {chainPoolOpen && (
                 <div className="chain-pool-operators">
                   {displayedChainOperators.length === 0 ? (
-                    <p>{showingExhausted ? 'No exhausted operators yet.' : 'No operators available to draw.'}</p>
+                    <p>
+                      {showingExhausted
+                        ? 'No exhausted operators yet.'
+                        : 'No operators available to draw.'}
+                    </p>
                   ) : (
                     <>
-                      {!showingExhausted && <p>Slot requirements and squad composition rules still apply.</p>}
+                      {!showingExhausted && (
+                        <p>Slot requirements and squad composition rules still apply.</p>
+                      )}
                       {chainOperatorGroups.map(([label, operators]) => (
-                        <section key={label} data-rarity={chainPoolGroup === 'rarity' ? operators[0].rarity : undefined}>
-                          {chainPoolGroup !== 'none' && <h3>{label} ({operators.length})</h3>}
+                        <section
+                          key={label}
+                          data-rarity={
+                            chainPoolGroup === 'rarity' ? operators[0].rarity : undefined
+                          }
+                        >
+                          {chainPoolGroup !== 'none' && (
+                            <h3>
+                              {label} ({operators.length})
+                            </h3>
+                          )}
                           <ul>
                             {operators.map((operator) => (
                               <li key={operator.id}>
                                 <span className="chain-pool-operator-icons" aria-hidden="true">
                                   <CompactOperatorAvatar operator={operator} />
                                 </span>
-                                <span>{operator.name} <small>{operator.class}</small></span>
+                                <span>
+                                  {operator.name} <small>{operator.class}</small>
+                                </span>
                               </li>
                             ))}
                           </ul>

@@ -1,12 +1,17 @@
 import type { Operator } from '../../shared/operator'
 
-export type SquadShareMode = 'Standard Mode' | 'Draft Mode' | 'IS Opening'
+export type SquadShareMode = 'Standard Mode' | 'Draft Mode' | 'IS Opening' | 'Garrison'
 
 export interface SquadShareResult {
   mode: SquadShareMode
   generatedAt: Date
   members: readonly (Operator | null)[]
   overflowStart?: number
+  garrison?: {
+    name: string
+    duplicateOperatorsAllowed: boolean
+    stages: { name: string; members: { id: string; name: string; rarity?: number }[] }[]
+  }
   opening?: {
     theme: string
     squad: string
@@ -37,6 +42,24 @@ export function squadShareDetails({ opening }: SquadShareResult): string[] {
 }
 
 export function formatSquadShareText(result: SquadShareResult): string {
+  if (result.garrison) {
+    const { name, duplicateOperatorsAllowed, stages } = result.garrison
+    return [
+      squadShareTitle,
+      `Garrison: ${name}`,
+      `Cross-stage duplicates: ${duplicateOperatorsAllowed ? 'Allowed' : 'Not allowed'}`,
+      ...stages.flatMap((stage, index) => [
+        '',
+        `${index + 1}. ${stage.name}`,
+        ...(stage.members.length
+          ? stage.members.map(
+              (member, slot) =>
+                `  ${slot + 1}. ${member.rarity ? `${member.rarity}* ` : ''}${member.name}`,
+            )
+          : ['  No operators assigned']),
+      ]),
+    ].join('\n')
+  }
   const { mode, generatedAt, members, opening } = result
   const memberLines = members
     .filter((operator): operator is Operator => operator !== null)

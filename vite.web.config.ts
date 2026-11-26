@@ -8,6 +8,7 @@ const output = resolve('dist/web')
 
 export default defineConfig(({ mode }) => ({
   root: resolve('src/renderer'),
+  envDir: resolve('.'),
   base: './',
   define: { __WEB_BUILD__: true, __APP_VERSION__: JSON.stringify(buildAppVersion(mode)) },
   resolve: {

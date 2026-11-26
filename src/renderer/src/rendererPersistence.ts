@@ -1,3 +1,7 @@
+import {
+  normalizeDraftConfirmationMode,
+  type DraftConfirmationMode,
+} from './draftConfirmationPolicy'
 import type { DraftRulebook } from '../../shared/draftRulebook'
 import { cloneGarrison, type Garrison, type GarrisonStage } from '../../shared/garrison'
 import {
@@ -30,7 +34,7 @@ const LEGACY_RACE_FILTER_KEY = 'arknights-randomizer:race-filter:v1'
 const LEGACY_ARTWORK_PREFERENCE_KEY = 'arknights-randomizer:operator-artwork:v1'
 
 export type RulebookOrigin = 'built-in' | 'local' | 'imported'
-export type AppTheme = 'rhodes' | 'zoot'
+export type AppTheme = 'rhodes' | 'zoot' | 'stronghold'
 
 export interface RulebookLibraryEntry {
   document: DraftRulebook
@@ -51,6 +55,7 @@ export interface RendererPersistenceState {
   raceExcludedIds: string[]
   genderExcludedIds: OperatorGender[]
   operatorArtwork: PromotionArt
+  draftConfirmationMode: DraftConfirmationMode
   confirmDraftActions: boolean
   rulebookLibrary: RulebookLibraryEntry[]
   pricingProfiles: DraftPricingProfile[]
@@ -260,6 +265,7 @@ export function createDefaultRendererPersistenceState(): RendererPersistenceStat
     raceExcludedIds: [],
     genderExcludedIds: [],
     operatorArtwork: 'e2',
+    draftConfirmationMode: 'action',
     confirmDraftActions: true,
     rulebookLibrary: [],
     pricingProfiles: [],
@@ -273,7 +279,8 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
   if (candidate.version !== RENDERER_PERSISTENCE_VERSION) return defaults
   return {
     version: RENDERER_PERSISTENCE_VERSION,
-    theme: candidate.theme === 'zoot' ? 'zoot' : 'rhodes',
+    theme:
+      candidate.theme === 'zoot' || candidate.theme === 'stronghold' ? candidate.theme : 'rhodes',
     operatorPreferences: normalizeOperatorPreferences(candidate.operatorPreferences),
     squadPresets: normalizeSquadPresets(candidate.squadPresets),
     garrisons: normalizeGarrisons(candidate.garrisons),
@@ -288,6 +295,10 @@ export function normalizeRendererPersistence(value: unknown): RendererPersistenc
       stringList(candidate.genderExcludedIds).includes(id),
     ),
     operatorArtwork: candidate.operatorArtwork === 'e1' ? 'e1' : 'e2',
+    draftConfirmationMode: normalizeDraftConfirmationMode(
+      candidate.draftConfirmationMode,
+      candidate.confirmDraftActions !== false,
+    ),
     confirmDraftActions: candidate.confirmDraftActions !== false,
     rulebookLibrary: normalizeRulebookEntries(candidate.rulebookLibrary),
     pricingProfiles: normalizePricingProfiles(candidate.pricingProfiles),
@@ -461,7 +472,11 @@ export function loadDraftActionConfirmations(): boolean {
 }
 
 export function saveDraftActionConfirmations(confirmDraftActions: boolean): void {
-  updateRendererPersistence((state) => ({ ...state, confirmDraftActions }))
+  updateRendererPersistence((state) => ({
+    ...state,
+    confirmDraftActions,
+    draftConfirmationMode: confirmDraftActions ? 'action' : 'never',
+  }))
 }
 
 export function loadRulebookLibraryEntries(): RulebookLibraryEntry[] {
@@ -483,5 +498,17 @@ export function saveDraftPricingProfiles(profiles: readonly DraftPricingProfile[
   updateRendererPersistence((state) => ({
     ...state,
     pricingProfiles: normalizePricingProfiles(profiles),
+  }))
+}
+
+export function loadDraftConfirmationMode(): DraftConfirmationMode {
+  return loadRendererPersistence().draftConfirmationMode
+}
+
+export function saveDraftConfirmationMode(draftConfirmationMode: DraftConfirmationMode): void {
+  updateRendererPersistence((state) => ({
+    ...state,
+    draftConfirmationMode,
+    confirmDraftActions: draftConfirmationMode !== 'never',
   }))
 }

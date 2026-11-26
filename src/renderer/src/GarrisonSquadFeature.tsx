@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { DragEvent, KeyboardEvent } from 'react'
 import type { GameLocale, Operator, ReleaseServer } from '../../shared/operator'
@@ -18,6 +19,7 @@ import {
   getGarrisonParticipation,
   garrisonHasOperatorConflicts,
   reorderGarrisonStages,
+  normalizeGarrisonStageOperatorIds,
   type Garrison,
   type GarrisonStage,
 } from '../../shared/garrison'
@@ -25,11 +27,73 @@ import { garrisonEventHelperOperator } from '../../shared/garrisonEventHelper'
 import EventSelectorDropdown from './EventSelectorDropdown'
 import GarrisonConflictDialog from './GarrisonConflictDialog'
 import GarrisonStageEditor from './GarrisonStageEditor'
+import GarrisonSquadMethodDialog from './GarrisonSquadMethodDialog'
+import { garrisonDispatchExclusions, type GarrisonDispatchRequest } from './garrisonDispatch'
 import CompactOperatorAvatar from './CompactOperatorAvatar'
+import SquadShareButton from './SquadShareButton'
 import TextInputDialog from './TextInputDialog'
 import { loadSavedGarrisons, saveSavedGarrisons } from './rendererPersistence'
 
-type NameDialogMode = 'duplicate' | 'rename'
+type NameDialogMode = 'new' | 'save' | 'duplicate' | 'rename'
+function GarrisonActionIcon({
+  action,
+}: {
+  action: 'new' | 'duplicate' | 'rename' | 'delete' | 'generate' | 'clear'
+}): React.JSX.Element {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {action === 'new' && (
+        <>
+          <rect x="4" y="4" width="16" height="16" rx="2" />
+          <path d="M12 8v8M8 12h8" />
+        </>
+      )}
+      {action === 'duplicate' && (
+        <>
+          <rect x="8" y="8" width="12" height="12" rx="2" />
+          <path d="M16 8V4H4v12h4" />
+        </>
+      )}
+      {action === 'rename' && (
+        <>
+          <path d="m15 4 5 5M4 20l5-1L21 7l-5-5L4 14z" />
+        </>
+      )}
+      {action === 'delete' && (
+        <>
+          <path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" />
+        </>
+      )}
+      {action === 'generate' && (
+        <>
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <circle cx="8" cy="8" r="1" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="8" r="1" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+          <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none" />
+          <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none" />
+        </>
+      )}
+      {action === 'clear' && (
+        <>
+          <path d="m16 3 5 5-11 13H5l-3-3L16 3Z" />
+          <path d="m8 11 7 7M10 21h11" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 type StageEditorState = {
   mode: 'new' | 'existing'
   stage: GarrisonStage
@@ -83,17 +147,18 @@ export default function GarrisonSquadFeature({
   alterExclusivity,
   metadataRegion,
   gameLocale,
-  onDirtyChange,
   onMessage,
+  onDispatch,
 }: {
   operators: readonly Operator[]
   eligibleOperators: readonly Operator[]
   alterExclusivity: boolean
   metadataRegion: ReleaseServer
   gameLocale: GameLocale
-  onDirtyChange: (dirty: boolean) => void
   onMessage: (message: string) => void
+  onDispatch: (request: GarrisonDispatchRequest) => void
 }): React.JSX.Element {
+  const { confirmAction, showNotice, chooseSaveBeforeClose } = useAppDialogs()
   const [library, setLibrary] = useState<Garrison[]>(() => loadSavedGarrisons())
   const [recovery] = useState(() => (import.meta.env.PROD ? loadGarrisonRecovery() : null))
   const [working, setWorking] = useState<Garrison>(() => recovery?.working ?? createGarrison())
@@ -108,6 +173,7 @@ export default function GarrisonSquadFeature({
   const [stageEditor, setStageEditor] = useState<StageEditorState | null>(
     recovery?.stageEditor ?? null,
   )
+  const [squadMethod, setSquadMethod] = useState<StageEditorState | null>(null)
   const [events, setEvents] = useState<GarrisonEvent[]>([])
   const [eventsLoading, setEventsLoading] = useState(true)
   const [eventsError, setEventsError] = useState<string | null>(null)
@@ -188,12 +254,6 @@ export default function GarrisonSquadFeature({
     saveSavedGarrisons(library)
   }, [library])
 
-  useEffect(() => {
-    onDirtyChange(hasUnsavedChanges)
-  }, [hasUnsavedChanges, onDirtyChange])
-
-  useEffect(() => () => onDirtyChange(false), [onDirtyChange])
-
   useLayoutEffect(() => {
     if (import.meta.env.DEV) return
     try {
@@ -224,7 +284,30 @@ export default function GarrisonSquadFeature({
     onMessage,
   ])
 
-  // Native Electron close guard replaces the unresponsive beforeunload blocker.
+  // Electron waits for an in-app decision before closing or requesting a save.
+  useEffect(
+    () =>
+      window.desktop.onGarrisonCloseDecisionRequested(() => {
+        void chooseSaveBeforeClose({
+          title: 'Save your Garrison before closing the application?',
+          message:
+            'Save Garrison saves your working stages and operators. Discard Changes closes without saving.',
+        }).then((choice) => window.desktop.completeGarrisonCloseDecision(choice))
+      }),
+    [chooseSaveBeforeClose],
+  )
+
+  useEffect(
+    () =>
+      window.desktop.onGarrisonCloseSaveFailed(() => {
+        showNotice({
+          title: 'Garrison could not be saved',
+          message: 'Resolve unfinished edits or conflicts, then try again.',
+        })
+      }),
+    [showNotice],
+  )
+
   useEffect(() => {
     if (import.meta.env.DEV) window.desktop.setGarrisonCloseDirty(hasUnsavedChanges)
   }, [hasUnsavedChanges])
@@ -247,21 +330,16 @@ export default function GarrisonSquadFeature({
   }
 
   const beginNewGarrison = (): void => {
-    const next = createGarrison()
-    setWorking(next)
-    setBaseline(cloneGarrison(next))
-    setSelectedGarrisonId(null)
-    setStageEditor(null)
-    setConflictDraft(null)
-    setConflictPurpose(null)
-    resetHistory()
-    onMessage('Started a new Garrison.')
+    setNameDialog({ mode: 'new', initialValue: '' })
   }
 
-  const confirmDiscardIfNeeded = (action: () => void): boolean => {
+  const confirmDiscardIfNeeded = async (action: () => void): Promise<boolean> => {
     if (
       hasUnsavedChanges &&
-      !window.confirm('Discard unsaved Garrison changes? Your saved Garrisons will not be changed.')
+      !(await confirmAction({
+        title: 'Discard unsaved Garrison changes?',
+        message: 'Your saved Garrisons will not be changed.',
+      }))
     )
       return false
     action()
@@ -306,6 +384,10 @@ export default function GarrisonSquadFeature({
 
   const saveGarrison = (): void => {
     if (stageEditor || conflictDraft) return
+    if (selectedGarrisonId === null && working.name === 'Untitled Garrison') {
+      setNameDialog({ mode: 'save', initialValue: '' })
+      return
+    }
     persistGarrison(
       cloneGarrison({
         ...working,
@@ -361,10 +443,16 @@ export default function GarrisonSquadFeature({
     })
   }, [working, library, stageEditor, conflictDraft, onMessage])
 
-  const deleteSelectedGarrison = (): void => {
+  const deleteSelectedGarrison = async (): Promise<void> => {
     if (!selectedGarrison || stageEditor || conflictDraft) return
     const extra = dirty ? ' Unsaved working changes will also be discarded.' : ''
-    if (!window.confirm(`Delete Garrison “${selectedGarrison.name}”?${extra}`)) return
+    if (
+      !(await confirmAction({
+        title: `Delete Garrison “${selectedGarrison.name}”?`,
+        message: `This removes the Garrison from your saved Garrisons.${extra}`,
+      }))
+    )
+      return
     setLibrary((current) => current.filter((garrison) => garrison.id !== selectedGarrison.id))
     const deletedName = selectedGarrison.name
     const next = createGarrison()
@@ -378,7 +466,26 @@ export default function GarrisonSquadFeature({
   const confirmNameDialog = (name: string): void => {
     const action = nameDialog
     if (!action) return
+    if (action.mode === 'new') {
+      confirmDiscardIfNeeded(() => {
+        const next = createGarrison(name)
+        setWorking(next)
+        setBaseline(cloneGarrison(next))
+        setSelectedGarrisonId(null)
+        setStageEditor(null)
+        setConflictDraft(null)
+        setConflictPurpose(null)
+        resetHistory()
+        setNameDialog(null)
+        onMessage('Started a new Garrison.')
+      })
+      return
+    }
     setNameDialog(null)
+    if (action.mode === 'save') {
+      persistGarrison(cloneGarrison({ ...working, name }))
+      return
+    }
     if (action.mode === 'rename') {
       applyWorkingEdit({ ...working, name })
       onMessage('Garrison renamed in the working copy. Save Garrison to keep the change.')
@@ -442,7 +549,7 @@ export default function GarrisonSquadFeature({
 
   const addStage = (): void => {
     if (stageEditor || conflictDraft) return
-    setStageEditor({
+    setSquadMethod({
       mode: 'new',
       stage: createGarrisonStage(nextStageName(working.stages)),
       undo: null,
@@ -457,6 +564,55 @@ export default function GarrisonSquadFeature({
       stage: cloneGarrisonStage(stage),
       undo: null,
       redo: null,
+    })
+  }
+
+  const generateStage = (stage: GarrisonStage): void => {
+    if (stageEditor || conflictDraft) return
+    setSquadMethod({
+      mode: 'existing',
+      stage: cloneGarrisonStage(stage),
+      undo: null,
+      redo: null,
+    })
+  }
+
+  const selectSquadMethod = (method: 'manual' | 'standard' | 'draft'): void => {
+    if (!squadMethod) return
+    const pending = squadMethod
+    setSquadMethod(null)
+    if (method === 'manual') {
+      setStageEditor(pending)
+      return
+    }
+    const excludedOperatorIds = garrisonDispatchExclusions(working, pending.stage.id)
+    const eligibleIds = new Set(eligibleOperators.map((operator) => operator.id))
+    onDispatch({
+      mode: method,
+      stageName: pending.stage.name.trim() || 'Untitled Stage',
+      excludedOperatorIds,
+      onConfirm: (operatorIds) => {
+        const normalized = normalizeGarrisonStageOperatorIds(operatorIds)
+        if (
+          !normalized.length ||
+          normalized.length !== operatorIds.length ||
+          normalized.some((id) => !eligibleIds.has(id) || excludedOperatorIds.includes(id))
+        ) {
+          onMessage('This squad cannot be assigned to the Garrison stage. Generate a new squad.')
+          return false
+        }
+        const committed = cloneGarrisonStage({ ...pending.stage, operatorIds: normalized })
+        committed.name = committed.name.trim() || 'Untitled Stage'
+        const next = cloneGarrison(working)
+        next.stages =
+          pending.mode === 'new'
+            ? [...next.stages, committed]
+            : next.stages.map((stage) => (stage.id === committed.id ? committed : stage))
+        if (!next.duplicateOperatorsAllowed && garrisonHasOperatorConflicts(next)) return false
+        applyWorkingEdit(next)
+        onMessage(`Assigned squad to “${committed.name}”. Save Garrison to keep the change.`)
+        return true
+      },
     })
   }
 
@@ -589,28 +745,30 @@ export default function GarrisonSquadFeature({
     onMessage(`Cleared operators from “${stage.name}”. Stage retained; use Undo Edit to restore.`)
   }
 
-  const clearEverySquad = (): void => {
+  const clearEverySquad = async (): Promise<void> => {
     if (stageEditor || conflictDraft || !working.stages.some((stage) => stage.operatorIds.length))
       return
     if (
-      !window.confirm(
-        'Clear all operator assignments? The stage table will be kept, and you can undo this edit.',
-      )
+      !(await confirmAction({
+        title: 'Clear all operator assignments?',
+        message: 'The stage table will be kept, and you can undo this edit.',
+      }))
     )
       return
     applyWorkingEdit(clearAllGarrisonSquads(working))
     onMessage('Cleared all stage squads without removing any stages. Use Undo Edit to restore.')
   }
 
-  const deleteStage = (stageId: string): void => {
+  const deleteStage = async (stageId: string): Promise<void> => {
     if (stageEditor || conflictDraft) return
     const stage = working.stages.find((candidate) => candidate.id === stageId)
     if (!stage) return
     if (
       stage.operatorIds.length > 0 &&
-      !window.confirm(
-        `Delete stage “${stage.name}” and its ${stage.operatorIds.length} assigned operator${stage.operatorIds.length === 1 ? '' : 's'}?`,
-      )
+      !(await confirmAction({
+        title: `Delete stage “${stage.name}”?`,
+        message: `This removes the stage and its ${stage.operatorIds.length} operator assignment${stage.operatorIds.length === 1 ? '' : 's'}.`,
+      }))
     )
       return
     const next = cloneGarrison(working)
@@ -671,6 +829,9 @@ export default function GarrisonSquadFeature({
     onMessage('Redid the previous Garrison edit.')
   }
 
+  const displayedStages =
+    stageEditor?.mode === 'new' ? [...working.stages, stageEditor.stage] : working.stages
+
   return (
     <>
       <section className="panel squad-panel garrison-panel" aria-labelledby="garrison-heading">
@@ -688,27 +849,30 @@ export default function GarrisonSquadFeature({
             <select
               value={selectedGarrisonId ?? 'new'}
               disabled={stageEditor !== null || conflictDraft !== null}
-              onChange={(event) => {
-                const id = event.target.value
+              onChange={async (event) => {
+                const select = event.currentTarget
+                const id = select.value
                 if (id === 'new') {
                   if (selectedGarrisonId === null) return
-                  if (!confirmDiscardIfNeeded(beginNewGarrison)) {
-                    event.currentTarget.value = selectedGarrisonId
-                  }
+                  beginNewGarrison()
                   return
                 }
                 const garrison = library.find((candidate) => candidate.id === id)
-                if (garrison && !confirmDiscardIfNeeded(() => loadGarrison(garrison))) {
-                  event.currentTarget.value = selectedGarrisonId ?? 'new'
+                if (garrison && !(await confirmDiscardIfNeeded(() => loadGarrison(garrison)))) {
+                  select.value = selectedGarrisonId ?? 'new'
                 }
               }}
             >
-              <option value="new">New Garrison</option>
+              <option value="new">
+                {selectedGarrisonId === null && working.name !== 'Untitled Garrison'
+                  ? working.name
+                  : 'New Garrison'}
+              </option>
               {library.length > 0 && (
                 <optgroup label="Saved">
                   {library.map((garrison) => (
                     <option key={garrison.id} value={garrison.id}>
-                      {garrison.name}
+                      {garrison.id === selectedGarrisonId ? working.name : garrison.name}
                     </option>
                   ))}
                 </optgroup>
@@ -718,66 +882,47 @@ export default function GarrisonSquadFeature({
           <div className="preset-actions">
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action"
+              aria-label="New Garrison"
+              title="New Garrison"
               disabled={stageEditor !== null || conflictDraft !== null}
-              onClick={() => confirmDiscardIfNeeded(beginNewGarrison)}
+              onClick={beginNewGarrison}
             >
-              New
+              <GarrisonActionIcon action="new" />
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action"
+              aria-label="Duplicate Garrison"
+              title="Duplicate Garrison"
               disabled={stageEditor !== null || conflictDraft !== null}
               onClick={() =>
                 setNameDialog({ mode: 'duplicate', initialValue: `${working.name} copy` })
               }
             >
-              Duplicate
+              <GarrisonActionIcon action="duplicate" />
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action"
+              aria-label="Rename Garrison"
+              title="Rename Garrison"
               disabled={stageEditor !== null || conflictDraft !== null}
               onClick={() => setNameDialog({ mode: 'rename', initialValue: working.name })}
             >
-              Rename
+              <GarrisonActionIcon action="rename" />
             </button>
             <button
               type="button"
-              className="secondary-button"
+              className="secondary-button garrison-library-action garrison-library-action--delete"
+              aria-label="Delete Garrison"
+              title="Delete Garrison"
               disabled={!selectedGarrison || stageEditor !== null || conflictDraft !== null}
               onClick={deleteSelectedGarrison}
             >
-              Delete
+              <GarrisonActionIcon action="delete" />
             </button>
-            <span className="preset-actions-spacer" aria-hidden="true" />
-            <button
-              type="button"
-              className="randomize-button"
-              disabled={
-                stageEditor !== null ||
-                conflictDraft !== null ||
-                (selectedGarrison !== null && !dirty)
-              }
-              onClick={saveGarrison}
-            >
-              Save Garrison
-            </button>
-          </div>
-        </div>
-
-        <div className="garrison-document-heading">
-          <label className="garrison-name-field">
-            <span>Garrison name</span>
-            <input
-              type="text"
-              value={working.name}
-              disabled={stageEditor !== null || conflictDraft !== null}
-              onChange={(event) => applyWorkingEdit({ ...working, name: event.target.value })}
-            />
-          </label>
-          <div className="garrison-document-controls">
-            <label className="garrison-repeat-toggle">
+            <label className="garrison-repeat-toggle mode-checkbox">
               <input
                 type="checkbox"
                 checked={working.duplicateOperatorsAllowed}
@@ -786,84 +931,134 @@ export default function GarrisonSquadFeature({
               />
               <span>Allow duplicates</span>
             </label>
-            <span
-              className={hasUnsavedChanges ? 'garrison-save-state is-dirty' : 'garrison-save-state'}
-            >
-              {stageEditor
-                ? 'Editing stage'
-                : conflictDraft
-                  ? 'Resolve conflict'
-                  : dirty
-                    ? 'Unsaved changes'
-                    : selectedGarrison
-                      ? 'Saved'
-                      : 'New'}
-            </span>
+            <span className="preset-actions-spacer" aria-hidden="true" />
+            <div className="mode-primary-actions">
+              <button
+                type="button"
+                className="randomize-button garrison-save-button"
+                aria-label="Save Garrison"
+                aria-describedby="garrison-save-status"
+                disabled={
+                  stageEditor !== null ||
+                  conflictDraft !== null ||
+                  (selectedGarrison !== null && !dirty)
+                }
+                onClick={saveGarrison}
+              >
+                <span>Save Garrison</span>
+                <small id="garrison-save-status" role="status">
+                  {stageEditor
+                    ? 'Editing Stage'
+                    : conflictDraft
+                      ? 'Resolve Conflict'
+                      : dirty
+                        ? 'Unsaved Changes'
+                        : selectedGarrison
+                          ? 'Saved'
+                          : 'New Garrison'}
+                </small>
+              </button>
+              <SquadShareButton
+                label="Share Garrison"
+                result={
+                  working.stages.length && !stageEditor && !conflictDraft
+                    ? {
+                        mode: 'Garrison',
+                        generatedAt: new Date(),
+                        members: [],
+                        garrison: {
+                          name: working.name,
+                          duplicateOperatorsAllowed: working.duplicateOperatorsAllowed,
+                          stages: working.stages.map((stage) => ({
+                            name: stage.name,
+                            members: stage.operatorIds.map(
+                              (id) =>
+                                operatorById.get(id) ?? { id, name: `Unknown operator (${id})` },
+                            ),
+                          })),
+                        },
+                      }
+                    : null
+                }
+              />
+            </div>
           </div>
         </div>
 
-        <section className="garrison-participants" aria-labelledby="garrison-participants-heading">
-          <div className="garrison-participant-heading">
-            <strong id="garrison-participants-heading">Participating Operators</strong>
-            {working.duplicateOperatorsAllowed && <span>{participation.length} unique</span>}
-          </div>
-          {participation.length === 0 ? (
-            <p>No operators assigned yet.</p>
-          ) : (
-            <div
-              className="garrison-participant-list"
-              aria-label="Participating operators by stage count"
-            >
-              {participation.map(({ operatorId, stageCount }) => {
-                const operator = operatorById.get(operatorId)
-                const label = operator?.name ?? operatorId
-                return (
-                  <span
-                    className="garrison-participant-entry"
-                    key={operatorId}
-                    title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
-                    style={{ position: 'relative', display: 'inline-flex' }}
-                  >
-                    {operator ? (
-                      <CompactOperatorAvatar operator={operator} />
-                    ) : (
-                      <span
-                        className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
-                        title={operatorId}
-                      >
-                        ?
-                      </span>
-                    )}
-                    {stageCount >= 2 && (
-                      <span
-                        className="garrison-participant-count"
-                        aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
-                        style={{
-                          position: 'absolute',
-                          right: -4,
-                          bottom: -4,
-                          display: 'grid',
-                          minWidth: 19,
-                          height: 19,
-                          placeItems: 'center',
-                          padding: '0 4px',
-                          border: '1px solid rgba(255, 255, 255, 0.42)',
-                          borderRadius: 999,
-                          color: '#fff',
-                          background: '#171719',
-                          fontSize: '0.62rem',
-                          fontWeight: 900,
-                          lineHeight: 1,
-                        }}
-                      >
-                        ×{stageCount}
-                      </span>
-                    )}
-                  </span>
-                )
-              })}
+        <section
+          className="current-constraint-summary garrison-participation-summary"
+          aria-labelledby="garrison-participants-heading"
+        >
+          <div className="current-constraint-summary-content">
+            <strong className="constraint-summary-heading" id="garrison-participants-heading">
+              Participating Operators
+            </strong>
+            <div className="constraint-summary-chips">
+              <span className="constraint-summary-chip">
+                {working.stages.length} {working.stages.length === 1 ? 'stage' : 'stages'}
+              </span>
+              <span className="constraint-summary-chip">
+                {participation.length} unique operators
+              </span>
             </div>
-          )}
+            {participation.length === 0 ? (
+              <p>No operators assigned yet.</p>
+            ) : (
+              <div
+                className="garrison-participant-list"
+                aria-label="Participating operators by stage count"
+              >
+                {participation.map(({ operatorId, stageCount }) => {
+                  const operator = operatorById.get(operatorId)
+                  const label = operator?.name ?? operatorId
+                  return (
+                    <span
+                      className="garrison-participant-entry"
+                      key={operatorId}
+                      title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
+                      style={{ position: 'relative', display: 'inline-flex' }}
+                    >
+                      {operator ? (
+                        <CompactOperatorAvatar operator={operator} />
+                      ) : (
+                        <span
+                          className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
+                          title={operatorId}
+                        >
+                          ?
+                        </span>
+                      )}
+                      {stageCount >= 2 && (
+                        <span
+                          className="garrison-participant-count"
+                          aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
+                          style={{
+                            position: 'absolute',
+                            right: -4,
+                            bottom: -4,
+                            display: 'grid',
+                            minWidth: 19,
+                            height: 19,
+                            placeItems: 'center',
+                            padding: '0 4px',
+                            border: '1px solid rgba(255, 255, 255, 0.42)',
+                            borderRadius: 999,
+                            color: '#fff',
+                            background: '#171719',
+                            fontSize: '0.62rem',
+                            fontWeight: 900,
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×{stageCount}
+                        </span>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </section>
 
         <div className="garrison-stage-quickadd" aria-label="Garrison stage tools">
@@ -961,10 +1156,10 @@ export default function GarrisonSquadFeature({
             <span role="columnheader">Squad</span>
             <span role="columnheader">Actions</span>
           </div>
-          {working.stages.length === 0 ? (
+          {displayedStages.length === 0 ? (
             <div className="garrison-empty-stages">No stages yet. Add a stage to begin.</div>
           ) : (
-            working.stages.map((stage) => (
+            displayedStages.map((stage) => (
               <Fragment key={stage.id}>
                 <div
                   className={[
@@ -999,14 +1194,23 @@ export default function GarrisonSquadFeature({
                       <span className="sr-only">Stage name</span>
                       <input
                         type="text"
-                        value={stage.name}
-                        disabled={stageEditor !== null || conflictDraft !== null}
-                        onChange={(event) => renameStage(stage.id, event.target.value)}
+                        value={
+                          stageEditor?.stage.id === stage.id ? stageEditor.stage.name : stage.name
+                        }
+                        disabled={
+                          (stageEditor !== null && stageEditor.stage.id !== stage.id) ||
+                          conflictDraft !== null
+                        }
+                        onChange={(event) =>
+                          stageEditor?.stage.id === stage.id
+                            ? changeStageEditor({ ...stageEditor.stage, name: event.target.value })
+                            : renameStage(stage.id, event.target.value)
+                        }
                       />
                     </label>
                   </div>
                   <div className="garrison-stage-squad-preview" role="cell">
-                    {stage.operatorIds.length === 0 ? (
+                    {stageEditor?.stage.id === stage.id ? null : stage.operatorIds.length === 0 ? (
                       <span className="garrison-stage-squad-placeholder">Empty</span>
                     ) : (
                       <div
@@ -1033,15 +1237,28 @@ export default function GarrisonSquadFeature({
                   <div className="garrison-stage-actions" role="cell">
                     <button
                       type="button"
-                      className="secondary-button"
+                      className="secondary-button garrison-stage-icon-button"
+                      aria-label={`Edit ${stage.name}`}
+                      title="Edit"
                       disabled={stageEditor !== null || conflictDraft !== null}
                       onClick={() => editStage(stage)}
                     >
-                      Edit
+                      <GarrisonActionIcon action="rename" />
                     </button>
                     <button
                       type="button"
-                      className="secondary-button"
+                      className="secondary-button garrison-stage-icon-button"
+                      aria-label={`Generate squad for ${stage.name}`}
+                      title="Generate squad · Standard / Draft"
+                      disabled={stageEditor !== null || conflictDraft !== null}
+                      onClick={() => generateStage(stage)}
+                    >
+                      <GarrisonActionIcon action="generate" />
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button garrison-stage-icon-button"
+                      aria-label={`Clear squad for ${stage.name}`}
                       disabled={
                         stageEditor !== null ||
                         conflictDraft !== null ||
@@ -1050,19 +1267,21 @@ export default function GarrisonSquadFeature({
                       onClick={() => clearStageSquad(stage.id)}
                       title={`Clear operators from ${stage.name} without deleting the stage`}
                     >
-                      Clear
+                      <GarrisonActionIcon action="clear" />
                     </button>
                     <button
                       type="button"
-                      className="danger-button"
+                      className="danger-button garrison-stage-icon-button"
+                      aria-label={`Delete ${stage.name}`}
+                      title="Delete stage"
                       disabled={stageEditor !== null || conflictDraft !== null}
                       onClick={() => deleteStage(stage.id)}
                     >
-                      Delete
+                      <GarrisonActionIcon action="delete" />
                     </button>
                   </div>
                 </div>
-                {stageEditor?.mode === 'existing' && stageEditor.stage.id === stage.id && (
+                {stageEditor?.stage.id === stage.id && (
                   <div className="garrison-stage-editor-inline" role="row">
                     <GarrisonStageEditor
                       mode={stageEditor.mode}
@@ -1083,22 +1302,6 @@ export default function GarrisonSquadFeature({
               </Fragment>
             ))
           )}
-          {stageEditor?.mode === 'new' && (
-            <div className="garrison-stage-editor-inline" role="row">
-              <GarrisonStageEditor
-                mode={stageEditor.mode}
-                stage={stageEditor.stage}
-                otherStages={working.stages}
-                duplicateOperatorsAllowed={working.duplicateOperatorsAllowed}
-                alterExclusivity={alterExclusivity}
-                operators={operators}
-                eligibleOperators={eligibleOperators}
-                onChange={changeStageEditor}
-                onCancel={cancelStageEditor}
-                onConfirm={confirmStageEditor}
-              />
-            </div>
-          )}
         </div>
 
         <button
@@ -1111,12 +1314,41 @@ export default function GarrisonSquadFeature({
         </button>
       </section>
 
+      {squadMethod && (
+        <GarrisonSquadMethodDialog
+          stage={squadMethod.stage}
+          includeManual={squadMethod.mode === 'new'}
+          onNameChange={(name) =>
+            setSquadMethod({ ...squadMethod, stage: { ...squadMethod.stage, name } })
+          }
+          onSelect={selectSquadMethod}
+          onCancel={() => setSquadMethod(null)}
+        />
+      )}
+
       {nameDialog && (
         <TextInputDialog
-          title={nameDialog.mode === 'duplicate' ? 'Duplicate Garrison' : 'Rename Garrison'}
+          title={
+            nameDialog.mode === 'new'
+              ? 'New Garrison'
+              : nameDialog.mode === 'save'
+                ? 'Save Garrison'
+                : nameDialog.mode === 'duplicate'
+                  ? 'Duplicate Garrison'
+                  : 'Rename Garrison'
+          }
           initialValue={nameDialog.initialValue}
-          inputLabel="Garrison name"
-          confirmLabel={nameDialog.mode === 'duplicate' ? 'Duplicate' : 'Rename'}
+          inputLabel="Garrison Name"
+          showInputLabel
+          confirmLabel={
+            nameDialog.mode === 'new'
+              ? 'Create'
+              : nameDialog.mode === 'save'
+                ? 'Save'
+                : nameDialog.mode === 'duplicate'
+                  ? 'Duplicate'
+                  : 'Rename'
+          }
           onCancel={() => setNameDialog(null)}
           onConfirm={confirmNameDialog}
         />

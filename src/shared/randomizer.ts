@@ -108,7 +108,8 @@ export function filterHigherLevelEligibleOperators(
   operators: Operator[],
   constraints: RandomizerConstraints,
 ): Operator[] {
-  const { server, minYear, maxYear, minDate, maxDate, ignoreBoundsForLowRarity } = constraints.release
+  const { server, minYear, maxYear, minDate, maxDate, ignoreBoundsForLowRarity } =
+    constraints.release
   const excludedSubclasses = new Set(constraints.subclass.excludedIds)
   const excludedGenders = new Set(constraints.gender?.excludedIds)
 
@@ -120,12 +121,12 @@ export function filterHigherLevelEligibleOperators(
       if (minYear !== null && (release.yearGroup === null || release.yearGroup < minYear)) {
         return false
       }
-      if (maxYear !== null && (release.yearGroup === null || release.yearGroup > maxYear)) {
-        return false
-      }
       if (minDate && (!release.date || release.date < minDate)) return false
-      if (maxDate && (!release.date || release.date > maxDate)) return false
     }
+    if (maxYear !== null && (release.yearGroup === null || release.yearGroup > maxYear)) {
+      return false
+    }
+    if (maxDate && (!release.date || release.date > maxDate)) return false
 
     if (!acquisitionEnabled(operator, constraints)) return false
 

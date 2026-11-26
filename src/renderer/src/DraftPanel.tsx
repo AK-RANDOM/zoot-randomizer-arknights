@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { useEffect, useMemo, useState } from 'react'
 import type { DraftConfigurationInput } from '../../shared/draft'
 import type { Operator, OperatorDataset } from '../../shared/operator'
@@ -12,6 +13,8 @@ import {
   type DraftPricingProfile,
 } from '../../shared/draftPricingProfile'
 import DraftSessionView from './DraftSessionView'
+import GarrisonDispatchRibbon from './GarrisonDispatchRibbon'
+import type { GarrisonDispatchControls } from './garrisonDispatch'
 import { loadSelectedDraftRulebookId, saveSelectedDraftRulebookId } from './rendererPersistence'
 import useDraftSession, { DRAFT_SESSION_RESET_EVENT } from './useDraftSession'
 
@@ -21,6 +24,8 @@ interface DraftPanelProps {
   targetSize: number
   ready: boolean
   onActiveDraftChange?: (active: boolean) => void
+  garrisonDispatch?: GarrisonDispatchControls
+  allowedOperatorIds?: ReadonlySet<string>
 }
 
 function ConfiguredRulebookDraft({
@@ -32,6 +37,8 @@ function ConfiguredRulebookDraft({
   pricingProfiles,
   rulebookControl,
   onActiveDraftChange,
+  garrisonDispatch,
+  allowedOperatorIds,
 }: {
   rulebook: DraftRulebook
   dataset: OperatorDataset | null
@@ -41,6 +48,8 @@ function ConfiguredRulebookDraft({
   pricingProfiles: readonly DraftPricingProfile[]
   rulebookControl?: React.ReactNode
   onActiveDraftChange?: (active: boolean) => void
+  garrisonDispatch?: GarrisonDispatchControls
+  allowedOperatorIds?: ReadonlySet<string>
 }): React.JSX.Element {
   const [, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -53,8 +62,15 @@ function ConfiguredRulebookDraft({
     [dataset, globalPool, pricingProfiles, rulebook],
   )
   const configuration = execution?.configuration ?? undefined
+  // Apply the Garrison restriction after resolving every Rulebook pool source.
+  const pool = useMemo(() => {
+    const resolved = execution?.pool ?? []
+    return allowedOperatorIds
+      ? resolved.filter((operator) => allowedOperatorIds.has(operator.id))
+      : resolved
+  }, [allowedOperatorIds, execution])
   const session = useDraftSession({
-    pool: execution?.pool ?? [],
+    pool,
     targetSize,
     ready: ready && dataset !== null && execution?.valid === true,
     configuration: configuration as DraftConfigurationInput | undefined,
@@ -69,23 +85,35 @@ function ConfiguredRulebookDraft({
   }, [onActiveDraftChange, session.state?.status])
 
   return (
-    <DraftSessionView
-      state={session.state}
-      completedAt={session.completedAt}
-      operators={execution?.pool ?? []}
-      targetSize={targetSize}
-      ready={ready && dataset !== null}
-      rulebook={rulebook}
-      dataset={dataset ?? undefined}
-      configuration={configuration}
-      validationErrors={execution?.validation.errors ?? []}
-      statusError={error}
-      onStart={session.start}
-      onPick={session.pick}
-      onAction={session.act}
-      onFinalize={session.finalize}
-      rulebookControl={rulebookControl}
-    />
+    <>
+      {garrisonDispatch && (
+        <GarrisonDispatchRibbon
+          controls={garrisonDispatch}
+          operatorIds={session.state?.draftedOperatorIds ?? []}
+          ready={
+            session.state?.status === 'complete' && session.state.draftedOperatorIds.length > 0
+          }
+          hint="Finish or finalize the Draft, then confirm it here."
+        />
+      )}
+      <DraftSessionView
+        state={session.state}
+        completedAt={session.completedAt}
+        operators={pool}
+        targetSize={targetSize}
+        ready={ready && dataset !== null}
+        rulebook={rulebook}
+        dataset={dataset ?? undefined}
+        configuration={configuration}
+        validationErrors={execution?.validation.errors ?? []}
+        statusError={error}
+        onStart={session.start}
+        onPick={session.pick}
+        onAction={session.act}
+        onFinalize={session.finalize}
+        rulebookControl={rulebookControl}
+      />
+    </>
   )
 }
 
@@ -95,18 +123,24 @@ export default function DraftPanel({
   targetSize,
   ready,
   onActiveDraftChange,
+  garrisonDispatch,
+  allowedOperatorIds,
 }: DraftPanelProps): React.JSX.Element {
+  const { confirmAction } = useAppDialogs()
   const [selectedId, setSelectedId] = useState(() => loadSelectedDraftRulebookId())
   const [draftActive, setDraftActive] = useState(false)
   const selected =
     BUILT_IN_DRAFT_RULEBOOKS.find((rulebook) => rulebook.identifier.id === selectedId) ??
     STANDARD_DRAFT_RULEBOOK
 
-  const selectRulebook = (rulebookId: string): void => {
+  const selectRulebook = async (rulebookId: string): Promise<void> => {
     if (rulebookId === selected.identifier.id) return
     if (
       draftActive &&
-      !window.confirm('Changing Draft Rulebook will abandon the current Draft. Continue?')
+      !(await confirmAction({
+        title: 'Change Draft Rulebook?',
+        message: 'Changing Draft Rulebook will abandon the current Draft.',
+      }))
     )
       return
     setSelectedId(rulebookId)
@@ -147,6 +181,8 @@ export default function DraftPanel({
         pricingProfiles={BUILT_IN_DRAFT_PRICING_PROFILES}
         rulebookControl={rulebookControl}
         onActiveDraftChange={handleActiveDraftChange}
+        garrisonDispatch={garrisonDispatch}
+        allowedOperatorIds={allowedOperatorIds}
       />
     </>
   )

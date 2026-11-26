@@ -1,3 +1,4 @@
+import { useAppDialogs } from './AppDialogs'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import SquadValidationBox from './SquadValidationBox'
 import { createDefaultConstraints, type RandomizerConstraints } from '../../shared/constraints'
@@ -218,6 +219,7 @@ export default function GlobalPoolFeature({
   onMessage: (message: string) => void
   onError: (message: string | null) => void
 }): React.JSX.Element {
+  const { showNotice } = useAppDialogs()
   const [activeSection, setActiveSection] = useState<GlobalPoolSection>('filter')
   const [releaseCatalog, setReleaseCatalog] = useState<{
     server: string
@@ -364,7 +366,7 @@ export default function GlobalPoolFeature({
   }
   const commitReleaseChange = (nextRelease: RandomizerConstraints['release']): boolean => {
     if (!releaseRangeIsValid(nextRelease)) {
-      window.alert(INVALID_RELEASE_RANGE_MESSAGE)
+      showNotice(INVALID_RELEASE_RANGE_MESSAGE)
       return false
     }
     mutateFilters((current) => ({ ...current, release: nextRelease }))
@@ -826,7 +828,7 @@ export default function GlobalPoolFeature({
                   })
                 }
               />
-              <span>Ignore release bounds for 4★ and below</span>
+              <span>Ignore minimum release bound for 4★ and below</span>
             </label>
           </fieldset>
 

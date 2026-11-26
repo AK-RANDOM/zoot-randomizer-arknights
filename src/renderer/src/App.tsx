@@ -1,6 +1,13 @@
+import { useAppDialogs } from './AppDialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DraftPanel from './DraftPanel'
+import DraftConfirmationDialog from './DraftConfirmationDialog'
 import GarrisonSquadFeature from './GarrisonSquadFeature'
+import {
+  garrisonDispatchPool,
+  type GarrisonDispatchRequest,
+  type GarrisonDispatchControls,
+} from './garrisonDispatch'
 import ISOpeningFeature from './ISOpeningFeature'
 import GlobalPoolFeature from './GlobalPoolFeature'
 import useCuratePresentation from './useCuratePresentation'
@@ -40,6 +47,13 @@ const WINDOWS_DOWNLOAD_NOTICE = 'web-windows-download-banner'
 
 type AppTab = 'squads' | 'setup' | 'options'
 type SquadMode = 'standard' | 'garrison' | 'draft' | 'is-opening'
+type PendingNavigation = { tab: AppTab } | { mode: SquadMode }
+
+interface GarrisonDispatchSession {
+  request: GarrisonDispatchRequest
+  constraints: RandomizerConstraints
+  pool: Operator[]
+}
 
 function displayDate(value: string | null | undefined): string {
   if (!value) return 'unknown'
@@ -48,6 +62,7 @@ function displayDate(value: string | null | undefined): string {
 }
 
 export default function App(): React.JSX.Element {
+  const { showNotice } = useAppDialogs()
   const curatePresentation = useCuratePresentation()
   const [theme, setTheme] = useState(() => loadRendererPersistence().theme)
   const [operatorPreferences, setOperatorPreferences] = useState<OperatorPreferences>(() =>
@@ -66,7 +81,9 @@ export default function App(): React.JSX.Element {
   const [squadMode, setSquadMode] = useState<SquadMode>('standard')
   const [poolRevision, setPoolRevision] = useState(0)
   const [draftActive, setDraftActive] = useState(false)
-  const [garrisonDirty, setGarrisonDirty] = useState(false)
+  const [garrisonDispatch, setGarrisonDispatch] = useState<GarrisonDispatchSession | null>(null)
+  const [retainGarrison, setRetainGarrison] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState<PendingNavigation | null>(null)
   const [showWindowsDownloadNotice, setShowWindowsDownloadNotice] = useState(
     () => window.desktop.platform === 'browser' && !warningIsDismissed(WINDOWS_DOWNLOAD_NOTICE),
   )
@@ -137,6 +154,44 @@ export default function App(): React.JSX.Element {
       setConstraints(update),
     [],
   )
+  const updateDispatchConstraints = useCallback(
+    (update: (current: RandomizerConstraints) => RandomizerConstraints): void => {
+      setGarrisonDispatch((current) =>
+        current ? { ...current, constraints: update(current.constraints) } : null,
+      )
+    },
+    [],
+  )
+  const dispatchAllowedIds = useMemo(
+    () =>
+      garrisonDispatch ? new Set(garrisonDispatch.pool.map((operator) => operator.id)) : undefined,
+    [garrisonDispatch?.pool],
+  )
+  const startGarrisonDispatch = (request: GarrisonDispatchRequest): void => {
+    setRetainGarrison(true)
+    setGarrisonDispatch({
+      request,
+      constraints: structuredClone(constraints),
+      pool: garrisonDispatchPool(finalOperatorPool, request.excludedOperatorIds),
+    })
+    setError(null)
+    setSquadMode(request.mode)
+  }
+  const cancelGarrisonDispatch = (): void => {
+    selectSquadMode('garrison')
+  }
+  const dispatchControls: GarrisonDispatchControls | undefined = garrisonDispatch
+    ? {
+        stageName: garrisonDispatch.request.stageName,
+        onCancel: cancelGarrisonDispatch,
+        onConfirm: (operatorIds) => {
+          if (!garrisonDispatch.request.onConfirm(operatorIds)) return
+          setGarrisonDispatch(null)
+          setSquadMode('garrison')
+          setError(null)
+        },
+      }
+    : undefined
   const setMetadataRegion = (server: ReleaseServer): void => {
     if (!data.dataset || server === constraints.release.server) return
     const nextRelease = remapReleaseConstraintServer(
@@ -145,7 +200,7 @@ export default function App(): React.JSX.Element {
       data.dataset.operators,
     )
     if (!releaseRangeIsValid(nextRelease)) {
-      window.alert(INVALID_RELEASE_RANGE_MESSAGE)
+      showNotice(INVALID_RELEASE_RANGE_MESSAGE)
       return
     }
     const nextPreferences = changeAppearanceRegion(
@@ -163,8 +218,6 @@ export default function App(): React.JSX.Element {
   }
   const setGameLocale = (gameLocale: GameLocale): void =>
     setOperatorPreferences((current) => ({ ...current, gameLocale }))
-  const setCurateNames = (showCurateNames: boolean): void =>
-    setOperatorPreferences((current) => ({ ...current, showCurateNames }))
   const setBulkAppearance = (choice: 'e1' | 'e2' | 'random' | 'account'): void => {
     if (!data.dataset) return
     if (choice === 'account' && !importedAccount) {
@@ -210,35 +263,55 @@ export default function App(): React.JSX.Element {
     )
   }
 
-  const confirmDraftExit = (): boolean => {
-    if (!draftActive) return true
-    if (
-      !window.confirm(
-        'A Draft round is currently in progress. Leaving this page will abandon the Draft. Continue?',
-      )
-    )
-      return false
+  const confirmDraftExit = (): void => {
+    if (!pendingNavigation) return
     window.dispatchEvent(new Event(DRAFT_SESSION_RESET_EVENT))
     setDraftActive(false)
-    return true
-  }
-  const confirmGarrisonExit = (): boolean => {
-    if (import.meta.env.PROD || !garrisonDirty) return true
-    return window.confirm(
-      'This Garrison has unsaved changes. Leaving will discard the working changes. Continue?',
-    )
+    setError(null)
+    if ('tab' in pendingNavigation) setActiveTab(pendingNavigation.tab)
+    else {
+      if (pendingNavigation.mode === 'garrison') setRetainGarrison(true)
+      setSquadMode(pendingNavigation.mode)
+    }
+    setPendingNavigation(null)
   }
   const selectMainTab = (tab: AppTab): void => {
     if (tab === activeTab) return
-    if (activeTab === 'squads' && squadMode === 'draft' && !confirmDraftExit()) return
-    if (activeTab === 'squads' && squadMode === 'garrison' && !confirmGarrisonExit()) return
+    if (garrisonDispatch) {
+      setPendingNavigation({ tab })
+      return
+    }
+    if (activeTab === 'squads' && squadMode === 'draft' && draftActive) {
+      setPendingNavigation({ tab })
+      return
+    }
+    setGarrisonDispatch(null)
+    setError(null)
     setActiveTab(tab)
   }
   const selectSquadMode = (mode: SquadMode): void => {
     if (mode === squadMode) return
-    if (squadMode === 'draft' && !confirmDraftExit()) return
-    if (squadMode === 'garrison' && !confirmGarrisonExit()) return
+    if (garrisonDispatch) {
+      setPendingNavigation({ mode })
+      return
+    }
+    if (squadMode === 'draft' && draftActive) {
+      setPendingNavigation({ mode })
+      return
+    }
+    if (mode === 'garrison') setRetainGarrison(true)
+    setGarrisonDispatch(null)
+    setError(null)
     setSquadMode(mode)
+  }
+  const confirmDispatchNavigation = (): void => {
+    if (!pendingNavigation) return
+    setGarrisonDispatch(null)
+    setError(null)
+    setMessage('Squad generation discarded; the Garrison stage was not changed.')
+    if ('tab' in pendingNavigation) setActiveTab(pendingNavigation.tab)
+    else setSquadMode(pendingNavigation.mode)
+    setPendingNavigation(null)
   }
 
   return (
@@ -259,8 +332,7 @@ export default function App(): React.JSX.Element {
       {showWindowsDownloadNotice && (
         <aside className="windows-download-notice" aria-label="Windows app available">
           <p>
-            <strong>Windows app available.</strong> Download it from Options to sync your Arknights
-            account.
+            <strong>Windows app available.</strong> Download the standalone app from Options.
           </p>
           <button
             className="secondary-button"
@@ -320,26 +392,30 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'squads' && squadMode === 'standard' && (
         <StandardSquadFeature
+          key={garrisonDispatch ? 'garrison' : 'standard'}
           dataset={data.dataset}
-          constraints={constraints}
-          finalOperatorPool={finalOperatorPool}
+          constraints={garrisonDispatch?.constraints ?? constraints}
+          finalOperatorPool={garrisonDispatch?.pool ?? finalOperatorPool}
           resetRevision={poolRevision + data.updateRevision}
-          onConstraintsChange={updateConstraints}
+          onConstraintsChange={garrisonDispatch ? updateDispatchConstraints : updateConstraints}
+          garrisonDispatch={dispatchControls}
           onMessage={setMessage}
           onError={setError}
         />
       )}
 
-      {activeTab === 'squads' && squadMode === 'garrison' && (
-        <GarrisonSquadFeature
-          operators={data.dataset?.operators ?? []}
-          eligibleOperators={finalOperatorPool}
-          alterExclusivity={constraints.alterExclusivity}
-          metadataRegion={operatorPreferences.metadataRegion}
-          gameLocale={operatorPreferences.gameLocale}
-          onDirtyChange={setGarrisonDirty}
-          onMessage={setMessage}
-        />
+      {(retainGarrison || (activeTab === 'squads' && squadMode === 'garrison')) && (
+        <div hidden={activeTab !== 'squads' || squadMode !== 'garrison'}>
+          <GarrisonSquadFeature
+            operators={data.dataset?.operators ?? []}
+            eligibleOperators={finalOperatorPool}
+            alterExclusivity={constraints.alterExclusivity}
+            metadataRegion={operatorPreferences.metadataRegion}
+            gameLocale={operatorPreferences.gameLocale}
+            onMessage={setMessage}
+            onDispatch={startGarrisonDispatch}
+          />
+        </div>
       )}
 
       {activeTab === 'squads' && squadMode === 'is-opening' && (
@@ -356,8 +432,11 @@ export default function App(): React.JSX.Element {
 
       {activeTab === 'squads' && squadMode === 'draft' && (
         <DraftPanel
+          key={garrisonDispatch ? 'garrison' : 'draft'}
           dataset={data.dataset}
-          operators={finalOperatorPool}
+          operators={garrisonDispatch?.pool ?? finalOperatorPool}
+          allowedOperatorIds={dispatchAllowedIds}
+          garrisonDispatch={dispatchControls}
           targetSize={DEFAULT_DRAFT_TARGET_SIZE}
           ready={data.dataset !== null}
           onActiveDraftChange={setDraftActive}
@@ -378,7 +457,7 @@ export default function App(): React.JSX.Element {
                 accountProgressionRank(next.accountProgressionMax) <
                 accountProgressionRank(next.accountProgressionMin)
               ) {
-                window.alert(
+                showNotice(
                   'Invalid account progression range\n\nEnd progression cannot be lower than Start progression.',
                 )
                 return
@@ -402,8 +481,39 @@ export default function App(): React.JSX.Element {
           onThemeChange={changeTheme}
           onMetadataRegionChange={setMetadataRegion}
           onGameLocaleChange={setGameLocale}
-          onCurateNamesChange={setCurateNames}
           onBulkAppearanceChange={setBulkAppearance}
+        />
+      )}
+
+      {pendingNavigation && !garrisonDispatch && (
+        <DraftConfirmationDialog
+          copy={{
+            title: 'Abandon this Draft?',
+            body: 'A Draft round is currently in progress. Leaving this page will abandon the Draft. Continue?',
+            confirmLabel: 'Abandon & Leave',
+            suppressionLabel: '',
+          }}
+          allowSuppression={false}
+          suppressSession={false}
+          onSuppressSessionChange={() => {}}
+          onCancel={() => setPendingNavigation(null)}
+          onConfirm={confirmDraftExit}
+        />
+      )}
+
+      {pendingNavigation && garrisonDispatch && (
+        <DraftConfirmationDialog
+          copy={{
+            title: 'Discard this Garrison squad attempt?',
+            body: `Leaving squad generation for “${garrisonDispatch.request.stageName}” will discard the unconfirmed squad. The Garrison stage will stay unchanged.`,
+            confirmLabel: 'Discard & Leave',
+            suppressionLabel: '',
+          }}
+          allowSuppression={false}
+          suppressSession={false}
+          onSuppressSessionChange={() => {}}
+          onCancel={() => setPendingNavigation(null)}
+          onConfirm={confirmDispatchNavigation}
         />
       )}
 

@@ -12,27 +12,6 @@ const PRIMARY_SLOT_COUNT = GARRISON_STAGE_CAPACITY - 1
 
 type StageEditorMode = 'new' | 'existing'
 
-function StageNameInput({
-  value,
-  onChange,
-}: {
-  value: string
-  onChange: (value: string) => void
-}): React.JSX.Element {
-  return (
-    <label className="garrison-stage-editor-title">
-      <span className="sr-only">Stage name</span>
-      <input
-        type="text"
-        value={value}
-        placeholder="Stage name"
-        aria-label="Stage name"
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
-  )
-}
-
 function conflictReason(stageNames: readonly string[]): string {
   return `Assigned to ${stageNames.join(', ')}`
 }
@@ -229,8 +208,6 @@ export default function GarrisonStageEditor({
       aria-label={`${mode === 'new' ? 'Add' : 'Edit'} Garrison stage`}
     >
       <div className="draft-selected-squad">
-        <StageNameInput value={stage.name} onChange={(name) => onChange({ ...stage, name })} />
-
         <div className="draft-squad-layout draft-squad-layout--with-capacity">
           <div className="draft-squad-grid" aria-label="Garrison stage squad slots 1 through 12">
             {Array.from({ length: PRIMARY_SLOT_COUNT }, (_, slotIndex) => rosterSlot(slotIndex))}

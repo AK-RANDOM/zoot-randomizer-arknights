@@ -51,6 +51,7 @@ export default function DraftOperatorCard({
 
   return (
     <OperatorCard
+      responsiveCompact
       operator={operator}
       interactionDetails={interactionDetails}
       variant="draft-compact"

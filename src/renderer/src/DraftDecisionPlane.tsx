@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type {
   DraftAction,
   DraftLimitedActionRules,
@@ -22,6 +22,7 @@ const holdIconUrl = new URL('./assets/draft/hold-icon.png', import.meta.url).hre
 const forfeitIconUrl = new URL('./assets/draft/forfeit-icon.png', import.meta.url).href
 
 interface DraftDecisionPlaneProps {
+  progress?: ReactNode
   state: DraftState
   operators: readonly Operator[]
   rulebook: DraftRulebook
@@ -95,6 +96,7 @@ function ForfeitSurface({
 }
 
 export default function DraftDecisionPlane({
+  progress,
   state,
   operators,
   rulebook,
@@ -132,6 +134,7 @@ export default function DraftDecisionPlane({
 
   return (
     <div className="draft-decision-plane" style={planeStyle} aria-label="Current Draft decision">
+      {progress}
       <section
         className="draft-decision-group draft-decision-group--offers"
         aria-label="Current offers"

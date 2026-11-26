@@ -15,8 +15,9 @@ describe('Garrison Squad M5 persistence and polish', () => {
   it('confirms deletion before removing a populated stage', () => {
     const feature = read('./GarrisonSquadFeature.tsx')
     expect(feature).toContain('stage.operatorIds.length > 0')
+    expect(feature).toContain('title: `Delete stage “${stage.name}”?`')
     expect(feature).toContain(
-      'Delete stage “${stage.name}” and its ${stage.operatorIds.length} assigned operator',
+      'This removes the stage and its ${stage.operatorIds.length} operator assignment',
     )
     expect(feature).toContain('Deleted stage “${stage.name}” from the working Garrison')
   })
@@ -52,7 +53,7 @@ describe('Garrison Squad M5 persistence and polish', () => {
     const css = read('./GarrisonSquadFeature.css')
     expect(css).toContain('text-overflow: ellipsis')
     expect(css).toContain('@media (max-width: 820px)')
-    expect(css).toContain('overflow-x: auto')
+    expect(css).toContain('flex-wrap: wrap')
     expect(css).toContain('.garrison-conflict-summary-row')
   })
 })

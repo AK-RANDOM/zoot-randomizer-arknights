@@ -367,8 +367,8 @@ export default function ISOpeningFeature({
   return (
     <section className="panel squad-panel is-opening" aria-label="IS Opening">
       <div className="preset-toolbar is-opening__toolbar">
-        <div className="field is-opening__inline-field is-opening__theme">
-          <span>THEME</span>
+        <span className="preset-toolbar-label">Theme</span>
+        <div className="preset-select is-opening__theme">
           <EventSelectorDropdown
             label="Theme"
             showLabel={false}
@@ -398,6 +398,7 @@ export default function ISOpeningFeature({
           />
         </div>
         <label className="field is-opening__difficulty">
+          <span className="mode-toolbar-secondary-label">Difficulty</span>
           <select
             aria-label="Difficulty Level"
             value={difficultyLevel}
@@ -412,26 +413,7 @@ export default function ISOpeningFeature({
             ))}
           </select>
         </label>
-        <div className="is-opening__toolbar-actions">
-          <SquadShareButton
-            result={
-              generatedAt && current.every(Boolean)
-                ? {
-                    mode: 'IS Opening',
-                    generatedAt,
-                    members: current,
-                    opening: {
-                      theme: `IS${theme.number}: ${theme.name}`,
-                      squad: squad.name,
-                      squadIconUrl: isSquadArtUrl(squad),
-                      voucherSet: theme.voucherSets.find((set) => set.id === voucherSetId)!.name,
-                      voucherSetIconUrl: isVoucherSetArtUrl(voucherSetId),
-                      startingHope,
-                    },
-                  }
-                : null
-            }
-          />
+        <div className="mode-primary-actions is-opening__toolbar-actions">
           <button
             type="button"
             className="randomize-button"
@@ -460,6 +442,25 @@ export default function ISOpeningFeature({
           >
             Randomize All
           </button>
+          <SquadShareButton
+            result={
+              generatedAt && current.every(Boolean)
+                ? {
+                    mode: 'IS Opening',
+                    generatedAt,
+                    members: current,
+                    opening: {
+                      theme: `IS${theme.number}: ${theme.name}`,
+                      squad: squad.name,
+                      squadIconUrl: isSquadArtUrl(squad),
+                      voucherSet: theme.voucherSets.find((set) => set.id === voucherSetId)!.name,
+                      voucherSetIconUrl: isVoucherSetArtUrl(voucherSetId),
+                      startingHope,
+                    },
+                  }
+                : null
+            }
+          />
         </div>
       </div>
       <div className="is-opening__columns">
@@ -488,6 +489,11 @@ export default function ISOpeningFeature({
             <p className="is-opening__squad-description">{squad.description}</p>
           </div>
           <div className="draft-operator-actions is-opening__choice-actions is-opening__control-box">
+            <KeepButton
+              label="squad"
+              kept={keptSquad}
+              onClick={() => setKeptSquad((value) => !value)}
+            />
             <button
               className="draft-operator-action draft-operator-action--pick"
               type="button"
@@ -512,11 +518,6 @@ export default function ISOpeningFeature({
             >
               Reroll
             </button>
-            <KeepButton
-              label="squad"
-              kept={keptSquad}
-              onClick={() => setKeptSquad((value) => !value)}
-            />
           </div>
         </div>
         <div className="is-opening__recruitment">
@@ -535,6 +536,11 @@ export default function ISOpeningFeature({
               />
             </div>
             <div className="draft-operator-actions is-opening__choice-actions">
+              <KeepButton
+                label="voucher set"
+                kept={keptVouchers}
+                onClick={() => setKeptVouchers((value) => !value)}
+              />
               <button
                 className="draft-operator-action draft-operator-action--pick"
                 type="button"
@@ -558,11 +564,6 @@ export default function ISOpeningFeature({
               >
                 Reroll
               </button>
-              <KeepButton
-                label="voucher set"
-                kept={keptVouchers}
-                onClick={() => setKeptVouchers((value) => !value)}
-              />
             </div>
           </div>
           <div className="is-opening__recruitment-details">
@@ -701,7 +702,7 @@ export default function ISOpeningFeature({
                       />
                     ) : (
                       <div
-                        className="slot-config-card standard-slot-action-card is-opening__voucher-card"
+                        className="slot-config-card standard-slot-action-card is-opening__voucher-card operator-card operator-card--portrait operator-card--framed"
                         tabIndex={0}
                         aria-label={`Slot ${index + 1}: ${operatorClass ?? 'Choose voucher'}`}
                       >
@@ -712,7 +713,23 @@ export default function ISOpeningFeature({
                             alt={`${operatorClass ?? 'Recruitment'} voucher`}
                           />
                         </div>
-                        <strong>{operatorClass ?? 'Choose voucher'}</strong>
+                        {operatorClass ? (
+                          <ClassIcon
+                            operatorClass={operatorClass}
+                            className="operator-card__class-icon"
+                          />
+                        ) : (
+                          <span className="operator-card__class-icon">{index + 1}</span>
+                        )}
+                        <div className="operator-card__caption">
+                          <div className="operator-card__name-viewport">
+                            <strong>
+                              <span className="operator-card__name-text">
+                                {operatorClass ?? 'Choose voucher'}
+                              </span>
+                            </strong>
+                          </div>
+                        </div>
                         <div className="standard-slot-actions-overlay">{actions}</div>
                       </div>
                     )}
@@ -807,7 +824,7 @@ export default function ISOpeningFeature({
               <div className="slot-editor-section is-opening__class-picker">
                 {operatorClasses.map((value) => (
                   <button
-                    className="secondary-button"
+                    className="operator-selector-option is-opening__class-option"
                     key={value}
                     aria-label={value}
                     type="button"
@@ -823,8 +840,10 @@ export default function ISOpeningFeature({
                       onError(null)
                     }}
                   >
-                    <ClassIcon operatorClass={value} />
-                    {value}
+                    <ClassIcon operatorClass={value} className="is-opening__class-thumbnail" />
+                    <span className="operator-selector-copy">
+                      <strong>{value}</strong>
+                    </span>
                   </button>
                 ))}
               </div>

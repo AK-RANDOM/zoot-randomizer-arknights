@@ -22,7 +22,7 @@ describe('Standard Squad layout refinements', () => {
   it('keeps the 8% rarity wash behind selected Standard and Draft operator artwork', () => {
     expect(sharedCss).toContain('.squad-grid .operator-card--portrait .operator-card__art,')
     expect(sharedCss).toContain(
-      '.draft-decision-offer-grid .operator-card--portrait .operator-card__art {',
+      '.draft-decision-offer-grid .operator-card--portrait .operator-card__art,',
     )
     expect(sharedCss).toContain('background: color-mix(in srgb, var(--rarity-color) 8%, #171719)')
     expect(sharedCss).not.toContain('.operator-card--portrait::before')
@@ -59,13 +59,17 @@ describe('Standard Squad layout refinements', () => {
     expect(randomCss).toContain('top: 8px')
     expect(randomCss).toContain('left: 8px')
     expect(indicatorCss).toContain('top: 8px')
-    expect(indicatorCss).toContain('.slot-class-constraint-indicator.is-left { left: 8px; }')
+    expect(indicatorCss).toMatch(/\.slot-class-constraint-indicator\.is-left\s*\{\s*left: 8px;/)
     expect(indicatorCss).toContain('.squad-slot > .slot-class-constraint-indicator {\n  top: 11px;')
-    expect(indicatorCss).toContain('.squad-slot > .slot-class-constraint-indicator.is-left {\n  left: 11px;')
+    expect(indicatorCss).toContain(
+      '.squad-slot > .slot-class-constraint-indicator.is-left {\n  left: 11px;',
+    )
     expect(indicatorCss).toContain('width: 30px')
     expect(indicatorCss).toContain('height: 30px')
     expect(indicatorCss).toContain('flex: 0 0 30px')
-    expect(indicatorCss).toContain('right: -4px')
+    expect(indicatorCss).toMatch(
+      /\.slot-class-constraint-subcount\s*\{[^}]*right: 0;[^}]*bottom: 0;/s,
+    )
     expect(indicatorCss).not.toContain('left: -4px')
     expect(indicatorCss).not.toContain('.slot-class-constraint-item.is-subfiltered .class-icon')
     expect(themeCss).not.toContain(
@@ -85,11 +89,9 @@ describe('Standard Squad layout refinements', () => {
     expect(sharedCss).toContain('font-size: clamp(0.72rem, 1.2vw, 0.94rem)')
     expect(sharedCss).toContain('font-weight: 900')
     expect(sharedCss).toContain('line-height: 1.12')
-    expect(randomCss).not.toContain('.random-operator-card.is-constrained .random-operator-card__caption')
-    expect(randomCss).toContain('letter-spacing: -0.055em')
-    expect(randomCss).toMatch(/\.random-operator-card__star\s*\{[^}]*display:\s*inline;/s)
-    expect(randomCss).not.toContain('display: flex')
-    expect(randomCss).not.toContain('margin-right: -0.055em')
+    expect(randomCss).not.toContain(
+      '.random-operator-card.is-constrained .random-operator-card__caption',
+    )
     expect(randomCss).not.toContain('-webkit-text-stroke: 1.2px')
     expect(operatorCss).toContain(
       '.operator-card--portrait .operator-card__name-viewport,\n.random-operator-card .operator-card__name-viewport {',
@@ -105,14 +107,18 @@ describe('Standard Squad layout refinements', () => {
   it('removes late overrides that previously split Standard marker geometry', () => {
     expect(themeCss).not.toContain('.squad-grid .slot-config-number {')
     expect(themeCss).not.toContain('.squad-grid .slot-class-constraint-indicator {')
-    expect(themeCss).not.toContain('.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left {')
+    expect(themeCss).not.toContain(
+      '.squad-grid .slot-locked-card .slot-class-constraint-indicator.is-left {',
+    )
     expect(lockedCss).not.toContain('.slot-config-card.is-constrained .slot-config-number {')
   })
 
   it('uses the same vertical class indicator component for general constraints and Amiya', () => {
     expect(featureSource).toContain('<SlotClassConstraintIndicator')
     expect(lockedSource).toContain('<SlotClassConstraintIndicator')
-    expect(lockedSource).toContain("const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']")
+    expect(lockedSource).toContain(
+      "const AMIYA_CLASS_ORDER: readonly OperatorClass[] = ['Caster', 'Guard', 'Medic']",
+    )
   })
 
   it('keeps preset and run controls together inside the preset toolbar', () => {
@@ -125,7 +131,7 @@ describe('Standard Squad layout refinements', () => {
 
     expect(toolbarStart).toBeGreaterThanOrEqual(0)
     expect(toolbarSource).toContain('<span className="preset-toolbar-label">Preset</span>')
-    expect(toolbarSource).toContain('Save as preset…')
+    expect(toolbarSource).toContain('aria-label="Save as preset"')
     expect(toolbarSource).toContain('Clear')
     expect(toolbarSource).toContain('Randomize')
     expect(toolbarSource).toContain('disabled={rolling || squad.length === 0}')

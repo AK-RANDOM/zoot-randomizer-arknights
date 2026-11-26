@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import WebWidthGate from './WebWidthGate'
+import { AppDialogProvider } from './AppDialogs'
 import { browserApi } from './browserApi'
 import './styles.css'
 import './DraftPanel.css'
@@ -11,6 +11,12 @@ import './StandardSquadFeature.css'
 import './StandardSquadLayoutOverrides.css'
 import './PresentationPreferences.css'
 import './RendererTheme.css'
+import './StrongholdTheme.css'
+import './CompactDispatch.css'
+import './OperatorCardLayout.css'
+import './OperatorCardSurfaces.css'
+import './ModeToolbar.css'
+import './MiniOperatorCard.css'
 
 const rootElement = document.getElementById('root')!
 if (__WEB_BUILD__) window.desktop ??= browserApi
@@ -18,8 +24,10 @@ if (__WEB_BUILD__) window.desktop ??= browserApi
 if (!window.desktop) {
   rootElement.textContent = 'The Windows app could not start. Close it and try again.'
 } else {
-  const app = <App />
-  createRoot(rootElement).render(
-    <StrictMode>{__WEB_BUILD__ ? <WebWidthGate>{app}</WebWidthGate> : app}</StrictMode>,
+  const app = (
+    <AppDialogProvider>
+      <App />
+    </AppDialogProvider>
   )
+  createRoot(rootElement).render(<StrictMode>{app}</StrictMode>)
 }

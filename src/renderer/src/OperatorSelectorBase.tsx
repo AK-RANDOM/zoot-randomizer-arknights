@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Operator, OperatorClass } from '../../shared/operator'
 import ClassIcon from './ClassIcon'
-import { useOperatorAppearanceAvatar } from './operatorAppearance'
+import OperatorAvatar from './CompactOperatorAvatar'
 import './OperatorSelector.css'
 
 export interface OperatorSelectorOption {
@@ -14,34 +14,34 @@ export interface OperatorSelectorOption {
   disabledReason?: string
 }
 
-function OperatorAvatar({ operator }: { operator: Operator }): React.JSX.Element {
-  const { imageUrl } = useOperatorAppearanceAvatar(operator)
-  return imageUrl ? (
-    <img className="operator-selector-avatar" src={imageUrl} alt="" draggable={false} />
-  ) : (
-    <span
-      className="operator-selector-avatar operator-selector-avatar--fallback"
-      aria-hidden="true"
-    >
-      {operator.name.slice(0, 1)}
-    </span>
-  )
-}
-
 function optionClasses(option: OperatorSelectorOption): readonly OperatorClass[] {
   return option.classIcons?.length ? option.classIcons : [option.operator.class]
 }
 
-function OperatorClassStack({ option }: { option: OperatorSelectorOption }): React.JSX.Element {
+function OperatorClassStack({
+  option,
+  collapsed = false,
+}: {
+  option: OperatorSelectorOption
+  collapsed?: boolean
+}): React.JSX.Element {
   const classes = optionClasses(option)
+  const visibleClasses = collapsed ? classes.slice(0, 1) : classes
+  const additionalClasses = classes.length - visibleClasses.length
   return (
     <span
-      className={`operator-selector-class-stack${classes.length > 1 ? ' is-multiple' : ''}`}
+      className={`operator-selector-class-stack${visibleClasses.length > 1 ? ' is-multiple' : ''}`}
       aria-label={classes.join(', ')}
+      title={classes.join(', ')}
     >
-      {classes.map((operatorClass) => (
+      {visibleClasses.map((operatorClass) => (
         <ClassIcon key={operatorClass} operatorClass={operatorClass} />
       ))}
+      {additionalClasses > 0 && (
+        <span className="operator-selector-class-count" aria-hidden="true">
+          +{additionalClasses}
+        </span>
+      )}
     </span>
   )
 }
@@ -179,7 +179,7 @@ export default function OperatorSelector({
                     {option.disabledReason ?? 'Unavailable'}
                   </span>
                 )}
-                <OperatorClassStack option={option} />
+                <OperatorClassStack option={option} collapsed />
               </span>
             </button>
           ))}
@@ -321,7 +321,7 @@ export function OperatorMultiSelector({
                   <strong>{option.label}</strong>
                   <small>{optionMeta(option)}</small>
                 </span>
-                <OperatorClassStack option={option} />
+                <OperatorClassStack option={option} collapsed />
                 <span className="operator-selector-selection-state" aria-hidden="true">
                   {isSelected ? '✓' : '+'}
                 </span>

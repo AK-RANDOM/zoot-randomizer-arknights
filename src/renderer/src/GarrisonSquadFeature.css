@@ -108,8 +108,12 @@
   color: #66666d;
   font-size: 0.78rem;
 }
+.garrison-stage-squad-preview:has(.garrison-stage-squad-placeholder) {
+  display: none;
+}
 .garrison-stage-actions {
   display: flex;
+  grid-column: 3;
   justify-content: flex-end;
   gap: 7px;
 }
@@ -332,10 +336,22 @@
     align-self: flex-start;
   }
   .garrison-stage-row {
-    grid-template-columns: minmax(150px, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .garrison-stage-row > :last-child {
-    grid-column: 1/-1;
+  .garrison-stage-name-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .garrison-stage-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .garrison-stage-squad-preview {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .garrison-stage-row--header {
+    display: none;
   }
   .garrison-stage-editor-actions {
     grid-row: 1;

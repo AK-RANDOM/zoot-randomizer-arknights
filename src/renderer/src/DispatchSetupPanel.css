@@ -1,0 +1,187 @@
+.dispatch-setup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'settings actions' 'submenu submenu';
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dispatch-setup__heading {
+  display: none;
+}
+.dispatch-setup__bar {
+  display: contents;
+}
+.dispatch-setup__toggle {
+  display: none;
+}
+.dispatch-setup__secondary-actions {
+  display: flex;
+  align-items: center;
+}
+.dispatch-setup .dispatch-setup__secondary-actions .mode-clear-button {
+  display: inline-flex;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  min-width: 38px;
+  max-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+.dispatch-setup__settings {
+  grid-area: settings;
+  min-width: 0;
+}
+.dispatch-setup__actions {
+  grid-area: actions;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+}
+.dispatch-setup__actions .mode-primary-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.dispatch-setup__submenu {
+  grid-area: submenu;
+  min-width: 0;
+}
+.dispatch-setup__submenu:empty {
+  display: none;
+}
+.dispatch-setup .dispatch-setup__actions .mode-primary-actions > .randomize-button {
+  flex: 0 0 160px;
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 10px;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+.dispatch-setup .preset-toolbar,
+.dispatch-setup .current-constraint-summary,
+.dispatch-setup .is-opening__submenu {
+  margin-bottom: 0;
+}
+
+@container dispatch-squad (max-width: 1050px) {
+  .dispatch-setup {
+    grid-template-areas: 'bar bar' 'settings settings' 'submenu submenu';
+    align-items: center;
+  }
+  .dispatch-setup__bar {
+    grid-area: bar;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--mode-control-border, #3a3a40);
+    border-radius: 4px;
+    background: var(--mode-control-background, #0f0f11);
+  }
+  .dispatch-setup__heading {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+  }
+  .dispatch-setup__summary {
+    min-width: 0;
+    color: var(--mode-label-text, #a7a7ad);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  .dispatch-setup__summary strong {
+    display: block;
+    color: var(--mode-control-text, #f2f2f2);
+  }
+  .dispatch-setup__toggle {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    min-height: 38px;
+  }
+  .dispatch-setup__actions {
+    min-height: 0;
+    flex-wrap: wrap;
+  }
+  .dispatch-setup[data-expanded='false']
+    > :is(.dispatch-setup__settings, .dispatch-setup__submenu) {
+    display: none;
+  }
+  .dispatch-setup[data-expanded='false'] {
+    grid-template-areas: 'bar bar';
+  }
+}
+@container dispatch-squad (max-width: 500px) {
+  .dispatch-setup {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'bar' 'settings' 'submenu';
+  }
+  .dispatch-setup[data-expanded='false'] {
+    grid-template-areas: 'bar';
+  }
+  .dispatch-setup__bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dispatch-setup__actions .mode-primary-actions {
+    width: 100%;
+  }
+  .dispatch-setup__toggle {
+    flex: 1 1 0;
+    justify-content: center;
+    order: 0;
+  }
+  .dispatch-setup__secondary-actions {
+    order: 1;
+  }
+  .dispatch-setup__actions .mode-primary-actions {
+    order: 2;
+  }
+  .dispatch-setup .dispatch-setup__actions .mode-primary-actions > .randomize-button {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+.dispatch-setup[data-mode='standard'] .preset-toolbar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.dispatch-setup[data-mode='standard'] .preset-toolbar > .preset-toolbar-label {
+  flex: 0 0 64px;
+}
+.dispatch-setup[data-mode='standard'] .preset-toolbar > .preset-select {
+  flex: 1 1 200px;
+  min-width: min(100%, 200px);
+  max-width: none;
+}
+.dispatch-setup[data-mode='standard'] .preset-toolbar > .preset-actions {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+}
+.dispatch-setup[data-mode='standard'] .preset-actions > button {
+  width: auto;
+}
+.dispatch-setup[data-mode='standard'] .preset-actions > .mode-icon-button {
+  width: 32px;
+}

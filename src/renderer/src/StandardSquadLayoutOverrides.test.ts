@@ -121,12 +121,9 @@ describe('Standard Squad layout refinements', () => {
     )
   })
 
-  it('keeps preset and run controls together inside the preset toolbar', () => {
-    const toolbarStart = featureSource.indexOf('<div className="preset-toolbar"')
-    const toolbarEnd = featureSource.indexOf(
-      '<div className="current-constraint-summary"',
-      toolbarStart,
-    )
+  it('keeps preset and run controls in the shared setup panel with persistent actions', () => {
+    const toolbarStart = featureSource.indexOf('<DispatchSetupPanel')
+    const toolbarEnd = featureSource.indexOf('</DispatchSetupPanel>', toolbarStart)
     const toolbarSource = featureSource.slice(toolbarStart, toolbarEnd)
 
     expect(toolbarStart).toBeGreaterThanOrEqual(0)

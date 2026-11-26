@@ -1,3 +1,4 @@
+import DispatchSetupPanel from './DispatchSetupPanel'
 import { useAppDialogs } from './AppDialogs'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import type { DragEvent, KeyboardEvent } from 'react'
@@ -842,96 +843,18 @@ export default function GarrisonSquadFeature({
           </div>
         </div>
 
-        <div className="preset-toolbar garrison-toolbar">
-          <span className="preset-toolbar-label">Garrison</span>
-          <label className="preset-select">
-            <span className="sr-only">Saved Garrison</span>
-            <select
-              value={selectedGarrisonId ?? 'new'}
-              disabled={stageEditor !== null || conflictDraft !== null}
-              onChange={async (event) => {
-                const select = event.currentTarget
-                const id = select.value
-                if (id === 'new') {
-                  if (selectedGarrisonId === null) return
-                  beginNewGarrison()
-                  return
-                }
-                const garrison = library.find((candidate) => candidate.id === id)
-                if (garrison && !(await confirmDiscardIfNeeded(() => loadGarrison(garrison)))) {
-                  select.value = selectedGarrisonId ?? 'new'
-                }
-              }}
-            >
-              <option value="new">
-                {selectedGarrisonId === null && working.name !== 'Untitled Garrison'
-                  ? working.name
-                  : 'New Garrison'}
-              </option>
-              {library.length > 0 && (
-                <optgroup label="Saved">
-                  {library.map((garrison) => (
-                    <option key={garrison.id} value={garrison.id}>
-                      {garrison.id === selectedGarrisonId ? working.name : garrison.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </label>
-          <div className="preset-actions">
-            <button
-              type="button"
-              className="secondary-button garrison-library-action"
-              aria-label="New Garrison"
-              title="New Garrison"
-              disabled={stageEditor !== null || conflictDraft !== null}
-              onClick={beginNewGarrison}
-            >
-              <GarrisonActionIcon action="new" />
-            </button>
-            <button
-              type="button"
-              className="secondary-button garrison-library-action"
-              aria-label="Duplicate Garrison"
-              title="Duplicate Garrison"
-              disabled={stageEditor !== null || conflictDraft !== null}
-              onClick={() =>
-                setNameDialog({ mode: 'duplicate', initialValue: `${working.name} copy` })
-              }
-            >
-              <GarrisonActionIcon action="duplicate" />
-            </button>
-            <button
-              type="button"
-              className="secondary-button garrison-library-action"
-              aria-label="Rename Garrison"
-              title="Rename Garrison"
-              disabled={stageEditor !== null || conflictDraft !== null}
-              onClick={() => setNameDialog({ mode: 'rename', initialValue: working.name })}
-            >
-              <GarrisonActionIcon action="rename" />
-            </button>
-            <button
-              type="button"
-              className="secondary-button garrison-library-action garrison-library-action--delete"
-              aria-label="Delete Garrison"
-              title="Delete Garrison"
-              disabled={!selectedGarrison || stageEditor !== null || conflictDraft !== null}
-              onClick={deleteSelectedGarrison}
-            >
-              <GarrisonActionIcon action="delete" />
-            </button>
-            <label className="garrison-repeat-toggle mode-checkbox">
-              <input
-                type="checkbox"
-                checked={working.duplicateOperatorsAllowed}
-                disabled={stageEditor !== null || conflictDraft !== null}
-                onChange={(event) => changeDuplicatePolicy(event.target.checked)}
-              />
-              <span>Allow duplicates</span>
-            </label>
-            <span className="preset-actions-spacer" aria-hidden="true" />
+        <DispatchSetupPanel
+          mode="garrison"
+          summary={
+            <>
+              <strong>{working.name}</strong>
+              <span>
+                {working.stages.length} stages · Duplicates{' '}
+                {working.duplicateOperatorsAllowed ? 'allowed' : 'off'}
+              </span>
+            </>
+          }
+          actions={
             <div className="mode-primary-actions">
               <button
                 type="button"
@@ -982,84 +905,180 @@ export default function GarrisonSquadFeature({
                 }
               />
             </div>
-          </div>
-        </div>
-
-        <section
-          className="current-constraint-summary garrison-participation-summary"
-          aria-labelledby="garrison-participants-heading"
-        >
-          <div className="current-constraint-summary-content">
-            <strong className="constraint-summary-heading" id="garrison-participants-heading">
-              Participating Operators
-            </strong>
-            <div className="constraint-summary-chips">
-              <span className="constraint-summary-chip">
-                {working.stages.length} {working.stages.length === 1 ? 'stage' : 'stages'}
-              </span>
-              <span className="constraint-summary-chip">
-                {participation.length} unique operators
-              </span>
-            </div>
-            {participation.length === 0 ? (
-              <p>No operators assigned yet.</p>
-            ) : (
-              <div
-                className="garrison-participant-list"
-                aria-label="Participating operators by stage count"
+          }
+          submenu={
+            <>
+              <section
+                className="current-constraint-summary garrison-participation-summary"
+                aria-labelledby="garrison-participants-heading"
               >
-                {participation.map(({ operatorId, stageCount }) => {
-                  const operator = operatorById.get(operatorId)
-                  const label = operator?.name ?? operatorId
-                  return (
-                    <span
-                      className="garrison-participant-entry"
-                      key={operatorId}
-                      title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
-                      style={{ position: 'relative', display: 'inline-flex' }}
-                    >
-                      {operator ? (
-                        <CompactOperatorAvatar operator={operator} />
-                      ) : (
-                        <span
-                          className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
-                          title={operatorId}
-                        >
-                          ?
-                        </span>
-                      )}
-                      {stageCount >= 2 && (
-                        <span
-                          className="garrison-participant-count"
-                          aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
-                          style={{
-                            position: 'absolute',
-                            right: -4,
-                            bottom: -4,
-                            display: 'grid',
-                            minWidth: 19,
-                            height: 19,
-                            placeItems: 'center',
-                            padding: '0 4px',
-                            border: '1px solid rgba(255, 255, 255, 0.42)',
-                            borderRadius: 999,
-                            color: '#fff',
-                            background: '#171719',
-                            fontSize: '0.62rem',
-                            fontWeight: 900,
-                            lineHeight: 1,
-                          }}
-                        >
-                          ×{stageCount}
-                        </span>
-                      )}
+                <div className="current-constraint-summary-content">
+                  <strong className="constraint-summary-heading" id="garrison-participants-heading">
+                    Participating Operators
+                  </strong>
+                  <div className="constraint-summary-chips">
+                    <span className="constraint-summary-chip">
+                      {working.stages.length} {working.stages.length === 1 ? 'stage' : 'stages'}
                     </span>
-                  )
-                })}
-              </div>
-            )}
+                    <span className="constraint-summary-chip">
+                      {participation.length} unique operators
+                    </span>
+                  </div>
+                  {participation.length === 0 ? (
+                    <p>No operators assigned yet.</p>
+                  ) : (
+                    <div
+                      className="garrison-participant-list"
+                      aria-label="Participating operators by stage count"
+                    >
+                      {participation.map(({ operatorId, stageCount }) => {
+                        const operator = operatorById.get(operatorId)
+                        const label = operator?.name ?? operatorId
+                        return (
+                          <span
+                            className="garrison-participant-entry"
+                            key={operatorId}
+                            title={`${label} — ${stageCount} ${stageCount === 1 ? 'stage' : 'stages'}`}
+                            style={{ position: 'relative', display: 'inline-flex' }}
+                          >
+                            {operator ? (
+                              <CompactOperatorAvatar operator={operator} />
+                            ) : (
+                              <span
+                                className="release-representative draft-history__operator-icon garrison-stage-missing-icon"
+                                title={operatorId}
+                              >
+                                ?
+                              </span>
+                            )}
+                            {stageCount >= 2 && (
+                              <span
+                                className="garrison-participant-count"
+                                aria-label={`${stageCount} participating ${stageCount === 1 ? 'stage' : 'stages'}`}
+                                style={{
+                                  position: 'absolute',
+                                  right: -4,
+                                  bottom: -4,
+                                  display: 'grid',
+                                  minWidth: 19,
+                                  height: 19,
+                                  placeItems: 'center',
+                                  padding: '0 4px',
+                                  border: '1px solid rgba(255, 255, 255, 0.42)',
+                                  borderRadius: 999,
+                                  color: '#fff',
+                                  background: '#171719',
+                                  fontSize: '0.62rem',
+                                  fontWeight: 900,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                ×{stageCount}
+                              </span>
+                            )}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </section>
+            </>
+          }
+        >
+          <div className="preset-toolbar garrison-toolbar">
+            <span className="preset-toolbar-label">Garrison</span>
+            <label className="preset-select">
+              <span className="sr-only">Saved Garrison</span>
+              <select
+                value={selectedGarrisonId ?? 'new'}
+                disabled={stageEditor !== null || conflictDraft !== null}
+                onChange={async (event) => {
+                  const select = event.currentTarget
+                  const id = select.value
+                  if (id === 'new') {
+                    if (selectedGarrisonId === null) return
+                    beginNewGarrison()
+                    return
+                  }
+                  const garrison = library.find((candidate) => candidate.id === id)
+                  if (garrison && !(await confirmDiscardIfNeeded(() => loadGarrison(garrison)))) {
+                    select.value = selectedGarrisonId ?? 'new'
+                  }
+                }}
+              >
+                <option value="new">
+                  {selectedGarrisonId === null && working.name !== 'Untitled Garrison'
+                    ? working.name
+                    : 'New Garrison'}
+                </option>
+                {library.length > 0 && (
+                  <optgroup label="Saved">
+                    {library.map((garrison) => (
+                      <option key={garrison.id} value={garrison.id}>
+                        {garrison.id === selectedGarrisonId ? working.name : garrison.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </label>
+            <div className="preset-actions">
+              <button
+                type="button"
+                className="secondary-button garrison-library-action"
+                aria-label="New Garrison"
+                title="New Garrison"
+                disabled={stageEditor !== null || conflictDraft !== null}
+                onClick={beginNewGarrison}
+              >
+                <GarrisonActionIcon action="new" />
+              </button>
+              <button
+                type="button"
+                className="secondary-button garrison-library-action"
+                aria-label="Duplicate Garrison"
+                title="Duplicate Garrison"
+                disabled={stageEditor !== null || conflictDraft !== null}
+                onClick={() =>
+                  setNameDialog({ mode: 'duplicate', initialValue: `${working.name} copy` })
+                }
+              >
+                <GarrisonActionIcon action="duplicate" />
+              </button>
+              <button
+                type="button"
+                className="secondary-button garrison-library-action"
+                aria-label="Rename Garrison"
+                title="Rename Garrison"
+                disabled={stageEditor !== null || conflictDraft !== null}
+                onClick={() => setNameDialog({ mode: 'rename', initialValue: working.name })}
+              >
+                <GarrisonActionIcon action="rename" />
+              </button>
+              <button
+                type="button"
+                className="secondary-button garrison-library-action garrison-library-action--delete"
+                aria-label="Delete Garrison"
+                title="Delete Garrison"
+                disabled={!selectedGarrison || stageEditor !== null || conflictDraft !== null}
+                onClick={deleteSelectedGarrison}
+              >
+                <GarrisonActionIcon action="delete" />
+              </button>
+              <label className="garrison-repeat-toggle mode-checkbox">
+                <input
+                  type="checkbox"
+                  checked={working.duplicateOperatorsAllowed}
+                  disabled={stageEditor !== null || conflictDraft !== null}
+                  onChange={(event) => changeDuplicatePolicy(event.target.checked)}
+                />
+                <span>Allow duplicates</span>
+              </label>
+              <span className="preset-actions-spacer" aria-hidden="true" />
+            </div>
           </div>
-        </section>
+        </DispatchSetupPanel>
 
         <div className="garrison-stage-quickadd" aria-label="Garrison stage tools">
           <div className="garrison-event-picker">

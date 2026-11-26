@@ -8,26 +8,26 @@
   display: none;
 }
 
-.squad-panel > .preset-toolbar {
+.squad-panel .preset-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.squad-panel > .preset-toolbar > .preset-toolbar-label {
+.squad-panel .preset-toolbar > .preset-toolbar-label {
   margin-right: 2px;
 }
 
-.squad-panel > .preset-toolbar > .preset-select {
+.squad-panel .preset-toolbar > .preset-select {
   flex: 0 1 300px;
   min-width: 250px;
 }
 
-.squad-panel > .preset-toolbar > .preset-select select {
+.squad-panel .preset-toolbar > .preset-select select {
   width: 100%;
 }
 
-.squad-panel > .preset-toolbar > .preset-actions {
+.squad-panel .preset-toolbar > .preset-actions {
   display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;
@@ -37,17 +37,17 @@
   min-width: 0;
 }
 
-.squad-panel > .preset-toolbar .preset-actions-spacer {
+.squad-panel .preset-toolbar .preset-actions-spacer {
   flex: 1 1 auto;
 }
 
-.squad-panel > .preset-toolbar .confirmation-checkbox {
+.squad-panel .preset-toolbar .confirmation-checkbox {
   min-height: 38px;
   margin: 0;
 }
 
-.squad-panel > .preset-toolbar .danger-button,
-.squad-panel > .preset-toolbar .randomize-button {
+.squad-panel .preset-toolbar .danger-button,
+.squad-panel .preset-toolbar .randomize-button {
   min-height: 38px;
   white-space: nowrap;
 }
@@ -91,43 +91,43 @@
 }
 
 @media (max-width: 960px) {
-  .squad-panel > .preset-toolbar {
+  .squad-panel .preset-toolbar {
     flex-wrap: wrap;
   }
 
-  .squad-panel > .preset-toolbar > .preset-select {
+  .squad-panel .preset-toolbar > .preset-select {
     flex: 1 1 250px;
   }
 
-  .squad-panel > .preset-toolbar > .preset-actions {
+  .squad-panel .preset-toolbar > .preset-actions {
     flex: 1 1 100%;
   }
 }
 
 @media (max-width: 680px) {
-  .squad-panel > .preset-toolbar {
+  .squad-panel .preset-toolbar {
     align-items: stretch;
   }
 
-  .squad-panel > .preset-toolbar > .preset-toolbar-label {
+  .squad-panel .preset-toolbar > .preset-toolbar-label {
     align-self: center;
   }
 
-  .squad-panel > .preset-toolbar > .preset-select {
+  .squad-panel .preset-toolbar > .preset-select {
     flex: 1 1 calc(100% - 64px);
     min-width: 0;
   }
 
-  .squad-panel > .preset-toolbar > .preset-actions {
+  .squad-panel .preset-toolbar > .preset-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .squad-panel > .preset-toolbar .preset-actions-spacer {
+  .squad-panel .preset-toolbar .preset-actions-spacer {
     display: none;
   }
 
-  .squad-panel > .preset-toolbar > .preset-actions > button {
+  .squad-panel .preset-toolbar > .preset-actions > button {
     width: 100%;
   }
 
